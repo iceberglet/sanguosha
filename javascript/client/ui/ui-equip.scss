@@ -1,0 +1,42 @@
+.ui-equip-grid {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    .equip {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        flex-direction: row-reverse;
+        position: relative;
+
+        .suit {
+            width: 24px;
+            height: 24px;
+            position: relative;
+            right: 4%;
+            margin-top: -4px;
+        }
+    
+        .number {
+            font-family: sans-serif;
+            font-weight: 600;
+            text-shadow: 0px 0px 4px white;
+            position: relative;
+            right: 5%;
+        }
+
+        .heart {
+            color: red
+        }
+        .diamond {
+            color: red;
+        }
+        .club {
+            color: black
+        }
+        .spade {
+            color: black;
+        }
+    }
+}
