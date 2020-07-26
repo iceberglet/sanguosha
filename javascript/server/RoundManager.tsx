@@ -1,5 +1,4 @@
-import Operation, { OperationHint } from "./Operation";
-import GameContext, { PlayerInfo } from "../common/GameContext";
+import GameContext from "../common/GameContext";
 import { enumValues } from "../common/util/Util";
 
 export enum Stage {

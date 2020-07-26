@@ -9,13 +9,13 @@
         align-items: center;
         flex-direction: row-reverse;
         position: relative;
+        height: 25%;
 
         .suit {
             width: 24px;
             height: 24px;
             position: relative;
             right: 4%;
-            margin-top: -4px;
         }
     
         .number {

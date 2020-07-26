@@ -63,6 +63,7 @@ export class OperationType {
     public static EQUIP : OperationType = new OperationType('equip', '装备')
     //use skill or item
     public static USE : OperationType = new OperationType('use', '使用')
+    public static DECISION : OperationType = new OperationType('decision', '选择')
 
     private constructor(id: string, name: string) {
 

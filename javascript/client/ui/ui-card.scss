@@ -1,7 +1,9 @@
 .ui-card-row {
     position: relative;
-    padding: 5px;
+    padding-left: 20px;
     display: flex;
+    height: 100%;
+    align-items: center;
 }
 
 
@@ -30,8 +32,8 @@
         .suit {
             width: 24px;
             height: 24px;
-            margin-top: -6px;
-            margin-left: -6px;
+            margin-top: -8px;
+            margin-left: -4px;
         }
     
         .number {
@@ -51,4 +53,8 @@
     }
 
 
+}
+
+.judge-cards {
+    margin-right: 2px;
 }

@@ -1,4 +1,8 @@
-class AbilityManagerClass {
+import {PlayerActionDriver} from "../client/player-actions/PlayerAction"
+import GameContext from "./GameContext"
+
+
+class SkillManagerClass {
 
     allAbilities: Map<string, Ability> = new Map()
 
@@ -10,10 +14,11 @@ class AbilityManagerClass {
     }
 }
 
-export const AbilityManager = new AbilityManagerClass()
+export const SkillManager = new SkillManagerClass()
 
 export abstract class Ability {
 
+    isProactive: boolean = false
     //锁定技
     isLocked: boolean = false
     //限定技
@@ -23,10 +28,13 @@ export abstract class Ability {
     //觉醒技
     isAwaken: boolean = false
 
-    protected constructor(name: string) {
-        AbilityManager.allAbilities.set(name, this)
+    protected constructor(public id: string, public name: string, public desc: string) {
+        SkillManager.allAbilities.set(name, this)
         console.log(`Registered Ability ${name}`)
     }
+
+    //client usage
+    public abstract createDriver(context: GameContext): PlayerActionDriver
 }
 
 require.context('./abilities', true, /\.tsx$/).keys().forEach(element => {

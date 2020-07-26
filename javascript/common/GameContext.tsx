@@ -1,7 +1,6 @@
-import Player, { Identity } from "./Player";
-import { General } from "./GeneralManager";
-import Card, { cardManager, CardGenre } from "./cards/Card";
+import Card, { cardManager } from "./cards/Card";
 import { shuffle, takeFromArray } from "./util/Util";
+import { PlayerInfo } from "./PlayerInfo";
 
 
 
@@ -94,79 +93,5 @@ export default class GameContext {
     //也就观星用用吧？？
     placeCardsAtDeckBtm(ids: number[]) {
 
-    }
-}
-
-//手牌？ 判定？ 装备？ 田？ 权？ 七星？
-export type CardPos = 'deckTop' | 'deckBtm' | 'dropped' | 'workflow' | 'hand' | 'equip' | 'judge' | 'field' | 'power' | 'star'
-
-export class PlayerInfo {
-    hp: number
-    maxHp: number
-    cards = new Map<CardPos, Card[]>()
-    isTurnedOver: boolean = false
-    isDead: boolean = false
-
-    constructor(
-        public player: Player, 
-        public identity: Identity, 
-        public general: General) {
-        this.hp = general.hp
-        this.maxHp = general.hp
-    }
-
-    heal(amount: number) {
-        //sometimes max hp changes O.o
-        this.hp = Math.min(this.maxHp, this.hp + amount)
-    }
-
-    damage(amount: number) {
-        this.hp = this.hp - amount
-    }
-
-    changeMax(delta: number) {
-        this.maxHp += delta
-        this.hp = Math.min(this.hp, this.maxHp)
-    }
-
-    addCard(card: Card, pos: CardPos) {
-        if(pos === 'deckTop' || pos ==='deckBtm' || pos === 'dropped') {
-            throw `Invalid Position. Player can't get cards to position ${pos}`
-        }
-        //todo: validate for equip + judge cards
-        let arr = this.cards.get(pos) || []
-        arr.push(card)
-        this.cards.set(pos, arr)
-    }
-
-    removeCard(cardId: string) {
-        let found = false
-        this.cards.forEach(cs => {
-            if(takeFromArray(cs, c => c.id === cardId)) {
-                found = true
-            }
-        })
-
-        if(!found) {
-            throw `Cannot find card to remove ${cardId} in player ${this}`
-        }
-    }
-
-    findCardAt(pos: CardPos, genre: CardGenre): Card {
-        return this.cards.get(pos)?.find(c => c.type.genre === genre)
-    }
-
-    findCard(cardId: string): Card {
-        this.cards.forEach(cs => {
-            let c = cs.find(c => c.id === cardId)
-            if(c) {
-                return c
-            }
-        })
-        return null
-    }
-
-    isDying(): boolean {
-        return this.hp <= 0
     }
 }

@@ -54,7 +54,7 @@
 
         .chat-logger {
             // same as .my-status
-            width: 240px;
+            width: 360px;
             // border: 1px solid lime;
             position: relative;
             background-color: rgba(59, 30, 30, 0.884);
@@ -64,68 +64,50 @@
 
     .btm {
         position: relative;
-        height: 190px;
+        height: 250px;
         display: flex;
+        align-items: flex-end;
 
-        .my-equip {
+        .mid {
             position: relative;
             width: 240px;
+            height: 180px;
             background-color: rgba(56, 52, 29, 0.767);
             box-shadow: inset 0px 0px 10px #9a9a9a;
-            font-size: 18px;
-            // border: 1px solid red;
+
+            .my-judge {
+                height: 40px;
+                display: flex;
+            }
+
+            .my-equip {
+                height: 140px;
+                font-size: 18px;
+                // border: 1px solid red;
+            }
         }
+
 
         .my-cards {
             position: relative;
+            height: 180px;
             flex-grow: 1;
             background-color: #161616a2;
             box-shadow: inset 0px 0px 10px #9a9a9a;
             // border: 1px solid red;
         }
 
-        .my-judge {
+        .buttons {
             position: absolute;
-            // border: 1px solid blue;
-            left: 0px;
-            top: -20px;
-            width: 400px;
-            height: 25px;
-        }
+            background-color: rgba(59, 30, 30, 0.884);
+            top: 0px;
+            right: 0px;
+            width: 360px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
 
-        .my-status {
-            position: relative;
-            width: 240px;
-            overflow: hidden;
-
-            .avatar {
-                position: absolute;
-                width: 250%;
-                height: 250%;
-                background-size: contain;
-                top: -12%;
-                left: -18%;
-            }
-
-            .hp-container {
-                position: absolute;
-                right: 0px;
-                bottom: 0px;
-                width: 24px;
-                height: 100%;
-
-                
-                .hp {
-                    height: 28px;
-                    margin-right: 2px;
-                }
-            }
-
-            .skills-container {
-                position: absolute;
-                bottom: 0px;
-                width: 100%;
-            }
         }
     }
 }
@@ -176,13 +158,14 @@
         left: 0px;
         width: 20px;
         text-indent: 30px;
+        letter-spacing: 2px;
         display: flex;
         align-items: center;
         height: 120px;
         writing-mode: vertical-rl;
         text-orientation: upright;
         background-image: linear-gradient(#656565, #3a3a3a, #9c9c9c00);
-        color: white;
+        color: rgb(231, 227, 165);
     }
 
     .identity {
@@ -200,15 +183,42 @@
 
     .player-hp {
         position: absolute;
-        right: 0px;
+        right: 1px;
         bottom: 0px;
         width: 18px;
         height: 100%;
+        font-size: 16px;
 
         .hp {
-            height: 23px;
+            height: 20px;
             margin-right: 2px;
+            margin-bottom: 1px;
+            align-items: center;
+            display: flex;
+            justify-content: center;
+            font-weight: 600;
         }
+    }
+
+    .judge {
+        position: absolute;
+        bottom: -8px;
+        right: 4px;
+        height: 12px;
+    }
+
+    .hand {
+        position: absolute;
+        bottom: 80px;
+        height: 18px;
+        width: 26px;
+        background: linear-gradient(to right, #19c736da, #128a26);
+        font-family: initial;
+        font-size: 15px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-left: -7px;
     }
 
     .equipments {
@@ -219,15 +229,59 @@
         font-size: 12px;
         height: 80px;
     }
+
+    .distance {
+        background: rgba(12, 12, 12, 0.459);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+    }
 }
 
 .hp-col {
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.719);
+    background: rgba(0, 0, 0, 0.801);
     position: absolute;
     bottom: 0px;
     width: 100%;
-    padding: 1px;
+    padding-top: 3px;
     border-radius: 3px 0px 0px 0px;
+    padding-left: 1px;
 }
+
+.ui-button {
+    font-family: HuaWenLiShu;
+    font-size: 21px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    background: #653b3b;
+    border: 1px solid #a27373;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100px;
+}
+
+.ui-button:hover {
+    background: #6e4b4b;
+}
+
+.ui-button:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.ui-button:active {
+    background: white;
+    color: gold;
+}
+
+.ui-button:disabled,
+.ui-button[disabled] {
+    background: rgb(78, 78, 78);
+    color: lightgray;
+}
+

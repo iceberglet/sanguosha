@@ -17,6 +17,14 @@ export default function UIHpCol(p: Prop){
     }
 
     // console.log(p.current, p.total, color)
+    if(p.total > 5) {
+        return <div className='hp-col'>
+                <div className='hp' style={{color}}>{p.current}</div>
+                <div className='hp' style={{color}}>/</div>
+                <div className='hp' style={{color}}>{p.total}</div>
+                <img className='hp' src={`icons/hp_${color}.png`} />
+        </div>
+    }
 
     return <div className='hp-col'>
         {

@@ -98,6 +98,10 @@ export class CardType {
     public IsNonDelayedRuse(): boolean {
         return this.genre === 'single-immediate-ruse' || this.genre === 'group-ruse'
     }
+
+    public IsDelayedRuse(): boolean {
+        return this.genre === 'single-delay-ruse'
+    }
 }
 
 export default class Card {
