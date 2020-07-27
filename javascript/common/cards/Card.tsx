@@ -1,6 +1,6 @@
 import { shuffle } from "../util/Util"
 
-export type CardGenre = 'normal' | 'single-immediate-ruse' | 'single-delay-ruse' | 'group-ruse' | 'horse+1' | 'horse-1' | 'weapon' | 'shield'
+export type CardGenre = 'basic' | 'single-immediate-ruse' | 'single-delay-ruse' | 'group-ruse' | 'horse+1' | 'horse-1' | 'weapon' | 'shield'
 
 export type Suit = 'club' | 'spade' | 'heart' | 'diamond'
 
@@ -23,12 +23,12 @@ export class CardSize {
 
 export class CardType {
 
-    public static SLASH = new CardType('slash', '杀', 'normal')
-    public static SLASH_FIRE = new CardType('slash_fire', '火杀', 'normal')
-    public static SLASH_THUNDER = new CardType('slash_thunder', '雷杀', 'normal')
-    public static DODGE = new CardType('dodge', '闪', 'normal')
-    public static PEACH = new CardType('peach', '桃', 'normal')
-    public static WINE = new CardType('wine', '酒', 'normal')
+    public static SLASH = new CardType('slash', '杀', 'basic')
+    public static SLASH_FIRE = new CardType('slash_fire', '火杀', 'basic')
+    public static SLASH_THUNDER = new CardType('slash_thunder', '雷杀', 'basic')
+    public static DODGE = new CardType('dodge', '闪', 'basic')
+    public static PEACH = new CardType('peach', '桃', 'basic')
+    public static WINE = new CardType('wine', '酒', 'basic')
 
     public static TENG_JIA = new CardType('teng_jia', '藤甲', 'shield')
     public static BA_GUA = new CardType('ba_gua', '八卦阵', 'shield')
@@ -87,20 +87,28 @@ export class CardType {
         public genre: CardGenre
         ) {}
 
-    public IsNormal(): boolean {
+    public isEquipment(): boolean {
         return this.genre === 'horse+1' || this.genre === 'horse-1' || this.genre === 'weapon' || this.genre === 'shield'
     }
 
-    public IsRuse(): boolean {
+    public isRuse(): boolean {
         return this.genre === 'single-delay-ruse' || this.genre === 'single-immediate-ruse' || this.genre === 'group-ruse'
     }
 
-    public IsNonDelayedRuse(): boolean {
+    public isNonDelayedRuse(): boolean {
         return this.genre === 'single-immediate-ruse' || this.genre === 'group-ruse'
     }
 
-    public IsDelayedRuse(): boolean {
+    public isDelayedRuse(): boolean {
         return this.genre === 'single-delay-ruse'
+    }
+
+    public isSlash(): boolean {
+        return this === CardType.SLASH || this === CardType.SLASH_FIRE || this === CardType.SLASH_THUNDER
+    }
+
+    public isBasic(): boolean {
+        return this.genre === 'basic'
     }
 }
 
@@ -108,7 +116,16 @@ export default class Card {
     static counter = 0
     public id: string
     public constructor(public readonly suit: Suit, public readonly size: CardSize, public readonly type: CardType){
+        //因为存在花色大小种类完全一样的牌， 所以需要这样加以区分
         this.id = [Card.counter++, suit, size.symbol, type.name].join('_')
+    }
+    public isOneOf(...types: CardType[]) {
+        for(let t of types) {
+            if(this.type === t) {
+                return true
+            }
+        }
+        return false
     }
 }
 

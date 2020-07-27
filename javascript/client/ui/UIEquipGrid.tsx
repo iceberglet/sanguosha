@@ -1,6 +1,7 @@
 import * as React from 'react'
 import Card from '../../common/cards/Card'
 import './ui-equip.scss'
+import { Suits } from '../../common/util/Util'
 
 type EquipGridProp = {
     cards: Card[]
@@ -32,6 +33,6 @@ function Equip(p: EquipProp) {
     return <div className='equip'>
         <img className='occupy' src={`equips/${p.card.type.id}.png`} alt={p.card.type.id} />
         <div className={'number ' + p.card.suit}>{p.card.size.symbol}</div>
-        <img className='suit' src={`icons/${p.card.suit}.png`} alt={p.card.suit}/>
+        <div className={'suit ' + p.card.suit}>{Suits[p.card.suit]}</div>
     </div>
 }

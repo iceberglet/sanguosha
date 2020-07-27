@@ -6,6 +6,14 @@
     align-items: center;
 }
 
+.ui-card.selectable {
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.ui-card.selected {
+    transform: translate(0px, -30px);
+}
 
 .ui-card {
     width: 100px;
@@ -24,16 +32,17 @@
     .top-left-container {
         position: absolute;
         top: 2px;
-        left: 4px;
+        left: 2px;
         display: flex;
         flex-direction: column;
         align-items: center;
 
         .suit {
-            width: 24px;
-            height: 24px;
-            margin-top: -8px;
-            margin-left: -4px;
+            font-weight: 600;
+            font-size: 20px;
+            text-shadow: 0px 0px 4px white;
+            margin-top: -6px;
+            margin-left: 2px;
         }
     
         .number {
@@ -41,7 +50,7 @@
             font-weight: 600;
             font-size: 18px;
             text-shadow: 0px 0px 4px white;
-            margin-left: -5px;
+            letter-spacing: -2px;
         }
 
         .heart {

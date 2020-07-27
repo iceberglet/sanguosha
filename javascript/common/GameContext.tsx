@@ -1,6 +1,7 @@
 import Card, { cardManager } from "./cards/Card";
 import { shuffle, takeFromArray } from "./util/Util";
 import { PlayerInfo } from "./PlayerInfo";
+import { ServerHint } from "./ServerHint";
 
 
 
@@ -14,11 +15,13 @@ export default class GameContext {
 
     deck: Card[]
     dropped: Card[]
+    /**
+     * Current Server Hint
+     */
+    serverHint: ServerHint
 
     //------------- listeners -------------------
     
-
-    //------------- flow queue ------------------
 
     constructor(public readonly playerInfos: PlayerInfo[]) {
 

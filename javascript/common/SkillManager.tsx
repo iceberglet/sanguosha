@@ -1,4 +1,4 @@
-import {PlayerActionDriver} from "../client/player-actions/PlayerAction"
+import {PlayerActionDriver} from "../client/player-actions/PlayerActionDriver"
 import GameContext from "./GameContext"
 
 

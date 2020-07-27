@@ -52,7 +52,7 @@ export class PlayerInfo {
         if(pos === 'judge') {
             if(as) {
                 this.judges.push({card, as})
-            } else if(card.type.IsDelayedRuse()) {
+            } else if(card.type.isDelayedRuse()) {
                 this.judges.push({card, as: card.type.id as DelayedRuse})
             } else {
                 throw `Invalid... trying to add judge card but it's not a judge card nor pretending to be one [${card}] [${as}]`
@@ -81,6 +81,11 @@ export class PlayerInfo {
         }
     }
 
+    getReach(): number {
+        let weapon = this.getCards('equip').find(c => c.type.genre === 'weapon')
+        return weapon? weapon.type.distance : 1
+    }
+
     getCards(pos: CardPos): Card[] {
         return this.cards.get(pos) || []
     }
@@ -94,12 +99,12 @@ export class PlayerInfo {
     }
 
     findCard(cardId: string): Card {
-        this.cards.forEach(cs => {
-            let c = cs.find(c => c.id === cardId)
+        for(let kv of this.cards) {
+            let c = kv[1].find(c => c.id === cardId)
             if(c) {
                 return c
             }
-        })
+        }
         return null
     }
 

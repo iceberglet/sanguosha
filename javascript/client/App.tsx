@@ -5,14 +5,16 @@ import Player, { Identity } from '../common/Player';
 import { General } from '../common/GeneralManager'
 import Card, { cardManager, CardSize, CardType } from '../common/cards/Card';
 import { PlayerInfo } from '../common/PlayerInfo';
+import GameClientContext from './player-actions/GameClientContext';
 
 export default function App() {
     let p = new Player('tester-1')
+    let cards = cardManager.getShuffledDeck()
     let player = new PlayerInfo(p, Identity.ZHU_GONG, General.standard_zhang_liao)
-    player.addCard(cardManager.getShuffledDeck()[0], 'hand')
-    player.addCard(cardManager.getShuffledDeck()[0], 'hand')
-    player.addCard(cardManager.getShuffledDeck()[0], 'hand')
-    player.addCard(cardManager.getShuffledDeck()[0], 'hand')
+    player.addCard(cards.find(c => c.type === CardType.SLASH), 'hand')
+    player.addCard(cards.find(c => c.type === CardType.WAN_JIAN), 'hand')
+    player.addCard(cards.find(c => c.type === CardType.DODGE), 'hand')
+    player.addCard(cards.find(c => c.type === CardType.PEACH), 'hand')
     player.addCard(new Card('diamond', CardSize.FIVE, CardType.GUAN_SHI), 'equip')
     player.addCard(new Card('spade', CardSize.SIX, CardType.LE_BU), 'judge')
     player.addCard(new Card('heart', CardSize.QUEEN, CardType.SHAN_DIAN), 'judge')
@@ -43,7 +45,7 @@ export default function App() {
 
     let player8 = new PlayerInfo(new Player('tester-8'), Identity.FAN_ZEI, General.standard_xu_chu)
 
-    let context = new GameContext([player, player2, player3, player4, player5, player6, player7, player8])
+    let context = new GameClientContext(player, [player, player2, player3, player4, player5, player6, player7, player8])
     return <UIBoard 
         context={context}
         myId={p.id}

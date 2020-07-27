@@ -1,5 +1,5 @@
 import { Ability } from "../SkillManager";
-import { PlayerActionDriver } from "../../client/player-actions/PlayerAction";
+import { PlayerActionDriver } from "../../client/player-actions/PlayerActionDriver";
 
 class TianDu extends Ability {
 

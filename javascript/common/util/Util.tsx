@@ -1,3 +1,5 @@
+import * as React from 'react'
+
 export function shuffle<T>(array: T[]): T[] {
     var currentIndex = array.length, temporaryValue, randomIndex;
   
@@ -34,3 +36,17 @@ export function getNext<T>(arr: T[], curr: number): T {
 }
 
 export type EventCall<T> = (t: T)=>void
+
+export const Suits = {
+  heart: '\u2665',
+  spade: '\u2660',
+  diamond: '\u2666',
+  club: '\u2663'
+}
+
+export function Mask(prop: {isMasked: boolean}) {
+  if(prop.isMasked) {
+    return <div className='occupy mask'/>
+  }
+  return null
+}

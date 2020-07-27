@@ -1,77 +1,91 @@
 import * as React from 'react'
-import GameContext from '../../common/GameContext'
-import UIHpCol from './UIHpCol'
 import UICardRow, { UIMarkRow } from './UICardRow'
 
 import './ui-board.scss'
 import UIEquipGrid from './UIEquipGrid'
-import { getOffset } from './UIOffset'
-import { PlayerInfo } from '../../common/PlayerInfo'
 import { UIMyPlayerCard } from './UIMyPlayerCard'
 import UIButton from './UIButton'
+import UIPlayGround, { ScreenPosObtainer } from './UIPlayGround' 
+import GameClientContext from '../player-actions/GameClientContext'
+import { UIPosition } from '../player-actions/PlayerUIAction'
+import { Clickability } from '../player-actions/PlayerActionDriver'
 
 type UIBoardProp = {
     myId: string
-    context: GameContext
+    context: GameClientContext
 }
 
-type Pos = {
-    playerId: string,
-    x: number,
-    y: number
+export class ElementStatus {
+    public static SELECTED = new ElementStatus('selected', true)
+    public static UNSELECTED = new ElementStatus('unselected', true)
+    //cannot select, grayed out
+    public static DISABLED = new ElementStatus('disabled', false)
+    //cannot select but no visual cue
+    public static NORMAL = new ElementStatus('normal', false)
+
+    private constructor(public readonly name: string, public readonly isSelectable: boolean) {}
 }
 
-class ScreenPosObtainer {
-    getters = new Map<string, ()=>Pos>()
-    registerObtainer(id: string, getter: ()=>Pos) {
-        this.getters.set(id, getter)
+export class Checker {
+    public constructor(private areaAction: UIPosition, 
+        private context: GameClientContext,
+        private callback: ()=>void){}
+
+    getStatus(itemId: string): ElementStatus {
+        // console.log(itemId, Clickability[this.context.canBeClicked(this.areaAction, itemId)])
+        switch(this.context.canBeClicked(this.areaAction, itemId)) {
+            case Clickability.CLICKABLE:
+                if(this.context.isSelected(this.areaAction, itemId)) {
+                    return ElementStatus.SELECTED
+                } else {
+                    return ElementStatus.UNSELECTED
+                }
+            case Clickability.NOT_CLICKABLE:
+                return ElementStatus.NORMAL
+            case Clickability.DISABLED:
+                return ElementStatus.DISABLED
+        }
     }
-    getPos(id: string): Pos {
-        return this.getters.get(id)()
+    onClicked(itemId: string): void {
+        this.context.onClicked(this.areaAction, itemId)
+        this.callback()
     }
 }
 
-export default class UIBoard extends React.Component<UIBoardProp, object> {
-
-    screenPosObtainer: ScreenPosObtainer
-
-    state = {
-        hideCards: false,
-        showDistance: false
-    }
+export default class UIBoard extends React.Component<UIBoardProp, any> {
 
     constructor(p: UIBoardProp) {
         super(p)
-        this.screenPosObtainer = new ScreenPosObtainer()
-    }
-
-    getOthers(): PlayerInfo[] {
-        let {myId, context} = this.props
+        let {myId, context} = p
         let idx = context.playerInfos.findIndex(p => p.player.id === myId)
-        return [...context.playerInfos.slice(idx + 1), ...context.playerInfos.slice(0, idx)]
-    }
-
-    computeDist = (otherPlayer: string): number => {
-        let {myId, context} = this.props
-        return context.computeDistance(myId, otherPlayer)
+        this.state = {
+            hideCards: false,
+            showDistance: false,
+            screenPosObtainer: new ScreenPosObtainer(),
+            playerChecker: new Checker(UIPosition.PLAYER, context, ()=>this.forceUpdate()),
+            cardsChecker: new Checker(UIPosition.MY_HAND, context, ()=>this.forceUpdate()),
+            others: [...context.playerInfos.slice(idx + 1), ...context.playerInfos.slice(0, idx)]
+        }
     }
 
     render() {
         let {myId, context} = this.props
-        let {showDistance, hideCards} = this.state
+        let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker} = this.state
         let playerInfo = context.getPlayer(myId)
 
-        return <div className='board occupy' style={{}}>
+        return <div className='board occupy noselect' style={{}}>
             <div className='top'>
-                <UIPlayGround players={this.getOthers()} distanceComputer={this.computeDist} 
-                                screenPosObtainer={this.screenPosObtainer} showDist={showDistance}/>)
+                <UIPlayGround players={others} distanceComputer={context.getMyDistanceTo} 
+                                screenPosObtainer={screenPosObtainer} showDist={showDistance}
+                                checker={playerChecker}/>)
                 <div className='chat-logger'>
                     {/* <img className='occupy' src={'ui/container-horizontal.png'}/> */}
                 </div>
             </div>
             <div className='btm'>
                 {/* 状态 */}
-                <UIMyPlayerCard info={playerInfo} onUseSkill={(s)=>{}}/>
+                <UIMyPlayerCard info={playerInfo} onUseSkill={(s)=>{}} elementStatus={playerChecker.getStatus(myId)} 
+                                onSelect={(s)=>playerChecker.onClicked(s)}/>
                 <div className='mid'>
                     {/* 判定牌 */}
                     <div className='my-judge'>
@@ -84,7 +98,7 @@ export default class UIBoard extends React.Component<UIBoardProp, object> {
                 </div>
                 {/* 手牌 */}
                 <div className='my-cards'>
-                    <UICardRow cards={playerInfo.getCards('hand')} isShown={!hideCards}/>
+                    <UICardRow cards={playerInfo.getCards('hand')} isShown={!hideCards} checker={cardsChecker}/>
                 </div>
                 <div className='buttons'>
                     <UIButton display={showDistance? '隐藏距离' : '显示距离'} 
@@ -95,112 +109,6 @@ export default class UIBoard extends React.Component<UIBoardProp, object> {
                             disabled={false} />
                 </div>
             </div>
-        </div>
-    }
-}
-
-type PlayGroundProp = {
-    players: PlayerInfo[],
-    distanceComputer: (s: string)=>number,
-    screenPosObtainer: ScreenPosObtainer,
-    showDist: boolean
-}
-
-class UIPlayGround extends React.Component<PlayGroundProp, object> {
-
-    render() {
-        let {players, screenPosObtainer, showDist, distanceComputer} = this.props
-        let number = players.length
-        let rows = 3
-        if(number <= 2) {
-            rows = 1
-        } else if (number <= 5) {
-            rows = 2
-        }
-
-        return <div className='playground'>
-            {/* render top row, row-reverse */}
-            <div className='top-row'>
-            {
-                players.filter((p, i) => i >= rows - 1 && i <= players.length - rows)
-                    .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} screenPosObtainer={screenPosObtainer}/>)
-            }
-            </div>
-            <div className='secondary-row go-up'>
-            {
-                rows > 2 && players.filter((p, i) => i === 1 || i === players.length - 2)
-                    .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} screenPosObtainer={screenPosObtainer}/>)
-            }
-            </div>
-            <div className='secondary-row'>
-            {
-                rows > 1 && players.filter((p, i) => i === 0 || i === players.length - 1)
-                    .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} screenPosObtainer={screenPosObtainer}/>)
-            }
-            </div>
-            {/* render any cards on the table */}
-            {/* render any effects */}
-        </div>
-    }
-
-}
-
-type CardProp = {
-    info: PlayerInfo,
-    screenPosObtainer: ScreenPosObtainer,
-    dist?: number
-}
-
-export class UIPlayerCard extends React.Component<CardProp, object> {
-
-    dom: React.RefObject<any>
-
-    constructor(p: CardProp) {
-        super(p)
-        this.dom = React.createRef()
-    }
-
-    componentDidMount() {
-        this.props.screenPosObtainer.registerObtainer(this.props.info.player.id, 
-            ()=>{
-                let {top, bottom, left, right} = this.dom.current.getBoundingClientRect()
-                return {
-                    playerId: this.props.info.player.id,
-                    x: (left + right) / 2,
-                    y: (top + bottom) / 2
-                }
-            })
-    }
-
-    render() {
-        let {info, dist} = this.props
-        return <div className='ui-player-card' ref={this.dom}>
-            <div className='occupy overflow-hidden'>
-                <div className='card-avatar' 
-                    style={{backgroundImage: `url('generals/${info.general.id}.png')`, ...getOffset(info.general.id)}} />
-            </div>
-            <div className='player-name'>{info.player.name}</div>
-            <div className='general-name'>{info.general.name}</div>
-            <div className='faction' style={{backgroundImage: `url('icons/${info.general.faction.image}.png')`}} />
-            <div className='identity' style={{backgroundImage: `url('icons/${info.identity.id}.png')`}}/>
-
-            {dist && <div className='distance occupy'>{dist}</div>}
-
-            {info.isDead || 
-                <div>
-                    <div className='hand'>{info.getCards('hand').length}</div>
-                    <div className='player-hp'>
-                        <UIHpCol current={info.hp} total={info.maxHp} />
-                    </div>
-                    <div className='equipments'>
-                        <UIEquipGrid cards={info.getCards('equip')}/>
-                    </div>
-                    <div className='judge'>
-                        <UIMarkRow marks={info.getJudgeCards()} />
-                    </div>
-                </div>
-            }
-            
         </div>
     }
 }
