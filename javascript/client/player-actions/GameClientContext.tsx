@@ -18,7 +18,7 @@ export default class GameClientContext extends GameContext {
             playerId: myself.player.id,
             isSecret: false,
             hintType: 'play-hand',
-            slashNumber: 1,
+            slashNumber: 2,
             infiniteReach: true
         }
         this.currentDriver = playerActionDriverProvider.getDriver(this.serverHint)
@@ -43,9 +43,13 @@ export default class GameClientContext extends GameContext {
         }
     }
 
+    public getButtons() {
+        return this.currentDriver.getUsableButtons()
+    }
+
     //-------- Interactions with server -----------
     public submitAction(action: PlayerAction) {
-
+        console.warn('[Client] Submitting Action To Server', action)
     }
 
     public onServerHint(hint: ServerHint) {

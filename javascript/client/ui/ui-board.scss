@@ -97,6 +97,18 @@
             // border: 1px solid red;
         }
 
+        .player-buttons {
+            position: absolute;
+            top: 0px;
+            left: 220px;    //ui-my-player-card#width
+            right: 360px;   //.buttons#width
+            height: 70px;
+            display: flex;
+            align-items: center;
+            // justify-content: space-around;
+            justify-content: center;
+        }
+
         .buttons {
             position: absolute;
             background-color: rgba(59, 30, 30, 0.884);
@@ -281,6 +293,7 @@
     border-radius: 5px;
     cursor: pointer;
     width: 100px;
+    margin-right: 5px;
 }
 
 .ui-button:hover {

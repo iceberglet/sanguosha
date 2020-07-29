@@ -64,13 +64,14 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             screenPosObtainer: new ScreenPosObtainer(),
             playerChecker: new Checker(UIPosition.PLAYER, context, ()=>this.forceUpdate()),
             cardsChecker: new Checker(UIPosition.MY_HAND, context, ()=>this.forceUpdate()),
+            buttonChecker: new Checker(UIPosition.BUTTONS, context, ()=>this.forceUpdate()),
             others: [...context.playerInfos.slice(idx + 1), ...context.playerInfos.slice(0, idx)]
         }
     }
 
     render() {
         let {myId, context} = this.props
-        let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker} = this.state
+        let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker} = this.state
         let playerInfo = context.getPlayer(myId)
 
         return <div className='board occupy noselect' style={{}}>
@@ -99,6 +100,12 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                 {/* 手牌 */}
                 <div className='my-cards'>
                     <UICardRow cards={playerInfo.getCards('hand')} isShown={!hideCards} checker={cardsChecker}/>
+                </div>
+                <div className='player-buttons'>
+                    {context.getButtons().map(b => {
+                        return <UIButton key={b.id} display={b.display} onClick={()=>buttonChecker.onClicked(b.id)} 
+                        disabled={!buttonChecker.getStatus(b.id).isSelectable} />
+                    })}
                 </div>
                 <div className='buttons'>
                     <UIButton display={showDistance? '隐藏距离' : '显示距离'} 

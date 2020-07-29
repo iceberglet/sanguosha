@@ -17,13 +17,32 @@ playerActionDriverProvider.registerProvider('play-hand', (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段出杀')
             .expectChoose(UIPosition.MY_HAND, 1, 1, (id)=>cardManager.getCard(id).type.isSlash())
             .expectChoose(UIPosition.PLAYER, 1, hint.slashNumber, slashTargetFilter)
-            .expectChoose(UIPosition.BUTTONS, 1, 1, (id, context)=>id === Button.OK.id || id === Button.CANCEL.id)
+            .expectAnyButton()
+            .build()
+})
+
+playerActionDriverProvider.registerProvider('play-hand', (hint)=>{
+    return new PlayerActionDriverDefiner('出牌阶段出范围锦囊')
+            .expectChoose(UIPosition.MY_HAND, 1, 1, (id)=>cardManager.getCard(id).type.genre === 'group-ruse')
+            .expectChoose(UIPosition.BUTTONS, 1, 1, (id, context)=>id === Button.OK.id)
             .build()
 })
 
 playerActionDriverProvider.registerProvider('play-hand', (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段吃桃')
             .expectChoose(UIPosition.MY_HAND, 1, 1, (id, context)=>{
+                return context.myself.hp < context.myself.maxHp && cardManager.getCard(id).type === CardType.PEACH
+            })
+            .expectChoose(UIPosition.BUTTONS, 1, 1, (id, context)=>id === Button.OK.id || id === Button.CANCEL.id)
+            .build()
+})
+
+playerActionDriverProvider.registerProvider('drop-cards', (hint)=>{
+    if(!hint.dropNumber) {
+        throw `Drop Number not specified in hint: ${hint.hintId}`
+    }
+    return new PlayerActionDriverDefiner('弃牌阶段选择弃牌')
+            .expectChoose(UIPosition.MY_HAND, hint.dropNumber, hint.dropNumber, (id, context)=>{
                 return context.myself.hp < context.myself.maxHp && cardManager.getCard(id).type === CardType.PEACH
             })
             .expectChoose(UIPosition.BUTTONS, 1, 1, (id, context)=>id === Button.OK.id || id === Button.CANCEL.id)

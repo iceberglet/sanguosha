@@ -2,7 +2,7 @@
 
 // export type Action = '摸排'
 import GameClientContext from "./GameClientContext"
-import { PlayerUIAction } from "./PlayerUIAction"
+import { PlayerUIAction, Button } from "./PlayerUIAction"
 
 export enum Clickability {
     CLICKABLE,
@@ -42,6 +42,11 @@ export abstract class PlayerActionDriver {
     abstract canBeClicked(action: PlayerUIAction, context: GameClientContext): Clickability
 
     abstract isSelected(action: PlayerUIAction, context: GameClientContext): boolean
+
+    /**
+     * Buttons to be displayed
+     */
+    abstract getUsableButtons(): Button[]
 }
 
 export class NoActionDriver extends PlayerActionDriver {
@@ -61,6 +66,9 @@ export class NoActionDriver extends PlayerActionDriver {
     }
     isSelected(action: PlayerUIAction, context: GameClientContext): boolean {
         return false
+    }
+    getUsableButtons(): Button[] {
+        return [Button.OK, Button.CANCEL]
     }
 }
 
@@ -135,5 +143,17 @@ export class CompositePlayerActionDriver extends PlayerActionDriver {
             return this.theOne.isSelected(action, context)
         }
         return false
+    }
+
+    getUsableButtons() {
+        if(this.theOne) {
+            return this.theOne.getUsableButtons()
+        } else {
+            let base = this.delegates[0].getUsableButtons()
+            for(let i = 1; i < this.delegates.length; ++i) {
+                base = base.filter(b => this.delegates[i].getUsableButtons().find(bb => bb.id === b.id))
+            }
+            return base
+        }
     }
 }

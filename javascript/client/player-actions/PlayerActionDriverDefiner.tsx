@@ -1,7 +1,5 @@
-import { UIPosition, PlayerUIAction, PlayerAction } from "./PlayerUIAction";
-import { PlayerActionDriver, Clickability, NoActionDriver, ClickActionResult } from "./PlayerActionDriver";
-import { cardManager, CardType } from "../../common/cards/Card";
-import { ServerHint } from "../../common/ServerHint";
+import { UIPosition, PlayerUIAction, Button, PlayerAction } from "./PlayerUIAction";
+import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerActionDriver";
 import GameClientContext from "./GameClientContext";
 import Togglable from "../../common/util/Togglable";
 
@@ -33,17 +31,27 @@ export default class PlayerActionDriverDefiner {
         return this
     }
 
-    public build(): PlayerActionDriver {
+    public expectAnyButton() {
+        return this.expectChoose(UIPosition.BUTTONS, 1, 1, b=>true)
+    }
+
+    public cannotCancel(): PlayerActionDriverDefiner {
+        this.steps[this.steps.length - 1].canCancel = false
+        return this
+    }
+
+    public build(buttons: Button[] = [Button.OK, Button.CANCEL]): PlayerActionDriver {
         if(this.steps.length === 0) {
             throw `You gotta define something!`
         }
-        return new StepByStepActionDriver(this.name, this.steps)
+        return new StepByStepActionDriver(this.name, this.steps, buttons)
     }
 }
 
 export interface Step {
     chosen: Togglable<string>
     area: UIPosition
+    canCancel: boolean
     filter: (id: string, context: GameClientContext)=>boolean
     //can click on this at the current stage
     canClick(id: string): boolean
@@ -57,6 +65,7 @@ export interface Step {
 
 export class StepDataExact implements Step {
     chosen: Togglable<string>
+    canCancel: boolean = true
     constructor(public readonly area: UIPosition,
                 public readonly exactly: number,
                 public readonly filter: (id: string, context: GameClientContext)=>boolean) {
@@ -89,8 +98,9 @@ export class StepDataExact implements Step {
     }
 }
 
-export class StepDataLoose implements Step{
+export class StepDataLoose implements Step {
     chosen: Togglable<string>
+    canCancel: boolean = true
     constructor(public readonly area: UIPosition,
                 public readonly min: number, 
                 public readonly max: number,
@@ -130,30 +140,50 @@ export class StepDataLoose implements Step{
 export class StepByStepActionDriver extends PlayerActionDriver {
     curr: number = 0
 
-    constructor(private name: string, private steps: Step[]) {
+    constructor(private name: string, private steps: Step[], private buttons: Button[]) {
         super()
     }
 
+    getUsableButtons() {
+        return this.buttons
+    }
+
     onClicked = (action: PlayerUIAction, context: GameClientContext): ClickActionResult => {
-        console.log('User Clicked on', action)
+        console.log('[Player Action] Clicked on', action)
+        //if we clicked on cancel:
+        if(action.actionArea === UIPosition.BUTTONS && action.itemId === Button.CANCEL.id) {
+            //cancel sends a message to server
+            if(!this.currentStep().canCancel) {
+                throw 'Cannot cancel at this stage!! @_@'
+            }
+            let action: PlayerAction = {
+                hintId: context.serverHint.hintId,
+                hintType: context.serverHint.hintType,
+                actionData: {
+                    [UIPosition.BUTTONS]: [Button.CANCEL.id]
+                }
+            }
+            context.submitAction(action)
+            console.log('[Player Action] Canceled. Back to server', action)
+            return ClickActionResult.DONE
+        }
+
         let idx = this.getStepInConcern(action)
         let stepData = this.steps[idx]
-        if(stepData !== this.steps[this.curr]) {
-            console.log('This is a step already done')
+        if(stepData !== this.currentStep()) {
+            console.log('[Player Action] This is a step already done')
             //an old step
             if(stepData.onRetroClick(action.itemId)) {
-                console.log('Retro operation suggests to go back to step: ', idx)
+                console.log('[Player Action] Retro operation suggests to go back to step: ', idx)
                 //clean up the subsequent choices
-                for(let i = idx + 1; i <= this.curr; ++i) {
-                    this.steps[i].chosen.clear()
-                }
+                this.cleanUpState(idx + 1)
                 this.curr = idx
             }
         } else {
-            console.log('This is the current step')
+            console.log('[Player Action] This is the current step')
             //we are at this stage!
             if(stepData.onClick(action.itemId)) {
-                console.log('Step complete, proceeding to next step')
+                console.log('[Player Action] Step complete, proceeding to next step')
                 this.curr += 1
                 if(this.curr === this.steps.length) {
                     //finish the call!
@@ -166,22 +196,26 @@ export class StepByStepActionDriver extends PlayerActionDriver {
                         hintType: context.serverHint.hintType,
                         actionData
                     }
+                    console.log('[Player Action] All steps done. Finishing the call')
                     context.submitAction(action)
-                    console.log('All steps done. Finishing the call', action)
                     return ClickActionResult.DONE
                 }
             }
         }
-        return this.curr === 0 && this.steps[this.curr].chosen.isEmpty()? ClickActionResult.AT_ZERO : ClickActionResult.PROCESSING
+        return this.curr === 0 && this.currentStep().chosen.isEmpty()? ClickActionResult.AT_ZERO : ClickActionResult.PROCESSING
     }
 
     canBeClicked = (action: PlayerUIAction, context: GameClientContext): Clickability => {
+        if(action.actionArea === UIPosition.BUTTONS && action.itemId === Button.CANCEL.id) {
+            //假设除了Button stage, 玩家只能选择取消
+            return this.currentStep().canCancel? Clickability.CLICKABLE : Clickability.DISABLED
+        }
         let stepData = this.getStepInConcernSafe(action)
 
         if(!stepData) {
             return Clickability.NOT_CLICKABLE
         }
-        if(stepData !== this.steps[this.curr]) {
+        if(stepData !== this.currentStep()) {
             //an old step. if we chose this or this can be chosen, allow it
             if(stepData.chosen.has(action.itemId) || stepData.filter(action.itemId, context)) {
                 return Clickability.CLICKABLE
@@ -204,6 +238,16 @@ export class StepByStepActionDriver extends PlayerActionDriver {
             return false
         }
         return stepData.chosen.has(action.itemId)
+    }
+
+    private cleanUpState(from: number) {
+        for(let i = from; i <= this.curr; ++i) {
+            this.steps[i].chosen.clear()
+        }
+    }
+
+    private currentStep() {
+        return this.steps[this.curr]
     }
 
     private getStepInConcernSafe = (action: PlayerUIAction): Step => {

@@ -19,6 +19,7 @@ export class ClassFormatter {
 
 export default class Togglable<T> {
     private items: Set<T> = new Set<T>()
+    private itemArray: T[] = []
 
     public constructor(private maxSize: number) {
         
@@ -39,21 +40,21 @@ export default class Togglable<T> {
     public toggle(item: T) {
         if(this.items.has(item)) {
             this.items.delete(item)
+            let idx = this.itemArray.findIndex(t => t === item)
+            this.itemArray.splice(idx, 1)
         } else if (this.items.size < this.maxSize) {
             this.items.add(item)
+            this.itemArray.push(item)
         }
     }
 
     public clear() {
         this.items.clear()
+        this.itemArray = []
     }
 
     public toArray(): T[] {
-        let res: T[] = []
-        for(let i of this.items) {
-            res.push(i)
-        }
-        return res
+        return this.itemArray
     }
 
     public isEmpty() {

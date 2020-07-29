@@ -1,7 +1,6 @@
 
 
-export type HintType = 'play-hand' | 'slash' | 'dodge' | 'peach' | 'skill' |
-    'wu_xie'
+export type HintType = 'play-hand' | 'slash' | 'dodge' | 'peach' | 'wu_xie' | 'skill' | 'drop-cards'
 
 export type ServerHint = {
     hintId: number  //unique, incremental number
@@ -19,7 +18,7 @@ export type ServerHint = {
      * - 濒死求桃的人
      * - 被决斗求无懈可击的人
      */
-    targetPlayer?: string[]
+    targetPlayers?: string[]
 
     /**
      * 若为true则无视距离
@@ -31,4 +30,9 @@ export type ServerHint = {
      * 一般为1，有特殊情况，例如拼点成功后的太史慈
      */
     slashNumber?: number
+
+    /**
+     * 弃牌如此多张
+     */
+    dropNumber?: number
 }
