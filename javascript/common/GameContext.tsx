@@ -1,9 +1,7 @@
-import Card, { cardManager } from "./cards/Card";
-import { shuffle, takeFromArray } from "./util/Util";
+import { cardManager } from "./cards/Card";
 import { PlayerInfo } from "./PlayerInfo";
 import { ServerHint } from "./ServerHint";
-
-
+import Deck from "../server/Deck";
 
 /**
  * Contains current state of the game
@@ -13,8 +11,7 @@ import { ServerHint } from "./ServerHint";
  */
 export default class GameContext {
 
-    deck: Card[]
-    dropped: Card[]
+    deck: Deck
     /**
      * Current Server Hint
      */
@@ -28,8 +25,7 @@ export default class GameContext {
     }
 
     init() {
-        this.deck = cardManager.getShuffledDeck()
-        this.dropped = []
+        this.deck = new Deck(cardManager.getShuffledDeck())
         //todo: assign identities
         //todo: let players choose heroes
 
@@ -39,6 +35,7 @@ export default class GameContext {
 
     }
 
+    //todo: 马术？神曹操？公孙瓒？
     computeDistance(fromPlayer: string, toPlayer: string): number {
         if(fromPlayer === toPlayer) {
             return 0
@@ -67,34 +64,30 @@ export default class GameContext {
         }
     }
 
+    /**
+     * 根据当前玩家视角给出其余玩家的排序
+     * @param playerId 
+     */
+    getRingFromPerspective(playerId: string): PlayerInfo[] {
+        let idx = this.playerInfos.findIndex(p => p.player.id === playerId)
+        return [...this.playerInfos.slice(idx + 1), ...this.playerInfos.slice(0, idx)]
+    }
+
+    /**
+     * 根据当前玩家视角排序,用以决定结算顺序
+     * @param playerId 当前玩家ID
+     * @param ids 需要排序的玩家, 可以包含playerId
+     */
+    sortFromPerspective(playerId: string, ids: string[]): PlayerInfo[] {
+        let seq: PlayerInfo[] = this.getRingFromPerspective(playerId).filter(info => ids.indexOf(info.player.id) >= 0)
+        if(ids.indexOf(playerId) >= 0){
+            //如果playerId也在其中, 放在最前
+            seq.unshift(this.getPlayer(playerId))
+        }
+        return seq
+    }
+
     getPlayer(id: string): PlayerInfo {
         return this.playerInfos.find(p => p.player.id === id)
-    }
-
-    getCardsFromDeck(amount: number): Card[] {
-        if(amount > this.deck.length) {
-            let res = this.deck
-            this.deck = shuffle(this.dropped)
-            this.dropped = []
-            res.push(...this.getCardsFromDeck(amount - res.length))
-            return res
-        } else {
-            return this.deck.splice(0, amount)
-        }
-    }
-
-    getCardsFromDropped(cardIds: string[]): Card[] {
-        return cardIds.map(i => {
-            let c = takeFromArray(this.dropped, c => c.id === i)
-            if(!c) {
-                throw `Unable to find card in dropped pile! ${i}`
-            }
-            return c
-        })
-    }
-
-    //也就观星用用吧？？
-    placeCardsAtDeckBtm(ids: number[]) {
-
     }
 }

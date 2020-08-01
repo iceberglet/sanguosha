@@ -7,7 +7,14 @@ export type ServerHint = {
     playerId: string
     isSecret: boolean
     hintType: HintType
+    hintMsg: string
 
+    /**
+     * 取消操作按钮的文本
+     * 若不提供则没有取消操作
+     * 
+     */
+    abortButtonMsg?: string
     /**
      * 令你出此操作的人
      */
@@ -21,9 +28,18 @@ export type ServerHint = {
     targetPlayers?: string[]
 
     /**
-     * 若为true则无视距离
+     * 100 = 无限距离
+     * -1 = 不能再出杀
+     * 默认(undefined)可以出杀要看距离
      */
-    infiniteReach?: boolean
+    slashReach?: number
+
+    /**
+     * 100 = 无限距离
+     * -1 = 不能使用
+     * 默认(undefined)使用默认距离
+     */
+    ruseReach?: number
 
     /**
      * 可以指定杀的目标

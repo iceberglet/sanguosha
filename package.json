@@ -13,7 +13,9 @@
   "author": "Min, Chen",
   "license": "Apache-2.0",
   "devDependencies": {
+    "@types/express": "^4.17.7",
     "@types/webpack-env": "^1.15.2",
+    "@types/ws": "^7.2.6",
     "css-loader": "^2.0.2",
     "file-loader": "^6.0.0",
     "node-sass": "^4.11.0",
@@ -21,23 +23,23 @@
     "style-loader": "^0.23.1",
     "ts-loader": "^8.0.1",
     "ttf-loader": "^1.0.2",
-    "typescript": "^3.7.5",
+    "typescript": "^3.9.7",
     "url-loader": "^4.1.0",
     "webpack": "^4.27.1",
     "webpack-cli": "^3.1.2",
     "webpack-dev-server": "^3.1.10"
   },
   "dependencies": {
-    "@types/express": "^4.17.7",
     "@types/react": "^16.8.5",
     "@types/react-dom": "^16.8.2",
     "@types/uuid": "^8.0.0",
-    "@types/ws": "^7.2.6",
+    "bufferutil": "^4.0.1",
     "express": "^4.17.1",
     "moment": "^2.23.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
     "react-router-dom": "^4.3.1",
+    "utf-8-validate": "^5.0.2",
     "uuid": "^8.2.0",
     "ws": "^7.3.1"
   }

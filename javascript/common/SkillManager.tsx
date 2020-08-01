@@ -1,10 +1,11 @@
 import {PlayerActionDriver} from "../client/player-actions/PlayerActionDriver"
 import GameContext from "./GameContext"
+import { PlayerInfo } from "./PlayerInfo"
 
 
 class SkillManagerClass {
 
-    allAbilities: Map<string, Ability> = new Map()
+    allAbilities: Map<string, Skill> = new Map()
 
     getAbilityByName(name: string) {
         let ab = this.allAbilities.get(name)
@@ -16,25 +17,31 @@ class SkillManagerClass {
 
 export const SkillManager = new SkillManagerClass()
 
-export abstract class Ability {
-
-    isProactive: boolean = false
-    //锁定技
-    isLocked: boolean = false
-    //限定技
-    isLimited: boolean = false
-    //主公技
-    isRuler: boolean = false
-    //觉醒技
-    isAwaken: boolean = false
+export abstract class Skill {
 
     protected constructor(public id: string, public name: string, public desc: string) {
         SkillManager.allAbilities.set(name, this)
         console.log(`Registered Ability ${name}`)
     }
 
-    //client usage
-    public abstract createDriver(context: GameContext): PlayerActionDriver
+    /**
+     * Invoked when this skill is added to a player
+     * subsribe to server events here (e.g. 在特定条件下的触发)
+     * 或者锁定技(你的酒都是杀之类的)
+     * Cannot be called twice
+     * @param context 
+     * @param playerInfo 
+     */
+    public abstract onMount(context: GameContext, playerInfo: PlayerInfo): void
+
+    /**
+     * Invoked when this skill is removed from a player
+     * 比如被蔡文姬断肠
+     * unsubscribe to engine events
+     * @param context 
+     * @param playerInfo 
+     */
+    public abstract onDismount(context: GameContext, playerInfo: PlayerInfo): void
 }
 
 require.context('./abilities', true, /\.tsx$/).keys().forEach(element => {

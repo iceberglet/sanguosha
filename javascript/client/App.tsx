@@ -1,10 +1,9 @@
 import * as React from 'react';
 import UIBoard from './ui/UIBoard';
-import GameContext from '../common/GameContext';
-import Player, { Identity } from '../common/Player';
+import Player from '../common/Player';
 import { General } from '../common/GeneralManager'
 import Card, { cardManager, CardSize, CardType } from '../common/cards/Card';
-import { PlayerInfo } from '../common/PlayerInfo';
+import { PlayerInfo, Identity } from '../common/PlayerInfo';
 import GameClientContext from './player-actions/GameClientContext';
 
 export default function App() {
@@ -15,9 +14,18 @@ export default function App() {
     player.addCard(cards.find(c => c.type === CardType.WAN_JIAN), 'hand')
     player.addCard(cards.find(c => c.type === CardType.DODGE), 'hand')
     player.addCard(cards.find(c => c.type === CardType.PEACH), 'hand')
+    player.addCard(cards.find(c => c.type === CardType.HUO_GONG), 'hand')
+    // player.addCard(cards.find(c => c.type === CardType.SHUN_SHOU), 'hand')
+    // player.addCard(cards.find(c => c.type === CardType.GUO_HE), 'hand')
+    // player.addCard(cards.find(c => c.type === CardType.JUE_DOU), 'hand')
+    // player.addCard(cards.find(c => c.type === CardType.TIE_SUO), 'hand')
+    // player.addCard(cards.find(c => c.type === CardType.BING_LIANG), 'hand')
+    // player.addCard(cards.find(c => c.type === CardType.LE_BU), 'hand')
+    // player.addCard(cards.find(c => c.type === CardType.SHAN_DIAN), 'hand')
     player.addCard(new Card('diamond', CardSize.FIVE, CardType.GUAN_SHI), 'equip')
     player.addCard(new Card('spade', CardSize.SIX, CardType.LE_BU), 'judge')
     player.addCard(new Card('heart', CardSize.QUEEN, CardType.SHAN_DIAN), 'judge')
+    player.hp = 2;
     
     let player2 = new PlayerInfo(new Player('欧阳挠挠'), Identity.ZHONG_CHEN, General.forest_dong_zhuo)
     player2.addCard(cardManager.getShuffledDeck()[0], 'hand')

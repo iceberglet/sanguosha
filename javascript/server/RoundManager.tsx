@@ -2,11 +2,17 @@ import GameContext from "../common/GameContext";
 import { enumValues } from "../common/util/Util";
 
 export enum Stage {
+    //回合开始阶段
     ROUND_BEGIN,
+    //判定阶段
     JUDGE,
+    //摸牌阶段
     TAKE_CARD,
+    //出牌阶段
     USE_CARD,
+    //弃牌阶段
     DROP_CARD,
+    //回合结束阶段
     ROUND_END
 }
 

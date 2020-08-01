@@ -1,4 +1,5 @@
 import { shuffle } from "../util/Util"
+import { ICard } from "./ICard"
 
 export type CardGenre = 'basic' | 'single-immediate-ruse' | 'single-delay-ruse' | 'group-ruse' | 'horse+1' | 'horse-1' | 'weapon' | 'shield'
 
@@ -62,12 +63,12 @@ export class CardType {
     public static WU_ZHONG = new CardType('wu_zhong', '无中生有', 'single-immediate-ruse')
     public static JUE_DOU = new CardType('jue_dou', '决斗', 'single-immediate-ruse')
     public static HUO_GONG = new CardType('huo_gong', '火攻', 'single-immediate-ruse')
+    public static TIE_SUO = new CardType('tie_suo', '铁索连环', 'single-immediate-ruse')
 
     public static TAO_YUAN = new CardType('tao_yuan', '桃园结义', 'group-ruse')
     public static WAN_JIAN = new CardType('wan_jian', '万箭齐发', 'group-ruse')
     public static NAN_MAN = new CardType('nan_man', '南蛮入侵', 'group-ruse')
     public static WU_GU = new CardType('wu_gu', '五谷丰登', 'group-ruse')
-    public static TIE_SUO = new CardType('tie_suo', '铁索连环', 'group-ruse')
 
     public static LE_BU = new CardType('le_bu', '乐不思蜀', 'single-delay-ruse')
     public static BING_LIANG = new CardType('bing_liang', '兵粮寸断', 'single-delay-ruse').withDistance(1)
@@ -112,7 +113,7 @@ export class CardType {
     }
 }
 
-export default class Card {
+export default class Card implements ICard {
     static counter = 0
     public id: string
     public constructor(public readonly suit: Suit, public readonly size: CardSize, public readonly type: CardType){

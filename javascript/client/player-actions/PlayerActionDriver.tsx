@@ -47,6 +47,7 @@ export abstract class PlayerActionDriver {
      * Buttons to be displayed
      */
     abstract getUsableButtons(): Button[]
+    abstract getHintMsg(context: GameClientContext): string
 }
 
 export class NoActionDriver extends PlayerActionDriver {
@@ -68,7 +69,10 @@ export class NoActionDriver extends PlayerActionDriver {
         return false
     }
     getUsableButtons(): Button[] {
-        return [Button.OK, Button.CANCEL]
+        return []
+    }
+    getHintMsg(context: GameClientContext): string {
+        return ''
     }
 }
 
@@ -154,6 +158,14 @@ export class CompositePlayerActionDriver extends PlayerActionDriver {
                 base = base.filter(b => this.delegates[i].getUsableButtons().find(bb => bb.id === b.id))
             }
             return base
+        }
+    }
+
+    getHintMsg(context: GameClientContext) {
+        if(this.theOne) {
+            return this.theOne.getHintMsg(context)
+        } else {
+            return context.serverHint.hintMsg
         }
     }
 }

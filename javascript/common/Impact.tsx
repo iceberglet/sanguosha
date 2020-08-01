@@ -54,7 +54,7 @@ export class CardTransfer extends Impact {
             this.cardIds.forEach(id => context.getPlayer(this.source).removeCard(id))
         } else {
             if(this.fromPos === 'dropped') {
-                context.getCardsFromDropped(this.cardIds)
+                context.deck.getCardsFromDropped(this.cardIds)
             } else {
                 throw `Cannot take specific cards from this position! ${this.fromPos}`
             }
@@ -63,7 +63,7 @@ export class CardTransfer extends Impact {
             this.cardIds.forEach(id => context.getPlayer(this.target).addCard(cardManager.getCard(id), this.toPos))
         } else {
             if(this.toPos === 'dropped') {
-                context.dropped.push(...this.cardIds.map(cardManager.getCard))
+                context.deck.dropped.push(...this.cardIds.map(cardManager.getCard))
             } else {
                 throw `Cannot place specific cards onto this position! ${this.fromPos}`
             }

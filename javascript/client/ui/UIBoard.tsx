@@ -57,7 +57,6 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
     constructor(p: UIBoardProp) {
         super(p)
         let {myId, context} = p
-        let idx = context.playerInfos.findIndex(p => p.player.id === myId)
         this.state = {
             hideCards: false,
             showDistance: false,
@@ -65,7 +64,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             playerChecker: new Checker(UIPosition.PLAYER, context, ()=>this.forceUpdate()),
             cardsChecker: new Checker(UIPosition.MY_HAND, context, ()=>this.forceUpdate()),
             buttonChecker: new Checker(UIPosition.BUTTONS, context, ()=>this.forceUpdate()),
-            others: [...context.playerInfos.slice(idx + 1), ...context.playerInfos.slice(0, idx)]
+            others: context.getRingFromPerspective(myId)
         }
     }
 
@@ -97,11 +96,8 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                         <UIEquipGrid cards={playerInfo.getCards('equip')}/>
                     </div>
                 </div>
-                {/* 手牌 */}
-                <div className='my-cards'>
-                    <UICardRow cards={playerInfo.getCards('hand')} isShown={!hideCards} checker={cardsChecker}/>
-                </div>
                 <div className='player-buttons'>
+                    <div className='server-hint-msg'>{context.getMsg()}</div>
                     {context.getButtons().map(b => {
                         return <UIButton key={b.id} display={b.display} onClick={()=>buttonChecker.onClicked(b.id)} 
                         disabled={!buttonChecker.getStatus(b.id).isSelectable} />
@@ -114,6 +110,10 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                     <UIButton display={hideCards? '拿起牌' : '扣牌'} 
                             onClick={()=>{this.setState({hideCards: !hideCards})}} 
                             disabled={false} />
+                </div>
+                {/* 手牌 */}
+                <div className='my-cards'>
+                    <UICardRow cards={playerInfo.getCards('hand')} isShown={!hideCards} checker={cardsChecker}/>
                 </div>
             </div>
         </div>

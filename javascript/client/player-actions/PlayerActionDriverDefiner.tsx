@@ -2,6 +2,9 @@ import { UIPosition, PlayerUIAction, Button, PlayerAction } from "./PlayerUIActi
 import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerActionDriver";
 import GameClientContext from "./GameClientContext";
 import Togglable from "../../common/util/Togglable";
+import { ServerHint } from "../../common/ServerHint";
+
+const ABORT_BUTTON_ID = 'abort'
 
 export default class PlayerActionDriverDefiner {
 
@@ -16,7 +19,9 @@ export default class PlayerActionDriverDefiner {
      * @param atMost the least number of cards to proceed
      * @param filter which can be chosen
      */
-    public expectChoose(area: UIPosition, atLeast: number, atMost: number, filter: (id: string, context: GameClientContext)=>boolean): PlayerActionDriverDefiner {
+    public expectChoose(area: UIPosition, atLeast: number, atMost: number, 
+                        filter: (id: string, context: GameClientContext)=>boolean,
+                        msgObtainer: (context: GameClientContext)=>string = ()=>''): PlayerActionDriverDefiner {
         if(this.steps.find(s => s.area === area)) {
             throw `Already has defined step for position ${UIPosition[area]}`
         }
@@ -24,15 +29,19 @@ export default class PlayerActionDriverDefiner {
             throw `Whaat?`
         }
         if(atMost !== atLeast) {
-            this.steps.push(new StepDataLoose(area, atLeast, atMost, filter))
+            this.steps.push(new StepDataLoose(area, atLeast, atMost, filter, msgObtainer))
         } else {
-            this.steps.push(new StepDataExact(area, atLeast, filter))
+            this.steps.push(new StepDataExact(area, atLeast, filter, msgObtainer))
+        }
+        if(this.steps.length === 1) {
+            //默认一开始没法子cancel. (cancel啥子??)
+            this.steps[0].canCancel = false
         }
         return this
     }
 
-    public expectAnyButton() {
-        return this.expectChoose(UIPosition.BUTTONS, 1, 1, b=>true)
+    public expectAnyButton(msg: string) {
+        return this.expectChoose(UIPosition.BUTTONS, 1, 1, b=>true, (c)=>msg)
     }
 
     public cannotCancel(): PlayerActionDriverDefiner {
@@ -40,9 +49,12 @@ export default class PlayerActionDriverDefiner {
         return this
     }
 
-    public build(buttons: Button[] = [Button.OK, Button.CANCEL]): PlayerActionDriver {
+    public build(serverHint: ServerHint, buttons: Button[] = [Button.OK, Button.CANCEL]): PlayerActionDriver {
         if(this.steps.length === 0) {
             throw `You gotta define something!`
+        }
+        if(serverHint) {
+            buttons = [...buttons, new Button(ABORT_BUTTON_ID, serverHint.abortButtonMsg)]
         }
         return new StepByStepActionDriver(this.name, this.steps, buttons)
     }
@@ -52,6 +64,7 @@ export interface Step {
     chosen: Togglable<string>
     area: UIPosition
     canCancel: boolean
+    msgObtainer: (context: GameClientContext)=>string
     filter: (id: string, context: GameClientContext)=>boolean
     //can click on this at the current stage
     canClick(id: string): boolean
@@ -68,7 +81,8 @@ export class StepDataExact implements Step {
     canCancel: boolean = true
     constructor(public readonly area: UIPosition,
                 public readonly exactly: number,
-                public readonly filter: (id: string, context: GameClientContext)=>boolean) {
+                public readonly filter: (id: string, context: GameClientContext)=>boolean,
+                public readonly msgObtainer: (context: GameClientContext)=>string) {
         this.chosen = new Togglable<string>(exactly)
     }
     canClick(id: string): boolean {
@@ -104,7 +118,8 @@ export class StepDataLoose implements Step {
     constructor(public readonly area: UIPosition,
                 public readonly min: number, 
                 public readonly max: number,
-                public readonly filter: (id: string, context: GameClientContext)=>boolean) {
+                public readonly filter: (id: string, context: GameClientContext)=>boolean,
+                public readonly msgObtainer: (context: GameClientContext)=>string) {
         this.chosen = new Togglable<string>(max)
     }
     canClick(id: string): boolean {
@@ -150,22 +165,26 @@ export class StepByStepActionDriver extends PlayerActionDriver {
 
     onClicked = (action: PlayerUIAction, context: GameClientContext): ClickActionResult => {
         console.log('[Player Action] Clicked on', action)
-        //if we clicked on cancel:
-        if(action.actionArea === UIPosition.BUTTONS && action.itemId === Button.CANCEL.id) {
-            //cancel sends a message to server
-            if(!this.currentStep().canCancel) {
-                throw 'Cannot cancel at this stage!! @_@'
-            }
-            let action: PlayerAction = {
-                hintId: context.serverHint.hintId,
-                hintType: context.serverHint.hintType,
-                actionData: {
-                    [UIPosition.BUTTONS]: [Button.CANCEL.id]
+        //if we clicked on abort:
+        if(action.actionArea === UIPosition.BUTTONS) {
+            if(action.itemId === ABORT_BUTTON_ID) {
+                //abort sends a message to server
+                let actionToServer: PlayerAction = {
+                    hintId: context.serverHint.hintId,
+                    hintType: context.serverHint.hintType,
+                    actionData: {
+                        [UIPosition.BUTTONS]: [ABORT_BUTTON_ID]
+                    }
                 }
+                context.submitAction(actionToServer)
+                console.log('[Player Action] Aborted. Back to server', actionToServer)
+                return ClickActionResult.DONE
+            } else if (action.itemId === Button.CANCEL.id) {
+                //cancel will return to origin
+                this.cleanUpState(0)
+                this.curr = 0
+                return ClickActionResult.AT_ZERO
             }
-            context.submitAction(action)
-            console.log('[Player Action] Canceled. Back to server', action)
-            return ClickActionResult.DONE
         }
 
         let idx = this.getStepInConcern(action)
@@ -206,9 +225,13 @@ export class StepByStepActionDriver extends PlayerActionDriver {
     }
 
     canBeClicked = (action: PlayerUIAction, context: GameClientContext): Clickability => {
-        if(action.actionArea === UIPosition.BUTTONS && action.itemId === Button.CANCEL.id) {
-            //假设除了Button stage, 玩家只能选择取消
-            return this.currentStep().canCancel? Clickability.CLICKABLE : Clickability.DISABLED
+        if(action.actionArea === UIPosition.BUTTONS) {
+            if(action.itemId === ABORT_BUTTON_ID) {
+                return Clickability.CLICKABLE
+            } else if (action.itemId === Button.CANCEL.id) {
+                console.log('Can Cancel? ', this.curr, this.currentStep())
+                return this.currentStep().canCancel? Clickability.CLICKABLE : Clickability.DISABLED
+            }
         }
         let stepData = this.getStepInConcernSafe(action)
 
@@ -238,6 +261,10 @@ export class StepByStepActionDriver extends PlayerActionDriver {
             return false
         }
         return stepData.chosen.has(action.itemId)
+    }
+
+    getHintMsg(context: GameClientContext): string {
+        return this.currentStep().msgObtainer(context)
     }
 
     private cleanUpState(from: number) {
