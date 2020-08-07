@@ -1,13 +1,10 @@
-import Card, { CardGenre } from "./cards/Card"
+import Card, { CardGenre, cardManager } from "./cards/Card"
 import { takeFromArray } from "./util/Util"
-import Player from "./Player"
+import {Player} from "./Player"
 import { General } from "./GeneralManager"
 import { ICard } from "./cards/ICard"
+import { DelayedRuse, CardPos, PlayerTransit, CardTransit } from "./transit/ContextTransit"
 
-//手牌？ 判定？ 装备？ 田？ 权？ 七星？
-export type CardPos = 'deckTop' | 'deckBtm' | 'dropped' | 'workflow' | 'hand' | 'equip' | 'judge' | 'field' | 'power' | 'star'
-
-type DelayedRuse = 'le_bu' | 'bing_liang' | 'shan_dian'
 
 export type Mark = {
     card: Card,
@@ -39,14 +36,17 @@ export const NoopInterpreter: CardInterpreter = (c)=>c
 export class PlayerInfo {
     hp: number
     maxHp: number
-    private cards = new Map<CardPos, Card[]>()
-    private judges: Mark[] = []
     //翻面
     isTurnedOver: boolean = false
     //横置
     isChained: boolean = false
     isDead: boolean = false
     skills: string[]
+
+    private cards = new Map<CardPos, Card[]>()
+    private judges: Mark[] = []
+    attributes: {[key: string]: any}
+    
     cardInterpreter: CardInterpreter = NoopInterpreter
 
     constructor(
@@ -55,6 +55,7 @@ export class PlayerInfo {
         public general: General) {
         this.hp = general.hp
         this.maxHp = general.hp
+        //todo: init skills and all...
     }
 
     heal(amount: number) {
@@ -145,5 +146,35 @@ export class PlayerInfo {
 
     isDying(): boolean {
         return this.hp <= 0
+    }
+
+    //------------------- Serde -----------------
+    static fromTransit(transit: PlayerTransit): PlayerInfo {
+        let p = new PlayerInfo(transit.player, transit.identity, transit.general)
+        p.hp = transit.hp
+        p.maxHp = transit.maxHp
+        p.isChained = transit.isChained
+        p.isTurnedOver = transit.isTurnedOver
+        p.isDead = transit.isDead
+        p.skills = transit.skills
+        transit.cards.forEach(c => {
+            p.addCard(cardManager.getCard(c.cardId), c.pos, c.ruse)
+        })
+        p.attributes = transit.attributes
+        return p
+    }
+
+    static toTransit(info: PlayerInfo): PlayerTransit {
+        let cards: CardTransit[] = []
+        info.cards.forEach((v, k, m) => v.forEach(c => {
+            cards.push({cardId: c.id, pos: k})
+        }))
+        info.judges.forEach(mark => {
+            cards.push({cardId: mark.card.id, pos: 'judge', ruse: mark.as})
+        })
+        return {
+            ...info,
+            cards
+        }
     }
 }

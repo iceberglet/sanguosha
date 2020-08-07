@@ -1,3 +1,7 @@
+import LoginMessage from "../../server/Login"
+import GameTransit from "../transit/GameTransit"
+import { ServerHintTransit } from "../ServerHint"
+
 class Serializer {
 
     _map = new Map<string, Function>()
@@ -37,3 +41,6 @@ type Payload = {
 
 export const Serde = new Serializer()
 Serde.register(Object)
+Serde.register(LoginMessage)
+Serde.register(GameTransit)
+Serde.register(ServerHintTransit)

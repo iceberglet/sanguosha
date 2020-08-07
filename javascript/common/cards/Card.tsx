@@ -117,8 +117,7 @@ export default class Card implements ICard {
     static counter = 0
     public id: string
     public constructor(public readonly suit: Suit, public readonly size: CardSize, public readonly type: CardType){
-        //因为存在花色大小种类完全一样的牌， 所以需要这样加以区分
-        this.id = [Card.counter++, suit, size.symbol, type.name].join('_')
+        this.id = [suit, size.symbol, type.name].join('_')
     }
     public isOneOf(...types: CardType[]) {
         for(let t of types) {

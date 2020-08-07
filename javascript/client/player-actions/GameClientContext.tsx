@@ -6,32 +6,34 @@ import { PlayerActionDriver, Clickability, ClickActionResult, NoActionDriver } f
 import { UIPosition, PlayerAction } from "./PlayerUIAction";
 import { playerActionDriverProvider } from "./PlayerActionDriverProvider";
 import './PlayerActionDrivers'
+import { ContextTransit } from "../../common/transit/ContextTransit";
+import { Player } from "../../common/Player";
 
 export default class GameClientContext extends GameContext {
 
     private currentDriver: PlayerActionDriver = NoActionDriver.INSTANCE
     private socket: WebSocket
+    public myself: PlayerInfo
 
-    public constructor(public readonly myself: PlayerInfo, players: PlayerInfo[]) {
-        super(players)
-        this.serverHint = {
-            hintId: 1,
-            playerId: myself.player.id,
-            isSecret: false,
-            hintType: 'play-hand',
-            hintMsg: '请出牌',
-            slashNumber: 2,
-            abortButtonMsg: '结束出牌'
-            // slashReach: undefined
-        }
-        this.currentDriver = playerActionDriverProvider.getDriver(this.serverHint)
-        this.socket = new WebSocket("ws://" + location.host + "")
+    public constructor(transit: ContextTransit, myself: Player, socket: WebSocket) {
+        super(transit.players.map(PlayerInfo.fromTransit))
+        this.myself = this.playerInfos.find(i => i.player.id === myself.id)
+        this.currentDriver = NoActionDriver.INSTANCE
+        this.socket = socket
         this.socket.addEventListener('open', ()=>{
             this.onSocketConnected()
-            this.socket.send('Greetings')
+            // this.socket.send('Greetings')
         })
         this.socket.addEventListener('close', this.onSocketDisconnected)
         this.socket.addEventListener('message', this.onServerMsg)
+    }
+
+    public setHint(hint: ServerHint) {
+        if(this.currentDriver !== NoActionDriver.INSTANCE) {
+            throw `Invalid State: There is an existing action driver. Cannot start new action when current one is not complete! ${this.currentDriver}`
+        }
+        this.serverHint = hint
+        this.currentDriver = playerActionDriverProvider.getDriver(hint)
     }
 
     public getMyDistanceTo=(playerId: string): number =>{

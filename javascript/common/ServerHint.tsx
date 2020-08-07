@@ -2,6 +2,10 @@
 
 export type HintType = 'play-hand' | 'slash' | 'dodge' | 'peach' | 'wu_xie' | 'skill' | 'drop-cards'
 
+export class ServerHintTransit {
+    constructor(public hint: ServerHint){}
+}
+
 export type ServerHint = {
     hintId: number  //unique, incremental number
     playerId: string

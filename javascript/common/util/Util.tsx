@@ -50,3 +50,9 @@ export function Mask(prop: {isMasked: boolean}) {
   }
   return null
 }
+
+export function checkNotNull(obj: any) {
+  if(obj === null || obj === undefined) {
+    throw 'null value'
+  }
+}

@@ -1,7 +1,7 @@
 import GameContext from "./GameContext";
 import { Serde } from "./util/Serializer";
 import { cardManager } from './cards/Card'
-import { CardPos } from "./PlayerInfo";
+import { CardPos } from "./transit/ContextTransit";
 
 /**
  * Impact is always sent from server to client

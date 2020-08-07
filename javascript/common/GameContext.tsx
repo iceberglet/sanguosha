@@ -2,6 +2,7 @@ import { cardManager } from "./cards/Card";
 import { PlayerInfo } from "./PlayerInfo";
 import { ServerHint } from "./ServerHint";
 import Deck from "../server/Deck";
+import { ContextTransit } from "./transit/ContextTransit";
 
 /**
  * Contains current state of the game
@@ -88,6 +89,16 @@ export default class GameContext {
     }
 
     getPlayer(id: string): PlayerInfo {
-        return this.playerInfos.find(p => p.player.id === id)
+        let p = this.playerInfos.find(p => p.player.id === id)
+        if(!p) {
+            throw `Player Not Found!! ${id}. Available: ${this.playerInfos.map(p => p.player.id)}`
+        }
+        return p
+    }
+
+    toTransit(): ContextTransit {
+        return {
+            players: this.playerInfos.map(PlayerInfo.toTransit)
+        }
     }
 }

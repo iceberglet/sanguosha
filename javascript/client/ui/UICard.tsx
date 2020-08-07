@@ -1,7 +1,7 @@
 import * as React from 'react'
 import Card from '../../common/cards/Card'
 import './ui-card.scss'
-import { EventCall, Suits, Mask } from '../../common/util/Util'
+import { Suits, Mask } from '../../common/util/Util'
 import { ElementStatus } from './UIBoard'
 import { ClassFormatter } from '../../common/util/Togglable'
 

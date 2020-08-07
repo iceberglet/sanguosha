@@ -9,10 +9,13 @@ import UIPlayGround, { ScreenPosObtainer } from './UIPlayGround'
 import GameClientContext from '../player-actions/GameClientContext'
 import { UIPosition } from '../player-actions/PlayerUIAction'
 import { Clickability } from '../player-actions/PlayerActionDriver'
+import Pubsub from '../../common/util/PubSub'
+import { ServerHintTransit } from '../../common/ServerHint'
 
 type UIBoardProp = {
     myId: string
     context: GameClientContext
+    pubsub: Pubsub
 }
 
 export class ElementStatus {
@@ -66,12 +69,23 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             buttonChecker: new Checker(UIPosition.BUTTONS, context, ()=>this.forceUpdate()),
             others: context.getRingFromPerspective(myId)
         }
+        //need to forceupdate to register new changes
+        p.pubsub.on(ServerHintTransit, (con: ServerHintTransit)=>{
+            context.setHint(con.hint)
+            this.refresh()
+        })
+    }
+
+    refresh() {
+        console.log('Force Refreshing UIBoard')
+        this.forceUpdate()
     }
 
     render() {
         let {myId, context} = this.props
         let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker} = this.state
         let playerInfo = context.getPlayer(myId)
+        console.log(context.playerInfos, myId, playerInfo)
 
         return <div className='board occupy noselect' style={{}}>
             <div className='top'>

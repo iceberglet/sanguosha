@@ -8,7 +8,6 @@ type EquipGridProp = {
 }
 
 export default function UIEquipGrid(prop: EquipGridProp) {
-
     let weapon = prop.cards.find(c => c.type.genre === 'weapon')
     let shield = prop.cards.find(c => c.type.genre === 'shield')
     let horsePlus = prop.cards.find(c => c.type.genre === 'horse+1')

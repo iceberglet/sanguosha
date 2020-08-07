@@ -1,9 +1,6 @@
-import { v4 as uuidv4 } from 'uuid';
+// import { v4 as uuidv4 } from 'uuid';
+// let s: string = uuidv4()
 
-export default class Player {
-    public readonly id: string
-
-    constructor(public readonly name: string) {
-        this.id = uuidv4()
-    }
+export type Player = {
+    id: string
 }

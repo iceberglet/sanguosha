@@ -34,7 +34,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, object> {
                 <div className='card-avatar' 
                     style={{backgroundImage: `url('generals/${info.general.id}.png')`, ...getOffset(info.general.id)}} />
             </div>
-            <div className='player-name'>{info.player.name}</div>
+            <div className='player-name'>{info.player.id}</div>
             <div className='general-name'>{info.general.name}</div>
             <div className='faction' style={{backgroundImage: `url('icons/${info.general.faction.image}.png')`}} />
             <div className='identity' style={{backgroundImage: `url('icons/${info.identity.id}.png')`}}/>

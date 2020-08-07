@@ -229,7 +229,7 @@ export class StepByStepActionDriver extends PlayerActionDriver {
             if(action.itemId === ABORT_BUTTON_ID) {
                 return Clickability.CLICKABLE
             } else if (action.itemId === Button.CANCEL.id) {
-                console.log('Can Cancel? ', this.curr, this.currentStep())
+                // console.log('Can Cancel? ', this.curr, this.currentStep())
                 return this.currentStep().canCancel? Clickability.CLICKABLE : Clickability.DISABLED
             }
         }

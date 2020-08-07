@@ -2,43 +2,63 @@ import * as express from 'express'
 import * as http from 'http';
 import * as WebSocket from 'ws';
 import { Serde } from './common/util/Serializer';
+import { playerRegistry } from './server/ServerPlayer';
+import Pubsub from './common/util/PubSub';
+import LoginMessage from './server/Login';
+import GameManager from './server/GameManager';
+import { ServerHintTransit } from './common/ServerHint';
 
 let app = express()
 
+//serve static files
 app.use(express.static('public'))
 
-
-// let ser = Serde.serialize(new Heal('source', 'player', 12))
-// console.log(ser)
-// let obj = Serde.deserialize(ser)
-// console.log(obj)
-
-// console.log(enumValues(Stage))
 
 const server = http.createServer(app)
 const wss = new WebSocket.Server({ server });
 
+const pubsub = new Pubsub()
+const gameManager = new GameManager()
+
 wss.on('connection', (ws: WebSocket) => {
-
-    //connection is up, let's add a simple simple event
+    //connection is up
     ws.on('message', (message: string) => {
+        let msg = Serde.deserialize(message)
+        console.log('received: ', msg)
+        if(msg.constructor.name === 'LoginMessage') {
+            let login = msg as LoginMessage
+            try {
+                playerRegistry.add({...login}, ws)
+            } catch (e) {
+                console.error('Failed to add player', e)
+                login.error = e
+            }
+            //send back the samething so they know they are logged in.
+            ws.send(Serde.serialize(login))
+            //send the current state to this newly logged in person
+            ws.send(Serde.serialize(gameManager.getCurrentState()))
 
-        //log the received message and send it back to the client
-        console.log('received: ', message);
-        ws.send(Serde.serialize({type: 'something', msg: `Hello, you sent -> ${message}`}));
+            ws.send(Serde.serialize(new ServerHintTransit({
+                hintId: 1,
+                playerId: '青青子吟',
+                isSecret: false,
+                hintType: 'play-hand',
+                hintMsg: '请出牌',
+                slashNumber: 2,
+                abortButtonMsg: '结束出牌'
+                // slashReach: undefined
+            })))
+        } else {
+            pubsub.publish(msg)
+        }
     });
 
-    wss.clients.forEach(client => {
-        if (client != ws) {
-            client.send(`Hello, broadcasting`);
-        }    
-    });
-
-    //send immediatly a feedback to the incoming connection    
-    ws.send('Hi there, I am a WebSocket server');
+    ws.on('close', ()=>{
+        playerRegistry.removePlayer(ws)
+    })
 });
-
 
 server.listen(80, ()=>{
     console.log('Server running on 80')
 })
+
