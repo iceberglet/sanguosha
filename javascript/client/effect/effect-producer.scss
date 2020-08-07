@@ -1,0 +1,14 @@
+.effect-container {
+
+    pointer-events: none;
+
+
+    .ray-container {
+
+        .ray {
+            stroke-width: 2px;
+            stroke: yellow;
+            transition: 2.5s;
+        }
+    }
+}

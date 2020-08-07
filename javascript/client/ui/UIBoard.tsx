@@ -11,6 +11,8 @@ import { UIPosition } from '../player-actions/PlayerUIAction'
 import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
 import { ServerHintTransit } from '../../common/ServerHint'
+import EffectProducer from '../effect/EffectProducer'
+import { EffectTransit } from '../../common/transit/EffectTransit'
 
 type UIBoardProp = {
     myId: string
@@ -57,16 +59,20 @@ export class Checker {
 
 export default class UIBoard extends React.Component<UIBoardProp, any> {
 
+    effectProducer: EffectProducer
+    dom: React.RefObject<any>
+
     constructor(p: UIBoardProp) {
         super(p)
         let {myId, context} = p
+        let screenPosObtainer = new ScreenPosObtainer()
         this.state = {
             hideCards: false,
             showDistance: false,
-            screenPosObtainer: new ScreenPosObtainer(),
-            playerChecker: new Checker(UIPosition.PLAYER, context, ()=>this.forceUpdate()),
-            cardsChecker: new Checker(UIPosition.MY_HAND, context, ()=>this.forceUpdate()),
-            buttonChecker: new Checker(UIPosition.BUTTONS, context, ()=>this.forceUpdate()),
+            screenPosObtainer: screenPosObtainer,
+            playerChecker: new Checker(UIPosition.PLAYER, context, this.refresh),
+            cardsChecker: new Checker(UIPosition.MY_HAND, context, this.refresh),
+            buttonChecker: new Checker(UIPosition.BUTTONS, context, this.refresh),
             others: context.getRingFromPerspective(myId)
         }
         //need to forceupdate to register new changes
@@ -74,10 +80,15 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             context.setHint(con.hint)
             this.refresh()
         })
+        p.pubsub.on(EffectTransit, (effect: EffectTransit)=>{
+            this.effectProducer.processEffect(effect)
+        })
+        this.dom = React.createRef()
+        screenPosObtainer.registerObtainer(myId, this.dom)
     }
 
-    refresh() {
-        console.log('Force Refreshing UIBoard')
+    refresh=()=>{
+        // console.log('Force Refreshing UIBoard')
         this.forceUpdate()
     }
 
@@ -85,7 +96,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
         let {myId, context} = this.props
         let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker} = this.state
         let playerInfo = context.getPlayer(myId)
-        console.log(context.playerInfos, myId, playerInfo)
+        // console.log(context.playerInfos, myId, playerInfo)
 
         return <div className='board occupy noselect' style={{}}>
             <div className='top'>
@@ -96,7 +107,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                     {/* <img className='occupy' src={'ui/container-horizontal.png'}/> */}
                 </div>
             </div>
-            <div className='btm'>
+            <div className='btm' ref={this.dom}>
                 {/* 状态 */}
                 <UIMyPlayerCard info={playerInfo} onUseSkill={(s)=>{}} elementStatus={playerChecker.getStatus(myId)} 
                                 onSelect={(s)=>playerChecker.onClicked(s)}/>
@@ -130,6 +141,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                     <UICardRow cards={playerInfo.getCards('hand')} isShown={!hideCards} checker={cardsChecker}/>
                 </div>
             </div>
+            <EffectProducer screenPosObtainer={screenPosObtainer} ref={effectProducer=>this.effectProducer = effectProducer} />
         </div>
     }
 }

@@ -4,7 +4,7 @@ import UIHpCol from './UIHpCol'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import './ui-my-player-card.scss'
 import { ClassFormatter } from '../../common/util/Togglable'
-import { Checker, ElementStatus } from './UIBoard'
+import { ElementStatus } from './UIBoard'
 import { Mask } from '../../common/util/Util'
 
 type CardProp = {

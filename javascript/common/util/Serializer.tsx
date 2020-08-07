@@ -1,6 +1,7 @@
 import LoginMessage from "../../server/Login"
 import GameTransit from "../transit/GameTransit"
 import { ServerHintTransit } from "../ServerHint"
+import { EffectTransit } from "../transit/EffectTransit"
 
 class Serializer {
 
@@ -44,3 +45,4 @@ Serde.register(Object)
 Serde.register(LoginMessage)
 Serde.register(GameTransit)
 Serde.register(ServerHintTransit)
+Serde.register(EffectTransit)

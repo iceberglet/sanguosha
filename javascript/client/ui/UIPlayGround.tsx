@@ -9,19 +9,21 @@ import { PlayerInfo } from '../../common/PlayerInfo'
 import { Checker, ElementStatus } from './UIBoard'
 import { Mask } from '../../common/util/Util'
 import { ClassFormatter } from '../../common/util/Togglable'
-
-export type Pos = {
-    playerId: string,
-    x: number,
-    y: number
-}
+import { Coor } from '../effect/EffectProducer'
 
 export class ScreenPosObtainer {
-    getters = new Map<string, ()=>Pos>()
-    registerObtainer(id: string, getter: ()=>Pos) {
-        this.getters.set(id, getter)
+    getters = new Map<string, ()=>Coor>()
+    registerObtainer(id: string, ref: React.RefObject<any>) {
+        this.getters.set(id, ()=>{
+            let {top, bottom, left, right} = ref.current.getBoundingClientRect()
+            return {
+                // playerId: this.props.info.player.id,
+                x: (left + right) / 2,
+                y: (top + bottom) / 2
+            }
+        })
     }
-    getPos(id: string): Pos {
+    getPos(id: string): Coor {
         return this.getters.get(id)()
     }
 }
@@ -95,18 +97,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
     constructor(p: CardProp) {
         super(p)
         this.dom = React.createRef()
-    }
-
-    componentDidMount() {
-        this.props.screenPosObtainer.registerObtainer(this.props.info.player.id, 
-            ()=>{
-                let {top, bottom, left, right} = this.dom.current.getBoundingClientRect()
-                return {
-                    playerId: this.props.info.player.id,
-                    x: (left + right) / 2,
-                    y: (top + bottom) / 2
-                }
-            })
+        p.screenPosObtainer.registerObtainer(p.info.player.id, this.dom)
     }
 
     onClick=()=>{

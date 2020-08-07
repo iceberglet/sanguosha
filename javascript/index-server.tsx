@@ -7,6 +7,7 @@ import Pubsub from './common/util/PubSub';
 import LoginMessage from './server/Login';
 import GameManager from './server/GameManager';
 import { ServerHintTransit } from './common/ServerHint';
+import { EffectTransit } from './common/transit/EffectTransit';
 
 let app = express()
 
@@ -48,6 +49,8 @@ wss.on('connection', (ws: WebSocket) => {
                 abortButtonMsg: '结束出牌'
                 // slashReach: undefined
             })))
+
+            ws.send(Serde.serialize(new EffectTransit('欧阳挠挠', ['东郭旭銮', '广东吴彦祖', '新荷', '青青子吟'], 'slash')))
         } else {
             pubsub.publish(msg)
         }
