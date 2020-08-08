@@ -9,8 +9,8 @@ classes/
 /classes
 
 downloads/
-resources/server.js
-resources/public/bundle.js
+#resources/server.js
+#resources/public/bundle.js
 
 
 #build dir
