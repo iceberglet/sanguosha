@@ -7,7 +7,7 @@ import Pubsub from './common/util/PubSub';
 import LoginMessage from './server/Login';
 import GameManager from './server/GameManager';
 import { ServerHintTransit } from './common/ServerHint';
-import { EffectTransit } from './common/transit/EffectTransit';
+import { EffectTransit, DamageEffectTransit } from './common/transit/EffectTransit';
 
 let app = express()
 
@@ -50,7 +50,9 @@ wss.on('connection', (ws: WebSocket) => {
                 // slashReach: undefined
             })))
 
-            ws.send(Serde.serialize(new EffectTransit('欧阳挠挠', ['东郭旭銮', '广东吴彦祖', '新荷', '青青子吟'], 'slash')))
+            // ws.send(Serde.serialize(new EffectTransit('欧阳挠挠', ['广东吴彦祖', '新荷', '青青子吟'], '南蛮入侵')))
+            // ws.send(Serde.serialize(new EffectTransit('东郭旭銮', ['欧阳挠挠'], '杀')))
+            ws.send(Serde.serialize(new DamageEffectTransit('东郭旭銮')))
         } else {
             pubsub.publish(msg)
         }
@@ -61,7 +63,7 @@ wss.on('connection', (ws: WebSocket) => {
     })
 });
 
-server.listen(80, ()=>{
-    console.log('Server running on 80')
+server.listen(8080, ()=>{
+    console.log('Server running on 8080')
 })
 

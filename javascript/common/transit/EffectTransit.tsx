@@ -1,11 +1,13 @@
-
-
-export type Effect = 'slash' | 'dodge' | 'peach' | 'wine' | 'card'
-
 export class EffectTransit {
     public constructor(public sourcePlayer: string, 
         public targetPlayers: string[], 
-        public effect: Effect) {
+        public sourceText: string) {
 
     }
+}
+
+export class DamageEffectTransit {
+    public constructor(
+        public targetPlayer: string
+    ) {}
 }

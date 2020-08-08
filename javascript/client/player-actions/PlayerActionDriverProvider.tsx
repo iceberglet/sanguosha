@@ -11,14 +11,14 @@ class PlayerActionDriverProvider {
         let curr = this.providers.get(hintType) || []
         curr.push(provider)
         this.providers.set(hintType, curr)
-        console.log(`Registering PlayerActionDriverProvider ${hintType} > ${provider.constructor.name}`)
+        // console.log(`Registering PlayerActionDriverProvider ${hintType} > ${provider.constructor.name}`)
     }
 
     unregisterProvider(hintType: HintType, provider: Provider) {
         let ps = this.providers.get(hintType)
         let idx = ps.findIndex(p => p === provider)
         this.providers.get(hintType).splice(idx, 1)
-        console.log(`Unregistering PlayerActionDriverProvider ${hintType} > ${provider.constructor.name}`)
+        // console.log(`Unregistering PlayerActionDriverProvider ${hintType} > ${provider.constructor.name}`)
     }
 
     getDriver(hint: ServerHint): PlayerActionDriver {

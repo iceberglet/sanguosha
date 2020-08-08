@@ -93,14 +93,14 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
     }
 
     render() {
-        let {myId, context} = this.props
+        let {myId, context, pubsub} = this.props
         let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker} = this.state
         let playerInfo = context.getPlayer(myId)
         // console.log(context.playerInfos, myId, playerInfo)
 
         return <div className='board occupy noselect' style={{}}>
             <div className='top'>
-                <UIPlayGround players={others} distanceComputer={context.getMyDistanceTo} 
+                <UIPlayGround players={others} distanceComputer={context.getMyDistanceTo} pubsub={pubsub}
                                 screenPosObtainer={screenPosObtainer} showDist={showDistance}
                                 checker={playerChecker}/>)
                 <div className='chat-logger'>
@@ -110,7 +110,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             <div className='btm' ref={this.dom}>
                 {/* 状态 */}
                 <UIMyPlayerCard info={playerInfo} onUseSkill={(s)=>{}} elementStatus={playerChecker.getStatus(myId)} 
-                                onSelect={(s)=>playerChecker.onClicked(s)}/>
+                                onSelect={(s)=>playerChecker.onClicked(s)} pubsub={pubsub}/>
                 <div className='mid'>
                     {/* 判定牌 */}
                     <div className='my-judge'>

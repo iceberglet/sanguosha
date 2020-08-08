@@ -10,6 +10,11 @@ import { Checker, ElementStatus } from './UIBoard'
 import { Mask } from '../../common/util/Util'
 import { ClassFormatter } from '../../common/util/Togglable'
 import { Coor } from '../effect/EffectProducer'
+import Pubsub from '../../common/util/PubSub'
+import { DamageEffectTransit } from '../../common/transit/EffectTransit'
+import { getDamageSpriteSheet } from '../effect/SpriteSheet'
+
+const damageDuration = 2000
 
 export class ScreenPosObtainer {
     getters = new Map<string, ()=>Coor>()
@@ -33,13 +38,40 @@ type PlayGroundProp = {
     distanceComputer: (s: string)=>number,
     screenPosObtainer: ScreenPosObtainer,
     showDist: boolean,
-    checker: Checker
+    checker: Checker,
+    pubsub: Pubsub
 }
 
-export default class UIPlayGround extends React.Component<PlayGroundProp, object> {
+type State = {
+    //players who are being damaged
+    damageAnimation: Set<string>
+}
+
+export default class UIPlayGround extends React.Component<PlayGroundProp, State> {
+
+    constructor(p: PlayGroundProp) {
+        super(p)
+        p.pubsub.on(DamageEffectTransit, (d: DamageEffectTransit)=>{
+            this.setState(s => {
+                s.damageAnimation.add(d.targetPlayer)
+                return s
+            })
+            setTimeout(()=>{
+                this.setState(s => {
+                    s.damageAnimation.delete(d.targetPlayer)
+                    return s
+                })
+            }, damageDuration)
+        })
+
+        this.state = {
+            damageAnimation: new Set<string>()
+        }
+    }
 
     render() {
         let {players, screenPosObtainer, showDist, distanceComputer, checker} = this.props
+        let {damageAnimation} = this.state
         let number = players.length
         let rows = 3
         if(number <= 2) {
@@ -54,7 +86,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, object
             {
                 players.filter((p, i) => i >= rows - 1 && i <= players.length - rows)
                     .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} 
-                                                screenPosObtainer={screenPosObtainer}
+                                                screenPosObtainer={screenPosObtainer} isDamaged={damageAnimation.has(p.player.id)}
                                                 elementStatus={checker.getStatus(p.player.id)}
                                                 onSelect={s=>checker.onClicked(s)}/>)
             }
@@ -63,7 +95,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, object
             {
                 rows > 2 && players.filter((p, i) => i === 1 || i === players.length - 2)
                     .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} screenPosObtainer={screenPosObtainer}
-                                                elementStatus={checker.getStatus(p.player.id)}
+                                                elementStatus={checker.getStatus(p.player.id)} isDamaged={damageAnimation.has(p.player.id)}
                                                 onSelect={s=>checker.onClicked(s)}/>)
             }
             </div>
@@ -71,7 +103,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, object
             {
                 rows > 1 && players.filter((p, i) => i === 0 || i === players.length - 1)
                     .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} screenPosObtainer={screenPosObtainer}
-                                                elementStatus={checker.getStatus(p.player.id)}
+                                                elementStatus={checker.getStatus(p.player.id)} isDamaged={damageAnimation.has(p.player.id)}
                                                 onSelect={s=>checker.onClicked(s)}/>)
             }
             </div>
@@ -87,6 +119,7 @@ type CardProp = {
     screenPosObtainer: ScreenPosObtainer,
     dist?: number,
     elementStatus: ElementStatus,
+    isDamaged: boolean,
     onSelect: (s: string)=>void
 }
 
@@ -108,10 +141,11 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
     }
 
     render() {
-        let {info, dist, elementStatus} = this.props
+        let {info, dist, elementStatus, isDamaged} = this.props
         let clazz = new ClassFormatter('ui-player-card')
                         .and(elementStatus.isSelectable, 'selectable')
                         .and(elementStatus === ElementStatus.SELECTED, 'selected')
+                        .and(isDamaged, 'damaged')
                         .done()
         //todo: highlight, click
         return <div className={clazz} ref={this.dom} onClick={this.onClick}>
@@ -141,6 +175,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
                 </div>
             }
             
+            {isDamaged && getDamageSpriteSheet()}
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
         </div>
     }

@@ -11,4 +11,26 @@
             transition: 2.5s;
         }
     }
+
+    .text {
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 0px;
+        height: 0px;
+        font-size: 55px;
+        color: white;
+        font-family: LiShuFanTi;
+        text-shadow: 0px 0px 30px grey;
+        white-space: nowrap;
+        animation: flash 3s forwards;
+    }
+}
+
+@keyframes flash {
+    0%   {color: transparent;}
+    20%  {color: white;}
+    80%  {color: white;}
+    100% {color: transparent;}
 }

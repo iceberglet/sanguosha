@@ -88,6 +88,6 @@ export default class GameClientContext extends GameContext {
         console.error('Socket Connection to Server Lost')
     }
     private onServerMsg(msg: any) {
-        console.log('Received Msg From Server', msg, msg.data)
+        console.log('Received Msg From Server', msg.data)
     }
 }
