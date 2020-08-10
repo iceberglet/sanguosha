@@ -18,7 +18,7 @@ export class Package {
     public static WIND = new Package('wind', '风')
     public static GOD = new Package('god', '神')
 
-    private constructor(id: string, name: string){}
+    private constructor(public readonly id: string, public readonly name: string){}
 }
 
 export class Faction {

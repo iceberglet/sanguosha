@@ -5,7 +5,7 @@ type Provider = (hint: ServerHint)=>PlayerActionDriver
 
 class PlayerActionDriverProvider {
 
-    providers = new Map<string, Provider[]>()
+    providers = new Map<HintType, Provider[]>()
 
     registerProvider(hintType: HintType, provider: Provider) {
         let curr = this.providers.get(hintType) || []

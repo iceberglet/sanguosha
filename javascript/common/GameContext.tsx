@@ -1,8 +1,7 @@
 import { cardManager } from "./cards/Card";
 import { PlayerInfo } from "./PlayerInfo";
-import { ServerHint } from "./ServerHint";
 import Deck from "../server/Deck";
-import { ContextTransit } from "./transit/ContextTransit";
+import { ContextTransit, CardPos } from "./transit/ContextTransit";
 
 /**
  * Contains current state of the game
@@ -13,10 +12,6 @@ import { ContextTransit } from "./transit/ContextTransit";
 export default class GameContext {
 
     deck: Deck
-    /**
-     * Current Server Hint
-     */
-    serverHint: ServerHint
 
     //------------- listeners -------------------
     
@@ -50,10 +45,10 @@ export default class GameContext {
         let pFrom = living[from]
         let pTo = living[to]
         let delta = 0
-        if(pFrom.findCardAt('equip', 'horse-1')) {
+        if(pFrom.findCardAt(CardPos.EQUIP, 'horse-1')) {
             delta -= 1
         }
-        if(pTo.findCardAt('equip', 'horse+1')) {
+        if(pTo.findCardAt(CardPos.EQUIP, 'horse+1')) {
             delta += 1
         }
 
@@ -96,9 +91,9 @@ export default class GameContext {
         return p
     }
 
-    toTransit(): ContextTransit {
+    toTransit(sendTo: string): ContextTransit {
         return {
-            players: this.playerInfos.map(PlayerInfo.toTransit)
+            players: this.playerInfos.map(p => PlayerInfo.toTransit(p, sendTo))
         }
     }
 }

@@ -26,6 +26,21 @@
         white-space: nowrap;
         animation: flash 3s forwards;
     }
+
+    .floating-cards {
+        position: absolute;
+        transition: 1.4s;
+        display: flex;
+        justify-content: space-between;
+
+        .card-holder {
+            width: 0px;
+            height: 0px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
 }
 
 @keyframes flash {

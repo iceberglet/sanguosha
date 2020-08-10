@@ -2,12 +2,14 @@ import * as express from 'express'
 import * as http from 'http';
 import * as WebSocket from 'ws';
 import { Serde } from './common/util/Serializer';
-import { playerRegistry } from './server/ServerPlayer';
 import Pubsub from './common/util/PubSub';
 import LoginMessage from './server/Login';
 import GameManager from './server/GameManager';
-import { ServerHintTransit } from './common/ServerHint';
-import { EffectTransit, DamageEffectTransit } from './common/transit/EffectTransit';
+import { PlayerRegistry } from './server/PlayerRegistry';
+import { ServerHintTransit, HintType } from './common/ServerHint';
+import { TextFlashEffect, DamageEffect, TransferCardEffect } from './common/transit/EffectTransit';
+import { CardTransfer } from './common/Impact';
+import Card, { cardManager } from './common/cards/Card';
 
 let app = express()
 
@@ -19,7 +21,8 @@ const server = http.createServer(app)
 const wss = new WebSocket.Server({ server });
 
 const pubsub = new Pubsub()
-const gameManager = new GameManager()
+const playerRegistry = new PlayerRegistry(pubsub)
+const gameManager = new GameManager(null, playerRegistry)
 
 wss.on('connection', (ws: WebSocket) => {
     //connection is up
@@ -37,22 +40,20 @@ wss.on('connection', (ws: WebSocket) => {
             //send back the samething so they know they are logged in.
             ws.send(Serde.serialize(login))
             //send the current state to this newly logged in person
-            ws.send(Serde.serialize(gameManager.getCurrentState()))
+            ws.send(Serde.serialize(gameManager.getCurrentState('青青子吟')))
 
-            ws.send(Serde.serialize(new ServerHintTransit({
-                hintId: 1,
-                playerId: '青青子吟',
-                isSecret: false,
-                hintType: 'play-hand',
+            playerRegistry.sendServerAsk('青青子吟', {
+                hintType: HintType.PLAY_HAND,
                 hintMsg: '请出牌',
                 slashNumber: 2,
                 abortButtonMsg: '结束出牌'
                 // slashReach: undefined
-            })))
+            })
 
             // ws.send(Serde.serialize(new EffectTransit('欧阳挠挠', ['广东吴彦祖', '新荷', '青青子吟'], '南蛮入侵')))
             // ws.send(Serde.serialize(new EffectTransit('东郭旭銮', ['欧阳挠挠'], '杀')))
-            ws.send(Serde.serialize(new DamageEffectTransit('东郭旭銮')))
+            // ws.send(Serde.serialize(new DamageEffect('东郭旭銮')))
+            ws.send(Serde.serialize(new TransferCardEffect('欧阳挠挠', '新荷', cardManager.getShuffledDeck().slice(5, 7).map(c => c.id))))
         } else {
             pubsub.publish(msg)
         }

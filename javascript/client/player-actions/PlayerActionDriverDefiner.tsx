@@ -1,4 +1,4 @@
-import { UIPosition, PlayerUIAction, Button, PlayerAction } from "./PlayerUIAction";
+import { UIPosition, PlayerUIAction, Button, PlayerAction } from "../../common/PlayerAction";
 import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerActionDriver";
 import GameClientContext from "./GameClientContext";
 import Togglable from "../../common/util/Togglable";
@@ -170,8 +170,8 @@ export class StepByStepActionDriver extends PlayerActionDriver {
             if(action.itemId === ABORT_BUTTON_ID) {
                 //abort sends a message to server
                 let actionToServer: PlayerAction = {
-                    hintId: context.serverHint.hintId,
-                    hintType: context.serverHint.hintType,
+                    serverHint: context.serverHint.hint,
+                    actionSource: context.myself.player.id,
                     actionData: {
                         [UIPosition.BUTTONS]: [ABORT_BUTTON_ID]
                     }
@@ -210,13 +210,13 @@ export class StepByStepActionDriver extends PlayerActionDriver {
                     this.steps.forEach(s => {
                         actionData[s.area] = s.chosen.toArray()
                     })
-                    let action = {
-                        hintId: context.serverHint.hintId,
-                        hintType: context.serverHint.hintType,
+                    let actionToSubmit = {
+                        actionSource: context.myself.player.id,
+                        serverHint: context.serverHint.hint,
                         actionData
                     }
                     console.log('[Player Action] All steps done. Finishing the call')
-                    context.submitAction(action)
+                    context.submitAction(actionToSubmit)
                     return ClickActionResult.DONE
                 }
             }

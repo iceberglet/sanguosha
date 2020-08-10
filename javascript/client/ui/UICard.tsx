@@ -31,7 +31,7 @@ export default function UICard(prop: CardProp) {
                 .and(elementStatus === ElementStatus.SELECTED, 'selected')
                 .done()
 
-    if(!prop.isShown) {
+    if(!prop.isShown || prop.card.isDummy()) {
         return <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} 
                     onClick={onMouseClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
             <img className='itself'

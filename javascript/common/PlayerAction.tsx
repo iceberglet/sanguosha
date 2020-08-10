@@ -1,4 +1,4 @@
-import { HintType } from "../../common/ServerHint"
+import { HintType, ServerHint } from "./ServerHint"
 
 
 export enum UIPosition {
@@ -37,6 +37,12 @@ export class Button {
     }
 }
 
+export class PlayerActionTransit {
+    public constructor(public hintId: number, public action: PlayerAction) {
+        
+    }
+}
+
 
 /**
  * 每个玩家的操作都是一个Player Action
@@ -49,7 +55,17 @@ export class Button {
  * ServerHint:闪 > 选择技能 / 防具(八卦) / 手牌 > 确定 => 发给服务器操作
  */
 export type PlayerAction = {
-    hintId: number
-    hintType: HintType
+    serverHint: ServerHint
+    actionSource: string
     actionData: {[key in UIPosition]?: string[]}
+}
+
+
+export function isCancel(action: PlayerAction) {
+    let buttons = action.actionData[UIPosition.BUTTONS]
+    if(buttons.length === 1) {
+        return buttons[0] === Button.CANCEL.id
+    } else {
+        throw `Did not find any button or more than one buttons clicked in player action!! is this even allowed? ${action}`
+    }
 }

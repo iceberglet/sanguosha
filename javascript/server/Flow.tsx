@@ -1,21 +1,7 @@
 import GameContext from "../common/GameContext";
 import { PlayerInfo } from "../common/PlayerInfo";
-import { PlayerAction } from "../client/player-actions/PlayerUIAction";
-
-export enum Stage {
-    //回合开始阶段
-    ROUND_BEGIN,
-    //判定阶段
-    JUDGE,
-    //摸牌阶段
-    TAKE_CARD,
-    //出牌阶段
-    USE_CARD,
-    //弃牌阶段
-    DROP_CARD,
-    //回合结束阶段
-    ROUND_END
-}
+import { PlayerAction } from "../common/PlayerAction";
+import GameManager, { Stage } from "./GameManager";
 
 
 type FlowListener = (flow: Flow, context: GameContext) => void
@@ -28,14 +14,18 @@ type FlowListener = (flow: Flow, context: GameContext) => void
 //4. Player 4 触发技能/装备(e.g.帷幕/藤甲)
 //5. ...
 //6. 直到南蛮结算完毕,进入下一个出牌
-class Flow {
+// * 结算过程中可能会发起新的结算
+export default abstract class Flow {
 
-    currentPlayer: PlayerInfo
-
-    currentStage: Stage
-
-    actions: PlayerAction[]
-
+    /**
+     * 结算下一步
+     * @param context 
+     * @param manager 
+     * @returns true if this Flow is complete
+     */
+    public abstract async doNext(manager: GameManager): Promise<boolean>
 
 
 }
+
+export class PlayerDeadInHisRound{}

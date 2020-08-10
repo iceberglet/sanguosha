@@ -2,7 +2,7 @@
 
 // export type Action = '摸排'
 import GameClientContext from "./GameClientContext"
-import { PlayerUIAction, Button } from "./PlayerUIAction"
+import { PlayerUIAction, Button } from "../../common/PlayerAction"
 
 export enum Clickability {
     CLICKABLE,
@@ -165,7 +165,7 @@ export class CompositePlayerActionDriver extends PlayerActionDriver {
         if(this.theOne) {
             return this.theOne.getHintMsg(context)
         } else {
-            return context.serverHint.hintMsg
+            return context.serverHint.hint.hintMsg
         }
     }
 }

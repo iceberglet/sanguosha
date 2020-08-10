@@ -1,9 +1,9 @@
-import { shuffle } from "../util/Util"
+import { shuffle, Suits } from "../util/Util"
 import { ICard } from "./ICard"
 
-export type CardGenre = 'basic' | 'single-immediate-ruse' | 'single-delay-ruse' | 'group-ruse' | 'horse+1' | 'horse-1' | 'weapon' | 'shield'
+export type CardGenre = 'basic' | 'single-immediate-ruse' | 'single-delay-ruse' | 'group-ruse' | 'horse+1' | 'horse-1' | 'weapon' | 'shield' | 'none'
 
-export type Suit = 'club' | 'spade' | 'heart' | 'diamond'
+export type Suit = 'club' | 'spade' | 'heart' | 'diamond' | 'none'
 
 export class CardSize {
     public static ACE = new CardSize('A', 1)
@@ -23,6 +23,8 @@ export class CardSize {
 }
 
 export class CardType {
+
+    public static BACK = new CardType('back', '背面', 'none')
 
     public static SLASH = new CardType('slash', '杀', 'basic')
     public static SLASH_FIRE = new CardType('slash_fire', '火杀', 'basic')
@@ -114,10 +116,11 @@ export class CardType {
 }
 
 export default class Card implements ICard {
+    static DUMMY = new Card('none', null, CardType.BACK)
     static counter = 0
     public id: string
     public constructor(public readonly suit: Suit, public readonly size: CardSize, public readonly type: CardType){
-        this.id = [suit, size.symbol, type.name].join('_')
+        this.id = [suit, size?.symbol, type?.name].join('_')
     }
     public isOneOf(...types: CardType[]) {
         for(let t of types) {
@@ -126,6 +129,9 @@ export default class Card implements ICard {
             }
         }
         return false
+    }
+    public isDummy() {
+        return this.id === Card.DUMMY.id
     }
 }
 
@@ -301,6 +307,7 @@ class CardManager {
     cards = new Map<string, Card>()
     constructor(private deck: Card[]) {
         deck.forEach(c => this.cards.set(c.id, c))
+        this.cards.set(Card.DUMMY.id, Card.DUMMY)
     }
 
     getCard(id: string): Card {

@@ -7,12 +7,13 @@ import { UIMyPlayerCard } from './UIMyPlayerCard'
 import UIButton from './UIButton'
 import UIPlayGround, { ScreenPosObtainer } from './UIPlayGround' 
 import GameClientContext from '../player-actions/GameClientContext'
-import { UIPosition } from '../player-actions/PlayerUIAction'
+import { UIPosition } from '../../common/PlayerAction'
 import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
 import { ServerHintTransit } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
-import { EffectTransit } from '../../common/transit/EffectTransit'
+import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
+import { CardPos } from '../../common/transit/ContextTransit'
 
 type UIBoardProp = {
     myId: string
@@ -77,11 +78,15 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
         }
         //need to forceupdate to register new changes
         p.pubsub.on(ServerHintTransit, (con: ServerHintTransit)=>{
-            context.setHint(con.hint)
+            context.setHint(con)
             this.refresh()
         })
-        p.pubsub.on(EffectTransit, (effect: EffectTransit)=>{
+        //the ref is not populated at construction time
+        p.pubsub.on(TextFlashEffect, (effect: TextFlashEffect)=>{
             this.effectProducer.processEffect(effect)
+        })
+        p.pubsub.on(TransferCardEffect, (effect: TransferCardEffect)=>{
+            this.effectProducer.transferCards(effect)
         })
         this.dom = React.createRef()
         screenPosObtainer.registerObtainer(myId, this.dom)
@@ -118,7 +123,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                     </div>
                     {/* 装备牌 */}
                     <div className='my-equip'>
-                        <UIEquipGrid cards={playerInfo.getCards('equip')}/>
+                        <UIEquipGrid cards={playerInfo.getCards(CardPos.EQUIP)}/>
                     </div>
                 </div>
                 <div className='player-buttons'>
@@ -138,7 +143,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                 </div>
                 {/* 手牌 */}
                 <div className='my-cards'>
-                    <UICardRow cards={playerInfo.getCards('hand')} isShown={!hideCards} checker={cardsChecker}/>
+                    <UICardRow cards={playerInfo.getCards(CardPos.HAND)} isShown={!hideCards} checker={cardsChecker}/>
                 </div>
             </div>
             <EffectProducer screenPosObtainer={screenPosObtainer} ref={effectProducer=>this.effectProducer = effectProducer} />

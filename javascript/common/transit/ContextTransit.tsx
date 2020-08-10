@@ -3,8 +3,29 @@ import { Identity } from "../PlayerInfo"
 import { General } from "../GeneralManager"
 
 
-//手牌？ 判定？ 装备？ 田？ 权？ 七星？
-export type CardPos = 'deckTop' | 'deckBtm' | 'dropped' | 'workflow' | 'hand' | 'equip' | 'judge' | 'field' | 'power' | 'star'
+export enum CardPos {
+    //手牌？ 判定？ 装备？ 
+    DECK_TOP,
+    DECK_BTM,
+    DROPPED,
+    WORKFLOW,
+    HAND,
+    EQUIP,
+    JUDGE,
+
+    //额外的因ability的地方: 田？ 权？ 七星？
+    FIELD,
+    POWER,
+    STAR
+}
+
+export function isSharedPosition(pos: CardPos) {
+    return pos < CardPos.HAND
+}
+
+export function isCardPosHidden(pos: CardPos) {
+    return pos === CardPos.HAND || pos === CardPos.STAR
+}
 
 export type DelayedRuse = 'le_bu' | 'bing_liang' | 'shan_dian'
 

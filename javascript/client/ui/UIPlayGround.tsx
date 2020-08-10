@@ -11,10 +11,13 @@ import { Mask } from '../../common/util/Util'
 import { ClassFormatter } from '../../common/util/Togglable'
 import { Coor } from '../effect/EffectProducer'
 import Pubsub from '../../common/util/PubSub'
-import { DamageEffectTransit } from '../../common/transit/EffectTransit'
+import { DamageEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
+import { CardPos } from '../../common/transit/ContextTransit'
 
 const damageDuration = 2000
+
+export const CENTER = 'center'
 
 export class ScreenPosObtainer {
     getters = new Map<string, ()=>Coor>()
@@ -49,9 +52,13 @@ type State = {
 
 export default class UIPlayGround extends React.Component<PlayGroundProp, State> {
 
+    dom: React.RefObject<any>
+
     constructor(p: PlayGroundProp) {
         super(p)
-        p.pubsub.on(DamageEffectTransit, (d: DamageEffectTransit)=>{
+        this.dom = React.createRef()
+        p.screenPosObtainer.registerObtainer(CENTER, this.dom)
+        p.pubsub.on(DamageEffect, (d: DamageEffect)=>{
             this.setState(s => {
                 s.damageAnimation.add(d.targetPlayer)
                 return s
@@ -80,7 +87,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
             rows = 2
         }
 
-        return <div className='playground'>
+        return <div className='playground' ref={this.dom}>
             {/* render top row, row-reverse */}
             <div className='top-row'>
             {
@@ -162,12 +169,12 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
 
             {info.isDead || 
                 <div>
-                    <div className='hand'>{info.getCards('hand').length}</div>
+                    <div className='hand'>{info.getCards(CardPos.HAND).length}</div>
                     <div className='player-hp'>
                         <UIHpCol current={info.hp} total={info.maxHp} />
                     </div>
                     <div className='equipments'>
-                        <UIEquipGrid cards={info.getCards('equip')}/>
+                        <UIEquipGrid cards={info.getCards(CardPos.EQUIP)}/>
                     </div>
                     <div className='judge'>
                         <UIMarkRow marks={info.getJudgeCards()} />

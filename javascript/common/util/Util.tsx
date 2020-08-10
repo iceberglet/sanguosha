@@ -41,7 +41,8 @@ export const Suits = {
   heart: '\u2665',
   spade: '\u2660',
   diamond: '\u2666',
-  club: '\u2663'
+  club: '\u2663',
+  none: 'ERROR'
 }
 
 export function Mask(prop: {isMasked: boolean}) {

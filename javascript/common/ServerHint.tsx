@@ -1,15 +1,28 @@
 
 
-export type HintType = 'play-hand' | 'slash' | 'dodge' | 'peach' | 'wu_xie' | 'skill' | 'drop-cards'
+export enum HintType {
+    PLAY_HAND,
+    //单纯弃牌
+    DROP_CARDS,
+    //单纯出杀(目标确定)
+    SLASH,
+    //单纯出闪(目标确定)
+    DODGE,
+    //若是对濒死的人的hint则可以使用酒
+    PEACH,
+    WU_XIE,
+    SKILL,
+
+}
 
 export class ServerHintTransit {
-    constructor(public hint: ServerHint){}
+    constructor(
+        //unique, incremental number
+        public hintId: number, 
+        public hint: ServerHint){}
 }
 
 export type ServerHint = {
-    hintId: number  //unique, incremental number
-    playerId: string
-    isSecret: boolean
     hintType: HintType
     hintMsg: string
 

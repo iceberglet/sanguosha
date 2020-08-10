@@ -7,7 +7,7 @@ import { ClassFormatter } from '../../common/util/Togglable'
 import { ElementStatus } from './UIBoard'
 import { Mask } from '../../common/util/Util'
 import Pubsub from '../../common/util/PubSub'
-import { DamageEffectTransit } from '../../common/transit/EffectTransit'
+import { DamageEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 
 const damageDuration = 2000
@@ -28,7 +28,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
 
     constructor(p: CardProp) {
         super(p)
-        p.pubsub.on(DamageEffectTransit, (d: DamageEffectTransit)=>{
+        p.pubsub.on(DamageEffect, (d: DamageEffect)=>{
             if(d.targetPlayer !== p.info.player.id) {
                 return
             }

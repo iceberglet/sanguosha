@@ -1,19 +1,24 @@
 import GameContext from "../../common/GameContext";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { ServerHint } from "../../common/ServerHint";
+import { ServerHint, ServerHintTransit } from "../../common/ServerHint";
 import Impact from "../../common/Impact";
 import { PlayerActionDriver, Clickability, ClickActionResult, NoActionDriver } from "./PlayerActionDriver";
-import { UIPosition, PlayerAction } from "./PlayerUIAction";
+import { UIPosition, PlayerAction, PlayerActionTransit } from "../../common/PlayerAction";
 import { playerActionDriverProvider } from "./PlayerActionDriverProvider";
 import './PlayerActionDrivers'
 import { ContextTransit } from "../../common/transit/ContextTransit";
 import { Player } from "../../common/Player";
+import { Serde } from "../../common/util/Serializer";
 
 export default class GameClientContext extends GameContext {
 
     private currentDriver: PlayerActionDriver = NoActionDriver.INSTANCE
     private socket: WebSocket
     public myself: PlayerInfo
+    /**
+     * Current Server Hint
+     */
+    public serverHint: ServerHintTransit
 
     public constructor(transit: ContextTransit, myself: Player, socket: WebSocket) {
         super(transit.players.map(PlayerInfo.fromTransit))
@@ -28,12 +33,12 @@ export default class GameClientContext extends GameContext {
         this.socket.addEventListener('message', this.onServerMsg)
     }
 
-    public setHint(hint: ServerHint) {
+    public setHint(hint: ServerHintTransit) {
         if(this.currentDriver !== NoActionDriver.INSTANCE) {
             throw `Invalid State: There is an existing action driver. Cannot start new action when current one is not complete! ${this.currentDriver}`
         }
         this.serverHint = hint
-        this.currentDriver = playerActionDriverProvider.getDriver(hint)
+        this.currentDriver = playerActionDriverProvider.getDriver(hint.hint)
     }
 
     public getMyDistanceTo=(playerId: string): number =>{
@@ -65,7 +70,8 @@ export default class GameClientContext extends GameContext {
 
     //-------- Interactions with server -----------
     public submitAction(action: PlayerAction) {
-        console.warn('[Client] Submitting Action To Server', action)
+        console.warn('[Client] Submitting Action To Server', this.serverHint.hintId, action)
+        this.socket.send(Serde.serialize(new PlayerActionTransit(this.serverHint.hintId, action)))
     }
 
     public onServerHint(hint: ServerHint) {

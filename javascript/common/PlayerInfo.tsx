@@ -3,7 +3,7 @@ import { takeFromArray } from "./util/Util"
 import {Player} from "./Player"
 import { General } from "./GeneralManager"
 import { ICard } from "./cards/ICard"
-import { DelayedRuse, CardPos, PlayerTransit, CardTransit } from "./transit/ContextTransit"
+import { DelayedRuse, CardPos, PlayerTransit, CardTransit, isSharedPosition, isCardPosHidden } from "./transit/ContextTransit"
 
 
 export type Mark = {
@@ -77,10 +77,10 @@ export class PlayerInfo {
     }
 
     addCard(card: Card, pos: CardPos, as: DelayedRuse = null) {
-        if(pos === 'deckTop' || pos ==='deckBtm' || pos === 'dropped') {
+        if(isSharedPosition(pos)) {
             throw `Invalid Position. Player can't get cards to position ${pos}`
         }
-        if(pos === 'judge') {
+        if(pos === CardPos.JUDGE) {
             if(as) {
                 this.judges.push({card, as})
             } else if(card.type.isDelayedRuse()) {
@@ -113,7 +113,7 @@ export class PlayerInfo {
     }
 
     getReach(): number {
-        let weapon = this.getCards('equip').find(c => c.type.genre === 'weapon')
+        let weapon = this.getCards(CardPos.EQUIP).find(c => c.type.genre === 'weapon')
         return weapon? weapon.type.distance : 1
     }
 
@@ -168,13 +168,17 @@ export class PlayerInfo {
         return p
     }
 
-    static toTransit(info: PlayerInfo): PlayerTransit {
+    static toTransit(info: PlayerInfo, sendTo: string): PlayerTransit {
         let cards: CardTransit[] = []
         info.cards.forEach((v, k, m) => v.forEach(c => {
-            cards.push({cardId: c.id, pos: k})
+            if(isCardPosHidden(k) && sendTo !== info.player.id) {
+                cards.push({cardId: Card.DUMMY.id, pos: k})
+            } else {
+                cards.push({cardId: c.id, pos: k})
+            }
         }))
         info.judges.forEach(mark => {
-            cards.push({cardId: mark.card.id, pos: 'judge', ruse: mark.as})
+            cards.push({cardId: mark.card.id, pos: CardPos.JUDGE, ruse: mark.as})
         })
         return {
             ...info,
