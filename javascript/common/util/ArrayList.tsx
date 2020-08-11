@@ -1,6 +1,6 @@
 export default class ArrayList<T> {
 
-    private _data: T[] = []
+    public _data: T[] = []
 
     public add(t: T) {
         this._data.push(t)

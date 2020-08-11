@@ -1,7 +1,8 @@
-import { cardManager } from "./cards/Card";
+import Card, { cardManager } from "./cards/Card";
 import { PlayerInfo } from "./PlayerInfo";
 import Deck from "../server/Deck";
 import { ContextTransit, CardPos } from "./transit/ContextTransit";
+import e = require("express");
 
 /**
  * Contains current state of the game
@@ -12,6 +13,7 @@ import { ContextTransit, CardPos } from "./transit/ContextTransit";
 export default class GameContext {
 
     deck: Deck
+    workflowCards = new Set<string>()
 
     //------------- listeners -------------------
     
@@ -29,6 +31,48 @@ export default class GameContext {
 
         //todo: start the flow
 
+    }
+
+    /**
+     * Move selected cards from one place to another
+     * @param fromPlayer null for shared positions
+     * @param toPlayer null for shared positions
+     * @param from from position
+     * @param to to position. 
+     * @param cards cards. Sequence depends on this position
+     */
+    transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: string[]) {
+        if(fromPlayer) {
+            cards.forEach(c => this.getPlayer(fromPlayer).removeCard(c))
+        } else {
+            switch(from) {
+                case CardPos.WORKFLOW:
+                    cards.forEach(c => {
+                        if(!this.workflowCards.delete(c)) {
+                            throw `Unable to find card ${c} in workflow cards!`
+                        }
+                    })
+                default:
+                    throw `Can't take cards from this weird position! ${from}`
+            }
+        }
+        if(toPlayer) {
+            cards.forEach(c => this.getPlayer(toPlayer).addCard(cardManager.getCard(c), to))
+        } else {
+            switch(to) {
+                case CardPos.WORKFLOW:
+                    cards.forEach(c => this.workflowCards.add(c))
+                    break
+                case CardPos.DECK_TOP:
+                    this.deck.placeCardsAtTop(cards)
+                    break
+                case CardPos.DECK_BTM:
+                    this.deck.placeCardsAtBtm(cards)
+                    break
+                case CardPos.DROPPED:
+                    this.deck.dropped.push(...cards.map(cardManager.getCard))
+            }
+        }
     }
 
     //todo: 马术？神曹操？公孙瓒？
@@ -63,10 +107,11 @@ export default class GameContext {
     /**
      * 根据当前玩家视角给出其余玩家的排序
      * @param playerId 
+     * @param inclusive 是否包含当前玩家. 默认false
      */
-    getRingFromPerspective(playerId: string): PlayerInfo[] {
+    getRingFromPerspective(playerId: string, inclusive: boolean = false): PlayerInfo[] {
         let idx = this.playerInfos.findIndex(p => p.player.id === playerId)
-        return [...this.playerInfos.slice(idx + 1), ...this.playerInfos.slice(0, idx)]
+        return [...this.playerInfos.slice(inclusive? idx : idx + 1), ...this.playerInfos.slice(0, idx)]
     }
 
     /**
@@ -75,12 +120,7 @@ export default class GameContext {
      * @param ids 需要排序的玩家, 可以包含playerId
      */
     sortFromPerspective(playerId: string, ids: string[]): PlayerInfo[] {
-        let seq: PlayerInfo[] = this.getRingFromPerspective(playerId).filter(info => ids.indexOf(info.player.id) >= 0)
-        if(ids.indexOf(playerId) >= 0){
-            //如果playerId也在其中, 放在最前
-            seq.unshift(this.getPlayer(playerId))
-        }
-        return seq
+        return this.getRingFromPerspective(playerId, true).filter(info => ids.indexOf(info.player.id) >= 0)
     }
 
     getPlayer(id: string): PlayerInfo {

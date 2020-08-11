@@ -1,4 +1,5 @@
 import { HintType, ServerHint } from "./ServerHint"
+import { cardManager } from "./cards/Card"
 
 
 export enum UIPosition {
@@ -60,6 +61,9 @@ export type PlayerAction = {
     actionData: {[key in UIPosition]?: string[]}
 }
 
+export function getCards(action: PlayerAction, pos: UIPosition) {
+    return action.actionData[pos].map(id => cardManager.getCard(id))
+}
 
 export function isCancel(action: PlayerAction) {
     let buttons = action.actionData[UIPosition.BUTTONS]

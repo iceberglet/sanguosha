@@ -14,9 +14,9 @@ export enum CardPos {
     JUDGE,
 
     //额外的因ability的地方: 田？ 权？ 七星？
-    FIELD,
-    POWER,
-    STAR
+    TIAN,
+    QUAN,
+    QI_XING
 }
 
 export function isSharedPosition(pos: CardPos) {
@@ -24,7 +24,7 @@ export function isSharedPosition(pos: CardPos) {
 }
 
 export function isCardPosHidden(pos: CardPos) {
-    return pos === CardPos.HAND || pos === CardPos.STAR
+    return pos === CardPos.HAND || pos === CardPos.QI_XING
 }
 
 export type DelayedRuse = 'le_bu' | 'bing_liang' | 'shan_dian'

@@ -5,6 +5,9 @@ import ArrayList from "../../common/util/ArrayList";
 import GameManager from "../GameManager";
 import { ServerHint } from "../../common/ServerHint";
 import SlashFlow from "../flows/SlashFlow";
+import { TextFlashEffect, TransferCardEffect } from "../../common/transit/EffectTransit";
+import { CardPos } from "../../common/transit/ContextTransit";
+import { CardTransfer } from "../../common/Impact";
 
 
 export type CardPlayedListener = (playerAction: PlayerAction, cardType: CardType, context: GameManager)=>void
@@ -27,6 +30,17 @@ export default class GameListeners {
             //出杀
             if(type.isSlash()) {
                 let targets = manager.context.sortFromPerspective(action.actionSource, action.actionData[UIPosition.PLAYER])
+                //show effects
+                manager.broadcast(new TextFlashEffect(action.actionSource, targets.map(t => t.player.id), '杀'))
+                let cards = action.actionData[UIPosition.MY_HAND]
+                if(cards) {
+                    //show card coming from player
+                    manager.broadcast(new TransferCardEffect(action.actionSource, null, cards))
+                    //show card at center of playground
+                    manager.broadcast(new CardTransfer(action.actionSource, CardPos.HAND, null, CardPos.WORKFLOW, cards))
+                    //actually put cards in temp storage? not needed?
+                }
+
                 manager.prependFlows(...targets.map(t => new SlashFlow(action, t)))
             } else if(type.isNonDelayedRuse()) {
                 //非延时锦囊

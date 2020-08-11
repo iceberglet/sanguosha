@@ -1,7 +1,6 @@
 import LoginMessage from "../../server/Login"
 import GameTransit from "../transit/GameTransit"
 import { ServerHintTransit } from "../ServerHint"
-import { TextFlashEffect, DamageEffect, TransferCardEffect } from "../transit/EffectTransit"
 import { PlayerActionTransit } from "../PlayerAction"
 
 class Serializer {
@@ -47,7 +46,3 @@ Serde.register(LoginMessage)
 Serde.register(GameTransit)
 Serde.register(ServerHintTransit)
 Serde.register(PlayerActionTransit)
-
-Serde.register(TextFlashEffect)
-Serde.register(DamageEffect)
-Serde.register(TransferCardEffect)

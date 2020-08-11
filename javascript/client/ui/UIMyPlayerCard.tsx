@@ -7,8 +7,9 @@ import { ClassFormatter } from '../../common/util/Togglable'
 import { ElementStatus } from './UIBoard'
 import { Mask } from '../../common/util/Util'
 import Pubsub from '../../common/util/PubSub'
-import { DamageEffect } from '../../common/transit/EffectTransit'
+import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
+import { Stage } from '../../common/Stage'
 
 const damageDuration = 2000
 
@@ -22,6 +23,7 @@ type CardProp = {
 
 type State = {
     damaged: boolean
+    effect: CurrentPlayerEffect
 }
 
 export class UIMyPlayerCard extends React.Component<CardProp, State> {
@@ -35,8 +37,10 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
             this.setState({damaged: true})
             setTimeout(()=>this.setState({damaged: false}), damageDuration)
         })
+        p.pubsub.on(CurrentPlayerEffect, (e: CurrentPlayerEffect)=>this.setState({effect: e}))
         this.state = {
-            damaged: false
+            damaged: false,
+            effect: new CurrentPlayerEffect(null, null)
         }
     }
 
@@ -49,12 +53,14 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
 
     render() {
         let {info, elementStatus} = this.props
-        let {damaged} = this.state
+        let {damaged,effect} = this.state
         let clazz = new ClassFormatter('ui-player-card ui-my-player-card')
                         .and(elementStatus.isSelectable, 'selectable')
                         .and(elementStatus === ElementStatus.SELECTED, 'selected')
                         .and(damaged, 'damaged')
                         .done()
+
+        console.log(effect, info.player.id)
         return <div className={clazz}  onClick={this.onClick}>
             <div className='occupy overflow-hidden'>
                 <div className='card-avatar' 
@@ -68,8 +74,22 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
                 <UIHpCol current={info.hp} total={info.maxHp} />
             </div>
             
+            {effect.player === info.player.id && <StageDeclarer stage={effect.stage} className={'top-right-corner'}/>}
             {damaged && getDamageSpriteSheet()}
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
         </div>
     }
 }
+
+type Prop = {
+    stage: Stage
+    className: string
+}
+
+export function StageDeclarer(p: Prop) {
+
+    return <div key={p.stage.name} className={p.className + ' player-stage'} style={{background: `linear-gradient(90deg, rgba(255,255,255,0) 0%, ${p.stage.color} 25%, ${p.stage.color} 75%, rgba(255,255,255,0) 100%)`}}>
+        {p.stage.name}
+    </div>
+
+} 

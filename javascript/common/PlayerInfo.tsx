@@ -44,6 +44,8 @@ export class PlayerInfo {
     isTurnedOver: boolean = false
     //横置
     isChained: boolean = false
+    //喝酒了吗
+    isDrunk: boolean = false
     isDead: boolean = false
     skills: string[]
 
@@ -99,14 +101,11 @@ export class PlayerInfo {
     removeCard(cardId: string) {
         let found = false
         this.cards.forEach(cs => {
-            if(takeFromArray(cs, c => c.id === cardId)) {
-                found = true
-            }
+            found = !!takeFromArray(cs, c => c.id === cardId)
         })
         if(!found) {
-            takeFromArray(this.judges, m => m.card.id === cardId)
+            found = !!takeFromArray(this.judges, m => m.card.id === cardId)
         }
-
         if(!found) {
             throw `Cannot find card to remove ${cardId} in player ${this}`
         }

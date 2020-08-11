@@ -74,6 +74,3 @@ export class CardTransfer extends Impact {
 Serde.register(Heal)
 Serde.register(Damage)
 Serde.register(CardTransfer)
-
-
-Serde.register(Heal)

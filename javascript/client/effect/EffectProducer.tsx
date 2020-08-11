@@ -51,9 +51,9 @@ export default class EffectProducer extends React.Component<Prop, State> {
 
     processEffect(effect: TextFlashEffect) {
         let o = this.props.screenPosObtainer
+        this.flashText(o.getPos(effect.sourcePlayer), effect.sourceText)
         effect.targetPlayers?.forEach(t => {
             this.drawRay(o.getPos(effect.sourcePlayer), o.getPos(t))
-            this.flashText(o.getPos(effect.sourcePlayer), effect.sourceText)
         })
     }
 

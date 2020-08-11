@@ -7,9 +7,10 @@ import LoginMessage from './server/Login';
 import GameManager from './server/GameManager';
 import { PlayerRegistry } from './server/PlayerRegistry';
 import { ServerHintTransit, HintType } from './common/ServerHint';
-import { TextFlashEffect, DamageEffect, TransferCardEffect } from './common/transit/EffectTransit';
+import { TextFlashEffect, DamageEffect, TransferCardEffect, CurrentPlayerEffect } from './common/transit/EffectTransit';
 import { CardTransfer } from './common/Impact';
 import Card, { cardManager } from './common/cards/Card';
+import { Stage } from './common/Stage';
 
 let app = express()
 
@@ -26,7 +27,7 @@ const gameManager = new GameManager(null, playerRegistry)
 
 wss.on('connection', (ws: WebSocket) => {
     //connection is up
-    ws.on('message', (message: string) => {
+    ws.on('message', async (message: string) => {
         let msg = Serde.deserialize(message)
         console.log('received: ', msg)
         if(msg.constructor.name === 'LoginMessage') {
@@ -50,10 +51,19 @@ wss.on('connection', (ws: WebSocket) => {
                 // slashReach: undefined
             })
 
+            ws.send(Serde.serialize(new CurrentPlayerEffect('青青子吟', Stage.USE_CARD)))
+
+            setTimeout(()=>{
+                ws.send(Serde.serialize(new CurrentPlayerEffect('青青子吟', Stage.DROP_CARD)))
+            }, 2000)
+
+            setTimeout(()=>{
+                ws.send(Serde.serialize(new CurrentPlayerEffect('欧阳挠挠', Stage.ROUND_BEGIN)))
+            }, 4000)
             // ws.send(Serde.serialize(new EffectTransit('欧阳挠挠', ['广东吴彦祖', '新荷', '青青子吟'], '南蛮入侵')))
             // ws.send(Serde.serialize(new EffectTransit('东郭旭銮', ['欧阳挠挠'], '杀')))
             // ws.send(Serde.serialize(new DamageEffect('东郭旭銮')))
-            ws.send(Serde.serialize(new TransferCardEffect('欧阳挠挠', '新荷', cardManager.getShuffledDeck().slice(5, 7).map(c => c.id))))
+            // ws.send(Serde.serialize(new TransferCardEffect('欧阳挠挠', '新荷', cardManager.getShuffledDeck().slice(5, 7).map(c => c.id))))
         } else {
             pubsub.publish(msg)
         }

@@ -138,8 +138,13 @@
 }
 
 .ui-player-card.selected {
-    box-shadow: 0px 0px 30px gold;
+    box-shadow: 0px 0px 15px gold !important;
     // transform: translate();
+}
+
+.ui-player-card.in-turn {
+    border: 3px solid rgba(36, 184, 43, 0.719);
+    box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87);
 }
 
 .ui-player-card.damaged {
@@ -150,7 +155,7 @@
     position: relative;
     width: 170px;
     height: 190px;
-    box-shadow: 0px 0px 30px #b90000;
+    // box-shadow: 0px 0px 30px #b90000;
     border: 3px solid rgba(0, 0, 0, 0.719);
     border-radius: 4px;
     transition: 0.3s;
@@ -279,6 +284,12 @@
         justify-content: center;
         font-size: 40px;
         pointer-events: none;
+    }
+
+    .left-btm-corner {
+        position: absolute;
+        bottom: -12px;
+        left: -5px;
     }
 }
 

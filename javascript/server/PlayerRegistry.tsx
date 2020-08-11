@@ -21,7 +21,12 @@ export class ServerPlayer {
     connection: WebSocket
 }
 
-type ActionExpector = (transit: PlayerActionTransit)=>void
+type ActionExpector = {
+    player: string,
+    callback: (transit: PlayerActionTransit)=>void
+}
+
+export type Sanitizer<F, T> = (t: F, playerId: string) => T
 
 export class PlayerRegistry {
     private _byId = new Map<string, ServerPlayer>()
@@ -58,23 +63,34 @@ export class PlayerRegistry {
         }
         this._byConnection.delete(ws)
         //note: we still keep this in _byId so that if player connects again, we get to keep previous records!
+
+        //remove current expectations if it's on this player
+        if(this._currentExpector && this._currentExpector.player === p.player.id) {
+            console.warn('玩家尚有待定操作.取消对此操作的期待', this._currentExpector.player)
+            this.stopExpecting(this._currentExpector)
+        }
     }
 
-    public sendServerAsk(player: string, hint: ServerHint): Promise<PlayerAction> {
+    public async sendServerAsk(player: string, hint: ServerHint): Promise<PlayerAction> {
         return new Promise((resolve, reject)=>{
             console.log('服务器发出操作请求:', player, hint)
             let hintId = PlayerRegistry.hintCount++
 
-            let expector = (transit: PlayerActionTransit) => {
-                //when we hear back stuff
-                this.stopExpecting(expector)
-                if(transit.hintId === hintId) {
-                    console.log('服务器获得玩家操作:', player, transit.action)
-                    resolve(transit.action)
-                } else {
-                    reject(`Not getting the same id back from request! Expect: ${hintId}, Found: ${transit.hintId}`)
+            let expector = {
+                player,
+                callback: (transit: PlayerActionTransit) => {
+                    //when we hear back stuff
+                    this.stopExpecting(expector)
+                    if(transit.hintId === hintId) {
+                        console.log('服务器获得玩家操作:', player, transit.action)
+                        resolve(transit.action)
+                    } else {
+                        console.error(`玩家的操作并未包含服务器所期待的hint ID! Expect: ${hintId}, Found: ${transit.hintId}`)
+                        reject(`Not getting the same id back from request! Expect: ${hintId}, Found: ${transit.hintId}`)
+                    }
                 }
             }
+            
 
             this.startExpecting(expector)
 
@@ -86,10 +102,11 @@ export class PlayerRegistry {
         this._byId.get(id)?.connection?.send(Serde.serialize(obj))
     }
 
-    public broadcast(obj: any) {
-        for(let conn of this._byConnection.keys()) {
-            conn.send(Serde.serialize(obj))
-        }
+    public broadcast<F extends object, T extends object>(obj: F, sanitizer: Sanitizer<F, T> = null) {
+        this._byConnection.forEach((v, k) => {
+            let sanitized = sanitizer? sanitizer(obj, v.player.id) : obj
+            k.send(Serde.serialize(sanitized))
+        })
     }
 
     public getPlayerById(id: string): ServerPlayer {
@@ -106,14 +123,14 @@ export class PlayerRegistry {
 
     private startExpecting=(expector: ActionExpector)=> {
         if(this._currentExpector) {
-            throw 'There is some existing expectation which is not yet done!'
+            throw `服务器还在等待玩家的回复，无法发出新的操作请求 ${this._currentExpector.player} ${expector.player}`
         }
         this._currentExpector = expector
     }
 
     private stopExpecting=(expector: ActionExpector)=> {
         if(expector !== this._currentExpector) {
-            throw 'Want to remove expector but it is not me which is in place!'
+            throw `尝试移除期待但是服务器似乎正在期待其他玩家的操作 ${this._currentExpector.player} ${expector.player}`
         }
         this._currentExpector = null
     }
@@ -122,7 +139,7 @@ export class PlayerRegistry {
         if(!this._currentExpector) {
             console.error('Not expecting any player action!', transit)
         } else {
-            this._currentExpector(transit)
+            this._currentExpector.callback(transit)
         }
     }
 }

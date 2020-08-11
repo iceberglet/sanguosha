@@ -6,30 +6,15 @@ import { General } from "../common/GeneralManager"
 import GameTransit from "../common/transit/GameTransit";
 import Flow, { PlayerDeadInHisRound } from "./Flow";
 import RoundStat from "./RoundStat";
-import { PlayerRegistry } from "./PlayerRegistry";
+import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
 import { ServerHint } from "../common/ServerHint";
 import JudgeComputer from "./engine/JudgeComputer";
 import ArrayList from "../common/util/ArrayList";
-import Pubsub from "../common/util/PubSub";
+import { SequenceAwarePubSub } from "../common/util/PubSub";
 import { PlayerAction } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/ContextTransit";
+import { Stage } from "../common/Stage";
 
-export enum Stage {
-    //回合开始阶段
-    ROUND_BEGIN,
-    //判定阶段
-    JUDGE,
-    //摸牌阶段
-    TAKE_CARD,
-    //出牌阶段
-    USE_CARD,
-    //弃牌阶段
-    DROP_CARD,
-    //回合结束阶段
-    ROUND_END
-}
-
-const stages = enumValues(Stage)
 
 //Manages the rounds
 export default class GameManager {
@@ -39,11 +24,15 @@ export default class GameManager {
     public currentStage: Stage = Stage.ROUND_BEGIN
     public roundStats: RoundStat
     //events go here
-    public pubsub: Pubsub
+    public beforeFlowHappen : SequenceAwarePubSub
+    public afterFlowDone : SequenceAwarePubSub
+    // public pubsub = new Pubsub()
 
     private currentFlows = new ArrayList<Flow>()
 
     public constructor(public context: GameContext, private registry: PlayerRegistry) {
+        this.beforeFlowHappen = new SequenceAwarePubSub((id, ids)=>context.sortFromPerspective(id, ids).map(p => p.player.id))
+        this.afterFlowDone = new SequenceAwarePubSub((id, ids)=>context.sortFromPerspective(id, ids).map(p => p.player.id))
     }
 
     public async startGame() {
@@ -78,8 +67,8 @@ export default class GameManager {
         return await this.registry.sendServerAsk(player, hint)
     }
 
-    public broadcast(obj: any) {
-        this.registry.broadcast(obj)
+    public broadcast<F extends object, T extends object>(obj: F, sanitizer: Sanitizer<F, T> = null) {
+        this.registry.broadcast(obj, sanitizer)
     }
 
     public prependFlows(...flows: Flow[]) {

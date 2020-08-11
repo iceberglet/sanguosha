@@ -10,20 +10,24 @@ export default class Deck {
         this.deck = cards
     }
 
-    getCardsFromDeck(amount: number): Card[] {
+    getCardsFromTop(amount: number): Card[] {
         if(amount > this.deck.length) {
             let res = this.deck
             this.deck = shuffle(this.dropped)
             this.dropped = []
-            res.push(...this.getCardsFromDeck(amount - res.length))
+            res.push(...this.getCardsFromTop(amount - res.length))
             return res
         } else {
             return this.deck.splice(0, amount)
         }
     }
 
+    placeCardsAtTop(ids: string[]) {
+        this.deck.unshift(...(ids.map(id => cardManager.getCard(id))))
+    }
+
     //也就观星用用吧？？
-    placeCardsAtDeckBtm(ids: string[]) {
+    placeCardsAtBtm(ids: string[]) {
         this.deck.push(...(ids.map(id => cardManager.getCard(id))))
     }
 

@@ -11,9 +11,10 @@ import { Mask } from '../../common/util/Util'
 import { ClassFormatter } from '../../common/util/Togglable'
 import { Coor } from '../effect/EffectProducer'
 import Pubsub from '../../common/util/PubSub'
-import { DamageEffect } from '../../common/transit/EffectTransit'
+import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { CardPos } from '../../common/transit/ContextTransit'
+import { StageDeclarer } from './UIMyPlayerCard'
 
 const damageDuration = 2000
 
@@ -47,7 +48,8 @@ type PlayGroundProp = {
 
 type State = {
     //players who are being damaged
-    damageAnimation: Set<string>
+    damageAnimation: Set<string>,
+    currentPlayerEffect: CurrentPlayerEffect
 }
 
 export default class UIPlayGround extends React.Component<PlayGroundProp, State> {
@@ -70,15 +72,19 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                 })
             }, damageDuration)
         })
+        p.pubsub.on(CurrentPlayerEffect, (currentPlayerEffect: CurrentPlayerEffect)=>{
+            this.setState({currentPlayerEffect})
+        })
 
         this.state = {
-            damageAnimation: new Set<string>()
+            damageAnimation: new Set<string>(),
+            currentPlayerEffect: new CurrentPlayerEffect(null, null)
         }
     }
 
     render() {
         let {players, screenPosObtainer, showDist, distanceComputer, checker} = this.props
-        let {damageAnimation} = this.state
+        let {damageAnimation, currentPlayerEffect} = this.state
         let number = players.length
         let rows = 3
         if(number <= 2) {
@@ -87,31 +93,28 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
             rows = 2
         }
 
+        let cardGetter = (p: PlayerInfo, i: number) => {
+            return <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} 
+                        screenPosObtainer={screenPosObtainer} isDamaged={damageAnimation.has(p.player.id)}
+                        elementStatus={checker.getStatus(p.player.id)} effect={currentPlayerEffect}
+                        onSelect={s=>checker.onClicked(s)}/>
+        }
+
         return <div className='playground' ref={this.dom}>
             {/* render top row, row-reverse */}
             <div className='top-row'>
             {
-                players.filter((p, i) => i >= rows - 1 && i <= players.length - rows)
-                    .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} 
-                                                screenPosObtainer={screenPosObtainer} isDamaged={damageAnimation.has(p.player.id)}
-                                                elementStatus={checker.getStatus(p.player.id)}
-                                                onSelect={s=>checker.onClicked(s)}/>)
+                players.filter((p, i) => i >= rows - 1 && i <= players.length - rows).map(cardGetter)
             }
             </div>
             <div className='secondary-row go-up'>
             {
-                rows > 2 && players.filter((p, i) => i === 1 || i === players.length - 2)
-                    .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} screenPosObtainer={screenPosObtainer}
-                                                elementStatus={checker.getStatus(p.player.id)} isDamaged={damageAnimation.has(p.player.id)}
-                                                onSelect={s=>checker.onClicked(s)}/>)
+                rows > 2 && players.filter((p, i) => i === 1 || i === players.length - 2).map(cardGetter)
             }
             </div>
             <div className='secondary-row'>
             {
-                rows > 1 && players.filter((p, i) => i === 0 || i === players.length - 1)
-                    .map((p, i) => <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} screenPosObtainer={screenPosObtainer}
-                                                elementStatus={checker.getStatus(p.player.id)} isDamaged={damageAnimation.has(p.player.id)}
-                                                onSelect={s=>checker.onClicked(s)}/>)
+                rows > 1 && players.filter((p, i) => i === 0 || i === players.length - 1).map(cardGetter)
             }
             </div>
             {/* render any cards on the table */}
@@ -125,6 +128,7 @@ type CardProp = {
     info: PlayerInfo,
     screenPosObtainer: ScreenPosObtainer,
     dist?: number,
+    effect: CurrentPlayerEffect,
     elementStatus: ElementStatus,
     isDamaged: boolean,
     onSelect: (s: string)=>void
@@ -148,11 +152,13 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
     }
 
     render() {
-        let {info, dist, elementStatus, isDamaged} = this.props
+        let {info, dist, elementStatus, isDamaged, effect} = this.props
+        let inMyTurn = effect.player === info.player.id
         let clazz = new ClassFormatter('ui-player-card')
                         .and(elementStatus.isSelectable, 'selectable')
                         .and(elementStatus === ElementStatus.SELECTED, 'selected')
                         .and(isDamaged, 'damaged')
+                        .and(inMyTurn, 'in-turn')
                         .done()
         //todo: highlight, click
         return <div className={clazz} ref={this.dom} onClick={this.onClick}>
@@ -181,7 +187,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
                     </div>
                 </div>
             }
-            
+            {inMyTurn && <StageDeclarer stage={effect.stage} className='left-btm-corner' />}
             {isDamaged && getDamageSpriteSheet()}
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
         </div>

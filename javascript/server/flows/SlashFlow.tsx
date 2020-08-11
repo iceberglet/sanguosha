@@ -1,17 +1,26 @@
 import Flow from "../Flow";
-import GameContext from "../../common/GameContext";
 import GameManager from "../GameManager";
-import { PlayerAction, UIPosition, isCancel } from "../../common/PlayerAction";
+import { PlayerAction, UIPosition, isCancel, getCards } from "../../common/PlayerAction";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import DamageFlow from "./DamageFlow";
+import DamageOp from "./DamageOp";
 import { HintType } from "../../common/ServerHint";
+import Card from "../../common/cards/Card";
 
+//marks the fact that this person played 'Dodge'
+export class DodgeEvent {
+    public constructor(
+        public readonly cards: Card[],
+        public readonly player: PlayerInfo,
+        public readonly against: PlayerInfo){}
+}
 
 export default class SlashFlow extends Flow {
 
     public dodgeRequired = 1
     public abort = false
     public hintMsg: string
+    
+    private _broadcast = false
 
     public constructor(public readonly action: PlayerAction, public readonly target: PlayerInfo) {
         super()
@@ -22,28 +31,40 @@ export default class SlashFlow extends Flow {
         //todo: 确定可以指定他为目标?
         //会不会
         //会不会转移目标? (游离)
+        //雌雄双股剑? > 弃牌然后空城
         //leave to the listeners
-        manager.pubsub.publish(this)
+        await manager.beforeFlowHappen.publish(this, this.action.actionSource)
 
         //被什么弄无效了? 藤甲/仁王盾? 游离了?
         if(this.abort) {
             return true
         }
+
         //开始杀的结算, 要求出闪
-        let response = await manager.sendHint(this.target.player.id, {
-            hintType: HintType.DODGE,
-            hintMsg: this.hintMsg
-        })
-
-        //player gave up on dodging
-        if(isCancel(response)) {
-            //proceed with damage
-            manager.prependFlows(new DamageFlow(manager.context.getPlayer(this.action.actionSource), this.target, 1, this.action))
-            //remove the card from 'flow' position
-            return true
-        } else {
-
+        while(this.dodgeRequired > 0) {
+            let response = await manager.sendHint(this.target.player.id, {
+                hintType: HintType.DODGE,
+                hintMsg: this.hintMsg
+            })
+            let source = manager.context.getPlayer(this.action.actionSource)
+    
+            //player gave up on dodging
+            if(isCancel(response)) {
+                //proceed with damage
+                let dmg = 1
+                if(source.isDrunk) {
+                    source.isDrunk = false
+                    manager.broadcast(source, PlayerInfo.toTransit)
+                    dmg = 2
+                }
+                await new DamageOp(source, this.target, dmg, this.action).perform(manager)
+                //remove the card from 'flow' position
+                break
+            }
+            //assume cancel is received?
+            let dodgeEvent = new DodgeEvent(getCards(this.action, UIPosition.MY_HAND), this.target, source)
+            await manager.afterFlowDone.publish(dodgeEvent, this.target.player.id)
         }
+        return true
     }
-
 }

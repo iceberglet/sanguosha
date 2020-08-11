@@ -19,7 +19,6 @@ export function shuffle<T>(array: T[]): T[] {
     return array;
 }
 
-
 export function takeFromArray<T>(array: T[], matcher: (t: T)=>boolean): T {
   let c = array.findIndex(matcher)
   if(c != -1) {
@@ -56,4 +55,12 @@ export function checkNotNull(obj: any) {
   if(obj === null || obj === undefined) {
     throw 'null value'
   }
+}
+
+export function getKeys<K>(map: Map<K, any>): K[] {
+  let res: K[] = []
+  for(let k of map.keys()) {
+    res.push(k)
+  }
+  return res
 }

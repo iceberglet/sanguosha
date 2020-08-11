@@ -22,6 +22,12 @@ export class ServerHintTransit {
         public hint: ServerHint){}
 }
 
+export function forbids(hint: ServerHint, type: ForbiddenTypes) {
+    return hint.forbiddenChoices && hint.forbiddenChoices.indexOf(type) >= 0
+}
+
+export type ForbiddenTypes = 'slash' | 'wine'
+
 export type ServerHint = {
     hintType: HintType
     hintMsg: string
@@ -43,6 +49,11 @@ export type ServerHint = {
      * - 被决斗求无懈可击的人
      */
     targetPlayers?: string[]
+
+    /**
+     * 不能出杀了? 不能喝酒了?
+     */
+    forbiddenChoices?: ForbiddenTypes[]
 
     /**
      * 100 = 无限距离
