@@ -1,13 +1,13 @@
 import { shuffle, takeFromArray } from "../common/util/Util"
-import Card, { cardManager } from "../common/cards/Card"
+import Card, {CardManager} from "../common/cards/Card"
 
 export default class Deck {
 
     deck: Card[]
     dropped: Card[] = []
 
-    constructor(cards: Card[]){
-        this.deck = cards
+    constructor(private cardManager: CardManager){
+        this.deck = cardManager.getShuffledDeck()
     }
 
     getCardsFromTop(amount: number): Card[] {
@@ -23,12 +23,12 @@ export default class Deck {
     }
 
     placeCardsAtTop(ids: string[]) {
-        this.deck.unshift(...(ids.map(id => cardManager.getCard(id))))
+        this.deck.unshift(...(ids.map(id => this.cardManager.getCard(id))))
     }
 
     //也就观星用用吧？？
     placeCardsAtBtm(ids: string[]) {
-        this.deck.push(...(ids.map(id => cardManager.getCard(id))))
+        this.deck.push(...(ids.map(id => this.cardManager.getCard(id))))
     }
 
     getCardsFromDropped(cardIds: string[]): Card[] {

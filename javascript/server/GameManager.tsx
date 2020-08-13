@@ -1,9 +1,7 @@
 import GameContext from "../common/GameContext";
 import { enumValues } from "../common/util/Util";
-import Card, { cardManager, CardSize, CardType } from "../common/cards/Card"
+import Card, { CardManager, CardSize, CardType } from "../common/cards/Card"
 import { PlayerInfo, Identity } from "../common/PlayerInfo"
-import { General } from "../common/GeneralManager"
-import GameTransit from "../common/transit/GameTransit";
 import Flow, { PlayerDeadInHisRound } from "./Flow";
 import RoundStat from "./RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
@@ -12,8 +10,12 @@ import JudgeComputer from "./engine/JudgeComputer";
 import ArrayList from "../common/util/ArrayList";
 import { SequenceAwarePubSub } from "../common/util/PubSub";
 import { PlayerAction } from "../common/PlayerAction";
-import { CardPos } from "../common/transit/ContextTransit";
+import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
+import IdentityWarGeneral from "../game-mode-identity/IdentityWarGenerals";
+import { GameMode, GameModeEnum } from "../common/GameMode";
+import GameServerContext from "./engine/GameServerContext";
+import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
 
 
 //Manages the rounds
@@ -30,7 +32,7 @@ export default class GameManager {
 
     private currentFlows = new ArrayList<Flow>()
 
-    public constructor(public context: GameContext, private registry: PlayerRegistry) {
+    public constructor(public context: GameServerContext, private registry: PlayerRegistry) {
         this.beforeFlowHappen = new SequenceAwarePubSub((id, ids)=>context.sortFromPerspective(id, ids).map(p => p.player.id))
         this.afterFlowDone = new SequenceAwarePubSub((id, ids)=>context.sortFromPerspective(id, ids).map(p => p.player.id))
     }
@@ -67,7 +69,7 @@ export default class GameManager {
         return await this.registry.sendServerAsk(player, hint)
     }
 
-    public broadcast<F extends object, T extends object>(obj: F, sanitizer: Sanitizer<F, T> = null) {
+    public broadcast<F extends object>(obj: F, sanitizer: Sanitizer<F> = null) {
         this.registry.broadcast(obj, sanitizer)
     }
 
@@ -76,8 +78,13 @@ export default class GameManager {
         this.currentFlows.addToFront(...flows)
     }
 
-    public getCurrentState(forPlayer: string): GameTransit {
-        return new GameTransit(sampleContext().toTransit(forPlayer))
+    public getCurrentState(forPlayer: string) {
+        let context = new GameContext(this.context.playerInfos, this.context.gameMode)
+        return context.sanitize(forPlayer)
+    }
+
+    public cardManager(): CardManager {
+        return this.context.getGameMode().cardManager
     }
 
     private async processRoundStart() {
@@ -132,10 +139,11 @@ export default class GameManager {
 
 
 
-function sampleContext() {
+export function sampleContext() {
+    let cardManager = GameMode.get(GameModeEnum.IdentityWarGame).cardManager
     let p = {id: '青青子吟'}
     let cards = cardManager.getShuffledDeck()
-    let player = new PlayerInfo(p, Identity.ZHU_GONG, General.standard_zhang_liao)
+    let player = new IdentityWarPlayerInfo(p, Identity.ZHU_GONG, IdentityWarGeneral.standard_zhang_liao).init()
     player.addCard(cards.find(c => c.type === CardType.SLASH), CardPos.HAND)
     player.addCard(cards.find(c => c.type === CardType.WAN_JIAN), CardPos.HAND)
     player.addCard(cards.find(c => c.type === CardType.DODGE), CardPos.HAND)
@@ -153,7 +161,7 @@ function sampleContext() {
     player.addCard(new Card('heart', CardSize.QUEEN, CardType.SHAN_DIAN), CardPos.JUDGE)
     player.hp = 2;
     
-    let player2 = new PlayerInfo({id: '欧阳挠挠'}, Identity.ZHONG_CHEN, General.forest_dong_zhuo)
+    let player2 = new IdentityWarPlayerInfo({id: '欧阳挠挠'}, Identity.ZHONG_CHEN, IdentityWarGeneral.forest_dong_zhuo).init()
     player2.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
     player2.addCard(new Card('spade', CardSize.QUEEN, CardType.ZHANG_BA), CardPos.EQUIP)
     player2.addCard(new Card('spade', CardSize.KING, CardType.DA_YUAN), CardPos.EQUIP)
@@ -161,25 +169,25 @@ function sampleContext() {
     player2.addCard(new Card('diamond', CardSize.ACE, CardType.ZHU_QUE), CardPos.JUDGE, 'le_bu')
     player2.hp = 2;
 
-    let player3 = new PlayerInfo({id: '东郭旭銮'}, Identity.FAN_ZEI, General.standard_cao_cao)
+    let player3 = new IdentityWarPlayerInfo({id: '东郭旭銮'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_cao_cao).init()
     player3.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
     player3.addCard(new Card('heart', CardSize.KING, CardType.ZHUA_HUANG), CardPos.EQUIP)
 
-    let player4 = new PlayerInfo({id: '新荷'}, Identity.FAN_ZEI, General.standard_huang_gai)
+    let player4 = new IdentityWarPlayerInfo({id: '新荷'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_huang_gai).init()
     player4.addCard(new Card('club', CardSize.JACK, CardType.TIE_SUO), CardPos.JUDGE, 'bing_liang')
     player4.hp = 1
 
-    let player5 = new PlayerInfo({id: 'Iceberglet'}, Identity.FAN_ZEI, General.standard_guan_yu)
+    let player5 = new IdentityWarPlayerInfo({id: 'Iceberglet'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_guan_yu).init()
     
-    let player6 = new PlayerInfo({id: '广东吴彦祖'}, Identity.FAN_ZEI, General.standard_ma_chao)
+    let player6 = new IdentityWarPlayerInfo({id: '广东吴彦祖'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_ma_chao).init()
     player6.addCard(new Card('club', CardSize.TWO, CardType.BA_GUA), CardPos.EQUIP)
     
-    let player7 = new PlayerInfo({id: '豫章铁锅'}, Identity.FAN_ZEI, General.standard_zhang_fei)
+    let player7 = new IdentityWarPlayerInfo({id: '豫章铁锅'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_zhang_fei).init()
     player7.hp = 3
 
-    let player8 = new PlayerInfo({id: 'tester-8'}, Identity.FAN_ZEI, General.standard_xu_chu)
+    let player8 = new IdentityWarPlayerInfo({id: 'tester-8'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_xu_chu).init()
 
-    let context = new GameContext([player, player2, player3, player4, player5, player6, player7, player8])
+    let context = new GameServerContext([player, player2, player3, player4, player5, player6, player7, player8], GameModeEnum.IdentityWarGame)
 
     return context
 }

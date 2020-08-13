@@ -1,7 +1,6 @@
-import GameContext from "./GameContext";
 import { Serde } from "./util/Serializer";
-import { cardManager } from './cards/Card'
-import { CardPos } from "./transit/ContextTransit";
+import { CardPos } from "./transit/CardPos";
+import GameServerContext from "../server/engine/GameServerContext";
 
 /**
  * Impact is always sent from server to client
@@ -12,7 +11,7 @@ import { CardPos } from "./transit/ContextTransit";
  * - used up skils (limited skills)
  */
 export default abstract class Impact {
-    abstract invoke(context: GameContext): void
+    abstract invoke(context: GameServerContext): void
 }
 
 export class Heal extends Impact {
@@ -21,7 +20,7 @@ export class Heal extends Impact {
         super()
     }
 
-    invoke(context: GameContext) {
+    invoke(context: GameServerContext) {
         context.getPlayer(this.target).heal(this.amount)
     }
 }
@@ -35,7 +34,7 @@ export class Damage extends Impact {
         super()
     }
 
-    invoke(context: GameContext) {
+    invoke(context: GameServerContext) {
         context.getPlayer(this.target).damage(this.amount)
     }
 }
@@ -49,7 +48,7 @@ export class CardTransfer extends Impact {
         super()
     }
 
-    invoke(context: GameContext) {
+    invoke(context: GameServerContext) {
         if(this.source) {
             this.cardIds.forEach(id => context.getPlayer(this.source).removeCard(id))
         } else {
@@ -60,10 +59,10 @@ export class CardTransfer extends Impact {
             }
         }
         if(this.target) {
-            this.cardIds.forEach(id => context.getPlayer(this.target).addCard(cardManager.getCard(id), this.toPos))
+            this.cardIds.forEach(id => context.getPlayer(this.target).addCard(context.getGameMode().cardManager.getCard(id), this.toPos))
         } else {
             if(this.toPos === CardPos.DROPPED) {
-                context.deck.dropped.push(...this.cardIds.map(cardManager.getCard))
+                context.deck.dropped.push(...this.cardIds.map(context.getGameMode().cardManager.getCard))
             } else {
                 throw `Cannot place specific cards onto this position! ${this.fromPos}`
             }

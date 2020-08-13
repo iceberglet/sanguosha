@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { getOffset } from './UIOffset'
 import UIHpCol from './UIHpCol'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import './ui-my-player-card.scss'
@@ -62,14 +61,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
 
         console.log(effect, info.player.id)
         return <div className={clazz}  onClick={this.onClick}>
-            <div className='occupy overflow-hidden'>
-                <div className='card-avatar' 
-                    style={{backgroundImage: `url('generals/${info.general.id}.png')`, ...getOffset(info.general.id)}} />
-            </div>
-            <div className='player-name'>{info.player.id}</div>
-            <div className='general-name'>{info.general.name}</div>
-            <div className='faction' style={{backgroundImage: `url('icons/${info.general.faction.image}.png')`}} />
-            <div className='identity' style={{backgroundImage: `url('icons/${info.identity.id}.png')`}}/>
+            {info.draw()}
             <div className='player-hp'>
                 <UIHpCol current={info.hp} total={info.maxHp} />
             </div>

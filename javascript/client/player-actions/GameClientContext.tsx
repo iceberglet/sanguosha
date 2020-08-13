@@ -6,9 +6,10 @@ import { PlayerActionDriver, Clickability, ClickActionResult, NoActionDriver } f
 import { UIPosition, PlayerAction, PlayerActionTransit } from "../../common/PlayerAction";
 import { playerActionDriverProvider } from "./PlayerActionDriverProvider";
 import './PlayerActionDrivers'
-import { ContextTransit } from "../../common/transit/ContextTransit";
 import { Player } from "../../common/Player";
 import { Serde } from "../../common/util/Serializer";
+import { GameModeEnum } from "../../common/GameMode";
+import { ICard } from "../../common/cards/ICard";
 
 export default class GameClientContext extends GameContext {
 
@@ -20,8 +21,8 @@ export default class GameClientContext extends GameContext {
      */
     public serverHint: ServerHintTransit
 
-    public constructor(transit: ContextTransit, myself: Player, socket: WebSocket) {
-        super(transit.players.map(PlayerInfo.fromTransit))
+    public constructor(context: GameContext, myself: Player, socket: WebSocket) {
+        super(context.playerInfos, context.gameMode)
         this.myself = this.playerInfos.find(i => i.player.id === myself.id)
         this.currentDriver = NoActionDriver.INSTANCE
         this.socket = socket
@@ -66,6 +67,11 @@ export default class GameClientContext extends GameContext {
 
     public getMsg(): string {
         return this.currentDriver.getHintMsg(this)
+    }
+
+    public interpret(cardId: string, player: PlayerInfo = null): ICard {
+        player = player || this.myself
+        return player.cardInterpreter(this.getGameMode().cardManager.getCard(cardId))
     }
 
     //-------- Interactions with server -----------

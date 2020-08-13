@@ -3,10 +3,9 @@ import { CardType } from "../../common/cards/Card";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import ArrayList from "../../common/util/ArrayList";
 import GameManager from "../GameManager";
-import { ServerHint } from "../../common/ServerHint";
 import SlashFlow from "../flows/SlashFlow";
 import { TextFlashEffect, TransferCardEffect } from "../../common/transit/EffectTransit";
-import { CardPos } from "../../common/transit/ContextTransit";
+import { CardPos } from "../../common/transit/CardPos";
 import { CardTransfer } from "../../common/Impact";
 
 

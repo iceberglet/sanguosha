@@ -3,13 +3,14 @@ import UIBoard from './ui/UIBoard';
 import UILogin from './ui/UILogin';
 import GameClientContext from './player-actions/GameClientContext';
 import { PreGame } from '../common/PreGame';
+import { PlayerInfo } from '../common/PlayerInfo';
 import { Player } from '../common/Player';
 import { Serde } from '../common/util/Serializer';
 import LoginMessage from '../server/Login';
 import Pubsub from '../common/util/PubSub';
-import GameTransit from '../common/transit/GameTransit';
 import { checkNotNull } from '../common/util/Util';
-import { ServerHintTransit } from '../common/ServerHint';
+import { GameMode } from '../common/GameMode';
+import GameContext from '../common/GameContext';
 
 type AppState = {
     myself?: Player,
@@ -28,11 +29,12 @@ export default class App extends React.Component<object, AppState> {
         this.pubsub = new Pubsub()
 
         let myself = this.getPlayer()
-        this.pubsub.on(GameTransit, (transit: GameTransit)=>{
+        this.pubsub.on(GameContext, (transit: GameContext)=>{
             checkNotNull(this.state.myself)
             checkNotNull(this.state.socket)
+            console.log('stuff', transit)
             this.setState({
-                context: new GameClientContext(transit.context, this.state.myself, this.state.socket)
+                context: new GameClientContext(transit, this.state.myself, this.state.socket)
             })
         })
         //listen to login results or other messages

@@ -3,7 +3,7 @@ import {v4 as uuidv4} from 'uuid'
 import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
 import { ScreenPosObtainer, CENTER } from '../ui/UIPlayGround'
 import './effect-producer.scss'
-import Card, { cardManager } from '../../common/cards/Card'
+import Card, { CardManager } from '../../common/cards/Card'
 import UICard from '../ui/UICard'
 import { ElementStatus } from '../ui/UIBoard'
 
@@ -57,7 +57,7 @@ export default class EffectProducer extends React.Component<Prop, State> {
         })
     }
 
-    transferCards(effect: TransferCardEffect) {
+    transferCards(effect: TransferCardEffect, cardManager: CardManager) {
         if(effect.source === effect.target) {
             throw `Source and Target are the same!! ${effect}`
         }

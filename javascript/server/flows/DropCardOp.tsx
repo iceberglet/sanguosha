@@ -2,7 +2,7 @@ import { Operation } from "../Flow";
 import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { isCancel, getCards, UIPosition } from "../../common/PlayerAction";
-import { CardPos } from "../../common/transit/ContextTransit";
+import { CardPos } from "../../common/transit/CardPos";
 import { TransferCardEffect } from "../../common/transit/EffectTransit";
 import { HintType } from "../../common/ServerHint";
 
@@ -33,11 +33,11 @@ export default class TakeCardOp extends Operation {
             }
 
             //remove these cards
-            let cards = getCards(resp, UIPosition.MY_HAND)
+            let cards = getCards(resp, UIPosition.MY_HAND, manager.cardManager())
 
             cards.forEach(c => this.player.removeCard(c.id))
             //remove
-            manager.broadcast(this.player, PlayerInfo.toTransit)
+            manager.broadcast(this.player, PlayerInfo.sanitize)
             //animation of card transfer. no need to sanitize
             manager.broadcast(new TransferCardEffect(this.player.player.id, null, cards.map(c => c.id)))
         }

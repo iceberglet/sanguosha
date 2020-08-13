@@ -20,8 +20,6 @@ export default class SlashFlow extends Flow {
     public abort = false
     public hintMsg: string
     
-    private _broadcast = false
-
     public constructor(public readonly action: PlayerAction, public readonly target: PlayerInfo) {
         super()
         this.hintMsg = `[${action.actionSource}] 对你出杀, 请出闪`
@@ -54,7 +52,7 @@ export default class SlashFlow extends Flow {
                 let dmg = 1
                 if(source.isDrunk) {
                     source.isDrunk = false
-                    manager.broadcast(source, PlayerInfo.toTransit)
+                    manager.broadcast(source, PlayerInfo.sanitize)
                     dmg = 2
                 }
                 await new DamageOp(source, this.target, dmg, this.action).perform(manager)
@@ -62,7 +60,7 @@ export default class SlashFlow extends Flow {
                 break
             }
             //assume cancel is received?
-            let dodgeEvent = new DodgeEvent(getCards(this.action, UIPosition.MY_HAND), this.target, source)
+            let dodgeEvent = new DodgeEvent(getCards(this.action, UIPosition.MY_HAND, manager.cardManager()), this.target, source)
             await manager.afterFlowDone.publish(dodgeEvent, this.target.player.id)
         }
         return true

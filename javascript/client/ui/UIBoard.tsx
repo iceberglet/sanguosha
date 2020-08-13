@@ -13,7 +13,7 @@ import Pubsub from '../../common/util/PubSub'
 import { ServerHintTransit } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
 import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
-import { CardPos } from '../../common/transit/ContextTransit'
+import { CardPos } from '../../common/transit/CardPos'
 
 type UIBoardProp = {
     myId: string
@@ -86,7 +86,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             this.effectProducer.processEffect(effect)
         })
         p.pubsub.on(TransferCardEffect, (effect: TransferCardEffect)=>{
-            this.effectProducer.transferCards(effect)
+            this.effectProducer.transferCards(effect, context.getGameMode().cardManager)
         })
         this.dom = React.createRef()
         screenPosObtainer.registerObtainer(myId, this.dom)

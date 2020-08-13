@@ -1,5 +1,3 @@
-
-
 // export type Action = '摸排'
 import GameClientContext from "./GameClientContext"
 import { PlayerUIAction, Button } from "../../common/PlayerAction"
@@ -107,7 +105,7 @@ export class CompositePlayerActionDriver extends PlayerActionDriver {
 
     onClicked(action: PlayerUIAction, context: GameClientContext): ClickActionResult {
         if(this.theOne) {
-            console.log('[Composite] contains delegate, invoking: ', this.theOne, action)
+            console.log('[Composite] there is an existing delegate, invoking: ', this.theOne, action)
             let res = this.theOne.onClicked(action, context)
             if(res === ClickActionResult.AT_ZERO) {
                 console.log('[Composite] delegate back to zero', this.theOne)
@@ -115,14 +113,15 @@ export class CompositePlayerActionDriver extends PlayerActionDriver {
             }
             return res
         } else {
+            console.log('[Composite] no existing delegate, checking', action)
             for(let d of this.delegates) {
-                console.log('[Composite] no delegate, checking', action)
                 if(d.canBeClicked(action, context) === Clickability.CLICKABLE) {
                     this.theOne = d
                     console.log('[Composite] found delegate, invoking: ', this.theOne)
                     return d.onClicked(action, context)
                 }
             }
+            console.error('[Composite] no existing delegate and no one can handle this!', action)
         }
     }
 

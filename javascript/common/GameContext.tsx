@@ -1,8 +1,6 @@
-import Card, { cardManager } from "./cards/Card";
 import { PlayerInfo } from "./PlayerInfo";
-import Deck from "../server/Deck";
-import { ContextTransit, CardPos } from "./transit/ContextTransit";
-import e = require("express");
+import { CardPos } from "./transit/CardPos";
+import { GameModeEnum, GameMode } from "./GameMode";
 
 /**
  * Contains current state of the game
@@ -12,68 +10,15 @@ import e = require("express");
  */
 export default class GameContext {
 
-    deck: Deck
-    workflowCards = new Set<string>()
-
     //------------- listeners -------------------
-    
-
-    constructor(public readonly playerInfos: PlayerInfo[]) {
-
+    constructor(public readonly playerInfos: PlayerInfo[], public readonly gameMode: GameModeEnum) {
     }
 
-    init() {
-        this.deck = new Deck(cardManager.getShuffledDeck())
-        //todo: assign identities
-        //todo: let players choose heroes
 
-        // this.roundManager = new RoundManager(this)
-
-        //todo: start the flow
-
+    getGameMode() {
+        return GameMode.get(this.gameMode)
     }
 
-    /**
-     * Move selected cards from one place to another
-     * @param fromPlayer null for shared positions
-     * @param toPlayer null for shared positions
-     * @param from from position
-     * @param to to position. 
-     * @param cards cards. Sequence depends on this position
-     */
-    transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: string[]) {
-        if(fromPlayer) {
-            cards.forEach(c => this.getPlayer(fromPlayer).removeCard(c))
-        } else {
-            switch(from) {
-                case CardPos.WORKFLOW:
-                    cards.forEach(c => {
-                        if(!this.workflowCards.delete(c)) {
-                            throw `Unable to find card ${c} in workflow cards!`
-                        }
-                    })
-                default:
-                    throw `Can't take cards from this weird position! ${from}`
-            }
-        }
-        if(toPlayer) {
-            cards.forEach(c => this.getPlayer(toPlayer).addCard(cardManager.getCard(c), to))
-        } else {
-            switch(to) {
-                case CardPos.WORKFLOW:
-                    cards.forEach(c => this.workflowCards.add(c))
-                    break
-                case CardPos.DECK_TOP:
-                    this.deck.placeCardsAtTop(cards)
-                    break
-                case CardPos.DECK_BTM:
-                    this.deck.placeCardsAtBtm(cards)
-                    break
-                case CardPos.DROPPED:
-                    this.deck.dropped.push(...cards.map(cardManager.getCard))
-            }
-        }
-    }
 
     //todo: 马术？神曹操？公孙瓒？
     computeDistance(fromPlayer: string, toPlayer: string): number {
@@ -131,9 +76,7 @@ export default class GameContext {
         return p
     }
 
-    toTransit(sendTo: string): ContextTransit {
-        return {
-            players: this.playerInfos.map(p => PlayerInfo.toTransit(p, sendTo))
-        }
+    sanitize(sendTo: string) {
+        return new GameContext(this.playerInfos.map(p => PlayerInfo.sanitize(p, sendTo)), this.gameMode)
     }
 }

@@ -2,7 +2,7 @@ import { Operation } from "../Flow";
 import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { PlayerAction, isCancel } from "../../common/PlayerAction";
-import { CardPos } from "../../common/transit/ContextTransit";
+import { CardPos } from "../../common/transit/CardPos";
 import { TransferCardEffect } from "../../common/transit/EffectTransit";
 
 //摸牌阶段
@@ -23,7 +23,7 @@ export default class TakeCardOp extends Operation {
             //add cards from deck to player
             cards.forEach(c => this.player.addCard(c, CardPos.HAND))
             //update this player's info
-            manager.broadcast(this.player, PlayerInfo.toTransit)
+            manager.broadcast(this.player, PlayerInfo.sanitize)
         }
 
         await manager.afterFlowDone.publish(this, this.player.player.id);

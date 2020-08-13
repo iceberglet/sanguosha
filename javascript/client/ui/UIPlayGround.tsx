@@ -4,7 +4,6 @@ import { UIMarkRow } from './UICardRow'
 
 import './ui-board.scss'
 import UIEquipGrid from './UIEquipGrid'
-import { getOffset } from './UIOffset'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import { Checker, ElementStatus } from './UIBoard'
 import { Mask } from '../../common/util/Util'
@@ -13,7 +12,7 @@ import { Coor } from '../effect/EffectProducer'
 import Pubsub from '../../common/util/PubSub'
 import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
-import { CardPos } from '../../common/transit/ContextTransit'
+import { CardPos } from '../../common/transit/CardPos'
 import { StageDeclarer } from './UIMyPlayerCard'
 
 const damageDuration = 2000
@@ -162,14 +161,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
                         .done()
         //todo: highlight, click
         return <div className={clazz} ref={this.dom} onClick={this.onClick}>
-            <div className='occupy overflow-hidden'>
-                <div className='card-avatar' 
-                    style={{backgroundImage: `url('generals/${info.general.id}.png')`, ...getOffset(info.general.id)}} />
-            </div>
-            <div className='player-name'>{info.player.id}</div>
-            <div className='general-name'>{info.general.name}</div>
-            <div className='faction' style={{backgroundImage: `url('icons/${info.general.faction.image}.png')`}} />
-            <div className='identity' style={{backgroundImage: `url('icons/${info.identity.id}.png')`}}/>
+            {info.draw()}
 
             {dist && <div className='distance occupy'>{dist}</div>}
 

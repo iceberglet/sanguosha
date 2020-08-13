@@ -1,5 +1,5 @@
-import { HintType, ServerHint } from "./ServerHint"
-import { cardManager } from "./cards/Card"
+import { ServerHint } from "./ServerHint"
+import { CardManager } from "./cards/Card"
 
 
 export enum UIPosition {
@@ -61,8 +61,8 @@ export type PlayerAction = {
     actionData: {[key in UIPosition]?: string[]}
 }
 
-export function getCards(action: PlayerAction, pos: UIPosition) {
-    return action.actionData[pos].map(id => cardManager.getCard(id))
+export function getCards(action: PlayerAction, pos: UIPosition, cards: CardManager) {
+    return action.actionData[pos].map(id => cards.getCard(id))
 }
 
 export function isCancel(action: PlayerAction) {

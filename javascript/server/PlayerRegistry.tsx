@@ -26,7 +26,7 @@ type ActionExpector = {
     callback: (transit: PlayerActionTransit)=>void
 }
 
-export type Sanitizer<F, T> = (t: F, playerId: string) => T
+export type Sanitizer<F> = (t: F, playerId: string) => F
 
 export class PlayerRegistry {
     private _byId = new Map<string, ServerPlayer>()
@@ -102,10 +102,12 @@ export class PlayerRegistry {
         this._byId.get(id)?.connection?.send(Serde.serialize(obj))
     }
 
-    public broadcast<F extends object, T extends object>(obj: F, sanitizer: Sanitizer<F, T> = null) {
+    public broadcast<F extends object, T extends object>(obj: F, sanitizer: Sanitizer<F> = null) {
         this._byConnection.forEach((v, k) => {
-            let sanitized = sanitizer? sanitizer(obj, v.player.id) : obj
-            k.send(Serde.serialize(sanitized))
+            if(sanitizer) {
+                obj = sanitizer(obj, v.player.id)
+            }
+            k.send(Serde.serialize(obj))
         })
     }
 

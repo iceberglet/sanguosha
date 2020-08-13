@@ -1,9 +1,10 @@
-import Card, { CardGenre, cardManager } from "./cards/Card"
+import Card, { CardGenre } from "./cards/Card"
 import { takeFromArray } from "./util/Util"
 import {Player} from "./Player"
 import { General } from "./GeneralManager"
 import { ICard } from "./cards/ICard"
-import { DelayedRuse, CardPos, PlayerTransit, CardTransit, isSharedPosition, isCardPosHidden } from "./transit/ContextTransit"
+import { DelayedRuse, CardPos, isSharedPosition, isCardPosHidden } from "./transit/CardPos"
+import { ReactElement } from "react"
 
 
 export type Mark = {
@@ -37,7 +38,7 @@ export type CardInterpreter =(card: ICard) => ICard
 
 export const NoopInterpreter: CardInterpreter = (c)=>c
 
-export class PlayerInfo {
+export abstract class PlayerInfo {
     hp: number
     maxHp: number
     //翻面
@@ -49,20 +50,30 @@ export class PlayerInfo {
     isDead: boolean = false
     skills: string[]
 
-    private cards = new Map<CardPos, Card[]>()
-    private judges: Mark[] = []
+    protected cards = new Map<CardPos, Card[]>()
+    protected judges: Mark[] = []
     attributes: {[key: string]: any}
     
     cardInterpreter: CardInterpreter = NoopInterpreter
 
-    constructor(
-        public player: Player, 
-        public identity: Identity, 
-        public general: General) {
-        this.hp = general.hp
-        this.maxHp = general.hp
-        //todo: init skills and all...
+    constructor(public player: Player) {
     }
+
+    /**
+     * Called once at game start only, by server
+     */
+    abstract init(): PlayerInfo
+
+    /**
+     * Called when server sends it to players
+     */
+    abstract sanitize(to: string): PlayerInfo
+
+    /**
+     * Used to draw on canvas
+     * Container will be pre-defined
+     */
+    abstract draw(): ReactElement | ReactElement[];
 
     heal(amount: number) {
         //sometimes max hp changes O.o
@@ -152,36 +163,13 @@ export class PlayerInfo {
     }
 
     //------------------- Serde -----------------
-    static fromTransit(transit: PlayerTransit): PlayerInfo {
-        let p = new PlayerInfo(transit.player, transit.identity, transit.general)
-        p.hp = transit.hp
-        p.maxHp = transit.maxHp
-        p.isChained = transit.isChained
-        p.isTurnedOver = transit.isTurnedOver
-        p.isDead = transit.isDead
-        p.skills = transit.skills
-        transit.cards.forEach(c => {
-            p.addCard(cardManager.getCard(c.cardId), c.pos, c.ruse)
-        })
-        p.attributes = transit.attributes
-        return p
-    }
-
-    static toTransit(info: PlayerInfo, sendTo: string): PlayerTransit {
-        let cards: CardTransit[] = []
-        info.cards.forEach((v, k, m) => v.forEach(c => {
+    static sanitize(info: PlayerInfo, sendTo: string): PlayerInfo {
+        let copy = info.sanitize(sendTo)
+        copy.cards.forEach((v, k, m) => v.forEach((c, i) => {
             if(isCardPosHidden(k) && sendTo !== info.player.id) {
-                cards.push({cardId: Card.DUMMY.id, pos: k})
-            } else {
-                cards.push({cardId: c.id, pos: k})
+                v.splice(i, 1, Card.DUMMY)
             }
         }))
-        info.judges.forEach(mark => {
-            cards.push({cardId: mark.card.id, pos: CardPos.JUDGE, ruse: mark.as})
-        })
-        return {
-            ...info,
-            cards
-        }
+        return copy
     }
 }
