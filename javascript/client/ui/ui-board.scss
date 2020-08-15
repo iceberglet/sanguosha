@@ -77,6 +77,7 @@
             height: 180px;
             background-color: rgba(56, 52, 29, 0.767);
             box-shadow: inset 0px 0px 10px #9a9a9a;
+            z-index: 10;  //要高过手牌栏
 
             .my-judge {
                 height: 40px;

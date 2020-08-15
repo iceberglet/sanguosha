@@ -1,4 +1,5 @@
 import RoundStat, { ForbiddenTypes } from "./RoundStat"
+import { Button } from "./PlayerAction"
 
 
 export enum HintType {
@@ -20,11 +21,16 @@ export class ServerHintTransit {
     constructor(
         //unique, incremental number
         public hintId: number, 
+        public toPlayer: string, 
         public hint: ServerHint){}
 }
 
 export function forbids(hint: ServerHint, type: ForbiddenTypes) {
     return hint.roundStat.forbiddenChoices && hint.roundStat.forbiddenChoices.indexOf(type) >= 0
+}
+
+export function isDirectButton(hint: ServerHint, buttonId: string): Button {
+    return hint.extraButtons?.find(b => b.id === buttonId)
 }
 
 export type ServerHint = {
@@ -40,7 +46,7 @@ export type ServerHint = {
      * 若不提供则没有取消操作
      * 
      */
-    abortButtonMsg?: string
+    extraButtons?: Button[]
     /**
      * 令你出此操作的人
      */

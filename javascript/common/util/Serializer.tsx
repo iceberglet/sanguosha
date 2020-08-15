@@ -1,6 +1,6 @@
 import LoginMessage from "../../server/Login"
 import { ServerHintTransit } from "../ServerHint"
-import { PlayerActionTransit } from "../PlayerAction"
+import { PlayerActionTransit, Button } from "../PlayerAction"
 import GameContext from "../GameContext"
 import { PlayerInfo, Identity } from "../PlayerInfo"
 import Card, { CardType, CardSize } from "../cards/Card"
@@ -166,6 +166,7 @@ Serde.register(Package)
 Serde.register(Faction)
 Serde.register(Identity)
 Serde.register(RoundStat)
+Serde.register(Button)
 Serde.register(Stage)
 Serde.register(Map, {
     inflate<K, V>(map: Map<K, V>, delegate: any) {

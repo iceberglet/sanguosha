@@ -1,20 +1,11 @@
+import { Stage } from "./Stage"
 
 
 export type ForbiddenTypes = 'slash' | 'wine'
 
 export default class RoundStat {
 
-    //是否跳过判定阶段
-    skipJudge: boolean = false
-
-    //是否跳过摸牌阶段
-    skipTakeCard: boolean = false
-
-    //是否跳过出牌阶段
-    skipUseCard: boolean = false
-
-    //是否跳过弃牌阶段
-    skipDropCard: boolean = false
+    skipStages = new Map<Stage, boolean>()
 
     //出杀的次数
     slashCount: number = 1
@@ -30,7 +21,7 @@ export default class RoundStat {
      * -1 = 不能再出杀
      * 默认(1)距离
      */
-    slashReach: number = 1
+    slashReach: number = 0
 
     /**
      * 100 = 无限距离

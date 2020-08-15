@@ -1,15 +1,13 @@
 import GameContext from "../common/GameContext";
-import { enumValues } from "../common/util/Util";
 import Card, { CardManager, CardSize, CardType } from "../common/cards/Card"
 import { PlayerInfo, Identity } from "../common/PlayerInfo"
 import Flow, { PlayerDeadInHisRound } from "./Flow";
 import RoundStat from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
-import { ServerHint } from "../common/ServerHint";
-import JudgeComputer from "./engine/JudgeComputer";
+import { ServerHint, HintType } from "../common/ServerHint";
 import ArrayList from "../common/util/ArrayList";
 import { SequenceAwarePubSub } from "../common/util/PubSub";
-import { PlayerAction } from "../common/PlayerAction";
+import { PlayerAction, Button } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
 import IdentityWarGeneral from "../game-mode-identity/IdentityWarGenerals";
@@ -19,13 +17,17 @@ import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
 import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
 import FactionWarGeneral from "../game-mode-faction/FactionWarGenerals";
 import { Faction } from "../common/GeneralManager";
+import { StageStartFlow, StageEndFlow } from "./flows/StageFlows";
+import TakeCardOp from "./flows/TakeCardOp";
+import DropCardOp from "./flows/DropCardOp";
+import { CurrentPlayerEffect } from "../common/transit/EffectTransit";
 
 
 //Manages the rounds
 export default class GameManager {
 
     //index of GameContext#playerInfos
-    public currentPlayer: number = 0
+    private currentPlayer: number = 0
     public currentStage: Stage = Stage.ROUND_BEGIN
     public roundStats: RoundStat
     //events go here
@@ -34,6 +36,7 @@ export default class GameManager {
     // public pubsub = new Pubsub()
 
     private currentFlows = new ArrayList<Flow>()
+    private currEffect: CurrentPlayerEffect
 
     public constructor(public context: GameServerContext, private registry: PlayerRegistry) {
         this.beforeFlowHappen = new SequenceAwarePubSub((id, ids)=>context.sortFromPerspective(id, ids).map(p => p.player.id))
@@ -43,7 +46,7 @@ export default class GameManager {
     public async startGame() {
         while(true) {
             //go to next round
-            let player = this.context.playerInfos[this.currentPlayer]
+            let player = this.currPlayer()
             if(player.isTurnedOver) {
                 player.isTurnedOver = false
                 this.goToNextPlayer()
@@ -51,12 +54,12 @@ export default class GameManager {
             } else {
                 try {
                     this.roundStats = new RoundStat()
-                    this.processRoundStart()
-                    this.roundStats.skipJudge && await this.processJudgingStage()
-                    this.roundStats.skipTakeCard && await this.processTakeCardStage()
-                    this.roundStats.skipUseCard && await this.processUseCardStage()
-                    this.roundStats.skipDropCard && await this.processDropCardStage()
-                    this.processRoundEnd()
+                    await this.processStage(player, Stage.ROUND_BEGIN)
+                    await this.processStage(player, Stage.JUDGE, async ()=>await this.processJudgingStage())
+                    await this.processStage(player, Stage.TAKE_CARD, async ()=>await this.processTakeCardStage())
+                    await this.processStage(player, Stage.USE_CARD, async ()=>await this.processUseCardStage())
+                    await this.processStage(player, Stage.DROP_CARD,async ()=>await this.processDropCardStage())
+                    await this.processStage(player, Stage.ROUND_END)
                 } catch (err) {
                     if(err instanceof PlayerDeadInHisRound) {
                         console.log('Player died in his round. Proceeding to next player...')
@@ -68,6 +71,8 @@ export default class GameManager {
         }
     }
 
+
+    //--------------- network interaction -------------------
     public async sendHint(player: string, hint: ServerHint): Promise<PlayerAction> {
         hint.roundStat = this.roundStats
         return await this.registry.sendServerAsk(player, hint)
@@ -77,44 +82,58 @@ export default class GameManager {
         this.registry.broadcast(obj, sanitizer)
     }
 
-    public prependFlows(...flows: Flow[]) {
-        //add to the first of array
-        this.currentFlows.addToFront(...flows)
-    }
-
-    public getCurrentState(forPlayer: string) {
+    public onPlayerReconnected(player: string) {
         let context = new GameContext(this.context.playerInfos, this.context.gameMode)
-        return context.sanitize(forPlayer)
+        this.registry.send(player, context.sanitize(player))
+        if(this.currEffect) {
+            this.registry.send(player, this.currEffect)
+        }
+        this.registry.onPlayerReconnected(player)
     }
 
     public cardManager(): CardManager {
         return this.context.getGameMode().cardManager
     }
 
-    private async processRoundStart() {
-
+    public currPlayer(): PlayerInfo {
+        return this.context.playerInfos[this.currentPlayer]
     }
 
     private async processJudgingStage() {
-        //todo: 判定开始阶段listener
         let p = this.currPlayer()
-        let processor = new JudgeComputer(p, this, this.context)
     }
 
     private async processTakeCardStage() {
-        //todo: 摸排开始阶段listener
+        await new TakeCardOp(this.currPlayer(), 2).perform(this)
     }
 
     private async processUseCardStage() {
-
+        let resp = await this.sendHint(this.currPlayer().player.id, {
+            hintType: HintType.PLAY_HAND,
+            hintMsg: '请出牌',
+            roundStat: new RoundStat(),
+            extraButtons: [new Button('abort', '结束出牌')]
+            // slashReach: undefined
+        })
     }
 
     private async processDropCardStage() {
-
+        await new DropCardOp(this.currPlayer()).perform(this)
     }
 
-    private async processRoundEnd() {
-
+    private async processStage(info: PlayerInfo, stage: Stage, midProcessor: () => Promise<void> = null) {
+        console.log(`[Game Manager] Enter ${info.player.id} ${stage.name}`)
+        this.currentFlows.addToFront(new StageStartFlow(info, stage))
+        await this.processFlows()
+        if(!this.roundStats.skipStages.get(stage)) {
+            this.broadcast(new CurrentPlayerEffect(this.currPlayer().player.id, stage))
+            if(midProcessor) {
+                await midProcessor()
+            }
+        }
+        this.currentFlows.addToFront(new StageEndFlow(info, stage))
+        await this.processFlows()
+        console.log(`[Game Manager] Leave ${info.player.id} ${stage.name}`)
     }
 
     private async processFlows() {
@@ -129,12 +148,10 @@ export default class GameManager {
     }
 
     private goToNextPlayer() {
-        this.currentPlayer = (this.currentPlayer + 1) % this.context.playerInfos.length
+        do {
+            this.currentPlayer = (this.currentPlayer + 1) % this.context.playerInfos.length
+        } while(!this.currPlayer().isDead)
         this.currentStage = Stage.ROUND_BEGIN
-    }
-
-    private currPlayer(): PlayerInfo {
-        return this.context.playerInfos[this.currentPlayer]
     }
 
 }
@@ -197,6 +214,7 @@ export function sampleFactionWarContext() {
     player6.isGeneralRevealed = true
 
     let context = new GameServerContext([player, player2, player3, player4, player5, player6], GameModeEnum.FactionWarGame)
+    context.init()
 
     return context
 }

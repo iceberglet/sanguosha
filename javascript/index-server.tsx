@@ -28,6 +28,8 @@ const context = sampleFactionWarContext()
 const gameManager = new GameManager(context, playerRegistry)
 
 
+gameManager.startGame()
+
 // let after = Serde.deserialize(Serde.serialize(context.getPlayer('欧阳挠挠'))) as PlayerInfo
 // console.log(after)
 // console.log(after.getCards(CardPos.EQUIP)[0])
@@ -50,17 +52,9 @@ wss.on('connection', (ws: WebSocket) => {
             //send back the samething so they know they are logged in.
             ws.send(Serde.serialize(login))
             //send the current state to this newly logged in person
-            ws.send(Serde.serialize(gameManager.getCurrentState('青青子吟')))
+            gameManager.onPlayerReconnected(login.id)
 
-            playerRegistry.sendServerAsk('青青子吟', {
-                hintType: HintType.PLAY_HAND,
-                hintMsg: '请出牌',
-                roundStat: new RoundStat(),
-                abortButtonMsg: '结束出牌'
-                // slashReach: undefined
-            })
 
-            ws.send(Serde.serialize(new CurrentPlayerEffect('青青子吟', Stage.USE_CARD)))
             // ws.send(Serde.serialize(new EffectTransit('欧阳挠挠', ['广东吴彦祖', '新荷', '青青子吟'], '南蛮入侵')))
             // ws.send(Serde.serialize(new EffectTransit('东郭旭銮', ['欧阳挠挠'], '杀')))
             // ws.send(Serde.serialize(new DamageEffect('东郭旭銮')))

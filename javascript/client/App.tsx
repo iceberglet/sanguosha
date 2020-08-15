@@ -32,7 +32,7 @@ export default class App extends React.Component<object, AppState> {
         this.pubsub.on(GameContext, (transit: GameContext)=>{
             checkNotNull(this.state.myself)
             checkNotNull(this.state.socket)
-            console.log('stuff', transit)
+            console.log('Received Game Context', transit)
             this.setState({
                 context: new GameClientContext(transit, this.state.myself, this.state.socket)
             })

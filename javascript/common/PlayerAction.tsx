@@ -33,8 +33,15 @@ export class Button {
     public static OK = new Button('ok', '确定')
     public static CANCEL = new Button('cancel', '取消')
 
+    public enabled: boolean = true
+
     public constructor(public readonly id: string, public readonly display: string) {
 
+    }
+
+    public disable() {
+        this.enabled = false
+        return this
     }
 }
 

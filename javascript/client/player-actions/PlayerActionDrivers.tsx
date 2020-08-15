@@ -201,7 +201,7 @@ playerActionDriverProvider.registerProvider(HintType.DROP_CARDS, (hint)=>{
         throw `Drop Number not specified in hint: ${hint}`
     }
     return new PlayerActionDriverDefiner('弃牌阶段选择弃牌')
-            .expectChoose(UIPosition.MY_HAND, hint.dropNumber, hint.dropNumber, ()=>true)
+            .expectChoose(UIPosition.MY_HAND, hint.dropNumber, hint.dropNumber, ()=>true, ()=>hint.hintMsg)
             .expectAnyButton('点击确定弃牌')
             .build(hint, [Button.OK]) //cannot refuse to drop card!
 })

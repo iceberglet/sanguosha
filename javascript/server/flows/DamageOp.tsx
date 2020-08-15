@@ -5,17 +5,11 @@ import { PlayerAction, isCancel } from "../../common/PlayerAction";
 import { DamageEffect } from "../../common/transit/EffectTransit";
 import { HintType } from "../../common/ServerHint";
 import HealOp from "./HealOp";
+import DeathOp from "./DeathOp";
 
 
 export class DyingEvent {
     public constructor(public who: string){}
-}
-
-export class DeathEvent {
-    //涅槃? 不屈?
-    public abort: boolean = false
-    //who?
-    public constructor(public who: string) {}
 }
 
 export default class DamageOp extends Operation {
@@ -57,7 +51,7 @@ export default class DamageOp extends Operation {
                 }
 
                 if(this.target.isDying()) {
-                    await manager.afterFlowDone.publish(new DeathEvent(targetId), targetId)
+                    await new DeathOp(this.target, this).perform(manager)
                 }
             }
 

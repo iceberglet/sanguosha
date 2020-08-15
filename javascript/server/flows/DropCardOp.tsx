@@ -24,7 +24,7 @@ export default class DropCardOp extends Operation {
 
             let resp = await manager.sendHint(this.player.player.id, {
                 hintType: HintType.DROP_CARDS,
-                hintMsg: '请弃置手牌',
+                hintMsg: `请弃置${this.amount}张手牌`,
                 dropNumber: this.amount
             })
 

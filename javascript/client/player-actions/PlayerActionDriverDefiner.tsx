@@ -2,9 +2,7 @@ import { UIPosition, PlayerUIAction, Button, PlayerAction } from "../../common/P
 import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerActionDriver";
 import GameClientContext from "../GameClientContext";
 import Togglable from "../../common/util/Togglable";
-import { ServerHint } from "../../common/ServerHint";
-
-const ABORT_BUTTON_ID = 'abort'
+import { ServerHint, isDirectButton } from "../../common/ServerHint";
 
 export default class PlayerActionDriverDefiner {
 
@@ -53,8 +51,8 @@ export default class PlayerActionDriverDefiner {
         if(this.steps.length === 0) {
             throw `You gotta define something!`
         }
-        if(serverHint && serverHint.abortButtonMsg) {
-            buttons = [...buttons, new Button(ABORT_BUTTON_ID, serverHint.abortButtonMsg)]
+        if(serverHint.extraButtons) {
+            buttons = [...buttons, ...serverHint.extraButtons]
         }
         return new StepByStepActionDriver(this.name, this.steps, buttons)
     }
@@ -167,17 +165,17 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         console.log('[Player Action] Clicked on', action)
         //if we clicked on abort:
         if(action.actionArea === UIPosition.BUTTONS) {
-            if(action.itemId === ABORT_BUTTON_ID) {
+            if(isDirectButton(context.serverHint.hint, action.itemId)) {
                 //abort sends a message to server
                 let actionToServer: PlayerAction = {
                     serverHint: context.serverHint.hint,
                     actionSource: context.myself.player.id,
                     actionData: {
-                        [UIPosition.BUTTONS]: [ABORT_BUTTON_ID]
+                        [UIPosition.BUTTONS]: [action.itemId]
                     }
                 }
                 context.submitAction(actionToServer)
-                console.log('[Player Action] Aborted. Back to server', actionToServer)
+                console.log('[Player Action] Submit direct action. Back to server', actionToServer)
                 return ClickActionResult.DONE
             } else if (action.itemId === Button.CANCEL.id) {
                 //cancel will return to origin
@@ -226,8 +224,8 @@ export class StepByStepActionDriver extends PlayerActionDriver {
 
     canBeClicked = (action: PlayerUIAction, context: GameClientContext): Clickability => {
         if(action.actionArea === UIPosition.BUTTONS) {
-            if(action.itemId === ABORT_BUTTON_ID) {
-                return Clickability.CLICKABLE
+            if(isDirectButton(context.serverHint.hint, action.itemId)) {
+                return isDirectButton(context.serverHint.hint, action.itemId).enabled? Clickability.CLICKABLE : Clickability.DISABLED
             } else if (action.itemId === Button.CANCEL.id) {
                 // console.log('Can Cancel? ', this.curr, this.currentStep())
                 return this.currentStep().canCancel? Clickability.CLICKABLE : Clickability.DISABLED

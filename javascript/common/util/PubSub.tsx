@@ -55,7 +55,7 @@ export class SequenceAwarePubSub {
     async publish(obj: any, from: string): Promise<number> {
         let playerToConsumersMap: Map<string, ArrayList<AckingConsumer<void>>> = this._map.get(obj.constructor)
         if(!playerToConsumersMap) {
-            console.warn(`No one is listening to this message! ${obj.constructor.name}`)
+            // console.warn(`No one is listening to this message! ${obj.constructor.name}`)
             return 0
         }
         let count = 0

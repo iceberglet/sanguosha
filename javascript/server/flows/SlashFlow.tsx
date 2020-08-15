@@ -14,6 +14,7 @@ export class DodgeEvent {
         public readonly against: PlayerInfo){}
 }
 
+//玩家出杀的行动
 export default class SlashFlow extends Flow {
 
     public dodgeRequired = 1
