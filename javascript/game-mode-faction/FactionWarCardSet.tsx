@@ -127,4 +127,4 @@ normalCards.push(new FWCard('diamond', CardSize.QUEEN, CardType.WU_XIE))
 normalCards.push(new FWCard('diamond', CardSize.KING, CardType.DODGE))
 normalCards.push(new FWCard('diamond', CardSize.KING, CardType.ZI_XING))
 
-export const IdentityWarCards = new CardManager(normalCards);
+export const FactionWarCards = new CardManager(normalCards);

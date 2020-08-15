@@ -1,5 +1,6 @@
 import { CardManager } from "./cards/Card";
 import { IdentityWarCards } from "../game-mode-identity/IdentityWarCardSet";
+import { FactionWarCards } from "../game-mode-faction/FactionWarCardSet";
 
 export enum GameModeEnum {
     IdentityWarGame,
@@ -13,7 +14,7 @@ export class GameMode {
     public static get(name: GameModeEnum) {
         let rule = this.rules.get(name)
         if(!rule) {
-            throw `Cannot find game rule! ${name}`
+            throw `Cannot find game mode! ${name}`
         }
         return rule
     }
@@ -28,3 +29,4 @@ export class GameMode {
 }
 
 new GameMode(GameModeEnum.IdentityWarGame, '身份局', IdentityWarCards)
+new GameMode(GameModeEnum.FactionWarGame, '身份局', FactionWarCards)

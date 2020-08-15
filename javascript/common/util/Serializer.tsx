@@ -9,6 +9,11 @@ import IdentityWarGeneral, { Package } from "../../game-mode-identity/IdentityWa
 import IdentityWarPlayerInfo from "../../game-mode-identity/IdentityWarPlayerInfo"
 import FactionWarGeneral from "../../game-mode-faction/FactionWarGenerals"
 import FactionPlayerInfo from "../../game-mode-faction/FactionPlayerInfo"
+import { Stage } from "../Stage"
+import { TextFlashEffect, DamageEffect, TransferCardEffect, CurrentPlayerEffect } from '../transit/EffectTransit';
+import { FWCard } from "../../game-mode-faction/FactionWarCardSet"
+import RoundStat from "../RoundStat"
+
 
 export type Payload = {
     _type: string,
@@ -138,6 +143,11 @@ class Serializer {
 
 export const Serde = new Serializer()
 Serde.register(Object)
+
+Serde.register(TextFlashEffect)
+Serde.register(DamageEffect)
+Serde.register(TransferCardEffect)
+Serde.register(CurrentPlayerEffect)
 Serde.register(LoginMessage)
 Serde.register(ServerHintTransit)
 Serde.register(PlayerActionTransit)
@@ -145,6 +155,7 @@ Serde.register(GameContext)
 Serde.register(PlayerInfo)
 Serde.register(CardType)
 Serde.register(Card)
+Serde.register(FWCard)
 Serde.register(CardSize)
 Serde.register(IdentityWarGeneral)
 Serde.register(IdentityWarPlayerInfo)
@@ -154,6 +165,8 @@ Serde.register(General)
 Serde.register(Package)
 Serde.register(Faction)
 Serde.register(Identity)
+Serde.register(RoundStat)
+Serde.register(Stage)
 Serde.register(Map, {
     inflate<K, V>(map: Map<K, V>, delegate: any) {
         let res: Array<[K, V]> = []

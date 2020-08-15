@@ -6,7 +6,7 @@ import GameManager from "../GameManager";
 import SlashFlow from "../flows/SlashFlow";
 import { TextFlashEffect, TransferCardEffect } from "../../common/transit/EffectTransit";
 import { CardPos } from "../../common/transit/CardPos";
-import { CardTransfer } from "../../common/Impact";
+// import { CardTransfer } from "../../common/Impact";
 
 
 export type CardPlayedListener = (playerAction: PlayerAction, cardType: CardType, context: GameManager)=>void
@@ -36,7 +36,7 @@ export default class GameListeners {
                     //show card coming from player
                     manager.broadcast(new TransferCardEffect(action.actionSource, null, cards))
                     //show card at center of playground
-                    manager.broadcast(new CardTransfer(action.actionSource, CardPos.HAND, null, CardPos.WORKFLOW, cards))
+                    // manager.broadcast(new CardTransfer(action.actionSource, CardPos.HAND, null, CardPos.WORKFLOW, cards))
                     //actually put cards in temp storage? not needed?
                 }
 

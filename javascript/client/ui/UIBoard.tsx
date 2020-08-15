@@ -6,7 +6,7 @@ import UIEquipGrid from './UIEquipGrid'
 import { UIMyPlayerCard } from './UIMyPlayerCard'
 import UIButton from './UIButton'
 import UIPlayGround, { ScreenPosObtainer } from './UIPlayGround' 
-import GameClientContext from '../player-actions/GameClientContext'
+import GameClientContext from '../GameClientContext'
 import { UIPosition } from '../../common/PlayerAction'
 import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
@@ -37,7 +37,7 @@ export class Checker {
         private context: GameClientContext,
         private callback: ()=>void){}
 
-    getStatus(itemId: string): ElementStatus {
+    getStatus = (itemId: string): ElementStatus => {
         // console.log(itemId, Clickability[this.context.canBeClicked(this.areaAction, itemId)])
         switch(this.context.canBeClicked(this.areaAction, itemId)) {
             case Clickability.CLICKABLE:
@@ -52,7 +52,7 @@ export class Checker {
                 return ElementStatus.DISABLED
         }
     }
-    onClicked(itemId: string): void {
+    onClicked = (itemId: string): void => {
         this.context.onClicked(this.areaAction, itemId)
         this.callback()
     }
@@ -74,6 +74,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             playerChecker: new Checker(UIPosition.PLAYER, context, this.refresh),
             cardsChecker: new Checker(UIPosition.MY_HAND, context, this.refresh),
             buttonChecker: new Checker(UIPosition.BUTTONS, context, this.refresh),
+            equipChecker: new Checker(UIPosition.MY_EQUIP, context, this.refresh),
             others: context.getRingFromPerspective(myId)
         }
         //need to forceupdate to register new changes
@@ -99,7 +100,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
 
     render() {
         let {myId, context, pubsub} = this.props
-        let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker} = this.state
+        let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker, equipChecker} = this.state
         let playerInfo = context.getPlayer(myId)
         // console.log(context.playerInfos, myId, playerInfo)
 
@@ -123,7 +124,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                     </div>
                     {/* 装备牌 */}
                     <div className='my-equip'>
-                        <UIEquipGrid cards={playerInfo.getCards(CardPos.EQUIP)}/>
+                        <UIEquipGrid  big={true} cards={playerInfo.getCards(CardPos.EQUIP)} checker={equipChecker}/>
                     </div>
                 </div>
                 <div className='player-buttons'>

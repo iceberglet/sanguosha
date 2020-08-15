@@ -7,7 +7,7 @@ import { TransferCardEffect } from "../../common/transit/EffectTransit";
 import { HintType } from "../../common/ServerHint";
 
 //弃牌阶段
-export default class TakeCardOp extends Operation {
+export default class DropCardOp extends Operation {
 
     amount = 0
 

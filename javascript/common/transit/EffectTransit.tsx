@@ -41,8 +41,3 @@ export class TransferCardEffect {
         }
     }
 }
-
-Serde.register(TextFlashEffect)
-Serde.register(DamageEffect)
-Serde.register(TransferCardEffect)
-Serde.register(CurrentPlayerEffect)

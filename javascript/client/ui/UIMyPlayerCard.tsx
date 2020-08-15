@@ -59,15 +59,15 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
                         .and(damaged, 'damaged')
                         .done()
 
-        console.log(effect, info.player.id)
         return <div className={clazz}  onClick={this.onClick}>
-            {info.draw()}
+            {info.drawSelf()}
             <div className='player-hp'>
                 <UIHpCol current={info.hp} total={info.maxHp} />
             </div>
             
             {effect.player === info.player.id && <StageDeclarer stage={effect.stage} className={'top-right-corner'}/>}
             {damaged && getDamageSpriteSheet()}
+            {info.isDead && <img className='death' src='ui/dead.png'/>}
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
         </div>
     }

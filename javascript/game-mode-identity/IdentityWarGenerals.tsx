@@ -42,7 +42,7 @@ export default class IdentityWarGeneral extends General {
     public static standard_zhang_liao = new IdentityWarGeneral('standard_zhang_liao', '张辽', Package.STANDARD, Faction.WEI, 4, '突袭')
     public static standard_xu_chu = new IdentityWarGeneral('standard_xu_chu', '许褚', Package.STANDARD, Faction.WEI, 4, '裸衣').withOffset(-15, -10)
     public static standard_guo_jia = new IdentityWarGeneral('standard_guo_jia', '郭嘉', Package.STANDARD, Faction.WEI, 3, '天妒', '遗计')
-    public static standard_zhen_ji = new IdentityWarGeneral('standard_zhen_ji', '甄姬', Package.STANDARD, Faction.QUN, 3, '洛神', '倾国').asFemale()
+    public static standard_zhen_ji = new IdentityWarGeneral('standard_zhen_ji', '甄姬', Package.STANDARD, Faction.WEI, 3, '洛神', '倾国').asFemale()
     public static standard_hua_tuo = new IdentityWarGeneral('standard_hua_tuo', '华佗', Package.STANDARD, Faction.QUN, 3, '青囊', '急救').withOffset(0, -15)
     public static standard_lv_bu = new IdentityWarGeneral('standard_lv_bu', '吕布', Package.STANDARD, Faction.QUN, 4, '无双')
     // public static standard_hua_xiong = new General('standard_hua_xiong', '华雄', Package.STANDARD, Faction.QUN, 6, 'qixi')

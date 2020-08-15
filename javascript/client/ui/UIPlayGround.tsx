@@ -95,7 +95,8 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
         let cardGetter = (p: PlayerInfo, i: number) => {
             return <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} 
                         screenPosObtainer={screenPosObtainer} isDamaged={damageAnimation.has(p.player.id)}
-                        elementStatus={checker.getStatus(p.player.id)} effect={currentPlayerEffect}
+                        elementStatus={p.isDead? ElementStatus.NORMAL : checker.getStatus(p.player.id)} 
+                        effect={currentPlayerEffect}
                         onSelect={s=>checker.onClicked(s)}/>
         }
 
@@ -106,16 +107,14 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                 players.filter((p, i) => i >= rows - 1 && i <= players.length - rows).map(cardGetter)
             }
             </div>
-            <div className='secondary-row go-up'>
-            {
-                rows > 2 && players.filter((p, i) => i === 1 || i === players.length - 2).map(cardGetter)
-            }
-            </div>
-            <div className='secondary-row'>
-            {
-                rows > 1 && players.filter((p, i) => i === 0 || i === players.length - 1).map(cardGetter)
-            }
-            </div>
+            
+            {rows > 2 && <div className='secondary-row go-up'>
+                {players.filter((p, i) => i === 1 || i === players.length - 2).map(cardGetter)}
+            </div>}
+            
+            {rows > 1 && <div className={'secondary-row ' + (rows > 2 || 'go-up')}>
+                {players.filter((p, i) => i === 0 || i === players.length - 1).map(cardGetter)}
+            </div>}
             {/* render any cards on the table */}
             {/* render any effects */}
         </div>
@@ -144,7 +143,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
     }
 
     onClick=()=>{
-        if(this.props.elementStatus.isSelectable) {
+        if(!this.props.info.isDead && this.props.elementStatus.isSelectable) {
             console.log('selected', this.props.info.player.id)
             this.props.onSelect(this.props.info.player.id)
         }
@@ -154,7 +153,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
         let {info, dist, elementStatus, isDamaged, effect} = this.props
         let inMyTurn = effect.player === info.player.id
         let clazz = new ClassFormatter('ui-player-card')
-                        .and(elementStatus.isSelectable, 'selectable')
+                        .and(!info.isDead && elementStatus.isSelectable, 'selectable') //can never select dead ppl
                         .and(elementStatus === ElementStatus.SELECTED, 'selected')
                         .and(isDamaged, 'damaged')
                         .and(inMyTurn, 'in-turn')
@@ -172,7 +171,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
                         <UIHpCol current={info.hp} total={info.maxHp} />
                     </div>
                     <div className='equipments'>
-                        <UIEquipGrid cards={info.getCards(CardPos.EQUIP)}/>
+                        <UIEquipGrid big={false} cards={info.getCards(CardPos.EQUIP)}/>
                     </div>
                     <div className='judge'>
                         <UIMarkRow marks={info.getJudgeCards()} />
@@ -181,6 +180,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
             }
             {inMyTurn && <StageDeclarer stage={effect.stage} className='left-btm-corner' />}
             {isDamaged && getDamageSpriteSheet()}
+            {info.isDead && <img className='death' src='ui/dead.png'/>}
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
         </div>
     }

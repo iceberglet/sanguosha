@@ -1,0 +1,143 @@
+
+.ui-player-card.ui-my-player-card{
+    .faction-war {
+        width: 320px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        pointer-events: none;
+
+        .general {
+
+            .general-name {
+                font-size: 20px;
+                writing-mode: unset;
+                width: 100px;
+                height: 22px;
+                color: white;
+            }
+            .general-name-after {
+                width: 0;
+                height: 0;
+                border-top: 11px solid transparent;
+                border-left: 9px;
+                border-bottom: 11px solid transparent;
+                position: absolute;
+                left: 100%;
+            }
+            .title {
+                position: absolute;
+                left: -3px;
+                top: -5px;
+                font-size: 30px;
+                color: #ffffc9;
+                text-shadow: 0px 0px 10px gold;
+            }
+        }
+    }
+}
+
+.ui-player-card {
+
+    .dead {
+        filter: grayscale(100%)
+    }
+
+    .faction-war {
+        width: 180px;
+        height: 190px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        pointer-events: none;
+
+        .general {
+            height: 100%;
+            position: relative;
+            pointer-events: none;
+            flex-grow: 1;
+
+            .general-name {
+                position: absolute;
+                top: 0px;
+                left: 0px;
+                width: 20px;
+                font-size: 22px;
+                text-indent: 26px;
+                display: flex;
+                align-items: center;
+                height: 100px;
+                writing-mode: vertical-rl;
+                text-orientation: upright;
+                color: #e7e3a5;
+                pointer-events: none;
+                text-shadow: 0px 0px 4px black;
+            }
+        }
+    }
+
+    .faction-mark {
+        width: 24px;
+        height: 24px;
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        border-radius: 15px;
+        font-size: 34px;
+        border: double black;
+        color: white;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+
+        .myself {
+            left: 0px;
+        }
+    }
+
+    .wei {
+        background: #3c3cf7 !important;
+    }
+    .shu {
+        background: #ff6060 !important;
+    }
+    .wu {
+        background: #228c22 !important;
+    }
+    .qun {
+        background: #f1d23a !important;
+    }
+    .ye {
+        background: #902090 !important;
+    }
+
+    .faction-dynamic-mark {
+        pointer-events: all;
+        width: 28px;
+        height: 28px;
+        padding: 1px;
+        position: absolute;
+        top: -5px;
+        left: -5px;
+        background: lightgray;
+        border-radius: 3px;
+        border: 1px solid black;
+        display: flex;
+        flex-wrap: wrap;
+        transition: 0.1s;
+
+        .mark {
+            background: gray;
+            width: 50%;
+            height: 50%;
+            cursor: pointer;
+            box-shadow: inset 0px 0px 2px #000000d4;
+        }
+    }
+
+    .faction-dynamic-mark:hover {
+        
+        width: 34px;
+        height: 34px;
+    }
+}

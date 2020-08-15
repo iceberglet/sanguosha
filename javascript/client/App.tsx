@@ -1,7 +1,7 @@
 import * as React from 'react';
 import UIBoard from './ui/UIBoard';
 import UILogin from './ui/UILogin';
-import GameClientContext from './player-actions/GameClientContext';
+import GameClientContext from './GameClientContext';
 import { PreGame } from '../common/PreGame';
 import { PlayerInfo } from '../common/PlayerInfo';
 import { Player } from '../common/Player';

@@ -27,6 +27,7 @@ export default class GameServerContext extends GameContext {
 
     
     /**
+     * 仅改变卡牌的位置, 不作其他动作
      * Move selected cards from one place to another
      * @param fromPlayer null for shared positions
      * @param toPlayer null for shared positions

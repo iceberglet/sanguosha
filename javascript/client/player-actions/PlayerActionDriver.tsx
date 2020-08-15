@@ -1,5 +1,5 @@
 // export type Action = '摸排'
-import GameClientContext from "./GameClientContext"
+import GameClientContext from "../GameClientContext"
 import { PlayerUIAction, Button } from "../../common/PlayerAction"
 
 export enum Clickability {

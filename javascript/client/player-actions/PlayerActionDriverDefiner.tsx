@@ -1,6 +1,6 @@
 import { UIPosition, PlayerUIAction, Button, PlayerAction } from "../../common/PlayerAction";
 import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerActionDriver";
-import GameClientContext from "./GameClientContext";
+import GameClientContext from "../GameClientContext";
 import Togglable from "../../common/util/Togglable";
 import { ServerHint } from "../../common/ServerHint";
 
@@ -53,7 +53,7 @@ export default class PlayerActionDriverDefiner {
         if(this.steps.length === 0) {
             throw `You gotta define something!`
         }
-        if(serverHint) {
+        if(serverHint && serverHint.abortButtonMsg) {
             buttons = [...buttons, new Button(ABORT_BUTTON_ID, serverHint.abortButtonMsg)]
         }
         return new StepByStepActionDriver(this.name, this.steps, buttons)

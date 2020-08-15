@@ -3,7 +3,7 @@ import { enumValues } from "../common/util/Util";
 import Card, { CardManager, CardSize, CardType } from "../common/cards/Card"
 import { PlayerInfo, Identity } from "../common/PlayerInfo"
 import Flow, { PlayerDeadInHisRound } from "./Flow";
-import RoundStat from "./RoundStat";
+import RoundStat from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
 import { ServerHint } from "../common/ServerHint";
 import JudgeComputer from "./engine/JudgeComputer";
@@ -16,6 +16,9 @@ import IdentityWarGeneral from "../game-mode-identity/IdentityWarGenerals";
 import { GameMode, GameModeEnum } from "../common/GameMode";
 import GameServerContext from "./engine/GameServerContext";
 import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
+import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
+import FactionWarGeneral from "../game-mode-faction/FactionWarGenerals";
+import { Faction } from "../common/GeneralManager";
 
 
 //Manages the rounds
@@ -66,6 +69,7 @@ export default class GameManager {
     }
 
     public async sendHint(player: string, hint: ServerHint): Promise<PlayerAction> {
+        hint.roundStat = this.roundStats
         return await this.registry.sendServerAsk(player, hint)
     }
 
@@ -136,10 +140,69 @@ export default class GameManager {
 }
 
 
+export function sampleFactionWarContext() {
+    let cardManager = GameMode.get(GameModeEnum.FactionWarGame).cardManager
+    let p = {id: '青青子吟'}
+    let cards = cardManager.getShuffledDeck()
+    let player = new FactionPlayerInfo(p, FactionWarGeneral.xiao_qiao, FactionWarGeneral.xu_sheng).init()
+    player.addCard(cards.find(c => c.type === CardType.SLASH), CardPos.HAND)
+    player.addCard(cards.find(c => c.type === CardType.WAN_JIAN), CardPos.HAND)
+    player.addCard(cards.find(c => c.type === CardType.ZHI_JI), CardPos.HAND)
+    player.addCard(cards.find(c => c.type === CardType.YUAN_JIAO), CardPos.HAND)
+    player.addCard(cards.find(c => c.type === CardType.HUO_GONG), CardPos.HAND)
+    // player.addCard(cards.find(c => c.type === CardType.SHUN_SHOU), CardPos.HAND)
+    // player.addCard(cards.find(c => c.type === CardType.GUO_HE), CardPos.HAND)
+    // player.addCard(cards.find(c => c.type === CardType.JUE_DOU), CardPos.HAND)
+    // player.addCard(cards.find(c => c.type === CardType.TIE_SUO), CardPos.HAND)
+    // player.addCard(cards.find(c => c.type === CardType.BING_LIANG), CardPos.HAND)
+    // player.addCard(cards.find(c => c.type === CardType.LE_BU), CardPos.HAND)
+    // player.addCard(cards.find(c => c.type === CardType.SHAN_DIAN), CardPos.HAND)
+    player.addCard(cards.find(c => c.type === CardType.ZHANG_BA), CardPos.EQUIP)
+    player.addCard(cards.find(c => c.type === CardType.REN_WANG), CardPos.EQUIP)
+    player.addCard(cards.find(c => c.type === CardType.JUE_YING), CardPos.EQUIP)
+    player.addCard(new Card('spade', CardSize.SIX, CardType.LE_BU), CardPos.JUDGE)
+    player.addCard(new Card('heart', CardSize.QUEEN, CardType.SHAN_DIAN), CardPos.JUDGE)
+    player.isGeneralRevealed = true
+    player.isSubGeneralRevealed = true
+    player.hp = 2;
+    // player.declareDeath()
+    
+    let player2 = new FactionPlayerInfo({id: '欧阳挠挠'}, FactionWarGeneral.dong_zhuo, FactionWarGeneral.diao_chan).init()
+    player2.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
+    player2.addCard(new Card('spade', CardSize.QUEEN, CardType.ZHANG_BA), CardPos.EQUIP)
+    player2.addCard(new Card('spade', CardSize.KING, CardType.DA_YUAN), CardPos.EQUIP)
+    player2.addCard(new Card('diamond', CardSize.KING, CardType.HUA_LIU), CardPos.EQUIP)
+    player2.addCard(new Card('diamond', CardSize.ACE, CardType.ZHU_QUE), CardPos.JUDGE, 'le_bu')
+    player2.declareDeath()
+
+    let player3 = new FactionPlayerInfo({id: '东郭旭銮'}, FactionWarGeneral.lu_xun, FactionWarGeneral.gan_ning).init()
+    player3.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
+    player3.addCard(new Card('heart', CardSize.KING, CardType.ZHUA_HUANG), CardPos.EQUIP)
+    player3.isGeneralRevealed = true
+    player3.isSubGeneralRevealed = true
+
+    let player4 = new FactionPlayerInfo({id: '新荷'}, FactionWarGeneral.wo_long, FactionWarGeneral.zhu_ge_liang).init()
+    player4.addCard(new Card('club', CardSize.JACK, CardType.TIE_SUO), CardPos.JUDGE, 'bing_liang')
+    player4.hp = 1
+    player4.faction = Faction.YE
+    player4.isGeneralRevealed = true
+    player4.isSubGeneralRevealed = true
+
+    let player5 = new FactionPlayerInfo({id: 'Iceberglet'}, FactionWarGeneral.zhang_ren, FactionWarGeneral.lv_bu).init()
+    player5.isGeneralRevealed = true
+    player5.isSubGeneralRevealed = true
+    
+    let player6 = new FactionPlayerInfo({id: '广东吴彦祖'}, FactionWarGeneral.hua_tuo, FactionWarGeneral.jia_xu).init()
+    player6.addCard(new Card('club', CardSize.TWO, CardType.BA_GUA), CardPos.EQUIP)
+    player6.isGeneralRevealed = true
+
+    let context = new GameServerContext([player, player2, player3, player4, player5, player6], GameModeEnum.FactionWarGame)
+
+    return context
+}
 
 
-
-export function sampleContext() {
+export function sampleIdentityWarContext() {
     let cardManager = GameMode.get(GameModeEnum.IdentityWarGame).cardManager
     let p = {id: '青青子吟'}
     let cards = cardManager.getShuffledDeck()

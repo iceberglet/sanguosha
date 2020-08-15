@@ -18,6 +18,10 @@ export default class IdentityWarPlayerInfo extends PlayerInfo {
         return this
     }
 
+    getGender() {
+        return this.general.gender
+    }
+
     sanitize(to: string): IdentityWarPlayerInfo {
         if(to === this.player.id || this.isDead) {
             return this
@@ -28,8 +32,12 @@ export default class IdentityWarPlayerInfo extends PlayerInfo {
         return copy
     }
 
+    getFaction() {
+        return this.general.faction
+    }
+
     draw(): React.ReactElement {
-        return <div className='occupy overflow-hidden'>
+        return <div className='identity-war overflow-hidden'>
             <div className='card-avatar' 
                 style={{backgroundImage: `url('generals/${this.general.id}.png')`, ...this.general.uiOffset}} />
             <div className='player-name'>{this.player.id}</div>
@@ -37,6 +45,10 @@ export default class IdentityWarPlayerInfo extends PlayerInfo {
             <div className='faction' style={{backgroundImage: `url('icons/${this.general.faction.image}.png')`}} />
             {this.identity && <div className='identity' style={{backgroundImage: `url('icons/${this.identity.id}.png')`}}/>}
         </div>
+    }
+
+    drawSelf() {
+        return this.draw()
     }
 
 }

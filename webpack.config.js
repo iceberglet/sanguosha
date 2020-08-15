@@ -8,18 +8,6 @@ let client = {
     publicPath: '/',
     filename: 'bundle.js'
   },
-}
-
-let server = {
-  target: 'node',
-  entry: './javascript/index-server.tsx',
-  output: {
-    path: __dirname + '/resources/',
-    filename: 'server.js'
-  },
-}
-
-let common = {
   module: {
     rules: [
       {
@@ -47,6 +35,34 @@ let common = {
       }
     ]
   },
+}
+
+let server = {
+  target: 'node',
+  entry: './javascript/index-server.tsx',
+  output: {
+    path: __dirname + '/resources/',
+    filename: 'server.js'
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts(x?)$/,
+        use: ['ts-loader']
+      },
+      {
+        test: /\.ttf$/,
+        use: ['ignore-loader']
+      },
+      {
+        test: /\.(sass|scss|css)$/,
+        use: ['ignore-loader']
+      }
+    ]
+  },
+}
+
+let common = {
   resolve: {
     modules: [
       'node_modules',

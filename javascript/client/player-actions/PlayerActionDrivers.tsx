@@ -1,15 +1,16 @@
 import { CardType } from "../../common/cards/Card";
-import GameClientContext from "./GameClientContext";
+import GameClientContext from "../GameClientContext";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import PlayerActionDriverDefiner from "./PlayerActionDriverDefiner";
 import { playerActionDriverProvider } from "./PlayerActionDriverProvider";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, forbids } from "../../common/ServerHint";
+import FactionPlayerInfo from "../../game-mode-faction/FactionPlayerInfo";
 
 let slashTargetFilter = (id: string, context: GameClientContext)=>{
     //todo: 诸葛亮空城?
     return id !== context.myself.player.id && 
-        (context.getMyDistanceTo(id) <= (context.serverHint.hint.slashReach || context.myself.getReach()))
+        (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.slashReach || context.myself.getReach()))
 }
 
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
@@ -17,7 +18,7 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             .expectChoose(UIPosition.MY_HAND, 1, 1, (id, context)=>{
                 return !forbids(hint, 'slash') && context.interpret(id).type.isSlash()
             })
-            .expectChoose(UIPosition.PLAYER, 1, hint.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.slashNumber}个`)
+            .expectChoose(UIPosition.PLAYER, 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
             .expectAnyButton('点击确定出杀')
             .build(hint)
 })
@@ -44,7 +45,7 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             .expectChoose(UIPosition.MY_HAND, 1, 1, (id, context)=>context.interpret(id).type === CardType.BING_LIANG)
             .expectChoose(UIPosition.PLAYER, 1, 1, 
                 (id, context)=>id !== context.myself.player.id &&       //不能是自己
-                                (context.getMyDistanceTo(id) <= (context.serverHint.hint.ruseReach || 1)), //范围得是1
+                                (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.ruseReach || 1)), //范围得是1
                 ()=>`选择‘兵粮寸断’的对象`)
             .expectAnyButton('点击确定使用兵粮寸断')
             .build(hint)
@@ -75,7 +76,7 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
                 (id, context)=>{
                     return id !== context.myself.player.id &&   // 不能是自己
                     context.getPlayer(id).hasCards() &&         // 必须有牌能拿
-                    (context.getMyDistanceTo(id) <= (context.serverHint.hint.ruseReach || 1))
+                    (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.ruseReach || 1))
                 },
                 ()=>`选择‘顺手牵羊’的对象`)
             .expectAnyButton('点击确定发动顺手牵羊')
@@ -103,6 +104,48 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
                 (id, context)=>id !== context.myself.player.id,  // 不能是自己
                 ()=>`选择‘决斗’的对象`)
             .expectAnyButton('点击确定发动决斗')
+            .build(hint)
+})
+
+
+playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+    return new PlayerActionDriverDefiner('出牌阶段出知己知彼')
+            .expectChoose(UIPosition.MY_HAND, 1, 1, (id, context)=>context.interpret(id).type === CardType.ZHI_JI)
+            .expectChoose(UIPosition.PLAYER, 1, 1, 
+                (id, context)=>{
+                    let target = context.getPlayer(id) as FactionPlayerInfo
+                    if(target.isGeneralRevealed && target.isSubGeneralRevealed && target.getCards(CardPos.HAND).length === 0) {
+                        return false //对方必须有手牌或者有未明置的武将牌
+                    }
+                    return id !== context.myself.player.id// 不能是自己
+                },
+                ()=>`选择‘知己知彼’的对象`)
+            .expectAnyButton('点击确定使用知己知彼')
+            .build(hint)
+})
+
+playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+    return new PlayerActionDriverDefiner('出牌阶段出以逸待劳')
+            .expectChoose(UIPosition.MY_HAND, 1, 1, (id, context)=>context.interpret(id).type === CardType.YI_YI)
+            .expectAnyButton('点击确定使用以逸待劳')
+            .build(hint)
+})
+
+playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+    return new PlayerActionDriverDefiner('出牌阶段出远交近攻')
+            .expectChoose(UIPosition.MY_HAND, 1, 1, (id, context)=>{
+                if(!(context.myself as FactionPlayerInfo).isRevealed()) {
+                    return false
+                }
+                return context.interpret(id).type === CardType.YUAN_JIAO
+            })
+            .expectChoose(UIPosition.PLAYER, 1, 1, 
+                (id, context)=>{
+                    let faction = context.getPlayer(id).getFaction()
+                    return faction.name !== context.myself.getFaction().name && id !== context.myself.player.id
+                },  // 不能是自己, 对象也不能是同势力
+                ()=>`选择一个不同阵营的玩家作为‘远交近攻’的对象`)
+            .expectAnyButton('点击确定使用远交近攻')
             .build(hint)
 })
 
@@ -146,8 +189,8 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段丈八出杀')
             .expectChoose(UIPosition.MY_EQUIP, 1, 1, (id, context)=>context.interpret(id).type === CardType.ZHANG_BA)
-            .expectChoose(UIPosition.MY_HAND, 2, 2, (id)=>true)
-            .expectChoose(UIPosition.PLAYER, 1, hint.slashNumber, slashTargetFilter)
+            .expectChoose(UIPosition.MY_HAND, 2, 2, (id)=>true, ()=>'请选择两张手牌')
+            .expectChoose(UIPosition.PLAYER, 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
             .expectAnyButton('点击确定出杀')
             .build(hint)
 })

@@ -1,7 +1,7 @@
 import Card, { CardGenre } from "./cards/Card"
 import { takeFromArray } from "./util/Util"
 import {Player} from "./Player"
-import { General } from "./GeneralManager"
+import { General, Gender, Faction } from "./GeneralManager"
 import { ICard } from "./cards/ICard"
 import { DelayedRuse, CardPos, isSharedPosition, isCardPosHidden } from "./transit/CardPos"
 import { ReactElement } from "react"
@@ -70,10 +70,23 @@ export abstract class PlayerInfo {
     abstract sanitize(to: string): PlayerInfo
 
     /**
+     * Get gender of the player
+     */
+    abstract getGender(): Gender
+
+    /**
+     * Get the faction of a player that is NOT us!
+     */
+    abstract getFaction(): Faction
+
+    /**
      * Used to draw on canvas
      * Container will be pre-defined
      */
     abstract draw(): ReactElement | ReactElement[];
+
+    abstract drawSelf(): ReactElement | ReactElement[];
+
 
     heal(amount: number) {
         //sometimes max hp changes O.o
@@ -160,6 +173,25 @@ export abstract class PlayerInfo {
 
     isDying(): boolean {
         return this.hp <= 0
+    }
+
+    /**
+     * return all the cards
+     */
+    declareDeath() {
+        this.hp = 0
+        this.isDead = true
+    }
+
+    getAllCards(): Array<[Card, CardPos]> {
+        let cards: Array<[Card, CardPos]> = []
+        this.cards.forEach((v, k)=>{
+            v.forEach(cc => cards.push([cc, k]))
+        })
+        this.judges.forEach(m => {
+            cards.push([m.card, CardPos.JUDGE])
+        })
+        return cards
     }
 
     //------------------- Serde -----------------
