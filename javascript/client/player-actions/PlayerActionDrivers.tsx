@@ -211,13 +211,13 @@ playerActionDriverProvider.registerProvider(HintType.PEACH, (hint)=>{
     if(!hint.sourcePlayer) {
         throw `Source Player not specified in hint: ${hint}`
     }
-    return new PlayerActionDriverDefiner(hint.hintMsg)
+    return new PlayerActionDriverDefiner('玩家濒死求桃' + hint.targetPlayers[0])
             .expectChoose(UIPosition.MY_HAND, 1, 1, (id, context)=>{
                 return context.interpret(id).type === CardType.PEACH || 
                         (hint.sourcePlayer === context.myself.player.id && context.interpret(id).type === CardType.WINE)
-            })
-            .expectAnyButton('点击确定使用')
-            .build(hint, [Button.OK]) //cannot refuse to drop card!
+            }, ()=>hint.hintMsg)
+            .expectAnyButton('点击确定使用桃救该玩家')
+            .build(hint) //cannot refuse to drop card!
 })
 
 // playerActionDriverProvider.registerProvider('dodge', (hint)=>{

@@ -24,15 +24,14 @@ export default abstract class Flow {
 
 }
 
-export abstract class Operation {
+export abstract class Operation<T> {
 
-    
     /**
      * 结算下一步
      * @param manager 
      * @returns true if this Flow is complete
      */
-    public abstract async perform(manager: GameManager): Promise<void>
+    public abstract async perform(manager: GameManager): Promise<T>
 }
 
 

@@ -1,5 +1,5 @@
 import FactionWarGeneral from "./FactionWarGenerals"
-import { Faction } from '../common/GeneralManager'
+import { Faction } from '../common/General'
 import { Player } from "../common/Player"
 import { PlayerInfo } from "../common/PlayerInfo"
 import * as React from "react"

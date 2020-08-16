@@ -7,17 +7,24 @@ import { HintType } from "../../common/ServerHint";
 import HealOp from "./HealOp";
 import DeathOp from "./DeathOp";
 
+export enum DamageType {
+    NORMAL,
+    FIRE,
+    THUNDER,
+    ENERGY
+}
 
 export class DyingEvent {
     public constructor(public who: string){}
 }
 
-export default class DamageOp extends Operation {
+export default class DamageOp extends Operation<void> {
 
     public constructor(public source: PlayerInfo, 
         public target: PlayerInfo, 
         public amount: number,
-        public cause: PlayerAction) {
+        public cause: PlayerAction,
+        public type: DamageType = DamageType.NORMAL) {
         super()
     }
 

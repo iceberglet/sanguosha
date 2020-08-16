@@ -1,5 +1,5 @@
 import { PlayerInfo, Identity } from "../common/PlayerInfo";
-import { General } from "../common/GeneralManager";
+import { General } from "../common/General";
 import { Player } from "../common/Player";
 import * as React from "react";
 import './identity-war.scss'

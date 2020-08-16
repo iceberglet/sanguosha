@@ -6,7 +6,7 @@ import { CardPos } from "../../common/transit/CardPos";
 import { TransferCardEffect } from "../../common/transit/EffectTransit";
 
 //摸牌阶段
-export default class TakeCardOp extends Operation {
+export default class TakeCardOp extends Operation<void> {
 
     public constructor(public player: PlayerInfo, 
                         public amount: number) {

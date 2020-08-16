@@ -51,16 +51,18 @@ export default class GameContext {
 
     /**
      * 根据当前玩家视角给出其余玩家的排序
+     * 不包含死亡的玩家
      * @param playerId 
      * @param inclusive 是否包含当前玩家. 默认false
      */
     getRingFromPerspective(playerId: string, inclusive: boolean = false): PlayerInfo[] {
         let idx = this.playerInfos.findIndex(p => p.player.id === playerId)
-        return [...this.playerInfos.slice(inclusive? idx : idx + 1), ...this.playerInfos.slice(0, idx)]
+        return [...this.playerInfos.slice(inclusive? idx : idx + 1), ...this.playerInfos.slice(0, idx)].filter(p => !p.isDead)
     }
 
     /**
      * 根据当前玩家视角排序,用以决定结算顺序
+     * 不包含死亡的玩家
      * @param playerId 当前玩家ID
      * @param ids 需要排序的玩家, 可以包含playerId
      */

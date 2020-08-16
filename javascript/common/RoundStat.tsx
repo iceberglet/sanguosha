@@ -19,7 +19,7 @@ export default class RoundStat {
     /**
      * 100 = 无限距离
      * -1 = 不能再出杀
-     * 默认(1)距离
+     * 默认(0)距离 > 用武器决定
      */
     slashReach: number = 0
 

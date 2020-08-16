@@ -146,7 +146,13 @@ export default class Card implements ICard {
 export class CardManager {
     cards = new Map<string, Card>()
     constructor(private deck: Card[]) {
-        deck.forEach(c => this.cards.set(c.id, c))
+        deck.forEach(c => {
+            let count = 0
+            while(this.cards.has(c.id)) {
+                c.id += (count++)
+            }
+            this.cards.set(c.id, c)
+        })
         this.cards.set(Card.DUMMY.id, Card.DUMMY)
     }
 

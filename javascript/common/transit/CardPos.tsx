@@ -1,6 +1,6 @@
 import { Player } from "../Player"
 import { Identity } from "../PlayerInfo"
-import { General } from "../GeneralManager"
+import { General } from "../General"
 import { GameModeEnum } from "../GameMode"
 
 

@@ -1,7 +1,7 @@
 import Card, { CardGenre } from "./cards/Card"
 import { takeFromArray } from "./util/Util"
 import {Player} from "./Player"
-import { General, Gender, Faction } from "./GeneralManager"
+import { General, Gender, Faction } from "./General"
 import { ICard } from "./cards/ICard"
 import { DelayedRuse, CardPos, isSharedPosition, isCardPosHidden } from "./transit/CardPos"
 import { ReactElement } from "react"

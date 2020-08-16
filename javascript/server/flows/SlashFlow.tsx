@@ -1,8 +1,8 @@
 import Flow from "../Flow";
 import GameManager from "../GameManager";
-import { PlayerAction, UIPosition, isCancel, getCards } from "../../common/PlayerAction";
+import { PlayerAction, UIPosition, isCancel, getFromAction } from "../../common/PlayerAction";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import DamageOp from "./DamageOp";
+import DamageOp, { DamageType } from "./DamageOp";
 import { HintType } from "../../common/ServerHint";
 import Card from "../../common/cards/Card";
 
@@ -20,19 +20,29 @@ export default class SlashFlow extends Flow {
     public dodgeRequired = 1
     public abort = false
     public hintMsg: string
+    public damage = 1
     
-    public constructor(public readonly action: PlayerAction, public readonly target: PlayerInfo) {
+    public constructor(public readonly action: PlayerAction, public target: PlayerInfo, public damageType: DamageType) {
         super()
         this.hintMsg = `[${action.actionSource}] 对你出杀, 请出闪`
     }
 
     public async doNext(manager: GameManager): Promise<boolean> {
         //todo: 确定可以指定他为目标?
-        //会不会
+        //裸衣增加伤害?
         //会不会转移目标? (游离)
         //雌雄双股剑? > 弃牌然后空城
         //leave to the listeners
         await manager.beforeFlowHappen.publish(this, this.action.actionSource)
+
+        let actor = manager.context.getPlayer(this.action.actionSource)
+        if(actor.isDrunk) {
+            this.damage += 1
+            actor.isDrunk = false
+            manager.broadcast(actor, PlayerInfo.sanitize)
+            //broadcast this fact
+        }
+
 
         //被什么弄无效了? 藤甲/仁王盾? 游离了?
         if(this.abort) {
@@ -50,18 +60,13 @@ export default class SlashFlow extends Flow {
             //player gave up on dodging
             if(isCancel(response)) {
                 //proceed with damage
-                let dmg = 1
-                if(source.isDrunk) {
-                    source.isDrunk = false
-                    manager.broadcast(source, PlayerInfo.sanitize)
-                    dmg = 2
-                }
-                await new DamageOp(source, this.target, dmg, this.action).perform(manager)
+                await new DamageOp(source, this.target, this.damage, this.action, this.damageType).perform(manager)
                 //remove the card from 'flow' position
                 break
             }
             //assume cancel is received?
-            let dodgeEvent = new DodgeEvent(getCards(this.action, UIPosition.MY_HAND, manager.cardManager()), this.target, source)
+            let cards = getFromAction(this.action, UIPosition.MY_HAND).map(id => manager.cardManager().getCard(id))
+            let dodgeEvent = new DodgeEvent(cards, this.target, source)
             await manager.afterFlowDone.publish(dodgeEvent, this.target.player.id)
         }
         return true

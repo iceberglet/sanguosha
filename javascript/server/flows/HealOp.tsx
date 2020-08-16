@@ -4,7 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { PlayerAction, isCancel } from "../../common/PlayerAction";
 
 
-export default class HealOp extends Operation {
+export default class HealOp extends Operation<void> {
 
 
     public constructor(public source: PlayerInfo, 

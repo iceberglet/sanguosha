@@ -25,6 +25,9 @@ export default class GameServerContext extends GameContext {
 
     }
 
+    sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: string[]) {
+        this.transferCards(fromPlayer, null, fromPos, CardPos.WORKFLOW, cards)
+    }
     
     /**
      * 仅改变卡牌的位置, 不作其他动作
@@ -36,6 +39,9 @@ export default class GameServerContext extends GameContext {
      * @param cards cards. Sequence depends on this position
      */
     transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: string[]) {
+        if(cards.length === 0) {
+            return
+        }
         if(fromPlayer) {
             cards.forEach(c => this.getPlayer(fromPlayer).removeCard(c))
         } else {
@@ -46,8 +52,9 @@ export default class GameServerContext extends GameContext {
                             throw `Unable to find card ${c} in workflow cards!`
                         }
                     })
+                    break;
                 default:
-                    throw `Can't take cards from this weird position! ${from}`
+                    throw `Can't take cards from this weird position! ${CardPos[from]}`
             }
         }
         if(toPlayer) {

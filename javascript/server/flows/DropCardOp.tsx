@@ -1,13 +1,13 @@
 import { Operation } from "../Flow";
 import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { isCancel, getCards, UIPosition } from "../../common/PlayerAction";
+import { isCancel, UIPosition, getFromAction } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { TransferCardEffect } from "../../common/transit/EffectTransit";
 import { HintType } from "../../common/ServerHint";
 
 //弃牌阶段
-export default class DropCardOp extends Operation {
+export default class DropCardOp extends Operation<void> {
 
     amount = 0
 
@@ -33,7 +33,7 @@ export default class DropCardOp extends Operation {
             }
 
             //remove these cards
-            let cards = getCards(resp, UIPosition.MY_HAND, manager.cardManager())
+            let cards = getFromAction(resp, UIPosition.MY_HAND).map(id => manager.cardManager().getCard(id))
 
             cards.forEach(c => this.player.removeCard(c.id))
             //remove

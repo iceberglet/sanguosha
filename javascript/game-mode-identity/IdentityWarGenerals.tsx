@@ -1,4 +1,4 @@
-import { General, Faction } from "../common/GeneralManager"
+import { General, Faction } from "../common/General"
 
 export class Package {
 

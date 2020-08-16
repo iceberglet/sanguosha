@@ -68,8 +68,8 @@ export type PlayerAction = {
     actionData: {[key in UIPosition]?: string[]}
 }
 
-export function getCards(action: PlayerAction, pos: UIPosition, cards: CardManager) {
-    return action.actionData[pos].map(id => cards.getCard(id))
+export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {
+    return action.actionData[pos] || []
 }
 
 export function isCancel(action: PlayerAction) {

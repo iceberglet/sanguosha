@@ -9,7 +9,7 @@ import DamageOp from "./DamageOp";
 
 //this player is surely dead
 //will send event for processing
-export default class DeathOp extends Operation {
+export default class DeathOp extends Operation<void> {
 
     //涅槃? 不屈?
     abort: boolean = false

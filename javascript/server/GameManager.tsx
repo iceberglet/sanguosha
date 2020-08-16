@@ -7,7 +7,7 @@ import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
 import { ServerHint, HintType } from "../common/ServerHint";
 import ArrayList from "../common/util/ArrayList";
 import { SequenceAwarePubSub } from "../common/util/PubSub";
-import { PlayerAction, Button } from "../common/PlayerAction";
+import { PlayerAction, Button, UIPosition } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
 import IdentityWarGeneral from "../game-mode-identity/IdentityWarGenerals";
@@ -16,7 +16,7 @@ import GameServerContext from "./engine/GameServerContext";
 import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
 import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
 import FactionWarGeneral from "../game-mode-faction/FactionWarGenerals";
-import { Faction } from "../common/GeneralManager";
+import { Faction } from "../common/General";
 import { StageStartFlow, StageEndFlow } from "./flows/StageFlows";
 import TakeCardOp from "./flows/TakeCardOp";
 import DropCardOp from "./flows/DropCardOp";
@@ -58,7 +58,7 @@ export default class GameManager {
                     await this.processStage(player, Stage.JUDGE, async ()=>await this.processJudgingStage())
                     await this.processStage(player, Stage.TAKE_CARD, async ()=>await this.processTakeCardStage())
                     await this.processStage(player, Stage.USE_CARD, async ()=>await this.processUseCardStage())
-                    await this.processStage(player, Stage.DROP_CARD,async ()=>await this.processDropCardStage())
+                    await this.processStage(player, Stage.DROP_CARD, async ()=>await this.processDropCardStage())
                     await this.processStage(player, Stage.ROUND_END)
                 } catch (err) {
                     if(err instanceof PlayerDeadInHisRound) {
@@ -98,6 +98,33 @@ export default class GameManager {
     public currPlayer(): PlayerInfo {
         return this.context.playerInfos[this.currentPlayer]
     }
+    
+
+    //////////////////////// Card Movement ///////////////////////
+    
+    public sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: string[]) {
+        this.context.transferCards(fromPlayer, null, fromPos, CardPos.WORKFLOW, cards)
+    }
+    
+    /**
+     * 仅改变卡牌的位置, 不作其他动作
+     * Move selected cards from one place to another
+     * @param fromPlayer null for shared positions
+     * @param toPlayer null for shared positions
+     * @param from from position
+     * @param to to position. 
+     * @param cards cards. Sequence depends on this position
+     */
+    public transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: string[]) {
+        this.context.transferCards(fromPlayer, toPlayer, from, to, cards)
+    }
+
+    private dropWorkflowCards() {
+        this.context.transferCards(null, null, CardPos.WORKFLOW, CardPos.DROPPED, this.context.workflowCards._data)
+    }
+
+
+    /////////////////////// Flows ////////////////////////
 
     private async processJudgingStage() {
         let p = this.currPlayer()
@@ -108,13 +135,19 @@ export default class GameManager {
     }
 
     private async processUseCardStage() {
-        let resp = await this.sendHint(this.currPlayer().player.id, {
-            hintType: HintType.PLAY_HAND,
-            hintMsg: '请出牌',
-            roundStat: new RoundStat(),
-            extraButtons: [new Button('abort', '结束出牌')]
-            // slashReach: undefined
-        })
+        while(true) {
+            let resp = await this.sendHint(this.currPlayer().player.id, {
+                hintType: HintType.PLAY_HAND,
+                hintMsg: '请出牌',
+                roundStat: this.roundStats,
+                extraButtons: [new Button('abort', '结束出牌')]
+            })
+            if(resp.actionData[UIPosition.BUTTONS][0] === 'abort') {
+                //进入弃牌阶段
+                break;
+            }
+            //process this action
+        }
     }
 
     private async processDropCardStage() {
@@ -143,6 +176,8 @@ export default class GameManager {
             if(flowIsDone) {
                 //因为我们可能加入了新的flow, 所以需要搜回之前的flow
                 this.currentFlows.remove(flow)
+                //将workflow中的牌扔进弃牌堆
+                this.dropWorkflowCards()
             }
         }
     }

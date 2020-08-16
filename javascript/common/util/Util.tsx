@@ -64,3 +64,26 @@ export function getKeys<K>(map: Map<K, any>): K[] {
   }
   return res
 }
+
+export function filterMap<K, V>(map: Map<K, V>, filter: (k: K, v: V)=>boolean): Array<[K, V]> {
+    let res: Array<[K, V]> = []
+    map.forEach((v, k) => {
+      if(filter(k, v)) {
+        res.push([k, v])
+      }
+    })
+    return res
+}
+
+export function promiseAny<T>(iterable: Iterable<T | PromiseLike<T>>): Promise<T> {
+  return Promise.all(
+    [...iterable].map(promise => {
+      return new Promise((resolve, reject) =>
+        Promise.resolve(promise).then(reject, resolve)
+      );
+    })
+  ).then(
+    errors => Promise.reject(errors),
+    value => Promise.resolve<T>(value)
+  );
+};

@@ -40,9 +40,9 @@ wss.on('connection', (ws: WebSocket) => {
     //connection is up
     ws.on('message', async (message: string) => {
         let msg = Serde.deserialize(message)
-        console.log('received: ', msg)
         if(msg.constructor.name === 'LoginMessage') {
             let login = msg as LoginMessage
+            console.log(`Player Logged in: ${login.id}`)
             try {
                 playerRegistry.add({...login}, ws)
             } catch (e) {

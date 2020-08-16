@@ -93,7 +93,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
         }
 
         let cardGetter = (p: PlayerInfo, i: number) => {
-            return <UIPlayerCard key={i} info={p} dist={showDist && distanceComputer(p.player.id)} 
+            return <UIPlayerCard key={i} info={p} dist={showDist && !p.isDead && distanceComputer(p.player.id)} 
                         screenPosObtainer={screenPosObtainer} isDamaged={damageAnimation.has(p.player.id)}
                         elementStatus={p.isDead? ElementStatus.NORMAL : checker.getStatus(p.player.id)} 
                         effect={currentPlayerEffect}

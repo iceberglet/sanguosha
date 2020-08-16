@@ -32,9 +32,9 @@ export class PlayerRegistry {
     private _byId = new Map<string, ServerPlayer>()
     private _byConnection = new Map<WebSocket, ServerPlayer>()
     private _stats = new Map<string, Stats>()
-    private _currentExpector: ActionExpector
+    private _currentExpectors = new Map<string, ActionExpector>()
+    private _failedHint = new Map<string, ServerHintTransit>()
     private static hintCount = 0
-    private failedHint: ServerHintTransit
 
     constructor(pubsub: Pubsub) {
         pubsub.on(PlayerActionTransit, this.onPlayerAction)
@@ -55,9 +55,9 @@ export class PlayerRegistry {
     }
 
     public onPlayerReconnected(player: string) {
-        if(this.failedHint && this.failedHint.toPlayer === player) {
+        if(this._failedHint.get(player)) {
             console.log(`[Player Registry] Replay failed serverhint to logged in player ${player}`)
-            this.send(player, this.failedHint)
+            this.send(player, this._failedHint.get(player))
         }
     }
 
@@ -73,9 +73,10 @@ export class PlayerRegistry {
         //note: we still keep this in _byId so that if player connects again, we get to keep previous records!
 
         //remove current expectations if it's on this player
-        if(this._currentExpector && this._currentExpector.player === p.player.id) {
-            console.warn('[Player Registry] 玩家尚有待定操作.取消对此操作的期待', this._currentExpector.player)
-            this.stopExpecting(this._currentExpector)
+        let exp = this._currentExpectors.get(p.player.id)
+        if(exp) {
+            console.warn('[Player Registry] 玩家尚有待定操作.取消对此操作的期待', exp)
+            this.stopExpecting(exp)
         }
     }
 
@@ -106,8 +107,8 @@ export class PlayerRegistry {
             try {
                 this.send(player, transit)
             } catch (err) {
-                console.error('[Player Registry] Failed to send Server Ask. Registering the failure for resend')
-                this.failedHint = transit
+                console.error('[Player Registry] Failed to send Server Ask. Registering the failure for resend', player)
+                this._failedHint.set(player, transit)
             }
         })
     }
@@ -138,24 +139,29 @@ export class PlayerRegistry {
     }
 
     private startExpecting=(expector: ActionExpector)=> {
-        if(this._currentExpector) {
-            throw `[Player Registry] 服务器还在等待玩家的回复，无法发出新的操作请求 ${this._currentExpector.player} ${expector.player}`
+        let currExp = this._currentExpectors.get(expector.player)
+        if(currExp) {
+            throw `[Player Registry] 服务器还在等待玩家的回复，无法发出新的操作请求 ${currExp.player}`
+        } else {
+            this._currentExpectors.set(expector.player, expector)
         }
-        this._currentExpector = expector
     }
 
     private stopExpecting=(expector: ActionExpector)=> {
-        if(expector !== this._currentExpector) {
-            throw `[Player Registry] 尝试移除期待但是服务器似乎正在期待其他玩家的操作 ${this._currentExpector.player} ${expector.player}`
+        let currExp = this._currentExpectors.get(expector.player)
+        if(currExp !== expector) {
+            throw `[Player Registry] 尝试移除期待但是服务器似乎正在期待该玩家其他的操作 ${expector.player}`
+        } else {
+            this._currentExpectors.set(expector.player, null)
         }
-        this._currentExpector = null
     }
 
     private onPlayerAction=(transit: PlayerActionTransit)=> {
-        if(!this._currentExpector) {
+        let exp = this._currentExpectors.get(transit.action.actionSource)
+        if(!exp) {
             console.error('[Player Registry] Not expecting any player action!', transit)
         } else {
-            this._currentExpector.callback(transit)
+            exp.callback(transit)
         }
     }
 }
