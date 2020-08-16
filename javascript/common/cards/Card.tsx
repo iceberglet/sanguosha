@@ -156,11 +156,11 @@ export class CardManager {
         this.cards.set(Card.DUMMY.id, Card.DUMMY)
     }
 
-    getCard(id: string): Card {
+    getCard = (id: string): Card => {
         return this.cards.get(id);
     }
 
-    getShuffledDeck() {
+    getShuffledDeck = () => {
         return shuffle([...this.deck])
     }
 }

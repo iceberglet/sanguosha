@@ -28,7 +28,6 @@ export default class GameManager {
 
     //index of GameContext#playerInfos
     private currentPlayer: number = 0
-    public currentStage: Stage = Stage.ROUND_BEGIN
     public roundStats: RoundStat
     //events go here
     public beforeFlowHappen : SequenceAwarePubSub
@@ -63,9 +62,11 @@ export default class GameManager {
                 } catch (err) {
                     if(err instanceof PlayerDeadInHisRound) {
                         console.log('Player died in his round. Proceeding to next player...')
-                        return
+                        continue;
                     }
                     throw err
+                } finally {
+                    this.goToNextPlayer()
                 }
             }
         }
@@ -185,8 +186,8 @@ export default class GameManager {
     private goToNextPlayer() {
         do {
             this.currentPlayer = (this.currentPlayer + 1) % this.context.playerInfos.length
-        } while(!this.currPlayer().isDead)
-        this.currentStage = Stage.ROUND_BEGIN
+        } while(this.currPlayer().isDead)
+        console.log('进入下一个玩家的回合:', this.currPlayer().player.id)
     }
 
 }

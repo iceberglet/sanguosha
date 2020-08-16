@@ -16,33 +16,36 @@ export default class DropCardOp extends Operation<void> {
     }
 
     public async perform(manager: GameManager): Promise<void> {
+        let myId = this.player.player.id
+
         this.amount = Math.max(this.player.getCards(CardPos.HAND).length - this.player.hp, 0)
 
-        await manager.beforeFlowHappen.publish(this, this.player.player.id);
+        await manager.beforeFlowHappen.publish(this, myId);
 
         if(this.amount > 0) {
 
-            let resp = await manager.sendHint(this.player.player.id, {
+            let resp = await manager.sendHint(myId, {
                 hintType: HintType.DROP_CARDS,
                 hintMsg: `请弃置${this.amount}张手牌`,
                 dropNumber: this.amount
             })
+            
 
             if(isCancel(resp)) {
                 throw 'How is this possible?'
             }
 
             //remove these cards
-            let cards = getFromAction(resp, UIPosition.MY_HAND).map(id => manager.cardManager().getCard(id))
+            let cards = getFromAction(resp, UIPosition.MY_HAND)//.map(id => manager.cardManager().getCard(id))
 
-            cards.forEach(c => this.player.removeCard(c.id))
+            manager.transferCards(myId, null, CardPos.HAND, CardPos.DROPPED, cards)
             //remove
             manager.broadcast(this.player, PlayerInfo.sanitize)
             //animation of card transfer. no need to sanitize
-            manager.broadcast(new TransferCardEffect(this.player.player.id, null, cards.map(c => c.id)))
+            manager.broadcast(new TransferCardEffect(myId, null, cards))
         }
 
-        await manager.afterFlowDone.publish(this, this.player.player.id);
+        await manager.afterFlowDone.publish(this, myId);
     }
 
     

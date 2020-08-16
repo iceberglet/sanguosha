@@ -125,13 +125,13 @@ export abstract class PlayerInfo {
     removeCard(cardId: string) {
         let found = false
         this.cards.forEach(cs => {
-            found = !!takeFromArray(cs, c => c.id === cardId)
+            found = found || !!takeFromArray(cs, c => c.id === cardId)
         })
         if(!found) {
             found = !!takeFromArray(this.judges, m => m.card.id === cardId)
         }
         if(!found) {
-            throw `Cannot find card to remove ${cardId} in player ${this}`
+            throw `Cannot find card to remove ${cardId} in player ${this.player.id}`
         }
     }
 

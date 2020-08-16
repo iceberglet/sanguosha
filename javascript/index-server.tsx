@@ -27,8 +27,11 @@ const playerRegistry = new PlayerRegistry(pubsub)
 const context = sampleFactionWarContext()
 const gameManager = new GameManager(context, playerRegistry)
 
-
-gameManager.startGame()
+try {
+    gameManager.startGame()
+} catch (err) {
+    console.error('Game Failure', err)
+}
 
 // let after = Serde.deserialize(Serde.serialize(context.getPlayer('欧阳挠挠'))) as PlayerInfo
 // console.log(after)

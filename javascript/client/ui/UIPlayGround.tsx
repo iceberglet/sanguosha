@@ -22,6 +22,7 @@ export const CENTER = 'center'
 export class ScreenPosObtainer {
     getters = new Map<string, ()=>Coor>()
     registerObtainer(id: string, ref: React.RefObject<any>) {
+        console.log('setting', id)
         this.getters.set(id, ()=>{
             let {top, bottom, left, right} = ref.current.getBoundingClientRect()
             return {
@@ -32,7 +33,9 @@ export class ScreenPosObtainer {
         })
     }
     getPos(id: string): Coor {
-        return this.getters.get(id)()
+        let getter = this.getters.get(id)
+        console.log(id, getter)
+        return getter()
     }
 }
 

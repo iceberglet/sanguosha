@@ -14,6 +14,8 @@ import { ServerHintTransit } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
 import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
 import { CardPos } from '../../common/transit/CardPos'
+import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
+import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
 
 type UIBoardProp = {
     myId: string
@@ -75,7 +77,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             cardsChecker: new Checker(UIPosition.MY_HAND, context, this.refresh),
             buttonChecker: new Checker(UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new Checker(UIPosition.MY_EQUIP, context, this.refresh),
-            others: context.getRingFromPerspective(myId)
+            others: context.getRingFromPerspective(myId, false, true)
         }
         //need to forceupdate to register new changes
         p.pubsub.on(ServerHintTransit, (con: ServerHintTransit)=>{
@@ -88,6 +90,14 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
         })
         p.pubsub.on(TransferCardEffect, (effect: TransferCardEffect)=>{
             this.effectProducer.transferCards(effect, context.getGameMode().cardManager)
+        })
+        p.pubsub.on(FactionPlayerInfo, (info: FactionPlayerInfo)=>{
+            Object.assign(context.getPlayer(info.player.id), info)
+            this.refresh()
+        })
+        p.pubsub.on(IdentityWarPlayerInfo, (info: IdentityWarPlayerInfo)=>{
+            Object.assign(context.getPlayer(info.player.id), info)
+            this.refresh()
         })
         this.dom = React.createRef()
         screenPosObtainer.registerObtainer(myId, this.dom)

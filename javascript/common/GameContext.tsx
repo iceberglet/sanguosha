@@ -55,9 +55,9 @@ export default class GameContext {
      * @param playerId 
      * @param inclusive 是否包含当前玩家. 默认false
      */
-    getRingFromPerspective(playerId: string, inclusive: boolean = false): PlayerInfo[] {
+    getRingFromPerspective(playerId: string, inclusive: boolean = false, deadAlso: boolean = false): PlayerInfo[] {
         let idx = this.playerInfos.findIndex(p => p.player.id === playerId)
-        return [...this.playerInfos.slice(inclusive? idx : idx + 1), ...this.playerInfos.slice(0, idx)].filter(p => !p.isDead)
+        return [...this.playerInfos.slice(inclusive? idx : idx + 1), ...this.playerInfos.slice(0, idx)].filter(p => deadAlso || !p.isDead)
     }
 
     /**

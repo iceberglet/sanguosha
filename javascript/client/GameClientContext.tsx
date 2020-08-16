@@ -13,24 +13,16 @@ import { ICard } from "../common/cards/ICard";
 export default class GameClientContext extends GameContext {
 
     private currentDriver: PlayerActionDriver = NoActionDriver.INSTANCE
-    private socket: WebSocket
     public myself: PlayerInfo
     /**
      * Current Server Hint
      */
     public serverHint: ServerHintTransit
 
-    public constructor(context: GameContext, myself: Player, socket: WebSocket) {
+    public constructor(context: GameContext, myself: Player, private socket: WebSocket) {
         super(context.playerInfos, context.gameMode)
         this.myself = this.playerInfos.find(i => i.player.id === myself.id)
         this.currentDriver = NoActionDriver.INSTANCE
-        this.socket = socket
-        this.socket.addEventListener('open', ()=>{
-            this.onSocketConnected()
-            // this.socket.send('Greetings')
-        })
-        this.socket.addEventListener('close', this.onSocketDisconnected)
-        this.socket.addEventListener('message', this.onServerMsg)
     }
 
     public setHint(hint: ServerHintTransit) {
@@ -81,20 +73,5 @@ export default class GameClientContext extends GameContext {
 
     public onServerHint(hint: ServerHint) {
 
-    }
-
-    //------- Connection Stuff ---------------
-    private isConnected = false
-    private onSocketConnected() {
-        this.isConnected = true
-        console.log('Socket Connection to Server Established', this.socket)
-        //todo: tell server who we are!
-    }
-    private onSocketDisconnected() {
-        this.isConnected = false
-        console.error('Socket Connection to Server Lost')
-    }
-    private onServerMsg(msg: any) {
-        console.log('Received Msg From Server', msg.data)
     }
 }
