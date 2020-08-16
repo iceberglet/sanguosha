@@ -5,6 +5,8 @@ import SlashFlow from "../flows/SlashFlow";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import HealOp from "../flows/HealOp";
 import { DamageType } from "../flows/DamageOp";
+import WuXieOp from "../flows/WuXieOp";
+import { CardPos } from "../../common/transit/CardPos";
 
 export default class PlayerActionResolver {
 
@@ -26,8 +28,24 @@ export default class PlayerActionResolver {
 
         //just card?
         else if(getFromAction(act, UIPosition.MY_HAND).length > 0) {
-            let card = this.manager.cardManager().getCard(getFromAction(act, UIPosition.MY_HAND)[0])
+
+            let hand = getFromAction(act, UIPosition.MY_HAND)
+            if(hand.length > 1) {
+                throw `How can you play 2 cards at once????? ${act}`
+            }
+            let card = this.manager.cardManager().getCard(hand[0])
+            this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [{cardId: hand[0]}], true)
             this.manager.beforeFlowHappen.publish(card, act.actionSource)
+            
+            if(card.type.genre === 'single-immediate-ruse') {
+                let target = getFromAction(act, UIPosition.PLAYER)[0]
+                if(!await new WuXieOp(this.manager.context.getPlayer(target), card.type).perform(this.manager)) {
+                    //this card is shet now, go home dude
+                    return;
+                }
+            }
+
+
             switch(card.type) {
                 //slash
                 case CardType.SLASH:

@@ -181,6 +181,8 @@ export abstract class PlayerInfo {
     declareDeath() {
         this.hp = 0
         this.isDead = true
+        this.isChained = false
+        this.isTurnedOver = false
     }
 
     getAllCards(): Array<[Card, CardPos]> {

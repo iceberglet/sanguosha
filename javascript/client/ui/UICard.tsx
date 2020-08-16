@@ -15,6 +15,7 @@ type CardProp = {
     onMouseClick?: CallBack
     onMouseEnter?: CallBack
     onMouseLeave?: CallBack
+    onMouseStay?: CallBack
     elementStatus: ElementStatus
 }
 
@@ -24,6 +25,7 @@ export default function UICard(prop: CardProp) {
     let onMouseClick = () => prop.onMouseClick && prop.onMouseClick(prop.card)
     let onMouseEnter = () => prop.onMouseEnter && prop.onMouseEnter(prop.card)
     let onMouseLeave = () => prop.onMouseLeave && prop.onMouseLeave(prop.card)
+    let onMouseStay = () => prop.onMouseStay && prop.onMouseStay(prop.card)
 
     let {elementStatus} = prop
     let clazz = new ClassFormatter('ui-card')
@@ -39,7 +41,7 @@ export default function UICard(prop: CardProp) {
                 alt='HiddenCard'/>
         </div>
     }
-    return <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} 
+    return <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseOver={onMouseStay}
                 onClick={onMouseClick} onMouseEnter={onMouseEnter}  onMouseLeave={onMouseLeave}>
         <img className='itself' 
             src={`cards/${prop.card.type.id}.png`} 

@@ -20,7 +20,8 @@ import { Faction } from "../common/General";
 import { StageStartFlow, StageEndFlow } from "./flows/StageFlows";
 import TakeCardOp from "./flows/TakeCardOp";
 import DropCardOp from "./flows/DropCardOp";
-import { CurrentPlayerEffect } from "../common/transit/EffectTransit";
+import { CurrentPlayerEffect, TransferCardEffect } from "../common/transit/EffectTransit";
+import { WorkflowTransit, WorkflowCard } from "../common/transit/WorkflowCard";
 
 
 //Manages the rounds
@@ -48,6 +49,8 @@ export default class GameManager {
             let player = this.currPlayer()
             if(player.isTurnedOver) {
                 player.isTurnedOver = false
+                console.log(`Player is turned back ${player.player.id}`)
+                this.broadcast(player, PlayerInfo.sanitize)
                 this.goToNextPlayer()
                 continue;
             } else {
@@ -59,14 +62,15 @@ export default class GameManager {
                     await this.processStage(player, Stage.USE_CARD, async ()=>await this.processUseCardStage())
                     await this.processStage(player, Stage.DROP_CARD, async ()=>await this.processDropCardStage())
                     await this.processStage(player, Stage.ROUND_END)
+                    this.goToNextPlayer()
                 } catch (err) {
                     if(err instanceof PlayerDeadInHisRound) {
                         console.log('Player died in his round. Proceeding to next player...')
+                        this.goToNextPlayer()
                         continue;
                     }
+                    console.error(err)
                     throw err
-                } finally {
-                    this.goToNextPlayer()
                 }
             }
         }
@@ -103,8 +107,21 @@ export default class GameManager {
 
     //////////////////////// Card Movement ///////////////////////
     
-    public sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: string[]) {
-        this.context.transferCards(fromPlayer, null, fromPos, CardPos.WORKFLOW, cards)
+    /**
+     * @param fromPlayer 玩家
+     * @param fromPos 玩家打出的位置
+     * @param cards 任何玩家打出的牌
+     * @param head 整个flow的发起牌. (杀 / 锦囊 / 南蛮 / 离间用的牌, 等等)
+     */
+    public sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: WorkflowCard[], isHead: boolean = false) {
+        this.broadcast(new TransferCardEffect(fromPlayer, null, cards.map(c => c.cardId)))
+        this.broadcast(new WorkflowTransit(isHead, cards))
+        this.context.sendToWorkflow(fromPlayer, fromPos, cards)
+    }
+
+    public takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]) {
+        this.broadcast(new TransferCardEffect(null, toPlayer, cards))
+        this.context.takeFromWorkflow(toPlayer, toPos, cards)
     }
     
     /**
@@ -118,10 +135,6 @@ export default class GameManager {
      */
     public transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: string[]) {
         this.context.transferCards(fromPlayer, toPlayer, from, to, cards)
-    }
-
-    private dropWorkflowCards() {
-        this.context.transferCards(null, null, CardPos.WORKFLOW, CardPos.DROPPED, this.context.workflowCards._data)
     }
 
 
@@ -160,7 +173,8 @@ export default class GameManager {
         this.currentFlows.addToFront(new StageStartFlow(info, stage))
         await this.processFlows()
         if(!this.roundStats.skipStages.get(stage)) {
-            this.broadcast(new CurrentPlayerEffect(this.currPlayer().player.id, stage))
+            this.currEffect = new CurrentPlayerEffect(this.currPlayer().player.id, stage)
+            this.broadcast(this.currEffect)
             if(midProcessor) {
                 await midProcessor()
             }
@@ -178,7 +192,8 @@ export default class GameManager {
                 //因为我们可能加入了新的flow, 所以需要搜回之前的flow
                 this.currentFlows.remove(flow)
                 //将workflow中的牌扔进弃牌堆
-                this.dropWorkflowCards()
+                this.context.dropWorkflowCards()
+                this.broadcast(new WorkflowTransit(true, null))
             }
         }
     }
@@ -240,10 +255,13 @@ export function sampleFactionWarContext() {
     player4.faction = Faction.YE
     player4.isGeneralRevealed = true
     player4.isSubGeneralRevealed = true
+    player3.isTurnedOver = true
+    player3.isDrunk = true
 
     let player5 = new FactionPlayerInfo({id: 'Iceberglet'}, FactionWarGeneral.zhang_ren, FactionWarGeneral.lv_bu).init()
     player5.isGeneralRevealed = true
     player5.isSubGeneralRevealed = true
+    player3.isDrunk = true
     
     let player6 = new FactionPlayerInfo({id: '广东吴彦祖'}, FactionWarGeneral.hua_tuo, FactionWarGeneral.jia_xu).init()
     player6.addCard(new Card('club', CardSize.TWO, CardType.BA_GUA), CardPos.EQUIP)

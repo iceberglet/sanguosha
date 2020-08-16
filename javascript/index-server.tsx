@@ -12,6 +12,8 @@ import { Stage } from './common/Stage';
 import { PlayerInfo } from './common/PlayerInfo';
 import { CardPos } from './common/transit/CardPos';
 import RoundStat from './common/RoundStat';
+import { WorkflowTransit, WorkflowCard } from './common/transit/WorkflowCard';
+import Card, { CardType } from './common/cards/Card';
 
 let app = express()
 
@@ -62,6 +64,21 @@ wss.on('connection', (ws: WebSocket) => {
             // ws.send(Serde.serialize(new EffectTransit('东郭旭銮', ['欧阳挠挠'], '杀')))
             // ws.send(Serde.serialize(new DamageEffect('东郭旭銮')))
             // ws.send(Serde.serialize(new TransferCardEffect('欧阳挠挠', '新荷', cardManager.getShuffledDeck().slice(5, 7).map(c => c.id))))
+
+            let cards: Card[] = context.getGameMode().cardManager.getShuffledDeck()
+            setInterval(()=>{
+                let want = Math.round(Math.random() * 1) + 1
+                let thisTime: WorkflowCard[] = []
+                while(cards.length > 0 && thisTime.length < want) {
+                    let c = cards.shift()
+                    if(!c) {
+                        throw `WTF???!! ${c}`
+                    }
+                    thisTime.push({cardId: c.id, description: '', as: CardType.LE_BU, isDropped: false})
+                }
+                console.log('sending', thisTime.length)
+                ws.send(Serde.serialize(new WorkflowTransit(Math.random() > 0.7, thisTime)))
+            }, 1500)
         } else {
             pubsub.publish(msg)
         }

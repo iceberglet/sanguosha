@@ -23,6 +23,7 @@ export class ServerPlayer {
 
 type ActionExpector = {
     player: string,
+    hint: ServerHintTransit,
     callback: (transit: PlayerActionTransit)=>void
 }
 
@@ -56,7 +57,7 @@ export class PlayerRegistry {
 
     public onPlayerReconnected(player: string) {
         if(this._failedHint.get(player)) {
-            console.log(`[Player Registry] Replay failed serverhint to logged in player ${player}`)
+            console.log(`[Player Registry] Replay failed serverhint to player ${player}`)
             this.send(player, this._failedHint.get(player))
         }
     }
@@ -75,8 +76,9 @@ export class PlayerRegistry {
         //remove current expectations if it's on this player
         let exp = this._currentExpectors.get(p.player.id)
         if(exp) {
-            console.warn('[Player Registry] 玩家尚有待定操作.取消对此操作的期待', exp)
-            this.stopExpecting(exp)
+            console.warn('[Player Registry] 玩家尚有待定操作.加入replay list', exp)
+            this._failedHint.set(p.player.id, exp.hint)
+            // this.stopExpecting(exp)
         }
     }
 
@@ -85,8 +87,10 @@ export class PlayerRegistry {
             console.log('[Player Registry] 服务器发出操作请求:', player, hint)
             let hintId = PlayerRegistry.hintCount++
 
+            let transit = new ServerHintTransit(hintId, player, hint)
             let expector = {
                 player,
+                hint: transit,
                 callback: (transit: PlayerActionTransit) => {
                     //when we hear back stuff
                     this.stopExpecting(expector)
@@ -102,7 +106,6 @@ export class PlayerRegistry {
             
 
             this.startExpecting(expector)
-            let transit = new ServerHintTransit(hintId, player, hint)
 
             try {
                 this.send(player, transit)
@@ -152,7 +155,7 @@ export class PlayerRegistry {
         if(currExp !== expector) {
             throw `[Player Registry] 尝试移除期待但是服务器似乎正在期待该玩家其他的操作 ${expector.player}`
         } else {
-            this._currentExpectors.set(expector.player, null)
+            this._currentExpectors.delete(expector.player)
         }
     }
 
@@ -161,6 +164,8 @@ export class PlayerRegistry {
         if(!exp) {
             console.error('[Player Registry] Not expecting any player action!', transit)
         } else {
+            //clear out failures
+            this._failedHint.delete(transit.action.actionSource)
             exp.callback(transit)
         }
     }

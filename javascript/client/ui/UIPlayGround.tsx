@@ -14,15 +14,19 @@ import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTr
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { CardPos } from '../../common/transit/CardPos'
 import { StageDeclarer } from './UIMyPlayerCard'
+import { WorkflowCard, WorkflowTransit } from '../../common/transit/WorkflowCard'
+import { UIWorkflowCardRow } from './UIWorkflowRow'
+import { CardManager } from '../../common/cards/Card'
 
 const damageDuration = 2000
+
+const workflowCardNo = 10
 
 export const CENTER = 'center'
 
 export class ScreenPosObtainer {
     getters = new Map<string, ()=>Coor>()
     registerObtainer(id: string, ref: React.RefObject<any>) {
-        console.log('setting', id)
         this.getters.set(id, ()=>{
             let {top, bottom, left, right} = ref.current.getBoundingClientRect()
             return {
@@ -45,18 +49,22 @@ type PlayGroundProp = {
     screenPosObtainer: ScreenPosObtainer,
     showDist: boolean,
     checker: Checker,
-    pubsub: Pubsub
+    pubsub: Pubsub,
+    cardManager: CardManager
 }
 
 type State = {
     //players who are being damaged
     damageAnimation: Set<string>,
-    currentPlayerEffect: CurrentPlayerEffect
+    currentPlayerEffect: CurrentPlayerEffect,
+    workflowCards: WorkflowCard[],
+    head: WorkflowCard[]
 }
 
 export default class UIPlayGround extends React.Component<PlayGroundProp, State> {
 
     dom: React.RefObject<any>
+    flowTooMuchTimeout: NodeJS.Timeout
 
     constructor(p: PlayGroundProp) {
         super(p)
@@ -77,16 +85,40 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
         p.pubsub.on(CurrentPlayerEffect, (currentPlayerEffect: CurrentPlayerEffect)=>{
             this.setState({currentPlayerEffect})
         })
+        p.pubsub.on(WorkflowTransit, (transit: WorkflowTransit)=>{
+            if(transit.removeHead()) {
+                this.setState({head: [], workflowCards: []})
+                clearTimeout(this.flowTooMuchTimeout)
+            } else if (transit.isHead){
+                this.setState({head: transit.cards, workflowCards: []})
+                clearTimeout(this.flowTooMuchTimeout)
+            } else {
+                let workflowCards: WorkflowCard[] = [...this.state.workflowCards, ...transit.cards]
+                let todrop = transit.cards.length
+                while(workflowCards.length > workflowCardNo) {
+                    workflowCards.shift()
+                    todrop--
+                }
+                this.setState({workflowCards})
+                if(todrop > 0) {
+                    this.flowTooMuchTimeout = setTimeout(()=>{
+                        this.setState({workflowCards: this.state.workflowCards.slice(todrop)})
+                    }, 7000)
+                }
+            }
+        })
 
         this.state = {
             damageAnimation: new Set<string>(),
-            currentPlayerEffect: new CurrentPlayerEffect(null, null)
+            currentPlayerEffect: new CurrentPlayerEffect(null, null),
+            workflowCards: [],
+            head: []
         }
     }
 
     render() {
-        let {players, screenPosObtainer, showDist, distanceComputer, checker} = this.props
-        let {damageAnimation, currentPlayerEffect} = this.state
+        let {players, screenPosObtainer, showDist, distanceComputer, checker, cardManager} = this.props
+        let {damageAnimation, currentPlayerEffect, workflowCards, head} = this.state
         let number = players.length
         let rows = 3
         if(number <= 2) {
@@ -103,7 +135,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                         onSelect={s=>checker.onClicked(s)}/>
         }
 
-        return <div className='playground' ref={this.dom}>
+        return <div className='playground'>
             {/* render top row, row-reverse */}
             <div className='top-row'>
             {
@@ -119,7 +151,9 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                 {players.filter((p, i) => i === 0 || i === players.length - 1).map(cardGetter)}
             </div>}
             {/* render any cards on the table */}
-            {/* render any effects */}
+            <div className={'workflow-row'} ref={this.dom}>
+                <UIWorkflowCardRow cardManager={cardManager} head={head} cards={workflowCards}/>
+            </div>
         </div>
     }
 
@@ -164,6 +198,11 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
         //todo: highlight, click
         return <div className={clazz} ref={this.dom} onClick={this.onClick}>
             {info.draw()}
+            
+            <Mask isMasked={info.isDrunk} maskClass={'drunk'} />
+            <Mask isMasked={info.isTurnedOver} maskClass={'turned-over'} />
+            {info.isTurnedOver && <div className='occupy center'>翻面</div>}
+            
 
             {dist && <div className='distance occupy'>{dist}</div>}
 

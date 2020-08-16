@@ -89,6 +89,7 @@
         justify-content: center;
         display: flex;
         align-items: center;
+        z-index: 1; //go over the drunk/turn over effects
 
         .myself {
             left: 0px;

@@ -77,6 +77,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             cardsChecker: new Checker(UIPosition.MY_HAND, context, this.refresh),
             buttonChecker: new Checker(UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new Checker(UIPosition.MY_EQUIP, context, this.refresh),
+            workflowCards: [],
             others: context.getRingFromPerspective(myId, false, true)
         }
         //need to forceupdate to register new changes
@@ -118,7 +119,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             <div className='top'>
                 <UIPlayGround players={others} distanceComputer={context.getMyDistanceTo} pubsub={pubsub}
                                 screenPosObtainer={screenPosObtainer} showDist={showDistance}
-                                checker={playerChecker}/>)
+                                checker={playerChecker} cardManager={context.getGameMode().cardManager}/>)
                 <div className='chat-logger'>
                     {/* <img className='occupy' src={'ui/container-horizontal.png'}/> */}
                 </div>

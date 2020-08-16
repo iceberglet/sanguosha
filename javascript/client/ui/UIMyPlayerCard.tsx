@@ -61,6 +61,10 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
 
         return <div className={clazz}  onClick={this.onClick}>
             {info.drawSelf()}
+            
+            <Mask isMasked={info.isDrunk} maskClass={'drunk'} />
+            <Mask isMasked={info.isTurnedOver} maskClass={'turned-over'} />
+            {info.isTurnedOver && <div className='occupy center'>翻面</div>}
             <div className='player-hp'>
                 <UIHpCol current={info.hp} total={info.maxHp} />
             </div>

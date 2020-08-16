@@ -38,7 +38,7 @@ export default class DropCardOp extends Operation<void> {
             //remove these cards
             let cards = getFromAction(resp, UIPosition.MY_HAND)//.map(id => manager.cardManager().getCard(id))
 
-            manager.transferCards(myId, null, CardPos.HAND, CardPos.DROPPED, cards)
+            manager.sendToWorkflow(myId, CardPos.HAND, [...cards.map(c => ({cardId: c, isDropped: true}))])
             //remove
             manager.broadcast(this.player, PlayerInfo.sanitize)
             //animation of card transfer. no need to sanitize

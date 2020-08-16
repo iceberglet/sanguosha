@@ -2,7 +2,7 @@ export default class ArrayList<T> {
 
     public _data: T[] = []
 
-    public add(t: T) {
+    public add = (t: T) =>{
         this._data.push(t)
     }
 
@@ -10,14 +10,17 @@ export default class ArrayList<T> {
         this._data = [...t, ...this._data]
     }
 
-    public remove(t: T): boolean {
-        //因为我们可能加入了新的flow, 所以需要搜回之前的flow
-        let idx = this._data.findIndex(tt => tt === t)
+    public removeThat(filter: (t: T)=>boolean): boolean {
+        let idx = this._data.findIndex(filter)
         if(idx < 0) {
             return false
         }
         this._data.splice(idx, 1)
         return true
+    }
+
+    public remove(t: T): boolean {
+        return this.removeThat(tt => tt === t)
     }
 
     public get(idx: number): T {
@@ -26,6 +29,10 @@ export default class ArrayList<T> {
 
     public size(): number {
         return this._data.length
+    }
+
+    public clear() {
+        this._data = []
     }
 
 }

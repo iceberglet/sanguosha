@@ -35,7 +35,7 @@ export default class DeathOp extends Operation<void> {
 
         //physically transfer everything
         this.toDrop.forEach(cardAndPos => {
-            manager.context.transferCards(this.info.player.id, null, cardAndPos[1], CardPos.DROPPED, [cardAndPos[0].id])
+            manager.sendToWorkflow(this.info.player.id, cardAndPos[1], [{cardId: cardAndPos[0].id, isDropped: true}])
         })
 
         //show player death. no need to sanitize anymore

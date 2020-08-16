@@ -44,9 +44,9 @@ export const Suits = {
   none: 'ERROR'
 }
 
-export function Mask(prop: {isMasked: boolean}) {
+export function Mask(prop: {isMasked: boolean, maskClass?: string}) {
   if(prop.isMasked) {
-    return <div className='occupy mask'/>
+    return <div className={`occupy ${prop.maskClass || 'mask'}`}/>
   }
   return null
 }

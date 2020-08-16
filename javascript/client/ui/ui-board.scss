@@ -53,6 +53,50 @@
             .go-up {
                 margin-top: -80px;
             }
+
+            .workflow-row {
+                position: absolute;
+                width: 58%;
+                height: 200px;
+                bottom: 30px;
+                align-self: center;
+                z-index: 2;
+
+                .ui-card-wrapper {
+                    position: absolute;
+                    transition: 0.6s;
+                    
+                    .as {
+                        position: absolute;
+                        height: 20px;
+                        top: 80px;
+                        background: #d6d696;
+                        color: black;
+                        border: 1px solid black;
+                        border-radius: 3px;
+                        text-shadow: 0px 0px 2px #794c4c;
+                        width: 80%;
+                        left: 7%;
+                    }
+                }
+                .workflow-card-enter {
+                    opacity: 0;
+                    transform: translate(40px, 0px);
+                }
+                .workflow-card-enter-active {
+                    opacity: 1;
+                    transform: translate(0px, 0px);
+                    transition: 0.6s;
+                }
+                .workflow-card-exit {
+                    opacity: 1;
+                }
+                .workflow-card-exit-active {
+                    opacity: 0;
+                    transform: translate(-30px, 0px);
+                    transition: 0.6s;
+                }
+            }
         }
 
         .chat-logger {
@@ -161,6 +205,14 @@
     border: 3px solid rgba(0, 0, 0, 0.719);
     border-radius: 4px;
     transition: 0.3s;
+
+    .drunk {
+        background: rgba(212, 47, 47, 0.637);
+    }
+
+    .turned-over {
+        background: rgba(255, 255, 255, 0.651);
+    }
 
     .card-avatar {
         position: absolute;
@@ -316,4 +368,13 @@
     50% {transform: translate(0px, 0px)}
     75% {transform: translate(10px, 0px)}
     100% {transform: translate(0px, 0px)}
+}
+
+@keyframes fade-in {
+    0% {
+        filter: opacity(0);
+    }
+    100% {
+        filter: opacity(1);
+    }
 }
