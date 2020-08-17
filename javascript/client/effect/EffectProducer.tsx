@@ -1,11 +1,12 @@
 import * as React from 'react'
 import {v4 as uuidv4} from 'uuid'
 import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
-import { ScreenPosObtainer, CENTER } from '../ui/UIPlayGround'
+import { ScreenPosObtainer } from '../ui/UIPlayGround'
 import './effect-producer.scss'
 import Card, { CardManager } from '../../common/cards/Card'
 import UICard from '../ui/UICard'
 import { ElementStatus } from '../ui/UIBoard'
+import { CENTER } from '../ui/UIWorkflowRow'
 
 const rayDuration = 2500
 const textDuration = 3000
@@ -139,7 +140,7 @@ export default class EffectProducer extends React.Component<Prop, State> {
     renderCards() {
         let cards: React.ReactElement[] = [], count = 0
         this.state.fieldCards.forEach((f, id) => {
-            let width = Math.max(80, f.cards.length * 24)
+            let width = Math.max(100, f.cards.length * 24)
             cards.push(<div key={id} className='floating-cards' style={{
                         width: width + 'px', 
                         left: f.pos.x - width / 2 + 'px', 

@@ -32,6 +32,7 @@
         transition: 1.4s;
         display: flex;
         justify-content: space-between;
+        animation: fade-in-out 1.6s forwards;
 
         .card-holder {
             width: 0px;
@@ -41,6 +42,13 @@
             justify-content: center;
         }
     }
+}
+
+@keyframes fade-in-out {
+    0% {opacity: 0;}
+    30% {opacity: 1;}
+    70% {opacity: 1;}
+    100% {opacity: 0;}
 }
 
 @keyframes flash {

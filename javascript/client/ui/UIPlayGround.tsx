@@ -22,7 +22,6 @@ const damageDuration = 2000
 
 const workflowCardNo = 10
 
-export const CENTER = 'center'
 
 export class ScreenPosObtainer {
     getters = new Map<string, ()=>Coor>()
@@ -63,13 +62,10 @@ type State = {
 
 export default class UIPlayGround extends React.Component<PlayGroundProp, State> {
 
-    dom: React.RefObject<any>
     flowTooMuchTimeout: NodeJS.Timeout
 
     constructor(p: PlayGroundProp) {
         super(p)
-        this.dom = React.createRef()
-        p.screenPosObtainer.registerObtainer(CENTER, this.dom)
         p.pubsub.on(DamageEffect, (d: DamageEffect)=>{
             this.setState(s => {
                 s.damageAnimation.add(d.targetPlayer)
@@ -94,7 +90,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                 clearTimeout(this.flowTooMuchTimeout)
             } else {
                 let workflowCards: WorkflowCard[] = [...this.state.workflowCards, ...transit.cards]
-                let todrop = transit.cards.length
+                let todrop = 0 //transit.cards.length
                 while(workflowCards.length > workflowCardNo) {
                     workflowCards.shift()
                     todrop--
@@ -151,9 +147,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                 {players.filter((p, i) => i === 0 || i === players.length - 1).map(cardGetter)}
             </div>}
             {/* render any cards on the table */}
-            <div className={'workflow-row'} ref={this.dom}>
-                <UIWorkflowCardRow cardManager={cardManager} head={head} cards={workflowCards}/>
-            </div>
+            <UIWorkflowCardRow cardManager={cardManager} head={head} cards={workflowCards} screenPosObtainer={screenPosObtainer}/>
         </div>
     }
 
@@ -221,7 +215,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
                 </div>
             }
             {inMyTurn && <StageDeclarer stage={effect.stage} className='left-btm-corner' />}
-            {isDamaged && getDamageSpriteSheet()}
+            {isDamaged && <div className='occupy'>{getDamageSpriteSheet()}</div>}
             {info.isDead && <img className='death' src='ui/dead.png'/>}
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
         </div>

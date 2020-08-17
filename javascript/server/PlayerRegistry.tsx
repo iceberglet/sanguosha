@@ -1,5 +1,5 @@
 import {Player} from "../common/Player"
-import {ServerHint, ServerHintTransit} from "../common/ServerHint"
+import {ServerHint, ServerHintTransit, HintType} from "../common/ServerHint"
 
 import * as WebSocket from 'ws';
 import { Serde } from "../common/util/Serializer";
@@ -84,7 +84,7 @@ export class PlayerRegistry {
 
     public async sendServerAsk(player: string, hint: ServerHint): Promise<PlayerAction> {
         return new Promise((resolve, reject)=>{
-            console.log('[Player Registry] 服务器发出操作请求:', player, hint)
+            console.log('[Player Registry] 服务器发出操作请求:', HintType[hint.hintType])
             let hintId = PlayerRegistry.hintCount++
 
             let transit = new ServerHintTransit(hintId, player, hint)
@@ -95,7 +95,7 @@ export class PlayerRegistry {
                     //when we hear back stuff
                     this.stopExpecting(expector)
                     if(transit.hintId === hintId) {
-                        console.log('[Player Registry] 服务器获得玩家操作:', player, transit.action)
+                        console.log('[Player Registry] 服务器获得玩家操作:', player)
                         resolve(transit.action)
                     } else {
                         console.error(`[Player Registry] 玩家的操作并未包含服务器所期待的hint ID! Expect: ${hintId}, Found: ${transit.hintId}`)
@@ -120,12 +120,13 @@ export class PlayerRegistry {
         this._byId.get(id).connection.send(Serde.serialize(obj))
     }
 
-    public broadcast<F extends object, T extends object>(obj: F, sanitizer: Sanitizer<F> = null) {
+    public broadcast<F extends object>(obj: F, sanitizer: Sanitizer<F> = null) {
         this._byConnection.forEach((v, k) => {
+            let toSend = obj
             if(sanitizer) {
-                obj = sanitizer(obj, v.player.id)
+                toSend = sanitizer(obj, v.player.id)
             }
-            k.send(Serde.serialize(obj))
+            k.send(Serde.serialize(toSend))
         })
     }
 
@@ -165,6 +166,7 @@ export class PlayerRegistry {
             console.error('[Player Registry] Not expecting any player action!', transit)
         } else {
             //clear out failures
+            console.log('服务器收到答复:', transit.action.actionSource)
             this._failedHint.delete(transit.action.actionSource)
             exp.callback(transit)
         }

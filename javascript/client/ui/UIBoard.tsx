@@ -93,10 +93,12 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             this.effectProducer.transferCards(effect, context.getGameMode().cardManager)
         })
         p.pubsub.on(FactionPlayerInfo, (info: FactionPlayerInfo)=>{
+            console.log('Received updated player info ', info)
             Object.assign(context.getPlayer(info.player.id), info)
             this.refresh()
         })
         p.pubsub.on(IdentityWarPlayerInfo, (info: IdentityWarPlayerInfo)=>{
+            console.log('Received updated player info ', info)
             Object.assign(context.getPlayer(info.player.id), info)
             this.refresh()
         })

@@ -1,5 +1,4 @@
 import Card from "../cards/Card"
-import { Serde } from "../util/Serializer"
 import { Stage } from "../Stage"
 
 export class TextFlashEffect {

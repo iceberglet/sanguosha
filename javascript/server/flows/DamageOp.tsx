@@ -31,20 +31,21 @@ export default class DamageOp extends Operation<void> {
     public async perform(manager: GameManager): Promise<void> {
         let targetId = this.target.player.id
 
-        //what's done is done
-        manager.broadcast(new DamageEffect(targetId))
-
         //裸衣? 伤害加深?
         await manager.beforeFlowHappen.publish(this, targetId)
 
         //伤害可以被防止
         if(this.amount > 0) {
             this.target.damage(this.amount)
+            
+            //what's done is done
+            manager.broadcast(new DamageEffect(targetId))
+            manager.broadcast(this.target, PlayerInfo.sanitize)
 
             //死没死?
             if(this.target.isDying()) {
                 //求桃
-                let toAsk = manager.context.getRingFromPerspective(targetId, true).filter(p => !p.isDead)
+                let toAsk = manager.context.getRingFromPerspective(targetId, true, false)
                 for(let i = 0; i < toAsk.length && this.target.isDying(); ++i) {
                     let p = toAsk[i]
                     let response = await manager.sendHint(p.player.id, {
@@ -58,6 +59,7 @@ export default class DamageOp extends Operation<void> {
                 }
 
                 if(this.target.isDying()) {
+                    //this will throw an error and to be caught by game manager
                     await new DeathOp(this.target, this).perform(manager)
                 }
             }

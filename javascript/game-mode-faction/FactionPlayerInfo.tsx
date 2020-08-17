@@ -53,11 +53,11 @@ export default class FactionPlayerInfo extends PlayerInfo {
     }
 
     sanitize(to: string): FactionPlayerInfo {
-        if(this.isDead || to === this.player.id) {
-            return this
-        }
-        let copy = new FactionPlayerInfo(this.player, null, null)
+        let copy = new FactionPlayerInfo(this.player, this.general, this.subGeneral)
         Object.assign(copy, this)
+        if(this.isDead || to === this.player.id) {
+            return copy
+        }
         copy.general = this.isGeneralRevealed && this.general
         copy.subGeneral = this.isSubGeneralRevealed && this.subGeneral
         return copy

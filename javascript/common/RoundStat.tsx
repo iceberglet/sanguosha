@@ -1,7 +1,7 @@
 import { Stage } from "./Stage"
 
 
-export type ForbiddenTypes = 'slash' | 'wine'
+export type ForbiddenTypes = 'wine'
 
 export default class RoundStat {
 

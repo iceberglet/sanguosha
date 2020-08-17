@@ -224,6 +224,7 @@ export class StepByStepActionDriver extends PlayerActionDriver {
 
     canBeClicked = (action: PlayerUIAction, context: GameClientContext): Clickability => {
         if(action.actionArea === UIPosition.BUTTONS) {
+            console.log(isDirectButton(context.serverHint.hint, action.itemId))
             if(isDirectButton(context.serverHint.hint, action.itemId)) {
                 return isDirectButton(context.serverHint.hint, action.itemId).enabled? Clickability.CLICKABLE : Clickability.DISABLED
             } else if (action.itemId === Button.CANCEL.id) {

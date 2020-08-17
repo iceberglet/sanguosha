@@ -7,9 +7,9 @@ import HealOp from "../flows/HealOp";
 import { DamageType } from "../flows/DamageOp";
 import WuXieOp from "../flows/WuXieOp";
 import { CardPos } from "../../common/transit/CardPos";
+import { TextFlashEffect } from "../../common/transit/EffectTransit";
 
 export default class PlayerActionResolver {
-
 
     public constructor(private readonly manager: GameManager) {
     }
@@ -34,7 +34,7 @@ export default class PlayerActionResolver {
                 throw `How can you play 2 cards at once????? ${act}`
             }
             let card = this.manager.cardManager().getCard(hand[0])
-            this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [{cardId: hand[0]}], true)
+            this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [{cardId: hand[0], source: act.actionSource}], true)
             this.manager.beforeFlowHappen.publish(card, act.actionSource)
             
             if(card.type.genre === 'single-immediate-ruse') {
@@ -45,19 +45,28 @@ export default class PlayerActionResolver {
                 }
             }
 
+            let targets = this.getTargets(act).map(p => p.player.id)
 
             switch(card.type) {
                 //slash
                 case CardType.SLASH:
-                    await new SlashFlow(act, this.getTarget(act), DamageType.NORMAL).doNext(this.manager)
+                    this.manager.broadcast(new TextFlashEffect(act.actionSource, targets, '杀'))
+                    await Promise.all(this.getTargets(act).map(async t => {
+                        await new SlashFlow(act, t, DamageType.NORMAL).doNext(this.manager)
+                    }))
                     break;
                 case CardType.SLASH_FIRE:
-                    await new SlashFlow(act, this.getTarget(act), DamageType.FIRE).doNext(this.manager)
+                    this.manager.broadcast(new TextFlashEffect(act.actionSource, targets, '火杀'))
+                    await Promise.all(this.getTargets(act).map(async t => {
+                        await new SlashFlow(act, t, DamageType.FIRE).doNext(this.manager)
+                    }))
                     break;
                 case CardType.SLASH_THUNDER:
-                    await new SlashFlow(act, this.getTarget(act), DamageType.THUNDER).doNext(this.manager)
+                    this.manager.broadcast(new TextFlashEffect(act.actionSource, targets, '雷杀'))
+                    await Promise.all(this.getTargets(act).map(async t => {
+                        await new SlashFlow(act, t, DamageType.THUNDER).doNext(this.manager)
+                    }))
                     break;
-    
     
                 //peach
                 case CardType.PEACH:
@@ -116,15 +125,12 @@ export default class PlayerActionResolver {
 
     }
 
-    private getTarget(act: PlayerAction): PlayerInfo {
+    private getTargets=(act: PlayerAction): PlayerInfo[] =>{
         let targets = getFromAction(act, UIPosition.PLAYER)
-        if(targets.length > 1) {
-            throw `Expect only one target! ${act}`
-        }
-        return this.toInfo(targets[0])
+        return targets.map(this.toInfo)
     }
 
-    private toInfo(id: string): PlayerInfo {
+    private toInfo=(id: string): PlayerInfo =>{
         return this.manager.context.getPlayer(id)
     }
 

@@ -55,12 +55,8 @@
             }
 
             .workflow-row {
-                position: absolute;
-                width: 58%;
-                height: 200px;
-                bottom: 30px;
-                align-self: center;
                 z-index: 2;
+                pointer-events: none;
 
                 .ui-card-wrapper {
                     position: absolute;
@@ -81,12 +77,12 @@
                 }
                 .workflow-card-enter {
                     opacity: 0;
-                    transform: translate(40px, 0px);
+                    // transform: translate(40px, 0px);
                 }
                 .workflow-card-enter-active {
                     opacity: 1;
-                    transform: translate(0px, 0px);
-                    transition: 0.6s;
+                    // transform: translate(0px, 0px);
+                    transition: 0.4s;
                 }
                 .workflow-card-exit {
                     opacity: 1;

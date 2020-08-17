@@ -23,6 +23,7 @@ export default class HealOp extends Operation<void> {
         //Heal可以被防止么?
         if(this.amount > 0) {
             this.target.heal(this.amount)
+            manager.broadcast(this.target, PlayerInfo.sanitize)
 
             //恩怨?
             await manager.afterFlowDone.publish(this, targetId)

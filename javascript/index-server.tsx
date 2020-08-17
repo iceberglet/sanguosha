@@ -59,26 +59,6 @@ wss.on('connection', (ws: WebSocket) => {
             //send the current state to this newly logged in person
             gameManager.onPlayerReconnected(login.id)
 
-
-            // ws.send(Serde.serialize(new EffectTransit('欧阳挠挠', ['广东吴彦祖', '新荷', '青青子吟'], '南蛮入侵')))
-            // ws.send(Serde.serialize(new EffectTransit('东郭旭銮', ['欧阳挠挠'], '杀')))
-            // ws.send(Serde.serialize(new DamageEffect('东郭旭銮')))
-            // ws.send(Serde.serialize(new TransferCardEffect('欧阳挠挠', '新荷', cardManager.getShuffledDeck().slice(5, 7).map(c => c.id))))
-
-            let cards: Card[] = context.getGameMode().cardManager.getShuffledDeck()
-            setInterval(()=>{
-                let want = Math.round(Math.random() * 1) + 1
-                let thisTime: WorkflowCard[] = []
-                while(cards.length > 0 && thisTime.length < want) {
-                    let c = cards.shift()
-                    if(!c) {
-                        throw `WTF???!! ${c}`
-                    }
-                    thisTime.push({cardId: c.id, description: '', as: CardType.LE_BU, isDropped: false})
-                }
-                console.log('sending', thisTime.length)
-                ws.send(Serde.serialize(new WorkflowTransit(Math.random() > 0.7, thisTime)))
-            }, 1500)
         } else {
             pubsub.publish(msg)
         }

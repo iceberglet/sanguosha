@@ -39,10 +39,8 @@ export default class DeathOp extends Operation<void> {
         })
 
         //show player death. no need to sanitize anymore
+        this.info.declareDeath()
         manager.broadcast(this.info)
-
-        //animation of card transfer. no need to sanitize
-        manager.broadcast(new TransferCardEffect(this.info.player.id, null, this.toDrop.map(c => c[0].id)))
 
         if(manager.currPlayer().player.id === this.info.player.id) {
             throw new PlayerDeadInHisRound()

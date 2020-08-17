@@ -199,11 +199,14 @@ export abstract class PlayerInfo {
     //------------------- Serde -----------------
     static sanitize(info: PlayerInfo, sendTo: string): PlayerInfo {
         let copy = info.sanitize(sendTo)
-        copy.cards.forEach((v, k, m) => v.forEach((c, i) => {
+        let cards = new Map<CardPos, Card[]>()
+        copy.cards.forEach((v, k, m) => cards.set(k, v.map((c, i) => {
             if(isCardPosHidden(k) && sendTo !== info.player.id) {
-                v.splice(i, 1, Card.DUMMY)
+                return Card.DUMMY
             }
-        }))
+            return c
+        })))
+        copy.cards = cards
         return copy
     }
 }

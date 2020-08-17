@@ -6,7 +6,10 @@ export type WorkflowCard = {
     as?: CardType,
     description?: string,
     //是否是弃牌
-    isDropped?: boolean
+    isDropped?: boolean,
+    //which player played this card?
+    //if null, it's added simply. (e.g. 判定牌)
+    source?: string
 }
 
 
@@ -18,7 +21,7 @@ export class WorkflowTransit {
      */
     public constructor(
         public isHead: boolean,
-        public cards: WorkflowCard[]
+        public cards: WorkflowCard[],
     ) {}
 
     public removeHead() {

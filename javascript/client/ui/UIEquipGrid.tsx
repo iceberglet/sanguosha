@@ -17,7 +17,7 @@ export default function UIEquipGrid(prop: EquipGridProp) {
     let horsePlus = prop.cards.find(c => c.type.genre === 'horse+1')
     let horseMinus = prop.cards.find(c => c.type.genre === 'horse-1')
 
-    let weaponStatus = prop.checker?.getStatus(weapon.id) || ElementStatus.NORMAL
+    let weaponStatus = (weapon && prop.checker?.getStatus(weapon.id)) || ElementStatus.NORMAL
     let shieldStatus = (shield && prop.checker?.getStatus(shield.id)) || ElementStatus.NORMAL
     let horseStatus = (horsePlus && prop.checker?.getStatus(horsePlus.id)) || ElementStatus.NORMAL
     let horseMinusStatus = (horseMinus && prop.checker?.getStatus(horseMinus.id)) || ElementStatus.NORMAL
