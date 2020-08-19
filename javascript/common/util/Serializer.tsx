@@ -1,5 +1,5 @@
 import LoginMessage from "../../server/Login"
-import { ServerHintTransit } from "../ServerHint"
+import { ServerHintTransit, Rescind } from "../ServerHint"
 import { PlayerActionTransit, Button } from "../PlayerAction"
 import GameContext from "../GameContext"
 import { PlayerInfo, Identity } from "../PlayerInfo"
@@ -167,6 +167,7 @@ Serde.register(Package)
 Serde.register(Faction)
 Serde.register(Identity)
 Serde.register(WorkflowTransit)
+Serde.register(Rescind)
 Serde.register(RoundStat)
 Serde.register(Button)
 Serde.register(Stage)

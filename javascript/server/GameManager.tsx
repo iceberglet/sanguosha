@@ -4,7 +4,7 @@ import { PlayerInfo, Identity } from "../common/PlayerInfo"
 import Flow, { PlayerDeadInHisRound } from "./Flow";
 import RoundStat from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
-import { ServerHint, HintType } from "../common/ServerHint";
+import { ServerHint, HintType, Rescind } from "../common/ServerHint";
 import ArrayList from "../common/util/ArrayList";
 import { SequenceAwarePubSub } from "../common/util/PubSub";
 import { PlayerAction, Button, UIPosition } from "../common/PlayerAction";
@@ -23,6 +23,7 @@ import DropCardOp from "./flows/DropCardOp";
 import { CurrentPlayerEffect, TransferCardEffect } from "../common/transit/EffectTransit";
 import { WorkflowTransit, WorkflowCard } from "../common/transit/WorkflowCard";
 import PlayerActionResolver from "./engine/PlayerActionResolver";
+import { ICard } from "../common/cards/ICard";
 
 
 //Manages the rounds
@@ -89,6 +90,16 @@ export default class GameManager {
         return await this.registry.sendServerAsk(player, hint)
     }
 
+    /**
+     * Rescind all server hints. ignore there responses, if any
+     */
+    public async rescindAll() {
+        //send such request to all players
+        this.broadcast(new Rescind())
+        //clear our cache
+        this.registry.rescindAll()
+    }
+
     public broadcast<F extends object>(obj: F, sanitizer: Sanitizer<F> = null) {
         this.registry.broadcast(obj, sanitizer)
     }
@@ -102,8 +113,8 @@ export default class GameManager {
         this.registry.onPlayerReconnected(player)
     }
 
-    public cardManager(): CardManager {
-        return this.context.getGameMode().cardManager
+    public getCard(id: string): Card {
+        return this.context.getGameMode().cardManager.getCard(id)
     }
 
     public currPlayer(): PlayerInfo {
@@ -114,6 +125,7 @@ export default class GameManager {
     //////////////////////// Card Movement ///////////////////////
     
     /**
+     * 从此玩家身上扒下牌进workflow
      * @param fromPlayer 玩家
      * @param fromPos 玩家打出的位置
      * @param cards 任何玩家打出的牌
@@ -143,6 +155,10 @@ export default class GameManager {
      */
     public transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: string[]) {
         this.context.transferCards(fromPlayer, toPlayer, from, to, cards)
+    }
+
+    public interpret(forPlayer: string, cardId: string): ICard {
+        return this.context.getPlayer(forPlayer).cardInterpreter(this.getCard(cardId))
     }
 
 

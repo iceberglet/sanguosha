@@ -1,20 +1,21 @@
 import RoundStat, { ForbiddenTypes } from "./RoundStat"
 import { Button } from "./PlayerAction"
+import Card from "./cards/Card"
 
 
 export enum HintType {
     PLAY_HAND,
     //单纯弃牌
     DROP_CARDS,
-    //单纯出杀(目标确定)
+    //单纯出杀
     SLASH,
     //单纯出闪(目标确定)
     DODGE,
     //若是对濒死的人的hint则可以使用酒
     PEACH,
     WU_XIE,
-    SKILL,
 
+    SELECT_CARD_FROM_PLAYER
 }
 
 export class ServerHintTransit {
@@ -31,6 +32,18 @@ export function forbids(hint: ServerHint, type: ForbiddenTypes) {
 
 export function isDirectButton(hint: ServerHint, buttonId: string): Button {
     return hint.extraButtons?.find(b => b.id === buttonId)
+}
+
+export class Rescind {  
+}
+
+export type CardChoices = {
+    cards: {
+        [key: string]: Card
+    }
+    //过河拆桥? 观星?
+    mode: 'choose-1' | 'move-around',
+    msg: number
 }
 
 export type ServerHint = {

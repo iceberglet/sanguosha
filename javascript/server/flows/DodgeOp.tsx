@@ -38,7 +38,7 @@ export default class DodgeOp extends Operation<boolean> {
             } else {
                 manager.broadcast(new TextFlashEffect(this.target.player.id, [this.slashAction.actionSource], '闪'))
                 //assume he played it
-                let cards = getFromAction(response, UIPosition.MY_HAND).map(id => manager.cardManager().getCard(id))
+                let cards = getFromAction(response, UIPosition.MY_HAND).map(id => manager.getCard(id))
                 if(cards.length !== 1) {
                     throw `Player played dodge cards but not one card!!!! ${response.actionSource} ${cards}`
                 }

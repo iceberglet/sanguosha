@@ -49,6 +49,8 @@ export abstract class PlayerInfo {
     isDrunk: boolean = false
     isDead: boolean = false
     skills: string[]
+    //吴六剑?
+    reachModifier: number = 0
 
     protected cards = new Map<CardPos, Card[]>()
     protected judges: Mark[] = []
@@ -122,6 +124,11 @@ export abstract class PlayerInfo {
         }
     }
 
+    /**
+     * 移除此人身上(手牌/装备/判定/挂着的)牌
+     * 如果没能找到, throw error
+     * @param cardId 
+     */
     removeCard(cardId: string) {
         let found = false
         this.cards.forEach(cs => {
@@ -137,7 +144,7 @@ export abstract class PlayerInfo {
 
     getReach(): number {
         let weapon = this.getCards(CardPos.EQUIP).find(c => c.type.genre === 'weapon')
-        return weapon? weapon.type.distance : 1
+        return (weapon? weapon.type.distance : 1) + this.reachModifier
     }
 
     getCards(pos: CardPos): Card[] {

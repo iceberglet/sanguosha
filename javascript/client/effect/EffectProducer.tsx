@@ -1,21 +1,19 @@
 import * as React from 'react'
 import {v4 as uuidv4} from 'uuid'
 import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
-import { ScreenPosObtainer } from '../ui/UIPlayGround'
 import './effect-producer.scss'
 import Card, { CardManager } from '../../common/cards/Card'
 import UICard from '../ui/UICard'
 import { ElementStatus } from '../ui/UIBoard'
 import { CENTER } from '../ui/UIWorkflowRow'
+import { getEffect } from './SpriteSheet'
+import { Coor, ScreenPosObtainer } from '../ui/ScreenPosObtainer'
 
 const rayDuration = 2500
 const textDuration = 3000
+const animDuration = 16 / 60 * 1000
 const cardFloatDuration = 1750
 
-export type Coor = {
-    x: number
-    y: number
-}
 
 export type Ray = {
     from: Coor,
@@ -33,11 +31,14 @@ type State = {
     rays: Map<string, Ray>
     texts: Map<string, Coor>
     fieldCards: Map<string, FieldCards>
+    sheets: Map<number, [Coor, React.ReactElement]>
 }
 
 type Prop = {
     screenPosObtainer: ScreenPosObtainer
 }
+
+let counter = 0
 
 export default class EffectProducer extends React.Component<Prop, State> {
 
@@ -46,13 +47,37 @@ export default class EffectProducer extends React.Component<Prop, State> {
         this.state = {
             rays: new Map<string, Ray>(),
             texts: new Map<string, Coor>(),
-            fieldCards: new Map<string, FieldCards>()
+            fieldCards: new Map<string, FieldCards>(),
+            sheets: new Map<number, [Coor, React.ReactElement]>()
         }
     }
 
     processEffect(effect: TextFlashEffect) {
         let o = this.props.screenPosObtainer
-        this.flashText(o.getPos(effect.sourcePlayer), effect.sourceText)
+        let id = counter++
+        let sprites = getEffect(effect.sourceText, 
+                                ()=>{
+                                    console.log('Remove Sprites', id)
+                                    this.setState(s => {
+                                        s.sheets.delete(id)
+                                        return s
+                                    })
+                                }) 
+        if(sprites) {
+            let b = o.getPos(CENTER)
+            let a = o.getPos(effect.sourcePlayer)
+            let l = 140
+            let dx = b.x - a.x, dy = b.y - a.y
+            let ratio = Math.sqrt(dx * dx / (dx * dx + dy * dy))
+            let target: Coor = {x: a.x + l * ratio * Math.sign(dx), y: a.y + l * Math.sqrt(1 - ratio * ratio) * Math.sign(dy) }
+            console.log('From', a, ratio, target)
+            this.setState(s => {
+                s.sheets.set(id, [target, sprites])
+                return s
+            })
+        } else {
+            this.flashText(o.getPos(effect.sourcePlayer), effect.sourceText)
+        }
         effect.targetPlayers?.forEach(t => {
             this.drawRay(o.getPos(effect.sourcePlayer), o.getPos(t))
         })
@@ -112,10 +137,24 @@ export default class EffectProducer extends React.Component<Prop, State> {
         // remove after use
         setTimeout(()=>{
             this.setState(s => {
-                s.rays.delete(text)
+                s.texts.delete(text)
                 return s
             })
         }, textDuration)
+    }
+
+    flashEffect(id: number, coor: Coor, sheet: React.ReactElement) {
+        this.setState(s => {
+            s.sheets.set(id, [coor, sheet])
+            return s
+        })
+        // remove after use
+        setTimeout(()=>{
+            this.setState(s => {
+                s.sheets.delete(id)
+                return s
+            })
+        }, animDuration)
     }
 
     renderRays() {
@@ -135,6 +174,15 @@ export default class EffectProducer extends React.Component<Prop, State> {
             texts.push(<div key={t} className='text' style={{left: c.x + 'px', top: c.y + 'px'}}>{t}</div>)
         })
         return texts
+    }
+
+    renderEffects() {
+        let res: React.ReactElement[] = []
+        this.state.sheets.forEach((el, id)=>{
+            let c = el[0]
+            res.push(<div key={id} className='sprite-container center' style={{left: c.x + 'px', top: c.y + 'px'}}>{el[1]}</div>)
+        })
+        return res
     }
 
     renderCards() {
@@ -160,6 +208,7 @@ export default class EffectProducer extends React.Component<Prop, State> {
             </svg>
             {this.renderTexts()}
             {this.renderCards()}
+            {this.renderEffects()}
         </div>
     }
 

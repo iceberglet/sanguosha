@@ -4,61 +4,72 @@ import './ui-equip.scss'
 import { Suits } from '../../common/util/Util'
 import { Checker, ElementStatus } from './UIBoard'
 import { ClassFormatter } from '../../common/util/Togglable'
+import { CSSTransition, TransitionGroup } from 'react-transition-group'
+import { Seeker } from './ScreenPosObtainer'
 
 type EquipGridProp = {
     cards: Card[],
     big: boolean,
-    checker?: Checker
+    checker?: Checker,
+    seeker?: Seeker
 }
 
 export default function UIEquipGrid(prop: EquipGridProp) {
+
     let weapon = prop.cards.find(c => c.type.genre === 'weapon')
     let shield = prop.cards.find(c => c.type.genre === 'shield')
     let horsePlus = prop.cards.find(c => c.type.genre === 'horse+1')
     let horseMinus = prop.cards.find(c => c.type.genre === 'horse-1')
 
-    let weaponStatus = (weapon && prop.checker?.getStatus(weapon.id)) || ElementStatus.NORMAL
-    let shieldStatus = (shield && prop.checker?.getStatus(shield.id)) || ElementStatus.NORMAL
-    let horseStatus = (horsePlus && prop.checker?.getStatus(horsePlus.id)) || ElementStatus.NORMAL
-    let horseMinusStatus = (horseMinus && prop.checker?.getStatus(horseMinus.id)) || ElementStatus.NORMAL
-    return <div className='ui-equip-grid'>
-        <Equip key='weapon' big={prop.big} card={weapon} status={weaponStatus} onClick={prop.checker?.onClicked}/>
-        <Equip key='shield' big={prop.big} card={shield} status={shieldStatus} onClick={prop.checker?.onClicked}/>
-        <Equip key='horsePlus' big={prop.big} card={horsePlus} status={horseStatus} onClick={prop.checker?.onClicked}/>
-        <Equip key='horseMinus' big={prop.big} card={horseMinus} status={horseMinusStatus} onClick={prop.checker?.onClicked}/>
-    </div>
+    let cards = [weapon, shield, horsePlus, horseMinus]
+    return <TransitionGroup className='ui-equip-grid'>
+            {
+                cards.filter(c => c).map((c, i) => {
+                    let status = (prop.checker?.getStatus(c.id)) || ElementStatus.NORMAL
+                    let clazz = new ClassFormatter('equip-row')
+                                .and(status.isSelectable, 'selectable')
+                                .and(status === ElementStatus.SELECTED, 'selected')
+                                .done()
+                    return <CSSTransition key={c.id} timeout={{enter: 300, exit: 600}} classNames='equipment'>
+                        <div className={clazz} onClick={()=>prop.checker?.onClicked(c.id)} style={getStyle(c.type.genre)}>
+                            <Equip key={c.id} big={prop.big} card={c} seeker={prop.seeker}/>
+                        </div>
+                    </CSSTransition>
+                })
+            }
+        </TransitionGroup>
 }
 
 type EquipProp = {
     card: Card,
     big: boolean,
-    status?: ElementStatus,
-    onClick?: (id: string)=>void
+    seeker?: Seeker
 }
 
 function Equip(p: EquipProp) {
     if(!p.card) {
-        return <div className='equip-row'/>
+        return <div />
     }
-    let typeAndText = getType(p.card.type)
-    let clazz = new ClassFormatter('equip-row')
-                .and(p.status.isSelectable, 'selectable')
-                .and(p.status === ElementStatus.SELECTED, 'selected')
-                .done()
-    return <div className={clazz} onClick={()=>p.onClick && p.onClick(p.card.id)}>
-        <div className='equip'>
+    return <div className='equip' ref={r => p.seeker?.set(p.card.id, r)}>
             <img key='1' className='corner corner-top-left' src={'equips/corner.png'} />
             <img key='2' className='corner corner-btm-left' src={'equips/corner.png'} />
             <img key='3' className='corner corner-top-right' src={'equips/corner.png'} />
             <img key='4' className='corner corner-btm-right' src={'equips/corner.png'} />
 
-            <img key='5' className='icon' src={`equips/${typeAndText[0]}.png`} alt={p.card.type.id} />
-            <div key='6' className='text-one'>{typeAndText[1]}</div>
+            <img key='5' className='icon' src={`equips/${getType(p.card.type)[0]}.png`} alt={p.card.type.id} />
+            <div key='6' className='text-one'>{getType(p.card.type)[1]}</div>
             <div key='7' className='text-two'>{p.card.type.name}</div>
             <div key='8' className={'number ' + p.card.suit}>{p.card.size.symbol}</div>
             <div key='9' className={'suit ' + p.card.suit}>{Suits[p.card.suit]}</div>
         </div>
-    </div>
+}
+
+function getStyle(genre: CardGenre) {
+    switch(genre) {
+        case 'shield': return {top: '25%'}
+        case 'horse+1': return {top: '50%'}
+        case 'horse-1': return {top: '75%'}
+    }
 }
 
 function getType(type: CardType): [string, string] {

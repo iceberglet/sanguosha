@@ -54,7 +54,7 @@ export class CardType {
     public static ZHUA_HUANG = new CardType('zhua_huang', '爪黄飞电', 'horse+1')
     public static DI_LU = new CardType('di_lu', '的卢', 'horse+1')
     public static ZI_XING = new CardType('zi_xing', '紫骍', 'horse-1')
-    public static JUE_YING = new CardType('fang_tian', '绝影', 'horse+1')
+    public static JUE_YING = new CardType('jue_ying', '绝影', 'horse+1')
     public static CHI_TU = new CardType('chi_tu', '赤兔', 'horse-1')
     public static HUA_LIU = new CardType('hua_liu', '骅骝', 'horse+1')
 
@@ -80,8 +80,8 @@ export class CardType {
     public static YI_YI = new CardType('yi_yi', '以逸待劳', 'group-ruse')
     public static ZHI_JI = new CardType('zhi_ji', '知己知彼', 'single-immediate-ruse')
     public static YUAN_JIAO = new CardType('yuan_jiao', '远交近攻', 'single-immediate-ruse')
-    public static WU_LIU = new CardType('wu_liu', '吴六剑', 'weapon')
-    public static SAN_JIAN = new CardType('san_jian', '三尖两刃刀', 'weapon')
+    public static WU_LIU = new CardType('wu_liu', '吴六剑', 'weapon').withDistance(2)
+    public static SAN_JIAN = new CardType('san_jian', '三尖两刃刀', 'weapon').withDistance(3)
 
     public distance: number = -1
 
@@ -119,6 +119,10 @@ export class CardType {
 
     public isBasic(): boolean {
         return this.genre === 'basic'
+    }
+
+    public initiateFlow(): boolean {
+        return this.isNonDelayedRuse()
     }
 }
 

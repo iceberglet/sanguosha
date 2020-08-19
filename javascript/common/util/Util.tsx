@@ -57,6 +57,12 @@ export function checkNotNull(obj: any) {
   }
 }
 
+export function checkThat(cond: boolean, msg: string = 'Condition failed') {
+  if(!cond) {
+    throw msg
+  }
+}
+
 export function getKeys<K>(map: Map<K, any>): K[] {
   let res: K[] = []
   for(let k of map.keys()) {

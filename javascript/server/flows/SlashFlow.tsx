@@ -12,18 +12,20 @@ export default class SlashFlow extends Flow {
     public abort = false
     public damage = 1
     
-    public constructor(public readonly action: PlayerAction, public target: PlayerInfo, public damageType: DamageType) {
+    public constructor(public readonly action: PlayerAction, 
+                        public target: PlayerInfo, 
+                        public damageType: DamageType) {
         super()
     }
 
     public async doNext(manager: GameManager): Promise<boolean> {
+        manager.roundStats.slashCount--;
+
         //todo: 确定可以指定他为目标?
-        //裸衣增加伤害?
+        //裸衣增加伤害? 最后一张手牌,方天画戟询问增加目标?
         //会不会转移目标? (游离)
         //雌雄双股剑? > 弃牌然后空城
         //leave to the listeners
-        manager.roundStats.slashCount--;
-
         await manager.beforeFlowHappen.publish(this, this.action.actionSource)
 
         let actor = manager.context.getPlayer(this.action.actionSource)

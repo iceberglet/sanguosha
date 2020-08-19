@@ -5,17 +5,18 @@ import './ui-board.scss'
 import UIEquipGrid from './UIEquipGrid'
 import { UIMyPlayerCard } from './UIMyPlayerCard'
 import UIButton from './UIButton'
-import UIPlayGround, { ScreenPosObtainer } from './UIPlayGround' 
+import UIPlayGround from './UIPlayGround' 
 import GameClientContext from '../GameClientContext'
 import { UIPosition } from '../../common/PlayerAction'
 import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
-import { ServerHintTransit } from '../../common/ServerHint'
+import { ServerHintTransit, Rescind } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
 import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
 import { CardPos } from '../../common/transit/CardPos'
 import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
 import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
+import { ScreenPosObtainer, Seeker } from './ScreenPosObtainer'
 
 type UIBoardProp = {
     myId: string
@@ -78,11 +79,16 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             buttonChecker: new Checker(UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new Checker(UIPosition.MY_EQUIP, context, this.refresh),
             workflowCards: [],
+            seeker: new Seeker(),
             others: context.getRingFromPerspective(myId, false, true)
         }
         //need to forceupdate to register new changes
         p.pubsub.on(ServerHintTransit, (con: ServerHintTransit)=>{
             context.setHint(con)
+            this.refresh()
+        })
+        p.pubsub.on(Rescind, ()=>{
+            context.setHint(null)
             this.refresh()
         })
         //the ref is not populated at construction time
@@ -93,17 +99,30 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             this.effectProducer.transferCards(effect, context.getGameMode().cardManager)
         })
         p.pubsub.on(FactionPlayerInfo, (info: FactionPlayerInfo)=>{
-            console.log('Received updated player info ', info)
+            // console.log('Received updated player info ', info)
             Object.assign(context.getPlayer(info.player.id), info)
             this.refresh()
         })
         p.pubsub.on(IdentityWarPlayerInfo, (info: IdentityWarPlayerInfo)=>{
-            console.log('Received updated player info ', info)
+            // console.log('Received updated player info ', info)
             Object.assign(context.getPlayer(info.player.id), info)
             this.refresh()
         })
         this.dom = React.createRef()
-        screenPosObtainer.registerObtainer(myId, this.dom)
+
+        screenPosObtainer.register(myId, (item: string)=>{
+            //is this my equipment? my judge card? my hand?
+            let div = this.state.seeker.seek(item)
+            if(!div) {
+                div = this.dom.current
+            }
+            let {top, bottom, left, right} = div.getBoundingClientRect()
+            return {
+                // playerId: this.props.info.player.id,
+                x: (left + right) / 2,
+                y: (top + bottom) / 2
+            }
+        })
     }
 
     refresh=()=>{
@@ -113,7 +132,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
 
     render() {
         let {myId, context, pubsub} = this.props
-        let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker, equipChecker} = this.state
+        let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker, equipChecker, seeker} = this.state
         let playerInfo = context.getPlayer(myId)
         // console.log(context.playerInfos, myId, playerInfo)
 
@@ -133,11 +152,11 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                 <div className='mid'>
                     {/* 判定牌 */}
                     <div className='my-judge'>
-                        <UIMarkRow marks={playerInfo.getJudgeCards()} />
+                        <UIMarkRow marks={playerInfo.getJudgeCards()} seeker={seeker}/>
                     </div>
                     {/* 装备牌 */}
                     <div className='my-equip'>
-                        <UIEquipGrid  big={true} cards={playerInfo.getCards(CardPos.EQUIP)} checker={equipChecker}/>
+                        <UIEquipGrid big={true} cards={playerInfo.getCards(CardPos.EQUIP)} checker={equipChecker} seeker={seeker}/>
                     </div>
                 </div>
                 <div className='player-buttons'>
@@ -157,7 +176,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
                 </div>
                 {/* 手牌 */}
                 <div className='my-cards'>
-                    <UICardRow cards={playerInfo.getCards(CardPos.HAND)} isShown={!hideCards} checker={cardsChecker}/>
+                    <UICardRow cards={playerInfo.getCards(CardPos.HAND)} isShown={!hideCards} checker={cardsChecker} seeker={seeker}/>
                 </div>
             </div>
             <EffectProducer screenPosObtainer={screenPosObtainer} ref={effectProducer=>this.effectProducer = effectProducer} />

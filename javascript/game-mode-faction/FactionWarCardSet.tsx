@@ -95,6 +95,7 @@ normalCards.push(new FWCard('club', CardSize.JACK, CardType.SLASH))
 normalCards.push(new FWCard('club', CardSize.JACK, CardType.SLASH))
 normalCards.push(new FWCard('club', CardSize.QUEEN, CardType.JIE_DAO))
 normalCards.push(new FWCard('club', CardSize.QUEEN, CardType.TIE_SUO))
+//todo: 无懈可击:国
 normalCards.push(new FWCard('club', CardSize.KING, CardType.WU_XIE))
 normalCards.push(new FWCard('club', CardSize.KING, CardType.TIE_SUO))
 
@@ -127,4 +128,10 @@ normalCards.push(new FWCard('diamond', CardSize.QUEEN, CardType.WU_XIE))
 normalCards.push(new FWCard('diamond', CardSize.KING, CardType.DODGE))
 normalCards.push(new FWCard('diamond', CardSize.KING, CardType.ZI_XING))
 
-export const FactionWarCards = new CardManager(normalCards.filter(c => c.type.isBasic()));
+export const FactionWarCards = new CardManager(normalCards.filter(c => 
+    // c.type.isBasic() || 
+    c.type.isEquipment()
+    // c.type === CardType.WU_XIE ||
+    // c.type === CardType.SHUN_SHOU || 
+    // c.type === CardType.JUE_DOU    
+));

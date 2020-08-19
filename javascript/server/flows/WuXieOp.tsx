@@ -3,90 +3,113 @@ import GameContext from "../../common/GameContext";
 import { PlayerInfo, Mark } from "../../common/PlayerInfo";
 import { CardType } from "../../common/cards/Card";
 import Flow, { Operation } from "../Flow";
-import { Button, PlayerAction, UIPosition } from "../../common/PlayerAction";
+import { Button, PlayerAction, UIPosition, getFromAction } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { filterMap, promiseAny } from "../../common/util/Util";
 import { HintType } from "../../common/ServerHint";
+import { ICard } from "../../common/cards/ICard";
+import { CardBeingPlayedEvent } from "./Generic";
 
-enum Action {
-    IMPOSSIBLE,     //此人无法出无懈
-    NORMAL,         //可以询问无懈
-    REFUSE          //此人拒绝了无懈,莫要再问了
+const REFUSE = 'refuse'
+const REFUSE_ALL = 'refuse_all'
+
+
+type WuXieProcessor = (resp: PlayerAction) => void
+
+export class WuXieEvent {
+    constructor(public wuxieAction: PlayerAction, ruseAction: PlayerAction) {}
 }
 
-const refuse = 'refuse'
+export class WuXieContext {
 
-export default class WuXieOp extends Operation<boolean> {
+    public processors = new Map<string, WuXieProcessor>()
 
-    public actionCache = new Map<string, Action>()
-    private ruseCanProceed = true
-
-    constructor(
-        //从谁开始计算?
-        private playerInfo: PlayerInfo, 
-        //需要无懈什么?
-        private cardType: CardType) {
-        super()
-        if(!cardType.isRuse()) {
-            throw `Invalid Card Type ${cardType} 不是锦囊`
-        }
+    public constructor(private manager: GameManager, 
+                        public ruseAction: PlayerAction, 
+                        public readonly ruseCard: ICard) {
+        // 检查所有人的手牌查看是否有无懈, 没有的直接 null 处理
+        manager.context.playerInfos.filter(p => !p.isDead).forEach(p => {
+            if(p.getCards(CardPos.HAND).filter(c => c.type === CardType.WU_XIE).length > 0) {
+                this.processors.set(p.player.id, this.processNormal)
+            }
+        })
+        // publish WuXieFlow event, 比如卧龙和曹仁有技能可以当做无懈可击, 他们会将 null 改回 自己的flow
+        manager.beforeFlowHappen.publish(this, ruseAction.actionSource)
     }
 
-    public async perform(manager: GameManager): Promise<boolean> {
+    /**
+     * 多目标锦囊对其中一个人的无懈效果 或者单锦囊对其目标的效果
+     * returns true - 锦囊牌失效
+     * @param onPlayer 
+     */
+    public async doOneRound(onPlayer: string): Promise<boolean> {
+        //these people are the only ones who can do it
+        let candidates = filterMap(this.processors, (k, v)=>!!v)
+        let isRuseAbort = false
+        let pplNotInterestedInThisPlayer = new Set<string>()
+
+        //不断地反复无懈 (因为无懈还可以无懈)
         while(true) {
-            // 检查所有人的手牌查看是否有无懈, 没有的直接impossible处理
-            manager.context.playerInfos.filter(p => !p.isDead && this.actionCache.get(p.player.id) !== Action.REFUSE).forEach(p => {
-                if(p.getCards(CardPos.HAND).filter(c => c.type === CardType.WU_XIE).length > 0) {
-                    this.actionCache.set(p.player.id, Action.NORMAL)
-                } else {
-                    this.actionCache.set(p.player.id, Action.IMPOSSIBLE)
-                }
-            })
-            // publish WuXieFlow event, 比如卧龙和曹仁有技能可以当做无懈可击, 他们会将 Impossible 改回 Normal
-            manager.beforeFlowHappen.publish(this, this.playerInfo.player.id)
-    
-            let candidates = filterMap(this.actionCache, (k, act)=>act === Action.NORMAL)
+
+            candidates = candidates.filter(kv=>!pplNotInterestedInThisPlayer.has(kv[0]))
+
             // 若无人possible, 直接完结, 撒花~
             if(candidates.length === 0) {
-                break;
-            } 
+                return isRuseAbort
+            }
     
             // 对于所有并非Impossible也没有refuse的人提出要求
-            let msg = `[${this.playerInfo.player.id}] 为 [${this.cardType.name} ${this.ruseCanProceed || '的无懈'} 寻求无懈]`
-            let buttons = [new Button(refuse, `不为本次 [${this.cardType.name}] 出无懈`)]
-            let responses = candidates.map(c => {
-                return this.wrapCallback(c[0], manager.sendHint(c[0], {
-                    hintType: HintType.WU_XIE,
-                    hintMsg: msg,
-                    extraButtons: buttons
-                }))
-            })
+            let msg = `[${onPlayer}] 为 [${this.ruseCard.type.name}${isRuseAbort || '的无懈'}] 寻求无懈]`
+            //OK, Cancel, Refuse, [Refuse All]
+            let buttons = [new Button(REFUSE, `不为 [${onPlayer}] 出无懈`)]
+            if(this.ruseCard.type.isDelayedRuse()) {
+                buttons.push(new Button(REFUSE_ALL, `不为本次 [${this.ruseCard.type.name}] 出无懈`))
+            }
+
+            let responses = candidates.map(async c => {
+                        let resp = await this.manager.sendHint(c[0], {
+                            hintType: HintType.WU_XIE,
+                            hintMsg: msg,
+                            extraButtons: buttons
+                        })
+                        let button = resp.actionData[UIPosition.BUTTONS][0]
+                        if(button === Button.OK.id) {
+                            return resp
+                        }
+                        if(button === REFUSE) {
+                            // 任何回复了 refuse 的人本次将不再被询问
+                            pplNotInterestedInThisPlayer.add(c[0])
+                        } else if (button === REFUSE_ALL) {
+                            // 任何回复了 refuse_all 的人本次及以后将不再被询问
+                            pplNotInterestedInThisPlayer.add(c[0])
+                            this.processors.delete(c[0])
+                        }
+                        throw 'Received Refusal From Someone'
+                    })
             try {
                 // 若有人使用无懈, 第一个回复的人将获得此次无懈的资格. 
                 let resp = await promiseAny(responses)
-                //   > 对所有人发出取消serverHint的申请
-                // 将无懈牌扔进processing workflow
-                //   > 开启新的一轮寻求无懈
-                this.ruseCanProceed = !this.ruseCanProceed
+                // 取消对所有人征求无懈的请求
+                this.manager.rescindAll()
+                // Invoke potentially custom wu_xie process
+                this.processors.get(resp.actionSource)(resp)
+
+                // 开启新的一轮寻求无懈
+                isRuseAbort = !isRuseAbort
             } catch (err) {
                 // 若无人使用无懈, 则break, 本轮宣告完结, 撒花~
-                console.log('无人使用无懈, 进行结算')
-                break;
+                console.log('无人使用无懈, 进行锦囊牌结算', err)
+                //取消对所有人征求无懈的请求
+                this.manager.rescindAll()
+                return isRuseAbort
             }
         }
-        return this.ruseCanProceed
     }
-    
-    private async wrapCallback(player: string, p: Promise<PlayerAction>): Promise<PlayerAction> {
-        let resp = await p
-        let button = resp.actionData[UIPosition.BUTTONS][0]
-        if(button === Button.OK.id) {
-            return resp
-        }
-        if(button === refuse) {
-            // 任何回复了 refuse 的人将不再被询问 (update actionCache)
-            this.actionCache.set(player, Action.REFUSE)
-        }
-        throw 'this guy refused. He not gonna do it no more'
+
+    private processNormal=(action: PlayerAction)=>{
+        let card = getFromAction(action, UIPosition.MY_HAND)[0]
+        console.log(`打出了${card}作为无懈`)
+        this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [{cardId: card, source: action.actionSource}])
+        this.manager.afterFlowDone.publish(new CardBeingPlayedEvent(action, this.manager.interpret(action.actionSource, card)), action.actionSource)
     }
 }

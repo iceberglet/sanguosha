@@ -42,7 +42,7 @@ export default class DropCardOp extends Operation<void> {
             //remove
             manager.broadcast(this.player, PlayerInfo.sanitize)
             //animation of card transfer. no need to sanitize
-            manager.broadcast(new TransferCardEffect(myId, null, cards))
+            // manager.broadcast(new TransferCardEffect(myId, null, cards))
         }
 
         await manager.afterFlowDone.publish(this, myId);

@@ -14,3 +14,11 @@ export class CardDummy implements ICard {
 export function mimicCard(card: ICard): CardDummy {
     return new CardDummy(card.suit, card.size, card.type)
 }
+
+export function isSuitRed(card: ICard) {
+    return card.suit === 'heart' || card.suit === 'diamond'
+}
+
+export function isSuitBlack(card: ICard) {
+    return card.suit === 'club' || card.suit === 'spade'
+}

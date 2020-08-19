@@ -4,6 +4,7 @@ import './ui-card.scss'
 import { Suits, Mask } from '../../common/util/Util'
 import { ElementStatus } from './UIBoard'
 import { ClassFormatter } from '../../common/util/Togglable'
+import { Seeker } from './ScreenPosObtainer'
 
 type CallBack = (id: Card)=>void
 
@@ -16,6 +17,7 @@ type CardProp = {
     onMouseEnter?: CallBack
     onMouseLeave?: CallBack
     onMouseStay?: CallBack
+    seeker?: Seeker
     elementStatus: ElementStatus
 }
 
@@ -42,7 +44,7 @@ export default function UICard(prop: CardProp) {
         </div>
     }
     return <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseOver={onMouseStay}
-                onClick={onMouseClick} onMouseEnter={onMouseEnter}  onMouseLeave={onMouseLeave}>
+                onClick={onMouseClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} ref={r => prop.seeker?.set(prop.card.id, r)}>
         <img className='itself' 
             src={`cards/${prop.card.type.id}.png`} 
             alt={prop.card.type.id}/>

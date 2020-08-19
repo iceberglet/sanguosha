@@ -26,11 +26,17 @@ export default class GameClientContext extends GameContext {
     }
 
     public setHint(hint: ServerHintTransit) {
-        if(this.currentDriver !== NoActionDriver.INSTANCE) {
-            throw `Invalid State: There is an existing action driver. Cannot start new action when current one is not complete! ${this.currentDriver}`
+        if(!hint) {
+            //rescind
+            this.serverHint = null
+            this.currentDriver = NoActionDriver.INSTANCE
+        } else {
+            if(this.currentDriver !== NoActionDriver.INSTANCE) {
+                throw `Invalid State: There is an existing action driver. Cannot start new action when current one is not complete! ${this.currentDriver}`
+            }
+            this.serverHint = hint
+            this.currentDriver = playerActionDriverProvider.getDriver(hint.hint)
         }
-        this.serverHint = hint
-        this.currentDriver = playerActionDriverProvider.getDriver(hint.hint)
     }
 
     public getMyDistanceTo=(playerId: string): number =>{

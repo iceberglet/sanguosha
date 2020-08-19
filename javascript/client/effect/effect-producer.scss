@@ -8,7 +8,7 @@
         .ray {
             stroke-width: 2px;
             stroke: yellow;
-            transition: 2.5s;
+            transition: 2s linear;
         }
     }
 
@@ -41,6 +41,13 @@
             align-items: center;
             justify-content: center;
         }
+    }
+
+    .sprite-container {
+        width: 0px;
+        height: 0px;
+        position: absolute;
+        z-index: 999;
     }
 }
 

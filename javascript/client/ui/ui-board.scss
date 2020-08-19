@@ -60,7 +60,7 @@
 
                 .ui-card-wrapper {
                     position: absolute;
-                    transition: 0.6s;
+                    transition: 0.4s linear;
                     
                     .as {
                         position: absolute;
@@ -82,7 +82,7 @@
                 .workflow-card-enter-active {
                     opacity: 1;
                     // transform: translate(0px, 0px);
-                    transition: 0.4s;
+                    transition: 0.25s linear;
                 }
                 .workflow-card-exit {
                     opacity: 1;
@@ -90,7 +90,7 @@
                 .workflow-card-exit-active {
                     opacity: 0;
                     transform: translate(-30px, 0px);
-                    transition: 0.6s;
+                    transition: 0.25s linear;
                 }
             }
         }
@@ -117,7 +117,7 @@
             height: 180px;
             background-color: rgba(56, 52, 29, 0.767);
             box-shadow: inset 0px 0px 10px #9a9a9a;
-            z-index: 10;  //要高过手牌栏
+            z-index: 1;  //要高过手牌栏
 
             .my-judge {
                 height: 40px;

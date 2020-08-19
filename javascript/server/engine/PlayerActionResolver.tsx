@@ -5,9 +5,12 @@ import SlashFlow from "../flows/SlashFlow";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import HealOp from "../flows/HealOp";
 import { DamageType } from "../flows/DamageOp";
-import WuXieOp from "../flows/WuXieOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
+import { isSuitBlack } from "../../common/cards/ICard";
+import { CardBeingPlayedEvent } from "../flows/Generic";
+import { checkThat } from "../../common/util/Util";
+import { EquipOp } from "./EquipOp";
 
 export default class PlayerActionResolver {
 
@@ -33,24 +36,25 @@ export default class PlayerActionResolver {
             if(hand.length > 1) {
                 throw `How can you play 2 cards at once????? ${act}`
             }
-            let card = this.manager.cardManager().getCard(hand[0])
-            this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [{cardId: hand[0], source: act.actionSource}], true)
-            this.manager.beforeFlowHappen.publish(card, act.actionSource)
-            
-            if(card.type.genre === 'single-immediate-ruse') {
-                let target = getFromAction(act, UIPosition.PLAYER)[0]
-                if(!await new WuXieOp(this.manager.context.getPlayer(target), card.type).perform(this.manager)) {
-                    //this card is shet now, go home dude
-                    return;
-                }
-            }
+            let player = this.manager.context.getPlayer(act.actionSource)
+            let icard = this.manager.interpret(act.actionSource, hand[0])
+            this.manager.beforeFlowHappen.publish(new CardBeingPlayedEvent(act, icard), act.actionSource)
+            this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [{cardId: hand[0], source: act.actionSource}], icard.type.initiateFlow())
 
+            //装备牌
+            if(icard.type.isEquipment()) {
+                await new EquipOp(act.actionSource, this.manager.getCard(hand[0])).perform(this.manager)
+                return
+            }
+            
+
+            // can be more than one
             let targets = this.getTargets(act).map(p => p.player.id)
 
-            switch(card.type) {
+            switch(icard.type) {
                 //slash
                 case CardType.SLASH:
-                    this.manager.broadcast(new TextFlashEffect(act.actionSource, targets, '杀'))
+                    this.manager.broadcast(new TextFlashEffect(act.actionSource, targets, isSuitBlack(icard)? '杀' : '红杀'))
                     await Promise.all(this.getTargets(act).map(async t => {
                         await new SlashFlow(act, t, DamageType.NORMAL).doNext(this.manager)
                     }))
@@ -70,15 +74,18 @@ export default class PlayerActionResolver {
     
                 //peach
                 case CardType.PEACH:
+                    //make sure target is null
+                    checkThat(targets.length === 0, '桃不能用再多人上')
                     let info = this.toInfo(act.actionSource)
+                    this.manager.broadcast(new TextFlashEffect(act.actionSource, [], '桃'))
                     await new HealOp(info, info, 1, act).perform(this.manager)
                     break;
     
                 //wine
                 case CardType.WINE:
-                    let p = this.manager.context.getPlayer(act.actionSource)
-                    p.isDrunk = true
-                    this.manager.broadcast(p, PlayerInfo.sanitize)
+                    player.isDrunk = true
+                    this.manager.broadcast(player, PlayerInfo.sanitize)
+                    this.manager.broadcast(new TextFlashEffect(act.actionSource, [], '酒'))
                     this.manager.roundStats.forbiddenChoices.push('wine')
                     break;
 
@@ -89,6 +96,8 @@ export default class PlayerActionResolver {
                 case CardType.GUO_HE:
 
                 case CardType.SHUN_SHOU:
+
+                case CardType.JUE_DOU:
 
 
                     
@@ -134,11 +143,4 @@ export default class PlayerActionResolver {
         return this.manager.context.getPlayer(id)
     }
 
-}
-
-
-export class CardPlayedEvent {
-    public constructor(public readonly act: PlayerAction) {
-
-    }
 }

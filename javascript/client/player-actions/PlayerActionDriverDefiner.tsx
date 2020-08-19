@@ -1,8 +1,9 @@
-import { UIPosition, PlayerUIAction, Button, PlayerAction } from "../../common/PlayerAction";
+import { UIPosition, PlayerUIAction, Button, PlayerAction, Marker, isPositionForCard } from "../../common/PlayerAction";
 import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerActionDriver";
 import GameClientContext from "../GameClientContext";
 import Togglable from "../../common/util/Togglable";
 import { ServerHint, isDirectButton } from "../../common/ServerHint";
+
 
 export default class PlayerActionDriverDefiner {
 
@@ -47,6 +48,20 @@ export default class PlayerActionDriverDefiner {
         return this
     }
 
+    /**
+     * mark this as being played out
+     * */
+    public whichIs(marker: Marker): PlayerActionDriverDefiner {
+        let s = this.steps[this.steps.length - 1]
+        if(marker === Marker.USE || marker === Marker.DROP) {
+            if(!isPositionForCard(s.area)) {
+                throw `Not a position for card! ${Marker[marker]} ${UIPosition[s.area]}`
+            }
+        }
+        s.marker = marker
+        return this
+    }
+
     public build(serverHint: ServerHint, buttons: Button[] = [Button.OK, Button.CANCEL]): PlayerActionDriver {
         if(this.steps.length === 0) {
             throw `You gotta define something!`
@@ -62,6 +77,7 @@ export interface Step {
     chosen: Togglable<string>
     area: UIPosition
     canCancel: boolean
+    marker: Marker
     msgObtainer: (context: GameClientContext)=>string
     filter: (id: string, context: GameClientContext)=>boolean
     //can click on this at the current stage
@@ -77,6 +93,7 @@ export interface Step {
 export class StepDataExact implements Step {
     chosen: Togglable<string>
     canCancel: boolean = true
+    marker: Marker = null
     constructor(public readonly area: UIPosition,
                 public readonly exactly: number,
                 public readonly filter: (id: string, context: GameClientContext)=>boolean,
@@ -113,6 +130,7 @@ export class StepDataExact implements Step {
 export class StepDataLoose implements Step {
     chosen: Togglable<string>
     canCancel: boolean = true
+    marker: Marker = null
     constructor(public readonly area: UIPosition,
                 public readonly min: number, 
                 public readonly max: number,
@@ -170,6 +188,7 @@ export class StepByStepActionDriver extends PlayerActionDriver {
                 let actionToServer: PlayerAction = {
                     serverHint: context.serverHint.hint,
                     actionSource: context.myself.player.id,
+                    markers: {},
                     actionData: {
                         [UIPosition.BUTTONS]: [action.itemId]
                     }
@@ -205,13 +224,15 @@ export class StepByStepActionDriver extends PlayerActionDriver {
                 if(this.curr === this.steps.length) {
                     //finish the call!
                     let actionData: {[key in UIPosition]?: string[]} = {}
+                    let markers: {[key in UIPosition]?: Marker} = {}
                     this.steps.forEach(s => {
                         actionData[s.area] = s.chosen.toArray()
+                        markers[s.area] = s.marker
                     })
-                    let actionToSubmit = {
+                    let actionToSubmit: PlayerAction = {
                         actionSource: context.myself.player.id,
                         serverHint: context.serverHint.hint,
-                        actionData
+                        markers, actionData
                     }
                     console.log('[Player Action] All steps done. Finishing the call')
                     context.submitAction(actionToSubmit)
@@ -224,7 +245,7 @@ export class StepByStepActionDriver extends PlayerActionDriver {
 
     canBeClicked = (action: PlayerUIAction, context: GameClientContext): Clickability => {
         if(action.actionArea === UIPosition.BUTTONS) {
-            console.log(isDirectButton(context.serverHint.hint, action.itemId))
+            // console.log(isDirectButton(context.serverHint.hint, action.itemId))
             if(isDirectButton(context.serverHint.hint, action.itemId)) {
                 return isDirectButton(context.serverHint.hint, action.itemId).enabled? Clickability.CLICKABLE : Clickability.DISABLED
             } else if (action.itemId === Button.CANCEL.id) {

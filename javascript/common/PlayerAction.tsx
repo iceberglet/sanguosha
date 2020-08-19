@@ -1,5 +1,4 @@
 import { ServerHint } from "./ServerHint"
-import { CardManager } from "./cards/Card"
 
 
 export enum UIPosition {
@@ -12,15 +11,20 @@ export enum UIPosition {
     // 玩家判定牌
     MY_JUDGE,
     // 玩家标记牌
-    MY_TOP,
+    // MY_TOP,
     // 玩家 或 其他玩家
     PLAYER,
+
     // 其他玩家标记牌
-    PLAYER_TOP,
+    // PLAYER_TOP,
     // 任意 （诸葛观星）
     AD_HOC,
     // 确定 / 取消 / 技能选项
     BUTTONS
+}
+
+export function isPositionForCard(ui: UIPosition) {
+    return ui !== UIPosition.MY_SKILL && ui !== UIPosition.PLAYER && ui !== UIPosition.BUTTONS
 }
 
 export type PlayerUIAction = {
@@ -51,6 +55,14 @@ export class PlayerActionTransit {
     }
 }
 
+/**
+ * 决定这个牌/点击的东西是使用了还是弃置了
+ */
+export enum Marker {
+    USE,   //使用
+    DROP,  //弃置
+    INVOKE //技能, 装备特性
+}
 
 /**
  * 每个玩家的操作都是一个Player Action
@@ -66,6 +78,22 @@ export type PlayerAction = {
     serverHint: ServerHint
     actionSource: string
     actionData: {[key in UIPosition]?: string[]}
+    markers: {[key in UIPosition]?: Marker}
+}
+
+/**
+ * Get all cards that are marked as "USE"
+ * @param action 
+ */
+export function getCardsUsed(action: PlayerAction): string[] {
+    let res: string[] = []
+    Object.keys(action.markers).forEach((p: any) => {
+        let pos = p as UIPosition
+        if(action.markers[pos] === Marker.USE) {
+            res.push(...action.actionData[pos])
+        }
+    })
+    return res
 }
 
 export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {

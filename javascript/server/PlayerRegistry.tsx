@@ -116,6 +116,10 @@ export class PlayerRegistry {
         })
     }
 
+    public rescindAll() {
+        this._currentExpectors.forEach(cb => this.stopExpecting(cb))
+    }
+
     public send(id: string, obj: any) {
         this._byId.get(id).connection.send(Serde.serialize(obj))
     }
