@@ -1,7 +1,7 @@
 import * as React from 'react'
 import Card, { CardType, CardGenre } from '../../common/cards/Card'
 import './ui-equip.scss'
-import { Suits } from '../../common/util/Util'
+import { Suits, toChinese } from '../../common/util/Util'
 import { Checker, ElementStatus } from './UIBoard'
 import { ClassFormatter } from '../../common/util/Togglable'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
@@ -74,15 +74,7 @@ function getStyle(genre: CardGenre) {
 
 function getType(type: CardType): [string, string] {
     if(type.genre === 'weapon') {
-        switch (type.distance) {
-            case 1: return ['weapon', '一']
-            case 2: return ['weapon', '二']
-            case 3: return ['weapon', '三']
-            case 4: return ['weapon', '四']
-            case 5: return ['weapon', '五']
-        }
-        
-        throw `Donno distance ${type.distance}`
+        return ['weapon', toChinese(type.distance)]
     }
     if(type.genre === 'shield') {
         return ['shield', null]

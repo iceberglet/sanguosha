@@ -93,7 +93,7 @@ class Serializer {
                 rawInput: input, 
                 input: JSON.stringify(input)
             }
-            console.error(error)
+            console.error(error, err)
             throw error
         }
     }

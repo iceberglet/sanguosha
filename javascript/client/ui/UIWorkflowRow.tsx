@@ -6,7 +6,6 @@ import Card, { CardManager } from "../../common/cards/Card"
 import {CSSTransition, TransitionGroup} from 'react-transition-group'
 import { ScreenPosObtainer } from "./ScreenPosObtainer"
 import Pubsub from "../../common/util/PubSub"
-import { render } from "react-dom"
 
 //left offset: 220
 //btm offset: 
@@ -24,6 +23,7 @@ type SimpleRowProp = {
 
 type PositionedWorkflowCard = WorkflowCard & {
     started: boolean
+    counter: number
     x?: number
     y?: number
 }
@@ -31,10 +31,13 @@ type PositionedWorkflowCard = WorkflowCard & {
 type State = {
     width: number,
     height: number,
-    cards: PositionedWorkflowCard[]
+    head: PositionedWorkflowCard[],
+    cards: PositionedWorkflowCard[],
 }
 
 export const CENTER = 'center'
+const max = 11
+let counter = -9999
 
 export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> {
 
@@ -45,18 +48,29 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> {
         this.dom = React.createRef()
         p.pubsub.on(WorkflowTransit, (transit: WorkflowTransit)=>{
             //set the original position of all cards which have no such position
-            let keep = transit.isHead? [] : this.state.cards
-            let cards = [...keep, ...transit.cards.map(w => {
+            let toAdd = transit.cards.map(w => {
                 if(w.source) {
                     let coor = p.screenPosObtainer.getPos(w.source)
-                    return {...w, ...coor, started: false}
+                    return {...w, ...coor, started: false, counter: counter++}
                 }
-                return {...w, started: false}
-            })]
-            this.setState({cards})
+                return {...w, started: false, counter: counter++}
+            })
+            if(transit.isHead) {
+                this.setState({
+                    head: toAdd,
+                    cards: []
+                })
+            } else {
+                let cards = [...this.state.cards, ...toAdd]
+                while(cards.length > max) {
+                    cards.shift()
+                }
+                this.setState({cards})
+            }
         })
         this.state = {
             cards: [],
+            head: [],
             width: 800,
             height: 600
         }
@@ -84,7 +98,7 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> {
                     let myStyle = w.started || !w.x? {left: leftOffset + sep * i + 'px', top: height + 'px'} : 
                                     {left: w.x - cardWidth / 2 + 'px', top: w.y - cardHeight / 2 + 'px'}
     
-                    return <CSSTransition key={i} timeout={{ appear: 0, enter: 0, exit: 600}} classNames="workflow-card" onEntered={()=>{
+                    return <CSSTransition key={w.counter} timeout={{ appear: 0, enter: 0, exit: 600}} classNames="workflow-card" onEntered={()=>{
                             w.started = true
                             this.forceUpdate()
                         }}>

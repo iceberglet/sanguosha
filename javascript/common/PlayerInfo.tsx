@@ -39,6 +39,9 @@ export type CardInterpreter =(card: ICard) => ICard
 export const NoopInterpreter: CardInterpreter = (c)=>c
 
 export abstract class PlayerInfo {
+    //一号位二号位?
+    idx: number
+
     hp: number
     maxHp: number
     //翻面

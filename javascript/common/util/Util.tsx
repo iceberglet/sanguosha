@@ -93,3 +93,13 @@ export function promiseAny<T>(iterable: Iterable<T | PromiseLike<T>>): Promise<T
     value => Promise.resolve<T>(value)
   );
 };
+
+
+const chinese = ['一', '二', '三', '四', '五', '六', '七', '八']
+export function toChinese(idx: number) {
+    if(idx < chinese.length) {
+      return chinese[idx]
+    } else {
+      throw `Donno this ${idx}`
+    }
+}

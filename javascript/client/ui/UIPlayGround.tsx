@@ -6,7 +6,7 @@ import './ui-board.scss'
 import UIEquipGrid from './UIEquipGrid'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import { Checker, ElementStatus } from './UIBoard'
-import { Mask } from '../../common/util/Util'
+import { Mask, toChinese } from '../../common/util/Util'
 import { ClassFormatter } from '../../common/util/Togglable'
 import Pubsub from '../../common/util/PubSub'
 import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
@@ -17,12 +17,9 @@ import { WorkflowCard, WorkflowTransit } from '../../common/transit/WorkflowCard
 import { UIWorkflowCardRow } from './UIWorkflowRow'
 import { CardManager } from '../../common/cards/Card'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
+import './ui-player-card.scss'
 
 const damageDuration = 2000
-
-const workflowCardNo = 10
-
-
 
 type PlayGroundProp = {
     players: PlayerInfo[],
@@ -172,6 +169,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
             {isDamaged && <div className='occupy'>{getDamageSpriteSheet()}</div>}
             {info.isDead && <img className='death' src='ui/dead.png'/>}
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
+            <div className='seat-number'>{toChinese(info.idx)}</div>
         </div>
     }
 }

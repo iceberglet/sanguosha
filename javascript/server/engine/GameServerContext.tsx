@@ -4,7 +4,6 @@ import { PlayerInfo } from "../../common/PlayerInfo"
 import { GameModeEnum } from "../../common/GameMode"
 import GameContext from "../../common/GameContext"
 import { CardPos } from "../../common/transit/CardPos"
-import { CardType } from "../../common/cards/Card"
 import { WorkflowCard } from "../../common/transit/WorkflowCard"
 
 
@@ -15,6 +14,9 @@ export default class GameServerContext extends GameContext {
 
     constructor(playerInfos: PlayerInfo[], gameMode: GameModeEnum) {
         super(playerInfos, gameMode)
+        for(let i = 0; i < playerInfos.length; ++i) {
+            playerInfos[i].idx = i
+        }
     }
     
     init() {
