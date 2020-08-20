@@ -130,8 +130,10 @@ normalCards.push(new FWCard('diamond', CardSize.KING, CardType.ZI_XING))
 
 export const FactionWarCards = new CardManager(normalCards.filter(c => 
     // c.type.isBasic() || 
-    c.type.isEquipment()
-    // c.type === CardType.WU_XIE ||
-    // c.type === CardType.SHUN_SHOU || 
-    // c.type === CardType.JUE_DOU    
+    // c.type.isEquipment() ||
+    // c.type.isSlash() ||
+    c.type === CardType.PEACH ||
+    c.type === CardType.WU_XIE ||
+    c.type === CardType.SHUN_SHOU || 
+    c.type === CardType.JUE_DOU    
 ));

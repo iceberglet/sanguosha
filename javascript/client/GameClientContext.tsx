@@ -1,13 +1,12 @@
 import GameContext from "../common/GameContext";
 import { PlayerInfo } from "../common/PlayerInfo";
-import { ServerHint, ServerHintTransit } from "../common/ServerHint";
+import { ServerHint, ServerHintTransit, HintType } from "../common/ServerHint";
 import { PlayerActionDriver, Clickability, ClickActionResult, NoActionDriver } from "./player-actions/PlayerActionDriver";
 import { UIPosition, PlayerAction, PlayerActionTransit } from "../common/PlayerAction";
 import { playerActionDriverProvider } from "./player-actions/PlayerActionDriverProvider";
 import './player-actions/PlayerActionDrivers'
 import { Player } from "../common/Player";
 import { Serde } from "../common/util/Serializer";
-import { GameModeEnum } from "../common/GameMode";
 import { ICard } from "../common/cards/ICard";
 
 export default class GameClientContext extends GameContext {
@@ -35,6 +34,10 @@ export default class GameClientContext extends GameContext {
                 throw `Invalid State: There is an existing action driver. Cannot start new action when current one is not complete! ${this.currentDriver}`
             }
             this.serverHint = hint
+            if(hint.hint.hintType === HintType.UI_PANEL) {
+                //don't process this
+                return
+            }
             this.currentDriver = playerActionDriverProvider.getDriver(hint.hint)
         }
     }

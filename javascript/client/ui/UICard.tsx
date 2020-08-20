@@ -1,5 +1,5 @@
 import * as React from 'react'
-import Card from '../../common/cards/Card'
+import Card, { CardType } from '../../common/cards/Card'
 import './ui-card.scss'
 import { Suits, Mask } from '../../common/util/Util'
 import { ElementStatus } from './UIBoard'
@@ -19,6 +19,7 @@ type CardProp = {
     onMouseStay?: CallBack
     seeker?: Seeker
     elementStatus: ElementStatus
+    as?: CardType
 }
 
 export default function UICard(prop: CardProp) {
@@ -54,7 +55,7 @@ export default function UICard(prop: CardProp) {
             </div>
             <div className={'suit ' + prop.card.suit}>{Suits[prop.card.suit]}</div>
         </div>
-        
+        {prop.as && <div className='as center'>{prop.as.name}</div>}
         <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
     </div>
 }

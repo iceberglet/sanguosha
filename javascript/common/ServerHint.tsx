@@ -1,6 +1,7 @@
 import RoundStat, { ForbiddenTypes } from "./RoundStat"
 import { Button } from "./PlayerAction"
 import Card from "./cards/Card"
+import { Mark } from "./PlayerInfo"
 
 
 export enum HintType {
@@ -15,7 +16,11 @@ export enum HintType {
     PEACH,
     WU_XIE,
 
-    SELECT_CARD_FROM_PLAYER
+    /**
+     * Custom UI Panel
+     * - 过拆之类的
+     */
+    UI_PANEL
 }
 
 export class ServerHintTransit {
@@ -35,6 +40,18 @@ export function isDirectButton(hint: ServerHint, buttonId: string): Button {
 }
 
 export class Rescind {  
+}
+
+export type CardSelectionHint = {
+    title: string,
+    rowsOfCard: {[key: string]: Array<Card | Mark>},
+    mode: 'choose' | 're-arrange'
+    numberOnTop?: number
+}
+
+export type CardSelectionResult = {
+    rowName: string,
+    idx: number
 }
 
 export type CardChoices = {
@@ -75,4 +92,10 @@ export type ServerHint = {
      * 弃牌如此多张
      */
     dropNumber?: number
+
+    /**
+     * 当需要 - 过河拆桥 / 顺手牵羊 / 获得这个牌拿走那个牌 的时候
+     * 就要走这个了!
+     */
+    cardSelectHint?: CardSelectionHint
 }

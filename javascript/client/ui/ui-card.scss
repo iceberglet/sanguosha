@@ -17,7 +17,13 @@
 }
 
 .ui-card.selected {
-    transform: translate(0px, -30px);
+    transform: translate(0px, -30px) !important;
+}
+
+.ui-card.selectable:not(.selected):hover {
+    > * {
+        transform: translate(0px, -10px);
+    }
 }
 
 .ui-card {
@@ -26,6 +32,12 @@
     height: 155px;
     position: relative;
     padding-right: 10px;
+    pointer-events: auto;
+
+    > * {
+        pointer-events: none;
+        transition: 0.2s;
+    }
 
     .itself {
         position: relative;

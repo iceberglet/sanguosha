@@ -9,7 +9,7 @@ type CardRowProp = {
     cards: Card[],
     isShown: boolean,
     checker: Checker,
-    seeker: Seeker
+    seeker?: Seeker
 }
 
 const cardWidth = 120 //100 (card) + 5*2 (border)
@@ -65,6 +65,6 @@ type MarkProp = {
 export function UIMarkRow(p: MarkProp) {
  
     return <div className='ui-card-row'>
-        {p.marks.map(m => <img className='judge-cards' key={m.as} src={`icons/${m.as}.png`} ref={r => p.seeker?.set(m.card.id, r)}/>)}
+        {p.marks.map(m => <img className='judge-cards' key={m.as.name} src={`icons/${m.as}.png`} ref={r => p.seeker?.set(m.card.id, r)}/>)}
     </div>
 }

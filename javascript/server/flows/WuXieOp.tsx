@@ -51,7 +51,11 @@ export class WuXieContext {
         //不断地反复无懈 (因为无懈还可以无懈)
         while(true) {
 
-            candidates = candidates.filter(kv=>!pplNotInterestedInThisPlayer.has(kv[0]))
+            candidates = candidates.filter(kv=>{
+                //有无懈牌并且没有放弃无懈的权利
+                return this.manager.context.getPlayer(kv[0]).getCards(CardPos.HAND).filter(c => c.type === CardType.WU_XIE).length > 0
+                        && !pplNotInterestedInThisPlayer.has(kv[0])
+            })
 
             // 若无人possible, 直接完结, 撒花~
             if(candidates.length === 0) {
@@ -59,9 +63,9 @@ export class WuXieContext {
             }
     
             // 对于所有并非Impossible也没有refuse的人提出要求
-            let msg = `[${onPlayer}] 为 [${this.ruseCard.type.name}${isRuseAbort || '的无懈'}] 寻求无懈]`
+            let msg = `[${onPlayer}] 为 [${this.ruseCard.type.name}${isRuseAbort? '的无懈' : ''}] 寻求无懈]`
             //OK, Cancel, Refuse, [Refuse All]
-            let buttons = [new Button(REFUSE, `不为 [${onPlayer}] 出无懈`)]
+            let buttons = [Button.CANCEL, new Button(REFUSE, `放弃针对[${onPlayer}]的无懈`)]
             if(this.ruseCard.type.isDelayedRuse()) {
                 buttons.push(new Button(REFUSE_ALL, `不为本次 [${this.ruseCard.type.name}] 出无懈`))
             }
@@ -84,7 +88,7 @@ export class WuXieContext {
                             pplNotInterestedInThisPlayer.add(c[0])
                             this.processors.delete(c[0])
                         }
-                        throw 'Received Refusal From Someone'
+                        throw `${c[0]}拒绝了无懈`
                     })
             try {
                 // 若有人使用无懈, 第一个回复的人将获得此次无懈的资格. 

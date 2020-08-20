@@ -13,7 +13,6 @@ import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTr
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { CardPos } from '../../common/transit/CardPos'
 import { StageDeclarer } from './UIMyPlayerCard'
-import { WorkflowCard, WorkflowTransit } from '../../common/transit/WorkflowCard'
 import { UIWorkflowCardRow } from './UIWorkflowRow'
 import { CardManager } from '../../common/cards/Card'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
@@ -82,7 +81,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                         onSelect={s=>checker.onClicked(s)}/>
         }
 
-        return <div className='playground'>
+        return <div className='occupy'>
             {/* render top row, row-reverse */}
             <div className='top-row'>
             {

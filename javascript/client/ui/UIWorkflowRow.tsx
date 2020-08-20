@@ -2,7 +2,7 @@ import { WorkflowCard, WorkflowTransit } from "../../common/transit/WorkflowCard
 import UICard from "./UICard"
 import { ElementStatus } from "./UIBoard"
 import * as React from 'react'
-import Card, { CardManager } from "../../common/cards/Card"
+import { CardManager } from "../../common/cards/Card"
 import {CSSTransition, TransitionGroup} from 'react-transition-group'
 import { ScreenPosObtainer } from "./ScreenPosObtainer"
 import Pubsub from "../../common/util/PubSub"
@@ -48,9 +48,9 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> {
         this.dom = React.createRef()
         p.pubsub.on(WorkflowTransit, (transit: WorkflowTransit)=>{
             //set the original position of all cards which have no such position
-            let toAdd = transit.cards.map(w => {
+            let toAdd = (transit.cards || []).map(w => {
                 if(w.source) {
-                    let coor = p.screenPosObtainer.getPos(w.source)
+                    let coor = p.screenPosObtainer.getPos(w.source, w.cardId)
                     return {...w, ...coor, started: false, counter: counter++}
                 }
                 return {...w, started: false, counter: counter++}
@@ -105,10 +105,11 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> {
                         <div className='ui-card-wrapper' style={myStyle}>
                             <UICard card={this.props.cardManager.getCard(w.cardId)} isShown={true}
                                         elementStatus={ElementStatus.NORMAL} 
+                                        as = {w.as}
                                         //if the hover exists and equals this one we don't update man
                                         // onMouseStay={(c)=>(hover && c.id === hover.id) && setHover(c)} 
                                         />
-                            {w.as && <div className='as center'>{w.as.name}</div>}
+                            {/* {w.as && <div className='as center'>{w.as.name}</div>} */}
                         </div>
                     </CSSTransition>
                 })}

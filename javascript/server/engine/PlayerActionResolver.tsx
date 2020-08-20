@@ -11,6 +11,8 @@ import { isSuitBlack } from "../../common/cards/ICard";
 import { CardBeingPlayedEvent } from "../flows/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "./EquipOp";
+import JueDou from "./JueDou";
+import { ShunShou } from "./SingleRuseOp";
 
 export default class PlayerActionResolver {
 
@@ -90,39 +92,41 @@ export default class PlayerActionResolver {
                     break;
 
                 case CardType.WU_ZHONG:
-
+                    break
                 case CardType.JIE_DAO:
-
+                    break
                 case CardType.GUO_HE:
-
+                    break
                 case CardType.SHUN_SHOU:
-
+                    await new ShunShou(act, icard).perform(this.manager)
+                    break
                 case CardType.JUE_DOU:
-
+                    await new JueDou(act, icard).perform(this.manager)
+                    break
 
                     
                 case CardType.WAN_JIAN:
-
+                    break
                 case CardType.NAN_MAN:
-
+                    break
                 case CardType.WU_GU:
-
+                    break
                 case CardType.TAO_YUAN:
-
+                    break
 
                 case CardType.YI_YI:
-
+                    break
                 case CardType.ZHI_JI:
-
+                    break
                 case CardType.YUAN_JIAO:
-
+                    break
 
                 case CardType.LE_BU:
-
+                    break
                 case CardType.BING_LIANG:
-
+                    break
                 case CardType.SHAN_DIAN:
-
+                    break
                 
                 //dodge
                 case CardType.DODGE:

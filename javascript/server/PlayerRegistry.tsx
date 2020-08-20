@@ -76,7 +76,7 @@ export class PlayerRegistry {
         //remove current expectations if it's on this player
         let exp = this._currentExpectors.get(p.player.id)
         if(exp) {
-            console.warn('[Player Registry] 玩家尚有待定操作.加入replay list', exp)
+            console.warn('[Player Registry] 掉线的玩家尚有未完成的操作.加入replay list', exp)
             this._failedHint.set(p.player.id, exp.hint)
             // this.stopExpecting(exp)
         }
@@ -84,7 +84,7 @@ export class PlayerRegistry {
 
     public async sendServerAsk(player: string, hint: ServerHint): Promise<PlayerAction> {
         return new Promise((resolve, reject)=>{
-            console.log('[Player Registry] 服务器发出操作请求:', HintType[hint.hintType])
+            console.log('[Player Registry] 服务器发出操作请求:', player, HintType[hint.hintType])
             let hintId = PlayerRegistry.hintCount++
 
             let transit = new ServerHintTransit(hintId, player, hint)
@@ -92,14 +92,18 @@ export class PlayerRegistry {
                 player,
                 hint: transit,
                 callback: (transit: PlayerActionTransit) => {
-                    //when we hear back stuff
-                    this.stopExpecting(expector)
-                    if(transit.hintId === hintId) {
-                        console.log('[Player Registry] 服务器获得玩家操作:', player)
-                        resolve(transit.action)
-                    } else {
-                        console.error(`[Player Registry] 玩家的操作并未包含服务器所期待的hint ID! Expect: ${hintId}, Found: ${transit.hintId}`)
-                        reject(`Not getting the same id back from request! Expect: ${hintId}, Found: ${transit.hintId}`)
+                    try {
+                        //when we hear back stuff
+                        this.stopExpecting(expector)
+                        if(transit.hintId === hintId) {
+                            console.log('[Player Registry] 服务器获得玩家操作:', player)
+                            resolve(transit.action)
+                        } else {
+                            console.error(`[Player Registry] 玩家的操作并未包含服务器所期待的hint ID! Expect: ${hintId}, Found: ${transit.hintId}`)
+                            reject(`Not getting the same id back from request! Expect: ${hintId}, Found: ${transit.hintId}`)
+                        }
+                    } catch (err) {
+                        console.error('Failure', err)
                     }
                 }
             }
@@ -170,7 +174,7 @@ export class PlayerRegistry {
             console.error('[Player Registry] Not expecting any player action!', transit)
         } else {
             //clear out failures
-            console.log('服务器收到答复:', transit.action.actionSource)
+            // console.log('[Player Registry] 服务器收到答复:', transit.action.actionSource)
             this._failedHint.delete(transit.action.actionSource)
             exp.callback(transit)
         }

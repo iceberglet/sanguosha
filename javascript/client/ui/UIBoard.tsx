@@ -10,13 +10,15 @@ import GameClientContext from '../GameClientContext'
 import { UIPosition } from '../../common/PlayerAction'
 import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
-import { ServerHintTransit, Rescind } from '../../common/ServerHint'
+import { ServerHintTransit, Rescind, HintType, CardSelectionHint } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
 import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
 import { CardPos } from '../../common/transit/CardPos'
 import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
 import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
 import { ScreenPosObtainer, Seeker } from './ScreenPosObtainer'
+import UIMounter from '../card-panel/UIMounter'
+import { PlayerInfo } from '../../common/PlayerInfo'
 
 type UIBoardProp = {
     myId: string
@@ -35,7 +37,12 @@ export class ElementStatus {
     private constructor(public readonly name: string, public readonly isSelectable: boolean) {}
 }
 
-export class Checker {
+export interface Checker {
+    getStatus(itemId: string): ElementStatus
+    onClicked(itemId: string): void
+}
+
+class CheckerImpl implements Checker {
     public constructor(private areaAction: UIPosition, 
         private context: GameClientContext,
         private callback: ()=>void){}
@@ -61,7 +68,20 @@ export class Checker {
     }
 }
 
-export default class UIBoard extends React.Component<UIBoardProp, any> {
+type State = {
+    hideCards: boolean,
+    showDistance: boolean,
+    screenPosObtainer: ScreenPosObtainer,
+    playerChecker: Checker,
+    cardsChecker: Checker,
+    buttonChecker: Checker,
+    equipChecker: Checker,
+    seeker: Seeker,
+    uiRequest?: CardSelectionHint,
+    others: PlayerInfo[]
+}
+
+export default class UIBoard extends React.Component<UIBoardProp, State> {
 
     effectProducer: EffectProducer
     dom: React.RefObject<any>
@@ -74,19 +94,27 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
             hideCards: false,
             showDistance: false,
             screenPosObtainer: screenPosObtainer,
-            playerChecker: new Checker(UIPosition.PLAYER, context, this.refresh),
-            cardsChecker: new Checker(UIPosition.MY_HAND, context, this.refresh),
-            buttonChecker: new Checker(UIPosition.BUTTONS, context, this.refresh),
-            equipChecker: new Checker(UIPosition.MY_EQUIP, context, this.refresh),
-            workflowCards: [],
+            playerChecker: new CheckerImpl(UIPosition.PLAYER, context, this.refresh),
+            cardsChecker: new CheckerImpl(UIPosition.MY_HAND, context, this.refresh),
+            buttonChecker: new CheckerImpl(UIPosition.BUTTONS, context, this.refresh),
+            equipChecker: new CheckerImpl(UIPosition.MY_EQUIP, context, this.refresh),
             seeker: new Seeker(),
+            uiRequest: null,
             others: context.getRingFromPerspective(myId, false, true)
         }
         //need to forceupdate to register new changes
         p.pubsub.on(ServerHintTransit, (con: ServerHintTransit)=>{
             context.setHint(con)
-            this.refresh()
+            if(con.hint.hintType === HintType.UI_PANEL) {
+                //hijack
+                console.log('Received Special Panel Request. Not sending to context')
+                this.setState({uiRequest: con.hint.cardSelectHint})
+            } else {
+                this.refresh()
+            }
         })
+
+        //只有无懈可击之类的才会rescind之前的请求
         p.pubsub.on(Rescind, ()=>{
             context.setHint(null)
             this.refresh()
@@ -113,6 +141,7 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
         screenPosObtainer.register(myId, (item: string)=>{
             //is this my equipment? my judge card? my hand?
             let div = this.state.seeker.seek(item)
+            console.log('Seeking', myId, item, div)
             if(!div) {
                 div = this.dom.current
             }
@@ -138,9 +167,22 @@ export default class UIBoard extends React.Component<UIBoardProp, any> {
 
         return <div className='board occupy noselect' style={{}}>
             <div className='top'>
-                <UIPlayGround players={others} distanceComputer={context.getMyDistanceTo} pubsub={pubsub}
-                                screenPosObtainer={screenPosObtainer} showDist={showDistance}
-                                checker={playerChecker} cardManager={context.getGameMode().cardManager}/>)
+                <div className='playground'>
+                    <UIPlayGround players={others} distanceComputer={context.getMyDistanceTo} pubsub={pubsub}
+                                    screenPosObtainer={screenPosObtainer} showDist={showDistance}
+                                    checker={playerChecker} cardManager={context.getGameMode().cardManager}/>
+                                    
+                    <UIMounter selectHint={this.state.uiRequest} consumer={res => {
+                        context.submitAction({
+                            actionData: null,
+                            actionSource: myId,
+                            serverHint: null,
+                            markers: null,
+                            customData: res
+                        })
+                        this.setState({uiRequest: null})
+                    }}/>
+                </div>
                 <div className='chat-logger'>
                     {/* <img className='occupy' src={'ui/container-horizontal.png'}/> */}
                 </div>

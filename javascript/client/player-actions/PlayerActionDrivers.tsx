@@ -256,6 +256,14 @@ playerActionDriverProvider.registerProvider(HintType.SLASH, (hint)=>{
                 .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
 })
 
+playerActionDriverProvider.registerProvider(HintType.WU_XIE, (hint)=>{
+    return new PlayerActionDriverDefiner(hint.hintMsg)
+                .expectChoose(UIPosition.MY_HAND, 1, 1, (id, context)=>context.interpret(id).type === CardType.WU_XIE, ()=>hint.hintMsg)
+                .whichIs(Marker.USE)
+                .expectAnyButton('点击确定使用无懈可击')
+                .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
+})
+
 
 
 //todo: put this in equipement section
@@ -277,3 +285,4 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             .expectAnyButton('点击确定出杀')
             .build(hint)
 })
+

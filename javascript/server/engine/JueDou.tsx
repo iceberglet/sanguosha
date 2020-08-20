@@ -2,15 +2,13 @@ import { Operation } from "../Flow";
 import { getFromAction, PlayerAction, UIPosition, Button, isCancel  } from "../../common/PlayerAction";
 import { ICard } from "../../common/cards/ICard";
 import GameManager from "../GameManager";
-import { askForWuXie, SingleRuse } from "./SingleRuseOp";
+import { SingleRuse } from "./SingleRuseOp";
 import { HintType } from "../../common/ServerHint";
 import DamageOp, { DamageType } from "../flows/DamageOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 
-export default class JueDou extends Operation<void> implements SingleRuse {
+export default class JueDou extends SingleRuse<void> {
 
-    public me: PlayerInfo
-    public target: PlayerInfo
     public targetLost: boolean
     public damage: number = 1
 
@@ -18,29 +16,26 @@ export default class JueDou extends Operation<void> implements SingleRuse {
         public ruseAction: PlayerAction, 
         public ruseCard: ICard
     ) {
-        super()
+        super(ruseAction, ruseCard)
         this.targetLost = true
     }
 
-    public async perform(manager: GameManager) {
-        if(!await askForWuXie(this, manager)) {
-            await this.actionOnly(manager)
-        }
-    }
+    /**
+     * Call this if you don't wanna go for WU_XIE or any abort
+     * c.f. 貂蝉.离间
+     * @param manager 
+     */
+    public async doPerform(manager: GameManager) {
 
-    public async actionOnly(manager: GameManager) {
-
-        this.target = manager.context.getPlayer(getFromAction(this.ruseAction, UIPosition.PLAYER)[0])
-        this.me = manager.context.getPlayer(this.ruseAction.actionSource)
-
-        manager.beforeFlowHappen.publish(this, this.ruseAction.actionSource)
+        let targetPlayer = manager.context.getPlayer(this.target)
+        let me = manager.context.getPlayer(this.ruseAction.actionSource)
 
         while(true) {
-            let curr = this.targetLost? this.target : this.me
-            let issuer = this.targetLost? this.me: this.target
+            let curr = this.targetLost? targetPlayer : me
+            let issuer = this.targetLost? me: targetPlayer
             let resp = await manager.sendHint(curr.player.id, {
                 hintType: HintType.SLASH,
-                hintMsg: `你和${issuer}的决斗, 请出杀`,
+                hintMsg: `${issuer.player.id}和你决斗, 请出杀`,
                 extraButtons: [new Button(Button.CANCEL.id, '放弃')]
             })
             if(isCancel(resp)) {
@@ -49,6 +44,7 @@ export default class JueDou extends Operation<void> implements SingleRuse {
                 await new DamageOp(issuer, curr, this.damage, this.ruseAction, DamageType.NORMAL).perform(manager)
                 break
             } else {
+                console.log('又出了一个杀')
                 this.targetLost = !this.targetLost
             }
         }

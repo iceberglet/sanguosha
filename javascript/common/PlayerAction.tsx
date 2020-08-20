@@ -79,6 +79,8 @@ export type PlayerAction = {
     actionSource: string
     actionData: {[key in UIPosition]?: string[]}
     markers: {[key in UIPosition]?: Marker}
+    //this can be anything
+    customData?: any
 }
 
 /**

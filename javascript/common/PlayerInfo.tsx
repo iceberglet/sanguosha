@@ -1,15 +1,15 @@
-import Card, { CardGenre } from "./cards/Card"
+import Card, { CardGenre, CardType } from "./cards/Card"
 import { takeFromArray } from "./util/Util"
 import {Player} from "./Player"
-import { General, Gender, Faction } from "./General"
+import { Gender, Faction } from "./General"
 import { ICard } from "./cards/ICard"
-import { DelayedRuse, CardPos, isSharedPosition, isCardPosHidden } from "./transit/CardPos"
+import { CardPos, isSharedPosition, isCardPosHidden } from "./transit/CardPos"
 import { ReactElement } from "react"
 
 
 export type Mark = {
     card: Card,
-    as: DelayedRuse
+    as: CardType
 }
 
 export class Identity {
@@ -107,15 +107,18 @@ export abstract class PlayerInfo {
         this.hp = Math.min(this.hp, this.maxHp)
     }
 
-    addCard(card: Card, pos: CardPos, as: DelayedRuse = null) {
+    addCard(card: Card, pos: CardPos, as: CardType = null) {
         if(isSharedPosition(pos)) {
             throw `Invalid Position. Player can't get cards to position ${pos}`
         }
         if(pos === CardPos.JUDGE) {
+            if(!(as || card.type).isDelayedRuse()) {
+                throw `必须加判定牌兄dei!!! ${card.id} ${as?.name}`
+            }
             if(as) {
                 this.judges.push({card, as})
             } else if(card.type.isDelayedRuse()) {
-                this.judges.push({card, as: card.type.id as DelayedRuse})
+                this.judges.push({card, as: card.type})
             } else {
                 throw `Invalid... trying to add judge card but it's not a judge card nor pretending to be one [${card}] [${as}]`
             }
@@ -207,7 +210,7 @@ export abstract class PlayerInfo {
     }
 
     //------------------- Serde -----------------
-    static sanitize(info: PlayerInfo, sendTo: string): PlayerInfo {
+    static sanitize(info: PlayerInfo, sendTo?: string): PlayerInfo {
         let copy = info.sanitize(sendTo)
         let cards = new Map<CardPos, Card[]>()
         copy.cards.forEach((v, k, m) => cards.set(k, v.map((c, i) => {

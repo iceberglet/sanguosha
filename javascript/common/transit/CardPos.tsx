@@ -27,5 +27,3 @@ export function isSharedPosition(pos: CardPos) {
 export function isCardPosHidden(pos: CardPos) {
     return pos === CardPos.HAND || pos === CardPos.QI_XING
 }
-
-export type DelayedRuse = 'le_bu' | 'bing_liang' | 'shan_dian'

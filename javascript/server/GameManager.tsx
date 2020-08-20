@@ -305,7 +305,7 @@ export function sampleIdentityWarContext() {
     player2.addCard(new Card('spade', CardSize.QUEEN, CardType.ZHANG_BA), CardPos.EQUIP)
     player2.addCard(new Card('spade', CardSize.KING, CardType.DA_YUAN), CardPos.EQUIP)
     player2.addCard(new Card('diamond', CardSize.KING, CardType.HUA_LIU), CardPos.EQUIP)
-    player2.addCard(new Card('diamond', CardSize.ACE, CardType.ZHU_QUE), CardPos.JUDGE, 'le_bu')
+    player2.addCard(new Card('diamond', CardSize.ACE, CardType.ZHU_QUE), CardPos.JUDGE, CardType.LE_BU)
     player2.hp = 2;
 
     let player3 = new IdentityWarPlayerInfo({id: '东郭旭銮'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_cao_cao).init()
@@ -313,7 +313,7 @@ export function sampleIdentityWarContext() {
     player3.addCard(new Card('heart', CardSize.KING, CardType.ZHUA_HUANG), CardPos.EQUIP)
 
     let player4 = new IdentityWarPlayerInfo({id: '新荷'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_huang_gai).init()
-    player4.addCard(new Card('club', CardSize.JACK, CardType.TIE_SUO), CardPos.JUDGE, 'bing_liang')
+    player4.addCard(new Card('club', CardSize.JACK, CardType.TIE_SUO), CardPos.JUDGE, CardType.BING_LIANG)
     player4.hp = 1
 
     let player5 = new IdentityWarPlayerInfo({id: 'Iceberglet'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_guan_yu).init()
