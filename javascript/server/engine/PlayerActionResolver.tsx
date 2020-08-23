@@ -45,7 +45,7 @@ export default class PlayerActionResolver {
 
             //装备牌
             if(icard.type.isEquipment()) {
-                this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, false)
+                this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, true)
                 await new EquipOp(act.actionSource, this.manager.getCard(hand[0])).perform(this.manager)
                 return
             } else {

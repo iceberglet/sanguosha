@@ -88,6 +88,6 @@ export class ShunShou extends SingleRuse<void> {
         console.log('顺手牵羊成功!', resp)
         let res = resp.customData as CardSelectionResult
         let card = findCard(targetPlayer, res)
-        manager.transferCards(this.target, this.ruseAction.actionSource, null, CardPos.HAND, [card])
+        manager.transferCards(this.target, this.ruseAction.actionSource, cardPosNames.get(res.rowName), CardPos.HAND, [card])
     }
 }

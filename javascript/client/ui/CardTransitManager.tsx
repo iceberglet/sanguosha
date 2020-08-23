@@ -1,7 +1,7 @@
 import Card from "../../common/cards/Card";
 import { Coor } from "./ScreenPosObtainer";
 import { CardTransit } from "../../common/transit/EffectTransit";
-import { CardPos } from "../../common/transit/CardPos";
+import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";
 import * as React from 'react'
 import { flattenMap } from "../../common/util/Util";
 import UICard from "./UICard";
@@ -41,13 +41,13 @@ export interface CardEndpoint {
      * @param cards cards and coordinates (in absolute terms!!)
      * @param cardPos animation duration
      */
-    pushCard(cards: InCardAndCoor[], transfer: CardTransit): void
+    performAddAnimation(cards: InCardAndCoor[], transfer: CardTransit): void
 
     /**
      * 这些牌将从此endpoint转出,请提供此牌的位置 (in screen position!) (左上角)
      * @param card 
      */
-    takeCards(cards: Card[], pos: CardPos, doNotRemove?: boolean): Array<CardAndCoor>
+    performRemovalAnimation(cards: Card[], pos: CardPos, doNotRemove?: boolean): Array<CardAndCoor>
 }
 
 export type InCardAndCoor = CardAndCoor & {
@@ -73,11 +73,11 @@ export class DeckEndpoint extends React.Component<{cardTransitManager: CardTrans
         this.props.cardTransitManager.register(null, CardTransit.DECK)
     }
 
-    pushCard(cards: InCardAndCoor[], transfer: CardTransit): void {
+    performAddAnimation(cards: InCardAndCoor[], transfer: CardTransit): void {
         throw 'Impossible!'
     }
     
-    takeCards(cards: Card[], cardPos: CardPos, doNotRemove?: boolean): Array<CardAndCoor> {
+    performRemovalAnimation(cards: Card[], cardPos: CardPos, doNotRemove?: boolean): Array<CardAndCoor> {
         let coor = getCardCoor(this.dom.current)
         let sep = 36
         return cards.map((c, i) => ({
@@ -89,7 +89,7 @@ export class DeckEndpoint extends React.Component<{cardTransitManager: CardTrans
     }
 
     render() {
-        return <div className='card-transit occupy' ref={this.dom} />
+        return <div className='card-transit occupy deck' ref={this.dom} />
     }
 }
 
@@ -124,18 +124,20 @@ export class DefaultCardEndpoint extends React.Component<Prop, State> implements
         }
     }
 
-    pushCard(cards: InCardAndCoor[], transfer: CardTransit): void {
+    performAddAnimation(cards: InCardAndCoor[], transfer: CardTransit): void {
         this.setState(s => {
             cards.forEach(cp => {
                 //cards to player
                 //will never have description / head properties
                 delete cp.card.description
-
-                s.transit.set(cp.uuid, cp)
+                s.transit.set(cp.uuid, {...cp, coor: this.offsetMyCoor(cp.coor)})
                 this.props.info.addCard(cp.card, transfer.toPos)
+                this.props.callback()
             })
             return s
-        }, ()=>this.updateCards(cards))
+        }, ()=>{
+            setTimeout(()=>this.updateCards(cards), 10)
+        })
     }
 
     //update to my coordinates
@@ -143,9 +145,9 @@ export class DefaultCardEndpoint extends React.Component<Prop, State> implements
         this.setState(s => {
             cards.forEach(cp => {
                 let myCoor = getCardCoor(this.dom.current)
-                s.transit.get(cp.uuid).coor = myCoor
-                return s
+                s.transit.get(cp.uuid).coor = this.offsetMyCoor(myCoor)
             })
+            return s
         })
         //set animation timeout (assuming they share the same animation duration!!!)
         //remove after animation
@@ -154,12 +156,18 @@ export class DefaultCardEndpoint extends React.Component<Prop, State> implements
                 cards.forEach(cp => ss.transit.delete(cp.uuid))
                 return ss
             })
-        }, cards[0].animDuration * 1000)
+        }, cards[0].animDuration)
     }
     
-    takeCards(cards: Card[], cardPos: CardPos, doNotRemove?: boolean): Array<CardAndCoor> {
+    performRemovalAnimation(cards: Card[], cardPos: CardPos, doNotRemove?: boolean): Array<CardAndCoor> {
         if(!doNotRemove) {
-            cards.forEach(c => this.props.info.removeCard(c.id))
+            // console.log('Removing Cards From Player', this.props.info.player.id, cardPos, cards)
+            if(isCardPosHidden(cardPos)) {
+                console.log('Randomly removing the dummy cards!')
+                this.props.info.removeRandomly(cardPos, cards.length)
+            } else {
+                cards.forEach(c => this.props.info.removeFromPos(c.id, cardPos))
+            }
             //call so that player registers the change
             this.props.callback()
         }
@@ -173,12 +181,21 @@ export class DefaultCardEndpoint extends React.Component<Prop, State> implements
         }))
     }
 
+    private offsetMyCoor(screenCoor: Coor): Coor {
+        return {
+            x: screenCoor.x - this.dom.current.getBoundingClientRect().left,
+            y: screenCoor.y - this.dom.current.getBoundingClientRect().top
+        }
+    }
+
     render() {
+        // console.log('Rendering', this.state.transit.size)
         return <div className='card-transit occupy' ref={this.dom}>
             <TransitionGroup>
                 {flattenMap(this.state.transit).map(([id, cardAndPos])=>{
-                    <CSSTransition timeout={{}} classNames='fade-out'>
-                        <div className='ui-card-wrapper' key={id} style={{left: cardAndPos.coor.x + 'px', top: cardAndPos.coor.y + 'px', transitionDuration: cardAndPos.animDuration + 's'}}>
+                    // console.log('Rendering', id, cardAndPos.coor.x, cardAndPos.coor.y)
+                    return <CSSTransition key={id} timeout={{appear: 0, enter: 0, exit: 2000}} classNames='fade-out'>
+                        <div className='ui-card-wrapper' key={id} style={{left: cardAndPos.coor.x + 'px', top: cardAndPos.coor.y + 'px', transitionDuration: cardAndPos.animDuration + 'ms'}}>
                             <UICard card={cardAndPos.card} isShown={true} elementStatus={ElementStatus.NORMAL}/>
                         </div>
                     </CSSTransition>
@@ -220,11 +237,16 @@ export default class CardTransitManager {
         if(!f || !t) {
             throw `Cannot find endpoint for id: ${transfer.from}, ${transfer.to}`
         }
-        let initial = f.takeCards(transfer.cards, transfer.fromPos, transfer.doNotRemove).map(item => ({...item, 
+        console.log('On Card Transfer', transfer)
+
+        //do not remove if told (for show case only)
+        let initial = f.performRemovalAnimation(transfer.cards, transfer.fromPos, transfer.doNotRemove).map(item => ({...item, 
             animDuration: transfer.animDurationSeconds,
             uuid: uuidv4()
         }))
-        t.pushCard(initial, transfer)
+
+        //only do animation if source and destination are different
+        t.performAddAnimation(initial, transfer)
     }
 
     private getEndpoint(id: string, pos: CardPos) {

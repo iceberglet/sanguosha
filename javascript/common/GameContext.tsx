@@ -83,7 +83,7 @@ export default class GameContext {
         return new GameContext(this.playerInfos.map(p => {
             let copy = PlayerInfo.sanitize(p, sendTo)
             //restore the cards
-            if(copy.player.id === p.player.id) {
+            if(sendTo === p.player.id) {
                 copy.cards = p.cards
             } else {
                 let cards = new Map<CardPos, Card[]>()

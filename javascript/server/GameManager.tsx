@@ -134,8 +134,9 @@ export default class GameManager {
      * @param head 整个flow的发起牌. (杀 / 锦囊 / 南蛮 / 离间用的牌, 等等)
      */
     public sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: Card[], head: boolean = false, doNotRemove: boolean = false) {
-        // this.broadcast(new TransferCardEffect(fromPlayer, null, cards.map(c => c.cardId)))
-        this.context.sendToWorkflow(fromPlayer, fromPos, cards)
+        if(!doNotRemove) {
+            this.context.sendToWorkflow(fromPlayer, fromPos, cards)
+        }
         this.broadcast(CardTransit.toWorkflow(fromPlayer, fromPos, cards, head, doNotRemove))
     }
 
@@ -156,7 +157,7 @@ export default class GameManager {
      */
     public transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: Card[]) {
         this.context.transferCards(fromPlayer, toPlayer, from, to, cards.map(c => c.id))
-        this.broadcast(new CardTransit(fromPlayer, from, toPlayer, to, cards, 1000), CardTransit.sanitize)
+        this.broadcast(new CardTransit(fromPlayer, from, toPlayer, to, cards, 1000), CardTransit.defaultSanitize)
     }
 
     public interpret(forPlayer: string, cardId: string): ICard {

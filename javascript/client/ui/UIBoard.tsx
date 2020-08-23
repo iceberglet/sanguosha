@@ -126,27 +126,30 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             this.effectProducer.processEffect(effect)
         })
         p.pubsub.on(CardTransit, (effect: CardTransit)=>{
-            if(effect.from === effect.to) {
-                //just update the player infos
-                console.log('Card transfer on the same person', effect)
-                let f = this.props.context.getPlayer(effect.from)
-                let t = this.props.context.getPlayer(effect.to)
-                effect.cards.forEach(c => {
-                    f.removeCard(c.id)
-                    t.addCard(c, effect.toPos)
-                })
-                this.forceUpdate()
-                return
-            }
+            // if(effect.from === effect.to) {
+            //     //just update the player infos
+            //     console.log('Card transfer on the same person', effect)
+            //     let f = this.props.context.getPlayer(effect.from)
+            //     let t = this.props.context.getPlayer(effect.to)
+            //     effect.cards.forEach(c => {
+            //         f.removeCard(c.id)
+            //         t.addCard(c, effect.toPos)
+            //     })
+            //     this.forceUpdate()
+            //     return
+            // }
             this.state.cardTransitManager.onCardTransfer(effect)
         })
         p.pubsub.on(FactionPlayerInfo, (info: FactionPlayerInfo)=>{
-            // console.log('Received updated player info ', info)
+            // console.log('Before update player', info, context.getPlayer(info.player.id).getAllCards())
+            delete info.cards
             Object.assign(context.getPlayer(info.player.id), info)
+            // console.log('After update player', info, context.getPlayer(info.player.id).getAllCards())
             this.refresh()
         })
         p.pubsub.on(IdentityWarPlayerInfo, (info: IdentityWarPlayerInfo)=>{
             // console.log('Received updated player info ', info)
+            delete info.cards
             Object.assign(context.getPlayer(info.player.id), info)
             this.refresh()
         })

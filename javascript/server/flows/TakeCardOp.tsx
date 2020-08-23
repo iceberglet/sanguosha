@@ -25,7 +25,7 @@ export default class TakeCardOp extends Operation<void> {
     public async do(manager: GameManager) {
         let cards = manager.context.deck.getCardsFromTop(this.amount)
         //animation of card transfer. need to sanitize
-        manager.broadcast(CardTransit.fromDeck(this.player.player.id, cards), CardTransit.sanitize)
+        manager.broadcast(CardTransit.fromDeck(this.player.player.id, cards), CardTransit.defaultSanitize)
         //add cards from deck to player
         cards.forEach(c => this.player.addCard(c, CardPos.HAND))
         //update this player's info

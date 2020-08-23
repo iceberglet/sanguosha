@@ -58,19 +58,7 @@
                 z-index: 2;
                 pointer-events: none;
 
-                .workflow-card-enter {
-                    opacity: 0;
-                    // transform: translate(40px, 0px);
-                }
-                .workflow-card-enter-active {
-                    opacity: 1;
-                    // transform: translate(0px, 0px);
-                    // transition: 0.25s linear;
-                }
-                .workflow-card-exit {
-                    opacity: 1;
-                }
-                .workflow-card-exit-active {
+                .goner {
                     animation: fade-out 3.5s forwards;
                 }
             }
@@ -103,7 +91,7 @@
                 padding: 4px;
                 background-color: rgba(56, 52, 29, 0.767);
                 box-shadow: inset 0px 0px 10px #9a9a9a;
-                z-index: 1;  //要高过手牌栏
+                z-index: 3;  //要高过手牌栏
     
                 .my-judge {
                     height: 40px;
@@ -206,14 +194,18 @@
 @keyframes fade-out {
     0% {
         filter: brightness(100%);
+        opacity: 1;
     }
     10% {
         filter: brightness(50%);
+        opacity: 1;
     }
     94% {
+        filter: brightness(50%);
         opacity: 1;
     }
     100% {
+        filter: brightness(50%);
         opacity: 0;
     }
 }

@@ -9,6 +9,7 @@ import CardTransitManager, { CardEndpoint,InCardAndCoor, CardAndCoor } from "./C
 import { CardPos } from "../../common/transit/CardPos"
 import { CardTransit } from "../../common/transit/EffectTransit"
 import ArrayList from "../../common/util/ArrayList"
+import { ClassFormatter } from "../../common/util/Togglable"
 
 //left offset: 220
 //btm offset: 
@@ -26,6 +27,8 @@ type SimpleRowProp = {
 
 type Renderable = InCardAndCoor & {
     rendered: boolean
+    //once marked, this is gonna be gone!
+    goner: boolean
 }
 
 type State = {
@@ -59,7 +62,7 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
      * @param cards cards and coordinates (in absolute terms!!)
      * @param cardPos animation duration
      */
-    pushCard(cards: InCardAndCoor[], transfer: CardTransit): void {
+    performAddAnimation(cards: InCardAndCoor[], transfer: CardTransit): void {
         let rect = this.dom.current.getBoundingClientRect()
         //set the original position of all cards which have no such position
         let toAdd: Renderable[] = cards.map(w => {
@@ -67,12 +70,16 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
                 w.coor.x -= rect.left,
                 w.coor.y -= rect.top
             }
-            return {...w, rendered: false}
+            return {...w, rendered: false, goner: false}
         })
         this.setState(s => {
             if(transfer.head) {
                 //clear existing ones
-                s.cards.clear()
+                s.cards.forEach(t => t.goner = true)
+                let toRemove = new Set<string>(s.cards._data.map(c => c.uuid))
+                setTimeout(()=>{
+                    this.remove(toRemove)
+                }, 3500)
             }
             toAdd.forEach(s.cards.add)
             return s
@@ -84,11 +91,18 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
         }, 20)
     }
 
+    remove(uuids: Set<string>) {
+        this.setState(s => {
+            s.cards.removeAllThat(c => uuids.has(c.uuid))
+            return s
+        })
+    }
+
     /**
      * 这些牌将从此endpoint转出,请提供此牌的位置 (in screen position!) (左上角)
      * @param card 
      */
-    takeCards(cards: Card[], pos: CardPos): Array<CardAndCoor> {
+    performRemovalAnimation(cards: Card[], pos: CardPos): Array<CardAndCoor> {
         throw 'Impossible!!' //actually we should be able to!
     }
 
@@ -118,7 +132,7 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
         let leftOffset = rowOffset + (width - sep * (cards.size() - 1) + cardWidth) / 2
     
         return <div className='occupy workflow-row' ref={this.dom}>
-            <TransitionGroup className='workflow-cards'>
+            {/* <TransitionGroup className='workflow-cards'> */}
                 {cards.map((w, i) => {
                     let myStyle
                     if(w.rendered || !w.coor) {
@@ -128,14 +142,15 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
                         //use the original placing!
                         myStyle = {left: w.coor.x + 'px', top: w.coor.y + 'px', transitionDuration: w.animDuration + 'ms'}
                     }
+                    let clazz = new ClassFormatter('ui-card-wrapper').and(w.goner, 'goner').done()
                     // console.log('Render workflow card', w.card.id, w.coor, myStyle)
-                    return <CSSTransition key={w.uuid} timeout={{appear: 1200, enter: 1200, exit: 3500}} classNames="workflow-card">
-                        <div className='ui-card-wrapper' style={myStyle}>
-                            <UICard card={w.card} isShown={true} elementStatus={ElementStatus.NORMAL} />
-                        </div>
-                    </CSSTransition>
+                    // return <CSSTransition key={w.uuid} timeout={{appear: 1200, enter: 1200, exit: 3500}} classNames="workflow-card">
+                    return <div key={w.uuid} className={clazz} style={myStyle}>
+                        <UICard card={w.card} isShown={true} elementStatus={ElementStatus.NORMAL} />
+                    </div>
+                    // </CSSTransition>
                 })}
-            </TransitionGroup>
+            {/* </TransitionGroup> */}
         </div>
     }
 }

@@ -12,8 +12,8 @@
     position: absolute;
     //this can be overriden by styling the individual cards
     transition-duration: 0.3s;
-    transition-timing-function: left ease-in;
-    transition-timing-function: top ease-out;
+    // transition: left ease-in, top ease-out;
+    z-index: 2;
 }
 
 .ui-card.selectable {

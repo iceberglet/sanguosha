@@ -109,7 +109,7 @@ export abstract class PlayerInfo {
         if(pos === CardPos.EQUIP && !card.type.isEquipment()) {
             throw `必须加装备牌兄dei!!! ${card.id} ${card.type.name}`
         }
-        console.log('Adding Card To ', this.player.id, card.id, CardPos[pos])
+        // console.log('Adding Card To ', this.player.id, card.id, CardPos[pos])
         let arr = this.cards.get(pos) || []
         arr.push(card)
         this.cards.set(pos, arr)
@@ -121,13 +121,31 @@ export abstract class PlayerInfo {
      * @param cardId 
      */
     removeCard(cardId: string): CardPos {
+        if(cardId === Card.DUMMY.id) {
+            throw `You are trying to remove a dummy card! use remove with position`
+        }
         for(let kv of this.cards) {
             if(!!takeFromArray(kv[1], c => c.id === cardId)) {
-                console.log('Removing Card From ', this.player.id, cardId, CardPos[kv[0]])
+                // console.log('Removing Card From ', this.player.id, cardId, CardPos[kv[0]])
                 return kv[0]
             }
         }
         throw `Cannot find card to remove ${cardId} in player ${this.player.id}. currently has: ${this.getAllCards().map(c => c[0].id).toString()}`
+    }
+
+    removeRandomly(pos: CardPos, size: number): Card[] {
+        let removed = this.cards.get(pos).splice(0, size)
+        if(removed.length !== size) {
+            throw `not enough removed! ${size} ${ this.cards.get(pos)} ${removed}`
+        }
+        return removed
+    }
+
+    removeFromPos(cardId: string, cardPos: CardPos) {
+        let removed = takeFromArray(this.cards.get(cardPos), c => c.id === cardId)
+        if(!removed) {
+            throw `Did not find such card! ${cardId} ${CardPos[cardPos]}`
+        }
     }
 
     getReach(): number {

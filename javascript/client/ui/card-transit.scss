@@ -1,3 +1,18 @@
 .card-transit {
     pointer-events: none;
+    z-index: 19;
+
+    .fade-out-enter {
+        opacity: 1;
+    }
+    .fade-out-enter-active {
+        opacity: 1;
+    }
+    .fade-out-exit {
+        opacity: 1;
+    }
+    .fade-out-exit-active {
+        opacity: 0;
+        transition: 0.25s linear;
+    }
 }

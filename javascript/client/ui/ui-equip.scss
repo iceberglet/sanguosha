@@ -124,7 +124,7 @@
     opacity: 1;
     transform: translate(0px, 0px);
     transition: 0.3s;
-    z-index: 20;
+    z-index: 20; //能够保证进入动画在前
 }
 .equipment-exit {
     opacity: 1;
@@ -133,5 +133,5 @@
     opacity: 0;
     transform: translate(0px, 60px);
     transition: 0.6s !important;
-    z-index: 20;
+    z-index: 20; //能够保证脱出动画在前
 }

@@ -25,6 +25,7 @@
         text-shadow: 0px 0px 30px grey;
         white-space: nowrap;
         animation: flash 3s forwards;
+        z-index: 999;
     }
 
     .floating-cards {

@@ -105,3 +105,5 @@ export function toChinese(idx: number) {
       throw `Donno this ${idx}`
     }
 }
+
+export const delay = (ms: number) => new Promise(res => setTimeout(res, ms));

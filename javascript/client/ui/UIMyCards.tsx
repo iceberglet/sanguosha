@@ -19,7 +19,7 @@ type Prop = {
 
 export default class UIMyCards extends React.Component<Prop, object> {
 
-    dom: React.RefObject<HTMLDivElement>
+    dom: React.RefObject<HTMLDivElement> = React.createRef()
     cardRow: UICardRow
 
     constructor(p: Prop) {
@@ -28,7 +28,7 @@ export default class UIMyCards extends React.Component<Prop, object> {
 
     componentDidMount() {
         console.log('UICardRow subscribing to card transit')
-        this.cardRow.pushCard(this.props.info.getCards(CardPos.HAND).map(c => {
+        this.cardRow.performAddAnimation(this.props.info.getCards(CardPos.HAND).map(c => {
             return {
                 card: c, 
                 coor: null,
@@ -38,26 +38,27 @@ export default class UIMyCards extends React.Component<Prop, object> {
         }))
 
         let endpoint: CardEndpoint = {
-            pushCard: (cards: InCardAndCoor[], transit: CardTransit): void => {
+            performAddAnimation: (cards: InCardAndCoor[], transit: CardTransit): void => {
                 // this.props.info.removeCard()
                 cards.forEach(c => this.props.info.addCard(c.card, transit.toPos))
                 if(transit.toPos === CardPos.HAND) {
                     //delegate
-                    this.cardRow.pushCard(cards)
+                    this.cardRow.performAddAnimation(cards)
                 } else {
                     this.forceUpdate()
                 }
             },
 
-            takeCards: (cards: Card[], pos: CardPos, doNotRemove?: boolean): Array<CardAndCoor> => {
+            performRemovalAnimation: (cards: Card[], pos: CardPos, doNotRemove?: boolean): Array<CardAndCoor> => {
                 if(!doNotRemove) {
+                    // console.log('Removing Cards From Player', this.props.info.player.id, pos, cards)
                     cards.forEach(c => this.props.info.removeCard(c.id))
                     //call so that player registers the change
                     this.forceUpdate()
                 }
                 if(pos === CardPos.HAND) {
                     //delegate
-                    return this.cardRow.takeCards(cards, pos, doNotRemove)
+                    return this.cardRow.performRemovalAnimation(cards, pos, doNotRemove)
                 }
                 let coor = getCardCoor(this.dom.current)
                 return cards.map(card => {

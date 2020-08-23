@@ -28,7 +28,7 @@ type State = {
 }
 
 type Renderable = InCardAndCoor & {
-    entered: boolean
+    entered: 'begin' | 'starting' | 'end'
 }
 
 const leftOffset = 15
@@ -47,13 +47,13 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
         this.containerRef = React.createRef()
     }
 
-    pushCard = (cards: InCardAndCoor[]): void => {
+    performAddAnimation = (cards: InCardAndCoor[]): void => {
         // this.props.info.removeCard()
         let rs: Renderable[] = []
         this.setState(s => {
             let rect = this.containerRef.current.getBoundingClientRect()
             cards.forEach(c =>{
-                let r: Renderable = {...c, entered: false}
+                let r: Renderable = {...c, entered: 'begin'}
                 if(r.coor) {
                     r.coor.x -= rect.left,
                     r.coor.y -= rect.top
@@ -62,16 +62,23 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
                 s.cards.add(r)
             })
             return s
-        }, ()=>{
-            //set those cards to true and kick them into movement!
-            rs.forEach(r => r.entered = true)
-            this.forceUpdate()
         })
+        setTimeout(()=>{
+            //set those cards to true and kick them into movement!
+            rs.forEach(r => r.entered = 'starting')
+            this.forceUpdate()
+        }, 10)
+        setTimeout(()=>{
+            //set those cards to true and kick them into movement!
+            rs.forEach(r => r.entered = 'end')
+            this.forceUpdate()
+        }, cards[0].animDuration)
     }
 
-    takeCards = (cards: Card[], pos: CardPos, doNotRemove: boolean): Array<CardAndCoor> => {
+    performRemovalAnimation = (cards: Card[], pos: CardPos, doNotRemove: boolean): Array<CardAndCoor> => {
         //remove from my playerInfo
         let res: Renderable[] = []
+        // console.log('Taking Away', cards, pos, doNotRemove)
         if(doNotRemove) {
             res = this.state.cards.filter(r => !!cards.find(c => c.id === r.card.id))
         } else {
@@ -135,20 +142,27 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
         return <div className='ui-card-row' ref={this.containerRef}>
             {cards.map((c, i) => {
                 let status = checker.getStatus(c.card.id)
+                
                 let x: number, y: number = 0
-                if(c.entered) {
+                if(c.entered !== 'begin') {
+                    //use calculated coordinates
                     x = i * sep + leftOffset
                     if(hover >= 0 && i > hover) {
                         x += CardWidth - sep
                     }
                 } else if(c.coor) {
+                    //use original coordinates
                     x = c.coor.x
                     y = c.coor.y
                 } else {
                     //cards with no origin
                     x = i * sep + leftOffset + CardWidth
                 }
-                return <div className='ui-card-wrapper' style={{left: x + 'px', top: y + 'px'}} key={c.card.id} >
+                let myStyle: any = {left: x + 'px', top: y + 'px'}
+                if(c.entered === 'starting') {
+                    myStyle.transitionDuration = c.animDuration + 'ms'
+                }
+                return <div className='ui-card-wrapper' style={myStyle} key={c.card.id} >
                     <UICard key={c.card.id} card={c.card} isShown={isShown} onPos={this.settingRef}
                                     elementStatus={status} 
                                     onMouseLeave={()=>{if(hover===i){this.setState({hover: -1})}}}
