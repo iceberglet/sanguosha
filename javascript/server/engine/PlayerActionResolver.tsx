@@ -39,14 +39,17 @@ export default class PlayerActionResolver {
                 throw `How can you play 2 cards at once????? ${act}`
             }
             let player = this.manager.context.getPlayer(act.actionSource)
-            let icard = this.manager.interpret(act.actionSource, hand[0])
+            let card = this.manager.getCard(hand[0])
+            let icard = this.manager.interpret(act.actionSource, card.id)
             this.manager.beforeFlowHappen.publish(new CardBeingPlayedEvent(act, icard), act.actionSource)
-            this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [{cardId: hand[0], source: act.actionSource}], icard.type.initiateFlow())
 
             //装备牌
             if(icard.type.isEquipment()) {
+                this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, false)
                 await new EquipOp(act.actionSource, this.manager.getCard(hand[0])).perform(this.manager)
                 return
+            } else {
+                this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
             }
             
 
@@ -77,7 +80,7 @@ export default class PlayerActionResolver {
                 //peach
                 case CardType.PEACH:
                     //make sure target is null
-                    checkThat(targets.length === 0, '桃不能用再多人上')
+                    checkThat(targets.length === 0, '桃不能用在多人上')
                     let info = this.toInfo(act.actionSource)
                     this.manager.broadcast(new TextFlashEffect(act.actionSource, [], '桃'))
                     await new HealOp(info, info, 1, act).perform(this.manager)

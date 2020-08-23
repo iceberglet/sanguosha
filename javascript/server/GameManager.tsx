@@ -1,5 +1,5 @@
 import GameContext from "../common/GameContext";
-import Card, { CardManager, CardSize, CardType } from "../common/cards/Card"
+import Card, { CardSize, CardType } from "../common/cards/Card"
 import { PlayerInfo, Identity } from "../common/PlayerInfo"
 import Flow, { PlayerDeadInHisRound } from "./Flow";
 import RoundStat from "../common/RoundStat";
@@ -16,12 +16,10 @@ import GameServerContext from "./engine/GameServerContext";
 import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
 import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
 import FactionWarGeneral from "../game-mode-faction/FactionWarGenerals";
-import { Faction } from "../common/General";
 import { StageStartFlow, StageEndFlow } from "./flows/StageFlows";
 import TakeCardOp from "./flows/TakeCardOp";
 import DropCardOp from "./flows/DropCardOp";
-import { CurrentPlayerEffect, TransferCardEffect } from "../common/transit/EffectTransit";
-import { WorkflowTransit, WorkflowCard } from "../common/transit/WorkflowCard";
+import { CurrentPlayerEffect, CardTransit } from "../common/transit/EffectTransit";
 import PlayerActionResolver from "./engine/PlayerActionResolver";
 import { ICard } from "../common/cards/ICard";
 
@@ -120,6 +118,10 @@ export default class GameManager {
     public currPlayer(): PlayerInfo {
         return this.context.playerInfos[this.currentPlayer]
     }
+
+    public getSortedByCurr(): PlayerInfo[] {
+        return this.context.getRingFromPerspective(this.currPlayer().player.id, true)
+    }
     
 
     //////////////////////// Card Movement ///////////////////////
@@ -131,15 +133,14 @@ export default class GameManager {
      * @param cards 任何玩家打出的牌
      * @param head 整个flow的发起牌. (杀 / 锦囊 / 南蛮 / 离间用的牌, 等等)
      */
-    public sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: WorkflowCard[], isHead: boolean = false) {
+    public sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: Card[], head: boolean = false, doNotRemove: boolean = false) {
         // this.broadcast(new TransferCardEffect(fromPlayer, null, cards.map(c => c.cardId)))
-        this.broadcast(new WorkflowTransit(isHead, cards))
         this.context.sendToWorkflow(fromPlayer, fromPos, cards)
-        this.broadcast(this.context.getPlayer(fromPlayer), PlayerInfo.sanitize)
+        this.broadcast(CardTransit.toWorkflow(fromPlayer, fromPos, cards, head, doNotRemove))
     }
 
     public takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]) {
-        this.broadcast(new TransferCardEffect(null, toPlayer, cards))
+        // this.broadcast(new TransferCardEffect(null, toPlayer, cards))
         this.context.takeFromWorkflow(toPlayer, toPos, cards)
         this.broadcast(this.context.getPlayer(toPlayer), PlayerInfo.sanitize)
     }
@@ -153,8 +154,9 @@ export default class GameManager {
      * @param to to position. 
      * @param cards cards. Sequence depends on this position
      */
-    public transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: string[]) {
-        this.context.transferCards(fromPlayer, toPlayer, from, to, cards)
+    public transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: Card[]) {
+        this.context.transferCards(fromPlayer, toPlayer, from, to, cards.map(c => c.id))
+        this.broadcast(new CardTransit(fromPlayer, from, toPlayer, to, cards, 1000), CardTransit.sanitize)
     }
 
     public interpret(forPlayer: string, cardId: string): ICard {
@@ -218,7 +220,8 @@ export default class GameManager {
                 this.currentFlows.remove(flow)
                 //将workflow中的牌扔进弃牌堆
                 this.context.dropWorkflowCards()
-                this.broadcast(new WorkflowTransit(true, null))
+                //maybe just let it go
+                // this.broadcast(new C(true, null))
             }
         }
     }
@@ -305,7 +308,7 @@ export function sampleIdentityWarContext() {
     player2.addCard(new Card('spade', CardSize.QUEEN, CardType.ZHANG_BA), CardPos.EQUIP)
     player2.addCard(new Card('spade', CardSize.KING, CardType.DA_YUAN), CardPos.EQUIP)
     player2.addCard(new Card('diamond', CardSize.KING, CardType.HUA_LIU), CardPos.EQUIP)
-    player2.addCard(new Card('diamond', CardSize.ACE, CardType.ZHU_QUE), CardPos.JUDGE, CardType.LE_BU)
+    player2.addCard(new Card('diamond', CardSize.ACE, CardType.LE_BU), CardPos.JUDGE)
     player2.hp = 2;
 
     let player3 = new IdentityWarPlayerInfo({id: '东郭旭銮'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_cao_cao).init()
@@ -313,7 +316,7 @@ export function sampleIdentityWarContext() {
     player3.addCard(new Card('heart', CardSize.KING, CardType.ZHUA_HUANG), CardPos.EQUIP)
 
     let player4 = new IdentityWarPlayerInfo({id: '新荷'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_huang_gai).init()
-    player4.addCard(new Card('club', CardSize.JACK, CardType.TIE_SUO), CardPos.JUDGE, CardType.BING_LIANG)
+    player4.addCard(new Card('club', CardSize.JACK, CardType.BING_LIANG), CardPos.JUDGE)
     player4.hp = 1
 
     let player5 = new IdentityWarPlayerInfo({id: 'Iceberglet'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_guan_yu).init()

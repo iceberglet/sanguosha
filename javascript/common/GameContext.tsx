@@ -1,6 +1,7 @@
 import { PlayerInfo } from "./PlayerInfo";
-import { CardPos } from "./transit/CardPos";
+import { CardPos, isCardPosHidden } from "./transit/CardPos";
 import { GameModeEnum, GameMode } from "./GameMode";
+import Card from "./cards/Card";
 
 /**
  * Contains current state of the game
@@ -79,6 +80,22 @@ export default class GameContext {
     }
 
     sanitize(sendTo: string) {
-        return new GameContext(this.playerInfos.map(p => PlayerInfo.sanitize(p, sendTo)), this.gameMode)
+        return new GameContext(this.playerInfos.map(p => {
+            let copy = PlayerInfo.sanitize(p, sendTo)
+            //restore the cards
+            if(copy.player.id === p.player.id) {
+                copy.cards = p.cards
+            } else {
+                let cards = new Map<CardPos, Card[]>()
+                p.cards.forEach((v, k, m) => cards.set(k, v.map((c, i) => {
+                    if(isCardPosHidden(k)) {
+                        return Card.DUMMY
+                    }
+                    return c
+                })))
+                copy.cards = cards
+            }
+            return copy
+        }), this.gameMode)
     }
 }

@@ -10,10 +10,9 @@ import IdentityWarPlayerInfo from "../../game-mode-identity/IdentityWarPlayerInf
 import FactionWarGeneral from "../../game-mode-faction/FactionWarGenerals"
 import FactionPlayerInfo from "../../game-mode-faction/FactionPlayerInfo"
 import { Stage } from "../Stage"
-import { TextFlashEffect, DamageEffect, TransferCardEffect, CurrentPlayerEffect } from '../transit/EffectTransit';
+import { TextFlashEffect, DamageEffect, CardTransit, CurrentPlayerEffect } from '../transit/EffectTransit';
 import { FWCard } from "../../game-mode-faction/FactionWarCardSet"
 import RoundStat from "../RoundStat"
-import { WorkflowTransit } from "../transit/WorkflowCard"
 
 
 export type Payload = {
@@ -147,7 +146,7 @@ Serde.register(Object)
 
 Serde.register(TextFlashEffect)
 Serde.register(DamageEffect)
-Serde.register(TransferCardEffect)
+Serde.register(CardTransit)
 Serde.register(CurrentPlayerEffect)
 Serde.register(LoginMessage)
 Serde.register(ServerHintTransit)
@@ -166,7 +165,6 @@ Serde.register(General)
 Serde.register(Package)
 Serde.register(Faction)
 Serde.register(Identity)
-Serde.register(WorkflowTransit)
 Serde.register(Rescind)
 Serde.register(RoundStat)
 Serde.register(Button)

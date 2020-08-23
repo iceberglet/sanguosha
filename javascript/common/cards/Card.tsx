@@ -120,16 +120,17 @@ export class CardType {
     public isBasic(): boolean {
         return this.genre === 'basic'
     }
-
-    public initiateFlow(): boolean {
-        return this.isNonDelayedRuse()
-    }
 }
 
 export default class Card implements ICard {
     static DUMMY = new Card('none', null, CardType.BACK)
     static counter = 0
     public id: string
+    
+    //imposed as a different card
+    public as?: CardType
+    public description?: string
+
     public constructor(public readonly suit: Suit, public readonly size: CardSize, public readonly type: CardType){
         this.id = [suit, size?.symbol, type?.name].join('_')
     }

@@ -5,12 +5,11 @@ import {PlayerInfo} from '../../common/PlayerInfo'
 
 export class EquipOp {
 
+    //todo: there are many other ways to equip??
     public constructor(public readonly beneficiary: string, 
         public readonly card: Card, 
-        public readonly source: string = null) {
-        if(!source) {
-            source = beneficiary
-        }
+        public readonly sourcePos: CardPos = CardPos.HAND,
+        public readonly source: string = beneficiary) {
     }
 
     public async perform(manager: GameManager) {
@@ -26,8 +25,9 @@ export class EquipOp {
             await new UnequipOp(this.beneficiary, replace, this.source).perform(manager)
         }
 
-        newOwner.addCard(this.card, CardPos.EQUIP)
-        manager.broadcast(newOwner, PlayerInfo.sanitize)
+        manager.transferCards(this.source, this.beneficiary, this.sourcePos, CardPos.EQUIP, [this.card])
+        // newOwner.addCard(this.card, CardPos.EQUIP)
+        // manager.broadcast(newOwner, PlayerInfo.sanitize)
 
         await manager.afterFlowDone.publish(this, manager.currPlayer().player.id)
     } 
@@ -48,10 +48,8 @@ export class UnequipOp {
 
         await manager.beforeFlowHappen.publish(this, manager.currPlayer().player.id)
 
-        manager.sendToWorkflow(this.loser, CardPos.EQUIP, [{
-            cardId: this.card.id, isDropped: true, 
-            source: this.loser, description: `${this.loser} 装备区弃置`
-        }])
+        this.card.description = `${this.loser} 装备区弃置`
+        manager.sendToWorkflow(this.loser, CardPos.EQUIP, [this.card])
 
         await manager.afterFlowDone.publish(this, manager.currPlayer().player.id)
 

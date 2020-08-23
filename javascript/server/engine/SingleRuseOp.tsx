@@ -4,10 +4,10 @@ import { ICard } from "../../common/cards/ICard";
 import { getFromAction, PlayerAction, UIPosition } from "../../common/PlayerAction";
 import { WuXieContext } from "../flows/WuXieOp";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
-import { PlayerInfo, Mark } from "../../common/PlayerInfo";
-import { CardPos } from "../../common/transit/CardPos";
+import { PlayerInfo } from "../../common/PlayerInfo";
+import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";
 import Card from "../../common/cards/Card";
-import { TransferCardEffect, TextFlashEffect } from "../../common/transit/EffectTransit";
+import { TextFlashEffect } from "../../common/transit/EffectTransit";
 
 export abstract class SingleRuse<T> extends Operation<T> {
 
@@ -44,23 +44,27 @@ export abstract class SingleRuse<T> extends Operation<T> {
 
 }
 
-function gatherCards(info: PlayerInfo): {[key: string]: Array<Card | Mark>} {
+const cardPosNames = new Map<string, CardPos>([
+    ['手牌', CardPos.HAND],
+    ['装备区', CardPos.EQUIP],
+    ['判定区', CardPos.JUDGE],
+])
 
-    let sanitized = PlayerInfo.sanitize(info, null)
-
-    return {
-        '手牌': sanitized.getCards(CardPos.HAND),
-        '装备区': sanitized.getCards(CardPos.EQUIP),
-        '判定区': sanitized.getJudgeCards()
+function gatherCards(info: PlayerInfo): {[key: string]: Array<Card>} {
+    let res: {[key: string]: Array<Card>} = {}
+    for(let n of cardPosNames.keys()) {
+        let pos = cardPosNames.get(n)
+        if(isCardPosHidden(pos)) {
+            res[n] = info.getCards(pos).map(c => Card.DUMMY)
+        } else {
+            res[n] = info.getCards(pos)
+        }
     }
+    return res
 }
 
 function findCard(info: PlayerInfo, res: CardSelectionResult): Card {
-    switch(res.rowName) {
-        case '手牌': return info.getCards(CardPos.HAND)[res.idx]
-        case '装备区': return info.getCards(CardPos.HAND)[res.idx]
-        case '判定区': return info.getJudgeCards()[res.idx].card
-    }
+    return info.getCards(cardPosNames.get(res.rowName))[res.idx]
 }
 
 export class ShunShou extends SingleRuse<void> {
@@ -84,9 +88,6 @@ export class ShunShou extends SingleRuse<void> {
         console.log('顺手牵羊成功!', resp)
         let res = resp.customData as CardSelectionResult
         let card = findCard(targetPlayer, res)
-        manager.transferCards(this.target, this.ruseAction.actionSource, null, CardPos.HAND, [card.id])
-        manager.broadcast(new TransferCardEffect(this.target, this.ruseAction.actionSource, [card.id]))
-        manager.broadcast(manager.context.getPlayer(this.ruseAction.actionSource), PlayerInfo.sanitize)
-        manager.broadcast(targetPlayer, PlayerInfo.sanitize)
+        manager.transferCards(this.target, this.ruseAction.actionSource, null, CardPos.HAND, [card])
     }
 }

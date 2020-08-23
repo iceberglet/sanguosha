@@ -1,8 +1,5 @@
 import GameManager from "../GameManager";
-import GameContext from "../../common/GameContext";
-import { PlayerInfo, Mark } from "../../common/PlayerInfo";
 import { CardType } from "../../common/cards/Card";
-import Flow, { Operation } from "../Flow";
 import { Button, PlayerAction, UIPosition, getFromAction } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { filterMap, promiseAny } from "../../common/util/Util";
@@ -113,7 +110,7 @@ export class WuXieContext {
     private processNormal=(action: PlayerAction)=>{
         let card = getFromAction(action, UIPosition.MY_HAND)[0]
         console.log(`打出了${card}作为无懈`)
-        this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [{cardId: card, source: action.actionSource}])
+        this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [this.manager.getCard(card)])
         this.manager.afterFlowDone.publish(new CardBeingPlayedEvent(action, this.manager.interpret(action.actionSource, card)), action.actionSource)
     }
 }

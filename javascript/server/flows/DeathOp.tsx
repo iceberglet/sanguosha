@@ -1,9 +1,8 @@
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import Card from "../../common/cards/Card";
-import Flow, { Operation, PlayerDeadInHisRound } from "../Flow";
+import { Operation, PlayerDeadInHisRound } from "../Flow";
 import GameManager from "../GameManager";
-import { TransferCardEffect } from "../../common/transit/EffectTransit";
 import DamageOp from "./DamageOp";
 
 
@@ -27,6 +26,7 @@ export default class DeathOp extends Operation<void> {
 
         manager.beforeFlowHappen.publish(this, this.info.player.id)
 
+        //涅槃
         if(this.abort) {
             return
         }
@@ -35,7 +35,7 @@ export default class DeathOp extends Operation<void> {
 
         //physically transfer everything
         this.toDrop.forEach(cardAndPos => {
-            manager.sendToWorkflow(this.info.player.id, cardAndPos[1], [{cardId: cardAndPos[0].id, isDropped: true}])
+            manager.sendToWorkflow(this.info.player.id, cardAndPos[1], [cardAndPos[0]])
         })
 
         //show player death. no need to sanitize anymore

@@ -4,13 +4,13 @@ import { PlayerInfo } from "../../common/PlayerInfo"
 import { GameModeEnum } from "../../common/GameMode"
 import GameContext from "../../common/GameContext"
 import { CardPos } from "../../common/transit/CardPos"
-import { WorkflowCard } from "../../common/transit/WorkflowCard"
+import Card from "../../common/cards/Card"
 
 
 export default class GameServerContext extends GameContext {
 
     deck: Deck
-    workflowCards = new ArrayList<WorkflowCard>()
+    workflowCards = new ArrayList<Card>()
 
     constructor(playerInfos: PlayerInfo[], gameMode: GameModeEnum) {
         super(playerInfos, gameMode)
@@ -31,21 +31,21 @@ export default class GameServerContext extends GameContext {
     }
 
     //将牌从玩家身上扔进workflow堆中(打出或者弃置的牌)
-    sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: WorkflowCard[]) {
-        this.removeFrom(fromPlayer, fromPos, cards.map(w => w.cardId))
+    sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: Card[]) {
+        this.removeFrom(fromPlayer, fromPos, cards.map(w => w.id))
         cards.forEach(this.workflowCards.add)
     }
 
     takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]) {
         cards.forEach(c => {
-            this.workflowCards.removeThat(w => w.cardId === c)
+            this.workflowCards.removeThat(w => w.id === c)
         })
         this.addTo(toPlayer, toPos, cards)
     }
 
     //将workflow里面的牌扔进弃牌堆
     dropWorkflowCards() {
-        this.addTo(null, CardPos.DROPPED, this.workflowCards._data.map(w => w.cardId))
+        this.addTo(null, CardPos.DROPPED, this.workflowCards._data.map(w => w.id))
         this.workflowCards.clear()
     }
     
@@ -64,23 +64,28 @@ export default class GameServerContext extends GameContext {
     }
 
     private removeFrom(fromPlayer: string, from: CardPos, cards: string[]) {
-        if(cards.length === 0) {
-            return
-        }
-        if(fromPlayer) {
-            cards.forEach(c => this.getPlayer(fromPlayer).removeCard(c))
-        } else {
-            switch(from) {
-                case CardPos.WORKFLOW:
-                    cards.forEach(c => {
-                        if(!this.workflowCards.removeThat(x => x.cardId === c)) {
-                            throw `Unable to find card ${c} in workflow cards!`
-                        }
-                    })
-                    break;
-                default:
-                    throw `Can't take cards from this weird position! ${CardPos[from]}`
+        try {
+            if(cards.length === 0) {
+                return
             }
+            if(fromPlayer) {
+                cards.forEach(c => this.getPlayer(fromPlayer).removeCard(c))
+            } else {
+                switch(from) {
+                    case CardPos.WORKFLOW:
+                        cards.forEach(c => {
+                            if(!this.workflowCards.removeThat(x => x.id === c)) {
+                                throw `Unable to find card ${c} in workflow cards!`
+                            }
+                        })
+                        break;
+                    default:
+                        throw `Can't take cards from this weird position! ${CardPos[from]}`
+                }
+            }
+        } catch (err) {
+            console.error('Failed to remove', fromPlayer, from, cards, err)
+            console.trace()
         }
     }
 

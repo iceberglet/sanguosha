@@ -5,6 +5,7 @@ export interface ICard {
     suit: Suit
     size: CardSize
     type: CardType
+    as?: CardType
 }
 
 export class CardDummy implements ICard {

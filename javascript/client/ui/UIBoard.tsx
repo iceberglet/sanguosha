@@ -12,13 +12,15 @@ import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
 import { ServerHintTransit, Rescind, HintType, CardSelectionHint } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
-import { TextFlashEffect, TransferCardEffect } from '../../common/transit/EffectTransit'
+import { TextFlashEffect, CardTransit } from '../../common/transit/EffectTransit'
 import { CardPos } from '../../common/transit/CardPos'
 import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
 import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
-import { ScreenPosObtainer, Seeker } from './ScreenPosObtainer'
+import { ScreenPosObtainer } from './ScreenPosObtainer'
 import UIMounter from '../card-panel/UIMounter'
 import { PlayerInfo } from '../../common/PlayerInfo'
+import CardTransitManager from './CardTransitManager'
+import UIMyCards from './UIMyCards'
 
 type UIBoardProp = {
     myId: string
@@ -76,9 +78,9 @@ type State = {
     cardsChecker: Checker,
     buttonChecker: Checker,
     equipChecker: Checker,
-    seeker: Seeker,
     uiRequest?: CardSelectionHint,
-    others: PlayerInfo[]
+    others: PlayerInfo[],
+    cardTransitManager: CardTransitManager
 }
 
 export default class UIBoard extends React.Component<UIBoardProp, State> {
@@ -98,7 +100,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             cardsChecker: new CheckerImpl(UIPosition.MY_HAND, context, this.refresh),
             buttonChecker: new CheckerImpl(UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new CheckerImpl(UIPosition.MY_EQUIP, context, this.refresh),
-            seeker: new Seeker(),
+            cardTransitManager: new CardTransitManager(),
             uiRequest: null,
             others: context.getRingFromPerspective(myId, false, true)
         }
@@ -123,8 +125,20 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         p.pubsub.on(TextFlashEffect, (effect: TextFlashEffect)=>{
             this.effectProducer.processEffect(effect)
         })
-        p.pubsub.on(TransferCardEffect, (effect: TransferCardEffect)=>{
-            this.effectProducer.transferCards(effect, context.getGameMode().cardManager)
+        p.pubsub.on(CardTransit, (effect: CardTransit)=>{
+            if(effect.from === effect.to) {
+                //just update the player infos
+                console.log('Card transfer on the same person', effect)
+                let f = this.props.context.getPlayer(effect.from)
+                let t = this.props.context.getPlayer(effect.to)
+                effect.cards.forEach(c => {
+                    f.removeCard(c.id)
+                    t.addCard(c, effect.toPos)
+                })
+                this.forceUpdate()
+                return
+            }
+            this.state.cardTransitManager.onCardTransfer(effect)
         })
         p.pubsub.on(FactionPlayerInfo, (info: FactionPlayerInfo)=>{
             // console.log('Received updated player info ', info)
@@ -137,21 +151,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             this.refresh()
         })
         this.dom = React.createRef()
-
-        screenPosObtainer.register(myId, (item: string)=>{
-            //is this my equipment? my judge card? my hand?
-            let div = this.state.seeker.seek(item)
-            console.log('Seeking', myId, item, div)
-            if(!div) {
-                div = this.dom.current
-            }
-            let {top, bottom, left, right} = div.getBoundingClientRect()
-            return {
-                // playerId: this.props.info.player.id,
-                x: (left + right) / 2,
-                y: (top + bottom) / 2
-            }
-        })
+        screenPosObtainer.registerObtainer(myId, this.dom)
     }
 
     refresh=()=>{
@@ -161,7 +161,8 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
 
     render() {
         let {myId, context, pubsub} = this.props
-        let {showDistance, hideCards, screenPosObtainer, others, playerChecker, cardsChecker, buttonChecker, equipChecker, seeker} = this.state
+        let {showDistance, hideCards, screenPosObtainer, others, 
+            playerChecker, cardsChecker, buttonChecker, equipChecker, cardTransitManager} = this.state
         let playerInfo = context.getPlayer(myId)
         // console.log(context.playerInfos, myId, playerInfo)
 
@@ -169,7 +170,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             <div className='top'>
                 <div className='playground'>
                     <UIPlayGround players={others} distanceComputer={context.getMyDistanceTo} pubsub={pubsub}
-                                    screenPosObtainer={screenPosObtainer} showDist={showDistance}
+                                    screenPosObtainer={screenPosObtainer} showDist={showDistance} cardTransitManager={cardTransitManager}
                                     checker={playerChecker} cardManager={context.getGameMode().cardManager}/>
                                     
                     <UIMounter selectHint={this.state.uiRequest} consumer={res => {
@@ -191,16 +192,8 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 {/* 状态 */}
                 <UIMyPlayerCard info={playerInfo} onUseSkill={(s)=>{}} elementStatus={playerChecker.getStatus(myId)} 
                                 onSelect={(s)=>playerChecker.onClicked(s)} pubsub={pubsub}/>
-                <div className='mid'>
-                    {/* 判定牌 */}
-                    <div className='my-judge'>
-                        <UIMarkRow marks={playerInfo.getJudgeCards()} seeker={seeker}/>
-                    </div>
-                    {/* 装备牌 */}
-                    <div className='my-equip'>
-                        <UIEquipGrid big={true} cards={playerInfo.getCards(CardPos.EQUIP)} checker={equipChecker} seeker={seeker}/>
-                    </div>
-                </div>
+                <UIMyCards info={playerInfo} equipChecker={equipChecker} cardsChecker={cardsChecker} 
+                            hideCards={hideCards} cardTransitManager={cardTransitManager}/>
                 <div className='player-buttons'>
                     <div className='server-hint-msg'>{context.getMsg()}</div>
                     {context.getButtons().map(b => {
@@ -215,10 +208,6 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                     <UIButton display={hideCards? '拿起牌' : '扣牌'} 
                             onClick={()=>{this.setState({hideCards: !hideCards})}} 
                             disabled={false} />
-                </div>
-                {/* 手牌 */}
-                <div className='my-cards'>
-                    <UICardRow cards={playerInfo.getCards(CardPos.HAND)} isShown={!hideCards} checker={cardsChecker} seeker={seeker}/>
                 </div>
             </div>
             <EffectProducer screenPosObtainer={screenPosObtainer} ref={effectProducer=>this.effectProducer = effectProducer} />

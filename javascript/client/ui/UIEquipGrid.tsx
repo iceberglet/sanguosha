@@ -5,13 +5,11 @@ import { Suits, toChinese } from '../../common/util/Util'
 import { Checker, ElementStatus } from './UIBoard'
 import { ClassFormatter } from '../../common/util/Togglable'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
-import { Seeker } from './ScreenPosObtainer'
 
 type EquipGridProp = {
     cards: Card[],
     big: boolean,
-    checker?: Checker,
-    seeker?: Seeker
+    checker?: Checker
 }
 
 export default function UIEquipGrid(prop: EquipGridProp) {
@@ -32,7 +30,7 @@ export default function UIEquipGrid(prop: EquipGridProp) {
                                 .done()
                     return <CSSTransition key={c.id} timeout={{enter: 300, exit: 600}} classNames='equipment'>
                         <div className={clazz} onClick={()=>prop.checker?.onClicked(c.id)} style={getStyle(c.type.genre)}>
-                            <Equip key={c.id} big={prop.big} card={c} seeker={prop.seeker}/>
+                            <Equip key={c.id} big={prop.big} card={c} />
                         </div>
                     </CSSTransition>
                 })
@@ -42,15 +40,14 @@ export default function UIEquipGrid(prop: EquipGridProp) {
 
 type EquipProp = {
     card: Card,
-    big: boolean,
-    seeker?: Seeker
+    big: boolean
 }
 
 function Equip(p: EquipProp) {
     if(!p.card) {
         return <div />
     }
-    return <div className='equip' ref={r => p.seeker?.set(p.card.id, r)}>
+    return <div className='equip'>
             <img key='1' className='corner corner-top-left' src={'equips/corner.png'} />
             <img key='2' className='corner corner-btm-left' src={'equips/corner.png'} />
             <img key='3' className='corner corner-top-right' src={'equips/corner.png'} />

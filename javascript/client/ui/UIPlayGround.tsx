@@ -1,22 +1,14 @@
 import * as React from 'react'
-import UIHpCol from './UIHpCol'
-import { UIMarkRow } from './UICardRow'
 
-import './ui-board.scss'
-import UIEquipGrid from './UIEquipGrid'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import { Checker, ElementStatus } from './UIBoard'
-import { Mask, toChinese } from '../../common/util/Util'
-import { ClassFormatter } from '../../common/util/Togglable'
 import Pubsub from '../../common/util/PubSub'
 import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
-import { getDamageSpriteSheet } from '../effect/SpriteSheet'
-import { CardPos } from '../../common/transit/CardPos'
-import { StageDeclarer } from './UIMyPlayerCard'
 import { UIWorkflowCardRow } from './UIWorkflowRow'
 import { CardManager } from '../../common/cards/Card'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
-import './ui-player-card.scss'
+import { UIPlayerCard } from './UIPlayerCard'
+import CardTransitManager, { DeckEndpoint } from './CardTransitManager'
 
 const damageDuration = 2000
 
@@ -27,7 +19,8 @@ type PlayGroundProp = {
     showDist: boolean,
     checker: Checker,
     pubsub: Pubsub,
-    cardManager: CardManager
+    cardManager: CardManager,
+    cardTransitManager: CardTransitManager
 }
 
 type State = {
@@ -63,7 +56,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
     }
 
     render() {
-        let {players, screenPosObtainer, showDist, distanceComputer, checker, cardManager, pubsub} = this.props
+        let {players, screenPosObtainer, showDist, distanceComputer, checker, cardManager, pubsub, cardTransitManager} = this.props
         let {damageAnimation, currentPlayerEffect} = this.state
         let number = players.length
         let rows = 3
@@ -77,7 +70,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
             return <UIPlayerCard key={i} info={p} dist={showDist && !p.isDead && distanceComputer(p.player.id)} 
                         screenPosObtainer={screenPosObtainer} isDamaged={damageAnimation.has(p.player.id)}
                         elementStatus={p.isDead? ElementStatus.NORMAL : checker.getStatus(p.player.id)} 
-                        effect={currentPlayerEffect}
+                        effect={currentPlayerEffect} cardTransitManager={cardTransitManager}
                         onSelect={s=>checker.onClicked(s)}/>
         }
 
@@ -97,78 +90,9 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                 {players.filter((p, i) => i === 0 || i === players.length - 1).map(cardGetter)}
             </div>}
             {/* render any cards on the table */}
-            <UIWorkflowCardRow cardManager={cardManager} pubsub={pubsub} screenPosObtainer={screenPosObtainer}/>
+            <DeckEndpoint cardTransitManager={cardTransitManager}/>
+            <UIWorkflowCardRow cardManager={cardManager} screenPosObtainer={screenPosObtainer} cardTransitManager={cardTransitManager}/>
         </div>
     }
 
-}
-
-type CardProp = {
-    info: PlayerInfo,
-    screenPosObtainer: ScreenPosObtainer,
-    dist?: number,
-    effect: CurrentPlayerEffect,
-    elementStatus: ElementStatus,
-    isDamaged: boolean,
-    onSelect: (s: string)=>void
-}
-
-export class UIPlayerCard extends React.Component<CardProp, object> {
-
-    dom: React.RefObject<any>
-
-    constructor(p: CardProp) {
-        super(p)
-        this.dom = React.createRef()
-        p.screenPosObtainer.registerObtainer(p.info.player.id, this.dom)
-    }
-
-    onClick=()=>{
-        if(!this.props.info.isDead && this.props.elementStatus.isSelectable) {
-            console.log('selected', this.props.info.player.id)
-            this.props.onSelect(this.props.info.player.id)
-        }
-    }
-
-    render() {
-        let {info, dist, elementStatus, isDamaged, effect} = this.props
-        let inMyTurn = effect.player === info.player.id
-        let clazz = new ClassFormatter('ui-player-card')
-                        .and(!info.isDead && elementStatus.isSelectable, 'selectable') //can never select dead ppl
-                        .and(elementStatus === ElementStatus.SELECTED, 'selected')
-                        .and(isDamaged, 'damaged')
-                        .and(inMyTurn, 'in-turn')
-                        .done()
-        //todo: highlight, click
-        return <div className={clazz} ref={this.dom} onClick={this.onClick}>
-            {info.draw()}
-            
-            <Mask isMasked={info.isDrunk} maskClass={'drunk'} />
-            <Mask isMasked={info.isTurnedOver} maskClass={'turned-over'} />
-            {info.isTurnedOver && <div className='occupy center'>翻面</div>}
-            
-
-            {dist && <div className='distance occupy'>{dist}</div>}
-
-            {info.isDead || 
-                <div>
-                    <div className='hand'>{info.getCards(CardPos.HAND).length}</div>
-                    <div className='player-hp'>
-                        <UIHpCol current={info.hp} total={info.maxHp} />
-                    </div>
-                    <div className='equipments'>
-                        <UIEquipGrid big={false} cards={info.getCards(CardPos.EQUIP)}/>
-                    </div>
-                    <div className='judge'>
-                        <UIMarkRow marks={info.getJudgeCards()} />
-                    </div>
-                </div>
-            }
-            {inMyTurn && <StageDeclarer stage={effect.stage} className='left-btm-corner' />}
-            {isDamaged && <div className='occupy'>{getDamageSpriteSheet()}</div>}
-            {info.isDead && <img className='death' src='ui/dead.png'/>}
-            <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
-            <div className='seat-number'>{toChinese(info.idx)}</div>
-        </div>
-    }
 }

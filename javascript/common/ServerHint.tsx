@@ -1,7 +1,6 @@
 import RoundStat, { ForbiddenTypes } from "./RoundStat"
 import { Button } from "./PlayerAction"
 import Card from "./cards/Card"
-import { Mark } from "./PlayerInfo"
 
 
 export enum HintType {
@@ -44,7 +43,7 @@ export class Rescind {
 
 export type CardSelectionHint = {
     title: string,
-    rowsOfCard: {[key: string]: Array<Card | Mark>},
+    rowsOfCard: {[key: string]: Array<Card>},
     mode: 'choose' | 're-arrange'
     numberOnTop?: number
 }

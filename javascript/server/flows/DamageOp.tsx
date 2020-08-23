@@ -1,12 +1,10 @@
 import { Operation } from "../Flow";
 import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { PlayerAction, isCancel, Button } from "../../common/PlayerAction";
+import { PlayerAction } from "../../common/PlayerAction";
 import { DamageEffect } from "../../common/transit/EffectTransit";
-import { HintType } from "../../common/ServerHint";
-import HealOp from "./HealOp";
 import DeathOp from "./DeathOp";
-import { TextFlashEffect } from "../../common/transit/EffectTransit";
+import AskSavingOp from "./AskSavingOp";
 
 export enum DamageType {
     /**
@@ -27,73 +25,78 @@ export enum DamageType {
     ENERGY
 }
 
+function isElemental(type: DamageType) {
+    return type === DamageType.FIRE || type === DamageType.THUNDER
+}
+
 export class DyingEvent {
     public constructor(public who: string){}
 }
 
 export default class DamageOp extends Operation<void> {
 
+    public readonly originalDamage: number
+
     public constructor(public source: PlayerInfo, 
         public target: PlayerInfo, 
         public amount: number,
         public cause: PlayerAction,
-        public type: DamageType = DamageType.NORMAL) {
+        public type: DamageType = DamageType.NORMAL,
+        public doChain: boolean = true) {
         super()
+        this.originalDamage = amount
     }
 
     public async perform(manager: GameManager): Promise<void> {
         let targetId = this.target.player.id
 
-        //裸衣? 伤害加深?
+        //藤甲伤害加深?
         await manager.beforeFlowHappen.publish(this, targetId)
 
-        //伤害可以被防止
-        if(this.amount > 0) {
-            this.target.damage(this.amount)
-            //todo: 铁索连环
-            
-            //what's done is done
-            manager.broadcast(new DamageEffect(targetId))
-            manager.broadcast(this.target, PlayerInfo.sanitize)
-
-            //死没死?
-            if(this.target.isDying()) {
-                //求桃
-                let toAsk = manager.context.getRingFromPerspective(manager.currPlayer().player.id, true, false)
-                for(let i = 0; i < toAsk.length && this.target.isDying(); ++i) {
-                    let p = toAsk[i]
-                    let thisPersonAgree = false
-                    do {
-                        let require = 1 - this.target.hp
-                        let response = await manager.sendHint(p.player.id, {
-                            hintType: HintType.PEACH,
-                            hintMsg: `${p.player.id === targetId? '你' : targetId} 濒死求桃 (还需要${require}个)`,
-                            sourcePlayer: targetId,
-                            extraButtons: [Button.CANCEL]
-                        })
-                        if(!isCancel(response)) {
-                            //金主爸爸!!
-                            thisPersonAgree = true
-                            manager.broadcast(new TextFlashEffect(p.player.id, [targetId], '桃'))
-                            await new HealOp(p, this.target, 1, response).perform(manager)
-                        } else {
-                            thisPersonAgree = false
-                        }
-                    } while (this.target.isDying() && thisPersonAgree)
-                }
-
-                //拯救不力, 还是死了
-                if(this.target.isDying()) {
-                    //this will throw an error and to be caught by game manager
-                    await new DeathOp(this.target, this).perform(manager)
-                }
-            }
-
-            //遗计? 反馈? 刚烈?
-            await manager.afterFlowDone.publish(this, targetId)
+        //伤害可以被防止(曹冲? 沮授?)
+        if(this.amount <= 0) {
+            return
         }
 
-    }
 
+        this.target.damage(this.amount)
+        
+        //what's done is done
+        manager.broadcast(new DamageEffect(targetId))
+        manager.broadcast(this.target, PlayerInfo.sanitize)
+
+        //死没死?
+        if(this.target.isDying()) {
+            //求桃
+            let toAsk = manager.context.getRingFromPerspective(manager.currPlayer().player.id, true, false)
+            for(let i = 0; i < toAsk.length && this.target.isDying(); ++i) {
+                await new AskSavingOp(this.target, toAsk[i]).perform(manager)
+            }
+
+            //拯救不力, 还是死了
+            if(this.target.isDying()) {
+                //this will throw an error and to be caught by game manager
+                await new DeathOp(this.target, this).perform(manager)
+            }
+        }
+
+        //遗计? 反馈? 刚烈?
+        await manager.afterFlowDone.publish(this, targetId)
+
+        //铁索连环
+        if(isElemental(this.type) && this.target.isChained && this.doChain) {
+            this.target.isChained = false
+            manager.broadcast(this.target, PlayerInfo.sanitize)
+
+            let chained = manager.getSortedByCurr().filter(p => p.isChained)
+            for(let player of chained) {
+                //player might die half way...
+                if(!player.isDead) {
+                    this.target.isChained = false
+                    await new DamageOp(this.source, player, this.originalDamage, this.cause, this.type, false).perform(manager)
+                }
+            }
+        }
+    }
     
 }

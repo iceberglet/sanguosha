@@ -7,12 +7,11 @@ import LoginMessage from './server/Login';
 import GameManager, { sampleIdentityWarContext, sampleFactionWarContext } from './server/GameManager';
 import { PlayerRegistry } from './server/PlayerRegistry';
 import { ServerHintTransit, HintType } from './common/ServerHint';
-import { TextFlashEffect, DamageEffect, TransferCardEffect, CurrentPlayerEffect } from './common/transit/EffectTransit';
+import { TextFlashEffect, DamageEffect, CurrentPlayerEffect } from './common/transit/EffectTransit';
 import { Stage } from './common/Stage';
 import { PlayerInfo } from './common/PlayerInfo';
 import { CardPos } from './common/transit/CardPos';
 import RoundStat from './common/RoundStat';
-import { WorkflowTransit, WorkflowCard } from './common/transit/WorkflowCard';
 import Card, { CardType } from './common/cards/Card';
 
 let app = express()

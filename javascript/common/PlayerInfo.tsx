@@ -6,12 +6,6 @@ import { ICard } from "./cards/ICard"
 import { CardPos, isSharedPosition, isCardPosHidden } from "./transit/CardPos"
 import { ReactElement } from "react"
 
-
-export type Mark = {
-    card: Card,
-    as: CardType
-}
-
 export class Identity {
 
     public static ZHU_GONG = new Identity('zhu_gong', '主公')
@@ -55,8 +49,7 @@ export abstract class PlayerInfo {
     //吴六剑?
     reachModifier: number = 0
 
-    protected cards = new Map<CardPos, Card[]>()
-    protected judges: Mark[] = []
+    cards = new Map<CardPos, Card[]>()
     attributes: {[key: string]: any}
     
     cardInterpreter: CardInterpreter = NoopInterpreter
@@ -92,7 +85,6 @@ export abstract class PlayerInfo {
 
     abstract drawSelf(): ReactElement | ReactElement[];
 
-
     heal(amount: number) {
         //sometimes max hp changes O.o
         this.hp = Math.min(this.maxHp, this.hp + amount)
@@ -107,27 +99,20 @@ export abstract class PlayerInfo {
         this.hp = Math.min(this.hp, this.maxHp)
     }
 
-    addCard(card: Card, pos: CardPos, as: CardType = null) {
+    addCard(card: Card, pos: CardPos) {
         if(isSharedPosition(pos)) {
-            throw `Invalid Position. Player can't get cards to position ${pos}`
+            throw `Invalid Position. Player can't get cards to position ${CardPos[pos]}`
         }
-        if(pos === CardPos.JUDGE) {
-            if(!(as || card.type).isDelayedRuse()) {
-                throw `必须加判定牌兄dei!!! ${card.id} ${as?.name}`
-            }
-            if(as) {
-                this.judges.push({card, as})
-            } else if(card.type.isDelayedRuse()) {
-                this.judges.push({card, as: card.type})
-            } else {
-                throw `Invalid... trying to add judge card but it's not a judge card nor pretending to be one [${card}] [${as}]`
-            }
-        } else {
-            //todo: validate for equip cards
-            let arr = this.cards.get(pos) || []
-            arr.push(card)
-            this.cards.set(pos, arr)
+        if(pos === CardPos.JUDGE && !(card.as || card.type).isDelayedRuse()) {
+            throw `必须加判定牌兄dei!!! ${card.id} ${card.as?.name} ${card.type.name}`
         }
+        if(pos === CardPos.EQUIP && !card.type.isEquipment()) {
+            throw `必须加装备牌兄dei!!! ${card.id} ${card.type.name}`
+        }
+        console.log('Adding Card To ', this.player.id, card.id, CardPos[pos])
+        let arr = this.cards.get(pos) || []
+        arr.push(card)
+        this.cards.set(pos, arr)
     }
 
     /**
@@ -135,17 +120,14 @@ export abstract class PlayerInfo {
      * 如果没能找到, throw error
      * @param cardId 
      */
-    removeCard(cardId: string) {
-        let found = false
-        this.cards.forEach(cs => {
-            found = found || !!takeFromArray(cs, c => c.id === cardId)
-        })
-        if(!found) {
-            found = !!takeFromArray(this.judges, m => m.card.id === cardId)
+    removeCard(cardId: string): CardPos {
+        for(let kv of this.cards) {
+            if(!!takeFromArray(kv[1], c => c.id === cardId)) {
+                console.log('Removing Card From ', this.player.id, cardId, CardPos[kv[0]])
+                return kv[0]
+            }
         }
-        if(!found) {
-            throw `Cannot find card to remove ${cardId} in player ${this.player.id}`
-        }
+        throw `Cannot find card to remove ${cardId} in player ${this.player.id}. currently has: ${this.getAllCards().map(c => c[0].id).toString()}`
     }
 
     getReach(): number {
@@ -163,12 +145,7 @@ export abstract class PlayerInfo {
                 return true
             }
         }
-        return this.getJudgeCards().length > 0
     }
-
-    getJudgeCards(): Mark[] {
-        return this.judges || []
-    } 
 
     findCardAt(pos: CardPos, genre: CardGenre): Card {
         return this.cards.get(pos)?.find(c => c.type.genre === genre)
@@ -203,23 +180,13 @@ export abstract class PlayerInfo {
         this.cards.forEach((v, k)=>{
             v.forEach(cc => cards.push([cc, k]))
         })
-        this.judges.forEach(m => {
-            cards.push([m.card, CardPos.JUDGE])
-        })
         return cards
     }
 
     //------------------- Serde -----------------
     static sanitize(info: PlayerInfo, sendTo?: string): PlayerInfo {
         let copy = info.sanitize(sendTo)
-        let cards = new Map<CardPos, Card[]>()
-        copy.cards.forEach((v, k, m) => cards.set(k, v.map((c, i) => {
-            if(isCardPosHidden(k) && sendTo !== info.player.id) {
-                return Card.DUMMY
-            }
-            return c
-        })))
-        copy.cards = cards
+        delete copy.cards
         return copy
     }
 }

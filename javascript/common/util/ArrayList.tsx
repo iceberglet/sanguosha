@@ -19,6 +19,29 @@ export default class ArrayList<T> {
         return true
     }
 
+    public removeAllThat(filter: (t: T)=>boolean): T[] {
+        let idx: number = -1, res: T[] = []
+        do {
+            idx = this._data.findIndex(filter)
+            if(idx > -1) {
+                res.push(...this._data.splice(idx, 1))
+            }
+        } while(idx > -1)
+        return res
+    }
+
+    public filter(callbackfn: (value: T, index: number, array: T[]) => boolean): T[] {
+        return this._data.filter(callbackfn)
+    }
+
+    public forEach(callbackfn: (value: T, index: number, array: T[]) => void) {
+        this._data.forEach(callbackfn)
+    }
+
+    public map<U>(callbackfn: (value: T, index: number, array: T[]) => U): U[] {
+        return this._data.map(callbackfn)
+    }
+
     public remove(t: T): boolean {
         return this.removeThat(tt => tt === t)
     }

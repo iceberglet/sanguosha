@@ -43,7 +43,7 @@ export default class DodgeOp extends Operation<boolean> {
                     throw `Player played dodge cards but not one card!!!! ${response.actionSource} ${cards}`
                 }
 
-                manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [{cardId: cards[0].id, source: response.actionSource}])
+                manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [cards[0]])
                 this.success = true
             }
         }

@@ -1,9 +1,8 @@
 import { Operation } from "../Flow";
 import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { PlayerAction, isCancel } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
-import { TransferCardEffect } from "../../common/transit/EffectTransit";
+import { CardTransit } from "../../common/transit/EffectTransit";
 
 //摸牌阶段
 export default class TakeCardOp extends Operation<void> {
@@ -26,7 +25,7 @@ export default class TakeCardOp extends Operation<void> {
     public async do(manager: GameManager) {
         let cards = manager.context.deck.getCardsFromTop(this.amount)
         //animation of card transfer. need to sanitize
-        manager.broadcast(new TransferCardEffect(null, this.player.player.id, cards.map(c => c.id)), TransferCardEffect.toTransit)
+        manager.broadcast(CardTransit.fromDeck(this.player.player.id, cards), CardTransit.sanitize)
         //add cards from deck to player
         cards.forEach(c => this.player.addCard(c, CardPos.HAND))
         //update this player's info

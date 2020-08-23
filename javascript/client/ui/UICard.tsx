@@ -1,12 +1,12 @@
 import * as React from 'react'
-import Card, { CardType } from '../../common/cards/Card'
+import Card from '../../common/cards/Card'
 import './ui-card.scss'
-import { Suits, Mask } from '../../common/util/Util'
+import { Suits } from '../../common/util/Util'
 import { ElementStatus } from './UIBoard'
 import { ClassFormatter } from '../../common/util/Togglable'
-import { Seeker } from './ScreenPosObtainer'
 
 type CallBack = (id: Card)=>void
+type PosCallBack = (id: string, ref: React.RefObject<HTMLDivElement>)=>void
 
 type CardProp = {
     isShown: boolean
@@ -17,9 +17,8 @@ type CardProp = {
     onMouseEnter?: CallBack
     onMouseLeave?: CallBack
     onMouseStay?: CallBack
-    seeker?: Seeker
+    onPos?: PosCallBack
     elementStatus: ElementStatus
-    as?: CardType
 }
 
 export default function UICard(prop: CardProp) {
@@ -29,14 +28,23 @@ export default function UICard(prop: CardProp) {
     let onMouseEnter = () => prop.onMouseEnter && prop.onMouseEnter(prop.card)
     let onMouseLeave = () => prop.onMouseLeave && prop.onMouseLeave(prop.card)
     let onMouseStay = () => prop.onMouseStay && prop.onMouseStay(prop.card)
+    let myRef = React.useRef()
 
-    let {elementStatus} = prop
+    React.useEffect(()=>{
+        prop.onPos && prop.onPos(prop.card.id, myRef)
+        return ()=>{
+            prop.onPos && prop.onPos(prop.card.id, null)
+        }
+    }, [])
+
+    let {elementStatus, card, isShown} = prop
     let clazz = new ClassFormatter('ui-card')
                 .and(elementStatus.isSelectable, 'selectable')
                 .and(elementStatus === ElementStatus.SELECTED, 'selected')
+                .and(elementStatus === ElementStatus.DISABLED, 'darkened')
                 .done()
 
-    if(!prop.isShown || prop.card.isDummy()) {
+    if(!isShown || card.isDummy()) {
         return <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} 
                     onClick={onMouseClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
             <img className='itself'
@@ -45,17 +53,16 @@ export default function UICard(prop: CardProp) {
         </div>
     }
     return <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseOver={onMouseStay}
-                onClick={onMouseClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} ref={r => prop.seeker?.set(prop.card.id, r)}>
+                onClick={onMouseClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} ref={myRef}>
         <img className='itself' 
-            src={`cards/${prop.card.type.id}.png`} 
-            alt={prop.card.type.id}/>
+            src={`cards/${card.type.id}.png`} 
+            alt={card.type.id}/>
         <div className='top-left-container'>
-            <div className={'number ' + prop.card.suit}>
-                {prop.card.size.symbol}
+            <div className={'number ' + card.suit}>
+                {card.size.symbol}
             </div>
-            <div className={'suit ' + prop.card.suit}>{Suits[prop.card.suit]}</div>
+            <div className={'suit ' + card.suit}>{Suits[card.suit]}</div>
         </div>
-        {prop.as && <div className='as center'>{prop.as.name}</div>}
-        <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
+        {card.as && <div className='as center'>{card.as.name}</div>}
     </div>
 }

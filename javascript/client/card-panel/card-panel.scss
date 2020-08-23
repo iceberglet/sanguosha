@@ -49,6 +49,7 @@
                 transition: 0.2s;
             }
 
+            //this causes hovered items to be "expanded"
             .card-wrapper:not(:last-child):hover {
                 width: 40px;
             }

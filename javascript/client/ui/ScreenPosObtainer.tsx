@@ -26,26 +26,3 @@ export class ScreenPosObtainer {
         return getter(item)
     }
 }
-
-export class Seeker {
-
-    private map = new Map<string, HTMLDivElement>()
-
-    public set(id: string, ref: HTMLDivElement) {
-        this.map.set(id, ref)
-    }
-
-    /**
-     * Seek an item
-     * @param item to look for
-     */
-    public seek(item: string): HTMLDivElement {
-        return this.map.get(item)
-    }
-}
-
-// export function wrapAroundRef(ref: React.RefObject<any>) {
-//     return ()=>{
-//         return 
-//     }
-// }

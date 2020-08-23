@@ -3,7 +3,6 @@ import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { isCancel, UIPosition, getFromAction } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
-import { TransferCardEffect } from "../../common/transit/EffectTransit";
 import { HintType } from "../../common/ServerHint";
 
 //弃牌阶段
@@ -38,11 +37,13 @@ export default class DropCardOp extends Operation<void> {
             //remove these cards
             let cards = getFromAction(resp, UIPosition.MY_HAND)//.map(id => manager.cardManager().getCard(id))
 
-            manager.sendToWorkflow(myId, CardPos.HAND, [...cards.map(c => ({cardId: c, isDropped: true}))])
-            //remove
-            manager.broadcast(this.player, PlayerInfo.sanitize)
-            //animation of card transfer. no need to sanitize
-            // manager.broadcast(new TransferCardEffect(myId, null, cards))
+            let dropped = cards.map(c => {
+                let card = manager.getCard(c)
+                delete card.as
+                card.description = `[${myId}]弃牌`
+                return card
+            })
+            manager.sendToWorkflow(myId, CardPos.HAND, dropped, true)
         }
 
         await manager.afterFlowDone.publish(this, myId);
