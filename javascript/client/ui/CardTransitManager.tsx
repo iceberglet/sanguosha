@@ -60,6 +60,8 @@ export type CardAndCoor = {
     card: Card
 }
 
+const sep = 36
+
 export class DeckEndpoint extends React.Component<{cardTransitManager: CardTransitManager}, any> implements CardEndpoint {
 
     dom: React.RefObject<HTMLDivElement> = React.createRef()
@@ -79,11 +81,10 @@ export class DeckEndpoint extends React.Component<{cardTransitManager: CardTrans
     
     performRemovalAnimation(cards: Card[], cardPos: CardPos, doNotRemove?: boolean): Array<CardAndCoor> {
         let coor = getCardCoor(this.dom.current)
-        let sep = 36
         return cards.map((c, i) => ({
             card: c, coor: {
-                y: coor.y - CardHeight / 2, 
-                x: coor.x + (i - cards.length / 2) * sep - CardWidth / 2
+                y: coor.y, 
+                x: coor.x + (i - cards.length / 2) * sep
             }
         }))
     }
@@ -143,9 +144,12 @@ export class DefaultCardEndpoint extends React.Component<Prop, State> implements
     //update to my coordinates
     updateCards(cards: InCardAndCoor[]): void {
         this.setState(s => {
-            cards.forEach(cp => {
-                let myCoor = getCardCoor(this.dom.current)
-                s.transit.get(cp.uuid).coor = this.offsetMyCoor(myCoor)
+            cards.forEach((cp, i) => {
+                let myCoor = this.offsetMyCoor(getCardCoor(this.dom.current))
+                s.transit.get(cp.uuid).coor = {
+                    y: myCoor.y, 
+                    x: myCoor.x + (i - cards.length / 2) * sep
+                }
             })
             return s
         })

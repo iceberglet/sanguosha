@@ -16,14 +16,18 @@ export enum CardPos {
 
     //额外的因ability的地方: 田？ 权？ 七星？
     TIAN,
-    QUAN,
-    QI_XING
 }
 
 export function isSharedPosition(pos: CardPos) {
     return pos < CardPos.HAND
 }
 
+/**
+ * True if this card position is not visible to other players
+ * @param pos 
+ */
 export function isCardPosHidden(pos: CardPos) {
-    return pos === CardPos.HAND || pos === CardPos.QI_XING
+    return pos !== null && pos !== undefined && 
+            (pos === CardPos.DECK_TOP || pos === CardPos.DECK_BTM || 
+                pos === CardPos.HAND)
 }
