@@ -54,10 +54,14 @@ function gatherCards(info: PlayerInfo): {[key: string]: Array<Card>} {
     let res: {[key: string]: Array<Card>} = {}
     for(let n of cardPosNames.keys()) {
         let pos = cardPosNames.get(n)
+        let cards = info.getCards(pos)
+        if(cards.length === 0) {
+            continue
+        }
         if(isCardPosHidden(pos)) {
-            res[n] = info.getCards(pos).map(c => Card.DUMMY)
+            res[n] = cards.map(c => Card.DUMMY)
         } else {
-            res[n] = info.getCards(pos)
+            res[n] = cards
         }
     }
     return res
@@ -88,6 +92,34 @@ export class ShunShou extends SingleRuse<void> {
         console.log('顺手牵羊成功!', resp)
         let res = resp.customData as CardSelectionResult
         let card = findCard(targetPlayer, res)
+        delete card.description
+        delete card.as
         manager.transferCards(this.target, this.ruseAction.actionSource, cardPosNames.get(res.rowName), CardPos.HAND, [card])
+    }
+}
+
+export class GuoHe extends SingleRuse<void> {
+
+    public constructor(public ruseAction: PlayerAction, public ruseCard: ICard) {
+        super(ruseAction, ruseCard)
+    }
+
+    public async doPerform(manager: GameManager) {
+        let targetPlayer = manager.context.getPlayer(this.target)
+
+        let resp = await manager.sendHint(this.ruseAction.actionSource, {
+            hintType: HintType.UI_PANEL,
+            hintMsg: '请选择对方一张牌',
+            cardSelectHint: {
+                rowsOfCard: gatherCards(targetPlayer),
+                title: `过河拆桥 > ${this.target}`,
+                mode: 'choose'
+            }
+        })
+        console.log('过河拆桥成功!', resp)
+        let res = resp.customData as CardSelectionResult
+        let card = findCard(targetPlayer, res)
+        card.description = `${this.target} 被弃置`
+        manager.sendToWorkflow(this.target, cardPosNames.get(res.rowName), [card])
     }
 }

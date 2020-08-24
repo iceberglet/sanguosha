@@ -36,7 +36,7 @@ export default class GameManager {
     // public pubsub = new Pubsub()
 
     private currentFlows = new ArrayList<Flow>()
-    private currEffect: CurrentPlayerEffect
+    private currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
     private resolver: PlayerActionResolver
 
     public constructor(public context: GameServerContext, private registry: PlayerRegistry) {
@@ -83,10 +83,35 @@ export default class GameManager {
 
 
     //--------------- network interaction -------------------
-    public async sendHint(player: string, hint: ServerHint): Promise<PlayerAction> {
+    /**
+     * Sending a hint to player for action
+     * @param player target for the hint
+     * @param hint 
+     */
+    public async sendHint(player: string, hint: ServerHint, isCollective: boolean = false): Promise<PlayerAction> {
         hint.roundStat = this.roundStats
+        if(!isCollective) {
+            this.setPending([player])
+        }
         return await this.registry.sendServerAsk(player, hint)
     }
+
+    /**
+     * Show pending effect on the players
+     * @param players
+     */
+    public setPending(players: string[]) {
+        this.currEffect.pendingUser = new Set<string>(players)
+        this.broadcast(this.currEffect)
+    }
+
+    public setPlayerAndStage(player: string, stage: Stage) {
+        this.currEffect.player = player
+        this.currEffect.stage = stage
+        this.currEffect.pendingUser = new Set<string>([player])
+        this.broadcast(this.currEffect)
+    }
+
 
     /**
      * Rescind all server hints. ignore there responses, if any
@@ -94,6 +119,7 @@ export default class GameManager {
     public async rescindAll() {
         //send such request to all players
         this.broadcast(new Rescind())
+        this.setPending([])
         //clear our cache
         this.registry.rescindAll()
     }
@@ -201,7 +227,7 @@ export default class GameManager {
         this.currentFlows.addToFront(new StageStartFlow(info, stage))
         await this.processFlows()
         if(!this.roundStats.skipStages.get(stage)) {
-            this.currEffect = new CurrentPlayerEffect(this.currPlayer().player.id, stage)
+            this.setPlayerAndStage(this.currPlayer().player.id, stage)
             this.broadcast(this.currEffect)
             if(midProcessor) {
                 await midProcessor()

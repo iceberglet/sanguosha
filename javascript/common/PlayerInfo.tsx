@@ -46,7 +46,14 @@ export abstract class PlayerInfo {
     isDrunk: boolean = false
     isDead: boolean = false
     skills: string[]
-    //吴六剑?
+
+    //在别人想和你计算distance的时候用到
+    //当你有 +1 马的时候别人计算与你的距离+1
+    //当你有 -1 马的时候你与别人计算距离-1
+    //当你有 马术 神曹操技能的时候也会计算这个
+    distanceModifier: number = 0
+
+    //当你计算你的攻击距离的时候用到. 吴六剑?
     reachModifier: number = 0
 
     cards = new Map<CardPos, Card[]>()
@@ -116,23 +123,11 @@ export abstract class PlayerInfo {
     }
 
     /**
-     * 移除此人身上(手牌/装备/判定/挂着的)牌
-     * 如果没能找到, throw error
-     * @param cardId 
+     * Remove a card from a hidden position
+     * because they are all dummies, just remove the first n ones.
+     * @param pos 
+     * @param size 
      */
-    removeCard(cardId: string): CardPos {
-        if(cardId === Card.DUMMY.id) {
-            throw `You are trying to remove a dummy card! use remove with position`
-        }
-        for(let kv of this.cards) {
-            if(!!takeFromArray(kv[1], c => c.id === cardId)) {
-                // console.log('Removing Card From ', this.player.id, cardId, CardPos[kv[0]])
-                return kv[0]
-            }
-        }
-        throw `Cannot find card to remove ${cardId} in player ${this.player.id}. currently has: ${this.getAllCards().map(c => c[0].id).toString()}`
-    }
-
     removeRandomly(pos: CardPos, size: number): Card[] {
         let removed = this.cards.get(pos).splice(0, size)
         if(removed.length !== size) {
@@ -141,6 +136,12 @@ export abstract class PlayerInfo {
         return removed
     }
 
+    /**
+     * 移除此人身上(手牌/装备/判定/挂着的)牌
+     * 如果没能找到, throw error
+     * @param cardId 
+     * @param cardPos position to remove from
+     */
     removeFromPos(cardId: string, cardPos: CardPos) {
         let removed = takeFromArray(this.cards.get(cardPos), c => c.id === cardId)
         if(!removed) {

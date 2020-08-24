@@ -64,5 +64,6 @@ export default function UICard(prop: CardProp) {
             <div className={'suit ' + card.suit}>{Suits[card.suit]}</div>
         </div>
         {card.as && <div className='as center'>{card.as.name}</div>}
+        {card.description && <div className='description'>{card.description}</div>}
     </div>
 }

@@ -59,6 +59,8 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
                     r.coor.y -= rect.top
                 }
                 rs.push(r)
+                delete r.card.description
+                delete r.card.as
                 s.cards.add(r)
             })
             return s
@@ -77,16 +79,13 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
 
     performRemovalAnimation = (cards: Card[], pos: CardPos, doNotRemove: boolean): Array<CardAndCoor> => {
         //remove from my playerInfo
-        let res: Renderable[] = []
         // console.log('Taking Away', cards, pos, doNotRemove)
-        if(doNotRemove) {
-            res = this.state.cards.filter(r => !!cards.find(c => c.id === r.card.id))
-        } else {
-            res = this.state.cards.removeAllThat(r => !!cards.find(c => c.id === r.card.id))
+        if(!doNotRemove) {
+            this.state.cards.removeAllThat(r => !!cards.find(c => c.id === r.card.id))
         }
-        let ret = res.map(r => {
+        let ret = cards.map(r => {
             return {
-                card: r.card, coor: this.getCardLocation(r.card.id)
+                card: r, coor: this.getCardLocation(r.id)
             }
         })
         this.forceUpdate()

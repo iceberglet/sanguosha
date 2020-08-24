@@ -39,7 +39,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
         p.pubsub.on(CurrentPlayerEffect, (e: CurrentPlayerEffect)=>this.setState({effect: e}))
         this.state = {
             damaged: false,
-            effect: new CurrentPlayerEffect(null, null)
+            effect: new CurrentPlayerEffect(null, null, new Set<string>())
         }
     }
 

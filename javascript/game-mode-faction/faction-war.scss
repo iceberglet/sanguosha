@@ -37,6 +37,33 @@
     }
 }
 
+.ui-player-card.pending {
+
+    .faction-war::before {
+        content: '';
+        position: absolute;
+        //offset the border on .ui-player-card (3px)
+        top: -3px;
+        left: -3px;
+        right: -3px;
+        bottom: -3px;
+        border-radius: 3px;
+        background: linear-gradient(45deg, #656ff1, #19ff8c, #d1ff00, #ff9a3c, #ff44e6);
+        // filter: blur(3px);
+        animation: go-round infinite 4s forwards linear;
+    }
+}
+
+@keyframes go-round {
+    //rect: top, right, bottom, left relative to top-left origin
+    //width: 180+6 = 186px, height = 190+6 = 196px
+    0% { clip: rect(0px, 186px, 3px, 0px) } //top
+    25% { clip: rect(0px, 186px, 196px, 180px) } //right
+    50% { clip: rect(190px, 186px, 196px, 0px) } //bottom
+    75% { clip: rect(0px, 3px, 196px, 0px) } //left
+    100% { clip: rect(0px, 186px, 3px, 0px) } //top
+}
+
 .ui-player-card {
 
     .dead {
@@ -46,7 +73,6 @@
     .faction-war {
         width: 180px;
         height: 190px;
-        overflow: hidden;
         position: relative;
         display: flex;
         pointer-events: none;
@@ -56,6 +82,7 @@
             position: relative;
             pointer-events: none;
             flex-grow: 1;
+            overflow: hidden;
 
             .general-name {
                 position: absolute;

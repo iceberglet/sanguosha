@@ -28,14 +28,17 @@ export default class UIMyCards extends React.Component<Prop, object> {
 
     componentDidMount() {
         console.log('UICardRow subscribing to card transit')
-        this.cardRow.performAddAnimation(this.props.info.getCards(CardPos.HAND).map(c => {
-            return {
-                card: c, 
-                coor: null,
-                uuid: uuidv4(),
-                animDuration: 400
-            }
-        }))
+        let hand = this.props.info.getCards(CardPos.HAND)
+        if(hand.length > 0){
+            this.cardRow.performAddAnimation(hand.map(c => {
+                return {
+                    card: c, 
+                    coor: null,
+                    uuid: uuidv4(),
+                    animDuration: 400
+                }
+            }))
+        }
 
         let endpoint: CardEndpoint = {
             performAddAnimation: (cards: InCardAndCoor[], transit: CardTransit): void => {
@@ -52,7 +55,7 @@ export default class UIMyCards extends React.Component<Prop, object> {
             performRemovalAnimation: (cards: Card[], pos: CardPos, doNotRemove?: boolean): Array<CardAndCoor> => {
                 if(!doNotRemove) {
                     // console.log('Removing Cards From Player', this.props.info.player.id, pos, cards)
-                    cards.forEach(c => this.props.info.removeCard(c.id))
+                    cards.forEach(c => this.props.info.removeFromPos(c.id, pos))
                     //call so that player registers the change
                     this.forceUpdate()
                 }

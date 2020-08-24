@@ -129,10 +129,9 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
         let {width, height, cards} = this.state
         //if cards are few, back to cardWidth
         let sep = Math.min(cardWidth, width / Math.max(1, cards.size() -1))
-        let leftOffset = rowOffset + (width - sep * (cards.size() - 1) + cardWidth) / 2
+        let leftOffset = rowOffset + (width - sep * (cards.size() - 1)) / 2
     
         return <div className='occupy workflow-row' ref={this.dom}>
-            {/* <TransitionGroup className='workflow-cards'> */}
                 {cards.map((w, i) => {
                     let myStyle
                     if(w.rendered || !w.coor) {
@@ -143,14 +142,11 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
                         myStyle = {left: w.coor.x + 'px', top: w.coor.y + 'px', transitionDuration: w.animDuration + 'ms'}
                     }
                     let clazz = new ClassFormatter('ui-card-wrapper').and(w.goner, 'goner').done()
-                    // console.log('Render workflow card', w.card.id, w.coor, myStyle)
-                    // return <CSSTransition key={w.uuid} timeout={{appear: 1200, enter: 1200, exit: 3500}} classNames="workflow-card">
+                    console.log('Render workflow card', w.card.id, w.card.description)
                     return <div key={w.uuid} className={clazz} style={myStyle}>
                         <UICard card={w.card} isShown={true} elementStatus={ElementStatus.NORMAL} />
                     </div>
-                    // </CSSTransition>
                 })}
-            {/* </TransitionGroup> */}
         </div>
     }
 }

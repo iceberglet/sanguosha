@@ -51,7 +51,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
 
         this.state = {
             damageAnimation: new Set<string>(),
-            currentPlayerEffect: new CurrentPlayerEffect(null, null)
+            currentPlayerEffect: new CurrentPlayerEffect(null, null, new Set<string>())
         }
     }
 

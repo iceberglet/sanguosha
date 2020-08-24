@@ -12,7 +12,7 @@ import { CardBeingPlayedEvent } from "../flows/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "./EquipOp";
 import JueDou from "./JueDou";
-import { ShunShou } from "./SingleRuseOp";
+import { ShunShou, GuoHe } from "./SingleRuseOp";
 
 export default class PlayerActionResolver {
 
@@ -43,18 +43,25 @@ export default class PlayerActionResolver {
             let icard = this.manager.interpret(act.actionSource, card.id)
             this.manager.beforeFlowHappen.publish(new CardBeingPlayedEvent(act, icard), act.actionSource)
 
+
             //装备牌
             if(icard.type.isEquipment()) {
+                card.description = `${player.player.id} 装备`
                 this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, true)
-                await new EquipOp(act.actionSource, this.manager.getCard(hand[0])).perform(this.manager)
+                await new EquipOp(act.actionSource, card).perform(this.manager)
                 return
-            } else {
-                this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
             }
-            
+
 
             // can be more than one
             let targets = this.getTargets(act).map(p => p.player.id)
+            if(targets.length > 0) {
+                card.description = `${player.player.id} > ${targets.join(', ')}`
+            } else {
+                card.description = `${player.player.id} 使用`
+            }
+            this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
+            
 
             switch(icard.type) {
                 //slash
@@ -80,7 +87,7 @@ export default class PlayerActionResolver {
                 //peach
                 case CardType.PEACH:
                     //make sure target is null
-                    checkThat(targets.length === 0, '桃不能用在多人上')
+                    checkThat(targets.length === 0, '桃不能直接用在别人身上')
                     let info = this.toInfo(act.actionSource)
                     this.manager.broadcast(new TextFlashEffect(act.actionSource, [], '桃'))
                     await new HealOp(info, info, 1, act).perform(this.manager)
@@ -99,6 +106,7 @@ export default class PlayerActionResolver {
                 case CardType.JIE_DAO:
                     break
                 case CardType.GUO_HE:
+                    await new GuoHe(act, icard).perform(this.manager)
                     break
                 case CardType.SHUN_SHOU:
                     await new ShunShou(act, icard).perform(this.manager)

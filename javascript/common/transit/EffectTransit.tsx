@@ -19,7 +19,8 @@ export class DamageEffect {
 export class CurrentPlayerEffect {
     public constructor(
         public player: string,
-        public stage: Stage
+        public stage: Stage,
+        public pendingUser: Set<string>
     ) {}
 }
 

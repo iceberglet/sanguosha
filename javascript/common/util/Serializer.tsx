@@ -187,6 +187,19 @@ Serde.register(Map, {
         return map
     }
 })
+Serde.register(Set, {
+    inflate<T>(set: Set<T>, delegate: any) {
+        let res: any[] = []
+        set.forEach(s => res.push(delegate(s)))
+        return {
+            _type: Set.name,
+            payload: res
+        }
+    },
+    deflate<T>(obj: Array<any>, delegate: any): Set<T> {
+        return new Set<T>(obj.map(o => delegate(o)))
+    }
+})
 Serde.register(Array, {
     inflate(arr: Array<any>, delegate: any) {
         return {

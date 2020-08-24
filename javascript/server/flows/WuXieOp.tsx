@@ -2,7 +2,7 @@ import GameManager from "../GameManager";
 import { CardType } from "../../common/cards/Card";
 import { Button, PlayerAction, UIPosition, getFromAction } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
-import { filterMap, promiseAny } from "../../common/util/Util";
+import { filterMap, promiseAny, delay } from "../../common/util/Util";
 import { HintType } from "../../common/ServerHint";
 import { ICard } from "../../common/cards/ICard";
 import { CardBeingPlayedEvent } from "./Generic";
@@ -67,12 +67,13 @@ export class WuXieContext {
                 buttons.push(new Button(REFUSE_ALL, `不为本次 [${this.ruseCard.type.name}] 出无懈`))
             }
 
+            this.manager.setPending(candidates.map(c => c[0]))
             let responses = candidates.map(async c => {
                         let resp = await this.manager.sendHint(c[0], {
                             hintType: HintType.WU_XIE,
                             hintMsg: msg,
                             extraButtons: buttons
-                        })
+                        }, true)
                         let button = resp.actionData[UIPosition.BUTTONS][0]
                         if(button === Button.OK.id) {
                             return resp
@@ -97,6 +98,9 @@ export class WuXieContext {
 
                 // 开启新的一轮寻求无懈
                 isRuseAbort = !isRuseAbort
+
+                //防止大家直接就点了下一个...汗
+                await delay(1000)
             } catch (err) {
                 // 若无人使用无懈, 则break, 本轮宣告完结, 撒花~
                 console.log('无人使用无懈, 进行锦囊牌结算', err)

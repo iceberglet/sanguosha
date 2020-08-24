@@ -50,11 +50,14 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
     render() {
         let {info, dist, elementStatus, isDamaged, effect} = this.props
         let inMyTurn = effect.player === info.player.id
+        console.log(effect)
+        let pendingOnMe = effect.pendingUser?.has(info.player.id)
         let clazz = new ClassFormatter('ui-player-card')
                         .and(!info.isDead && elementStatus.isSelectable, 'selectable') //can never select dead ppl
                         .and(elementStatus === ElementStatus.SELECTED, 'selected')
                         .and(isDamaged, 'damaged')
                         .and(inMyTurn, 'in-turn')
+                        .and(pendingOnMe, 'pending')
                         .done()
         //todo: highlight, click
         return <div className={clazz} ref={this.dom} onClick={this.onClick}>

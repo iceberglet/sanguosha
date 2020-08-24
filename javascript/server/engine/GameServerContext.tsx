@@ -69,7 +69,7 @@ export default class GameServerContext extends GameContext {
                 return
             }
             if(fromPlayer) {
-                cards.forEach(c => this.getPlayer(fromPlayer).removeCard(c))
+                cards.forEach(c => this.getPlayer(fromPlayer).removeFromPos(c, from))
             } else {
                 switch(from) {
                     case CardPos.WORKFLOW:

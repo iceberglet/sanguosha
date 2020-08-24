@@ -79,8 +79,4 @@ export default class GameClientContext extends GameContext {
         console.warn('[Client] Submitting Action To Server', this.serverHint.hintId, action)
         this.socket.send(Serde.serialize(new PlayerActionTransit(this.serverHint.hintId, action)))
     }
-
-    public onServerHint(hint: ServerHint) {
-
-    }
 }

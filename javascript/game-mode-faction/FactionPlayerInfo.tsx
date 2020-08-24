@@ -74,7 +74,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
     }
 
     draw(): React.ReactElement[] {
-        let clazz = new ClassFormatter('faction-war overflow-hidden').and(this.isDead, 'dead').done()
+        let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
         return [<div className={clazz} key={'pics'}>
             <div className='general'>
                 {this.renderGeneral(this.general, false)}
@@ -91,7 +91,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
 
     drawSelf() {
         let color = Color[this.faction.image]
-        let clazz = new ClassFormatter('faction-war overflow-hidden').and(this.isDead, 'dead').done()
+        let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
         return <div className={clazz}>
             <div className='general'>
                 {this.renderGeneral(this.general, true)}
