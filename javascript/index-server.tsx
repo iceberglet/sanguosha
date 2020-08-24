@@ -68,7 +68,7 @@ wss.on('connection', (ws: WebSocket) => {
     })
 });
 
-server.listen(8080, ()=>{
+server.listen(8080, '192.168.1.102', ()=>{
     console.log('Server running on 8080')
 })
 

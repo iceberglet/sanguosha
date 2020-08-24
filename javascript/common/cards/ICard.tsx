@@ -16,10 +16,10 @@ export function mimicCard(card: ICard): CardDummy {
     return new CardDummy(card.suit, card.size, card.type)
 }
 
-export function isSuitRed(card: ICard) {
-    return card.suit === 'heart' || card.suit === 'diamond'
+export function isSuitRed(suit: Suit) {
+    return suit === 'heart' || suit === 'diamond'
 }
 
-export function isSuitBlack(card: ICard) {
-    return card.suit === 'club' || card.suit === 'spade'
+export function isSuitBlack(suit: Suit) {
+    return suit === 'club' || suit === 'spade'
 }

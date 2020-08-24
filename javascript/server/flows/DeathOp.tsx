@@ -24,14 +24,14 @@ export default class DeathOp extends Operation<void> {
     
     public async perform(manager: GameManager): Promise<void> {
 
-        manager.beforeFlowHappen.publish(this, this.info.player.id)
+        await manager.beforeFlowHappen.publish(this)
 
         //涅槃
         if(this.abort) {
             return
         }
 
-        manager.afterFlowDone.publish(this, this.info.player.id)
+        await manager.afterFlowDone.publish(this)
 
         //physically transfer everything
         this.toDrop.forEach(cardAndPos => {

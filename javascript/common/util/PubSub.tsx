@@ -28,7 +28,7 @@ export default class Pubsub {
 export class SequenceAwarePubSub {
     
     _map = new Map<Function, Map<string, ArrayList<AckingConsumer<void>>>>()
-    constructor(private sequencer: (playerId: string, ids: string[]) => string[]) {
+    constructor(private sorter: (ids: string[]) => string[]) {
 
     }
 
@@ -52,14 +52,14 @@ export class SequenceAwarePubSub {
      * @param obj 
      * @param from 
      */
-    async publish(obj: any, from: string): Promise<number> {
+    async publish(obj: any): Promise<number> {
         let playerToConsumersMap: Map<string, ArrayList<AckingConsumer<void>>> = this._map.get(obj.constructor)
         if(!playerToConsumersMap) {
             // console.warn(`No one is listening to this message! ${obj.constructor.name}`)
             return 0
         }
         let count = 0
-        for(let p of this.sequencer(from, getKeys(playerToConsumersMap))) {
+        for(let p of this.sorter(getKeys(playerToConsumersMap))) {
             count += playerToConsumersMap.get(p).size()
             await Promise.all(playerToConsumersMap.get(p)._data.map(c => c(obj)))
         }

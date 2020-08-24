@@ -40,8 +40,8 @@ export default class GameManager {
     private resolver: PlayerActionResolver
 
     public constructor(public context: GameServerContext, private registry: PlayerRegistry) {
-        this.beforeFlowHappen = new SequenceAwarePubSub((id, ids)=>context.sortFromPerspective(id, ids).map(p => p.player.id))
-        this.afterFlowDone = new SequenceAwarePubSub((id, ids)=>context.sortFromPerspective(id, ids).map(p => p.player.id))
+        this.beforeFlowHappen = new SequenceAwarePubSub((ids)=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id))
+        this.afterFlowDone = new SequenceAwarePubSub((ids)=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id))
         this.resolver = new PlayerActionResolver(this)
     }
 
@@ -137,7 +137,7 @@ export default class GameManager {
         this.registry.onPlayerReconnected(player)
     }
 
-    public getCard(id: string): Card {
+    public getCard=(id: string): Card=> {
         return this.context.getGameMode().cardManager.getCard(id)
     }
 
@@ -145,8 +145,12 @@ export default class GameManager {
         return this.context.playerInfos[this.currentPlayer]
     }
 
-    public getSortedByCurr(): PlayerInfo[] {
-        return this.context.getRingFromPerspective(this.currPlayer().player.id, true)
+    public getOthers(id: string) {
+        return this.context.playerInfos.map(p => !p.isDead && p.player.id !== id)
+    }
+
+    public getSortedByCurr(includeCurr: boolean): PlayerInfo[] {
+        return this.context.getRingFromPerspective(this.currPlayer().player.id, includeCurr)
     }
     
 

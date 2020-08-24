@@ -11,11 +11,7 @@ const REFUSE = 'refuse'
 const REFUSE_ALL = 'refuse_all'
 
 
-type WuXieProcessor = (resp: PlayerAction) => void
-
-export class WuXieEvent {
-    constructor(public wuxieAction: PlayerAction, ruseAction: PlayerAction) {}
-}
+type WuXieProcessor = (resp: PlayerAction) => Promise<void>
 
 export class WuXieContext {
 
@@ -23,15 +19,18 @@ export class WuXieContext {
 
     public constructor(private manager: GameManager, 
                         public ruseAction: PlayerAction, 
-                        public readonly ruseCard: ICard) {
+                        public readonly ruseType: CardType) {
+    }
+
+    public async init() {
         // 检查所有人的手牌查看是否有无懈, 没有的直接 null 处理
-        manager.context.playerInfos.filter(p => !p.isDead).forEach(p => {
+        this.manager.context.playerInfos.filter(p => !p.isDead).forEach(p => {
             if(p.getCards(CardPos.HAND).filter(c => c.type === CardType.WU_XIE).length > 0) {
-                this.processors.set(p.player.id, this.processNormal)
+                this.processors.set(p.player.id, async(act) => this.processNormal(act))
             }
         })
         // publish WuXieFlow event, 比如卧龙和曹仁有技能可以当做无懈可击, 他们会将 null 改回 自己的flow
-        manager.beforeFlowHappen.publish(this, ruseAction.actionSource)
+        await this.manager.beforeFlowHappen.publish(this)
     }
 
     /**
@@ -60,11 +59,11 @@ export class WuXieContext {
             }
     
             // 对于所有并非Impossible也没有refuse的人提出要求
-            let msg = `[${onPlayer}] 为 [${this.ruseCard.type.name}${isRuseAbort? '的无懈' : ''}] 寻求无懈]`
+            let msg = `[${onPlayer}] 为 [${this.ruseType.name}${isRuseAbort? '的无懈' : ''}] 寻求无懈]`
             //OK, Cancel, Refuse, [Refuse All]
             let buttons = [Button.CANCEL, new Button(REFUSE, `放弃针对[${onPlayer}]的无懈`)]
-            if(this.ruseCard.type.isDelayedRuse()) {
-                buttons.push(new Button(REFUSE_ALL, `不为本次 [${this.ruseCard.type.name}] 出无懈`))
+            if(this.ruseType.isDelayedRuse()) {
+                buttons.push(new Button(REFUSE_ALL, `不为本次 [${this.ruseType.name}] 出无懈`))
             }
 
             this.manager.setPending(candidates.map(c => c[0]))
@@ -111,10 +110,10 @@ export class WuXieContext {
         }
     }
 
-    private processNormal=(action: PlayerAction)=>{
+    private async processNormal(action: PlayerAction): Promise<void> {
         let card = getFromAction(action, UIPosition.MY_HAND)[0]
         console.log(`打出了${card}作为无懈`)
         this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [this.manager.getCard(card)])
-        this.manager.afterFlowDone.publish(new CardBeingPlayedEvent(action, this.manager.interpret(action.actionSource, card)), action.actionSource)
+        await this.manager.afterFlowDone.publish(new CardBeingPlayedEvent(action, this.manager.interpret(action.actionSource, card)))
     }
 }

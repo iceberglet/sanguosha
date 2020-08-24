@@ -14,7 +14,8 @@ export default class AskSavingOp {
 
     public async perform(manager: GameManager): Promise<void> {
         let refused = false
-        manager.beforeFlowHappen.publish(this, null)
+        //急救??
+        await manager.beforeFlowHappen.publish(this)
 
         let targetId = this.deadman.player.id
         do {
@@ -27,10 +28,12 @@ export default class AskSavingOp {
             })
             if(!isCancel(response)) {
                 //金主爸爸!!
-                let cards = getFromAction(response, UIPosition.MY_HAND);
-                manager.broadcast(new TextFlashEffect(this.goodman.player.id, [targetId], '桃'))
+                let card = manager.getCard(getFromAction(response, UIPosition.MY_HAND)[0]);
+                //桃, 或者酒
+                manager.broadcast(new TextFlashEffect(this.goodman.player.id, [targetId], card.type.name))
                 //桃牌扔进workflow
-                manager.sendToWorkflow(this.goodman.player.id, CardPos.HAND, [manager.getCard(cards[0])])
+                card.description = `${this.goodman.player.id} 对 ${targetId} 使用 ${card.type.name}`
+                manager.sendToWorkflow(this.goodman.player.id, CardPos.HAND, [card])
                 await new HealOp(this.goodman, this.deadman, 1, response).perform(manager)
             } else {
                 refused = true

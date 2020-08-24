@@ -19,7 +19,7 @@ export default class PlayerActionDriverDefiner {
      * @param filter which can be chosen
      */
     public expectChoose(area: UIPosition, atLeast: number, atMost: number, 
-                        filter: (id: string, context: GameClientContext)=>boolean,
+                        filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
                         msgObtainer: (context: GameClientContext)=>string = ()=>''): PlayerActionDriverDefiner {
         if(this.steps.find(s => s.area === area)) {
             throw `Already has defined step for position ${UIPosition[area]}`
@@ -48,6 +48,11 @@ export default class PlayerActionDriverDefiner {
         return this
     }
 
+    public noBacksie(): PlayerActionDriverDefiner {
+        this.steps[this.steps.length - 1].noBacksie = true
+        return this
+    }
+
     /**
      * mark this as being played out
      * */
@@ -73,13 +78,15 @@ export default class PlayerActionDriverDefiner {
     }
 }
 
-export interface Step {
+interface Step {
     chosen: Togglable<string>
     area: UIPosition
     canCancel: boolean
+    //cannot go back by clicking on some other cards
+    noBacksie: boolean
     marker: Marker
     msgObtainer: (context: GameClientContext)=>string
-    filter: (id: string, context: GameClientContext)=>boolean
+    filter: (id: string, context: GameClientContext, existing: string[])=>boolean
     //can click on this at the current stage
     canClick(id: string): boolean
     //we are at this stage and clicked on this item
@@ -93,17 +100,21 @@ export interface Step {
 export class StepDataExact implements Step {
     chosen: Togglable<string>
     canCancel: boolean = true
+    noBacksie: boolean = false
     marker: Marker = null
     constructor(public readonly area: UIPosition,
                 public readonly exactly: number,
-                public readonly filter: (id: string, context: GameClientContext)=>boolean,
+                public readonly filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
                 public readonly msgObtainer: (context: GameClientContext)=>string) {
         this.chosen = new Togglable<string>(exactly)
     }
     canClick(id: string): boolean {
-        return this.chosen.has(id) || this.chosen.size() < this.exactly
+        return (!this.noBacksie && this.chosen.has(id)) || this.chosen.size() < this.exactly
     }
     onRetroClick(id: string): boolean {
+        if(this.noBacksie) {
+            return false
+        }
         let isChosen = this.chosen.has(id)
         if(isChosen) {
             //we are removing
@@ -130,20 +141,24 @@ export class StepDataExact implements Step {
 export class StepDataLoose implements Step {
     chosen: Togglable<string>
     canCancel: boolean = true
+    noBacksie: boolean = false
     marker: Marker = null
     constructor(public readonly area: UIPosition,
                 public readonly min: number, 
                 public readonly max: number,
-                public readonly filter: (id: string, context: GameClientContext)=>boolean,
+                public readonly filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
                 public readonly msgObtainer: (context: GameClientContext)=>string) {
         this.chosen = new Togglable<string>(max)
     }
     canClick(id: string): boolean {
-        return this.chosen.has(id) || this.chosen.size() < this.max
+        return (!this.noBacksie && this.chosen.has(id)) || this.chosen.size() < this.max
     }
     //we have passed this stage and clicked back...
     //return false if we want to keep the subsequent steps, true if we want to restart
     onRetroClick(id: string): boolean {
+        if(this.noBacksie) {
+            return false
+        }
         let isChosen = this.chosen.has(id)
         if(isChosen || this.chosen.size() < this.max) {
             //we are removing / adding
@@ -185,13 +200,18 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         if(action.actionArea === UIPosition.BUTTONS) {
             if(isDirectButton(context.serverHint.hint, action.itemId)) {
                 //abort sends a message to server
+                let actionData: {[key in UIPosition]?: string[]} = {}
+                let markers: {[key in UIPosition]?: Marker} = {}
+                this.steps.forEach(s => {
+                    actionData[s.area] = s.chosen.toArray()
+                    markers[s.area] = s.marker
+                })
+                actionData[UIPosition.BUTTONS] = [action.itemId]
                 let actionToServer: PlayerAction = {
                     serverHint: context.serverHint.hint,
                     actionSource: context.myself.player.id,
-                    markers: {},
-                    actionData: {
-                        [UIPosition.BUTTONS]: [action.itemId]
-                    }
+                    markers,
+                    actionData
                 }
                 context.submitAction(actionToServer)
                 console.log('[Player Action] Submit direct action. Back to server', actionToServer)
@@ -260,14 +280,14 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         }
         if(stepData !== this.currentStep()) {
             //an old step. if we chose this or this can be chosen, allow it
-            if(stepData.chosen.has(action.itemId) || stepData.filter(action.itemId, context)) {
+            if(stepData.chosen.has(action.itemId) || stepData.filter(action.itemId, context, stepData.chosen.toArray())) {
                 return Clickability.CLICKABLE
             } else {
                 return Clickability.DISABLED
             }
         } else {
             //we are at this stage! make sure we don't click more than we can
-            if(stepData.filter(action.itemId, context) && stepData.canClick(action.itemId)) {
+            if(stepData.filter(action.itemId, context, stepData.chosen.toArray()) && stepData.canClick(action.itemId)) {
                 return Clickability.CLICKABLE
             } else {
                 return Clickability.DISABLED

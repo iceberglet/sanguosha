@@ -1,5 +1,4 @@
 import { PlayerAction } from "../../common/PlayerAction";
-import { CardType } from "../../common/cards/Card";
 import { ICard } from "../../common/cards/ICard";
 
 export class CardBeingPlayedEvent {

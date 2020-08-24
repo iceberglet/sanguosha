@@ -19,7 +19,7 @@ export default class DropCardOp extends Operation<void> {
 
         this.amount = Math.max(this.player.getCards(CardPos.HAND).length - this.player.hp, 0)
 
-        await manager.beforeFlowHappen.publish(this, myId);
+        await manager.beforeFlowHappen.publish(this);
 
         if(this.amount > 0) {
 
@@ -46,7 +46,7 @@ export default class DropCardOp extends Operation<void> {
             manager.sendToWorkflow(myId, CardPos.HAND, dropped, true)
         }
 
-        await manager.afterFlowDone.publish(this, myId);
+        await manager.afterFlowDone.publish(this);
     }
 
     

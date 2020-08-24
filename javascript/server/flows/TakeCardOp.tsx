@@ -13,13 +13,13 @@ export default class TakeCardOp extends Operation<void> {
     }
 
     public async perform(manager: GameManager): Promise<void> {
-        await manager.beforeFlowHappen.publish(this, this.player.player.id);
+        await manager.beforeFlowHappen.publish(this)
 
         if(this.amount > 0) {
             await this.do(manager)
         }
 
-        await manager.afterFlowDone.publish(this, this.player.player.id);
+        await manager.afterFlowDone.publish(this)
     }
 
     public async do(manager: GameManager) {

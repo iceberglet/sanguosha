@@ -10,17 +10,20 @@ export default class DodgeOp extends Operation<boolean> {
 
     public success = false
 
-    public constructor(public readonly target: PlayerInfo, public readonly slashAction: PlayerAction, public readonly numberRequired: number){
+    public constructor(public readonly target: PlayerInfo, 
+                        public readonly slashAction: PlayerAction, 
+                        public readonly numberRequired: number,
+                        public readonly hintMsg: string){
         super()
     }
 
     public async perform(manager: GameManager): Promise<boolean> {
 
-        await manager.beforeFlowHappen.publish(this, this.target.player.id)
+        await manager.beforeFlowHappen.publish(this)
 
         if(!this.success) {
 
-            let hintMsg = `[${this.slashAction.actionSource}] 对你出杀, 请出闪`
+            let hintMsg = this.hintMsg
             if(this.numberRequired > 1) {
                 hintMsg += `(共需要${this.numberRequired}张)`
             }
@@ -42,13 +45,14 @@ export default class DodgeOp extends Operation<boolean> {
                 if(cards.length !== 1) {
                     throw `Player played dodge cards but not one card!!!! ${response.actionSource} ${cards}`
                 }
+                //张角呢??
 
                 manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [cards[0]])
                 this.success = true
             }
         }
 
-        await manager.afterFlowDone.publish(this, this.target.player.id)
+        await manager.afterFlowDone.publish(this)
         return this.success
     }
 

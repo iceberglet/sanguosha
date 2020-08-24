@@ -71,7 +71,7 @@ export default class GameContext {
         return this.getRingFromPerspective(playerId, true).filter(info => ids.indexOf(info.player.id) >= 0)
     }
 
-    getPlayer(id: string): PlayerInfo {
+    getPlayer = (id: string): PlayerInfo => {
         let p = this.playerInfos.find(p => p.player.id === id)
         if(!p) {
             throw `Player Not Found!! ${id}. Available: ${this.playerInfos.map(p => p.player.id)}`

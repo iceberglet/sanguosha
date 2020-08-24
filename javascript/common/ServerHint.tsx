@@ -7,7 +7,9 @@ export enum HintType {
     PLAY_HAND,
     //单纯弃牌
     DROP_CARDS,
-    //单纯出杀
+    //对指定目标出杀, 如果有技能之类的可以额外指定杀的目标...
+    PLAY_SLASH,
+    //单纯出杀, 无目标 (南蛮 / 决斗)
     SLASH,
     //单纯出闪(目标确定)
     DODGE,
@@ -35,7 +37,13 @@ export function forbids(hint: ServerHint, type: ForbiddenTypes) {
 }
 
 export function isDirectButton(hint: ServerHint, buttonId: string): Button {
-    return hint.extraButtons?.find(b => b.id === buttonId)
+    let extra = hint.extraButtons?.find(b => b.id === buttonId)
+    if(extra) {
+        return extra
+    }
+    if(buttonId !== Button.OK.id && buttonId !== Button.CANCEL.id) {
+        return new Button(buttonId, 'hackish')
+    }
 }
 
 export class Rescind {  

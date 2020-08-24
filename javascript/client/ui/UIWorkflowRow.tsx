@@ -142,7 +142,6 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
                         myStyle = {left: w.coor.x + 'px', top: w.coor.y + 'px', transitionDuration: w.animDuration + 'ms'}
                     }
                     let clazz = new ClassFormatter('ui-card-wrapper').and(w.goner, 'goner').done()
-                    console.log('Render workflow card', w.card.id, w.card.description)
                     return <div key={w.uuid} className={clazz} style={myStyle}>
                         <UICard card={w.card} isShown={true} elementStatus={ElementStatus.NORMAL} />
                     </div>
