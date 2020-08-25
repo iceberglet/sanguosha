@@ -129,13 +129,14 @@ normalCards.push(new FWCard('diamond', CardSize.KING, CardType.DODGE))
 normalCards.push(new FWCard('diamond', CardSize.KING, CardType.ZI_XING))
 
 export const FactionWarCards = new CardManager(normalCards.filter(c => 
-    c.type.isBasic() || 
-    c.type.isEquipment() ||
-    c.type === CardType.JIE_DAO ||
+    // c.type.isBasic() || 
+    // c.type.isEquipment() ||
+    // c.type === CardType.JIE_DAO ||
     c.type === CardType.TIE_SUO ||
     c.type === CardType.SHUN_SHOU || 
     c.type === CardType.GUO_HE || 
     c.type === CardType.JUE_DOU || 
     c.type === CardType.NAN_MAN || 
+    c.type === CardType.WU_XIE || 
     c.type === CardType.WAN_JIAN
 ));

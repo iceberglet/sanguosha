@@ -72,6 +72,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
             {effect.player === info.player.id && <StageDeclarer stage={effect.stage} className={'top-right-corner'}/>}
             {damaged && <div className='occupy'>{getDamageSpriteSheet()}</div>}
             {info.isDead && <img className='death' src='ui/dead.png'/>}
+            {info.isChained && <div className='tie-suo' />}
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
         </div>
     }

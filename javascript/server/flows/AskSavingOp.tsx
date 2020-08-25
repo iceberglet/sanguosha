@@ -18,7 +18,7 @@ export default class AskSavingOp {
         await manager.beforeFlowHappen.publish(this)
 
         let targetId = this.deadman.player.id
-        do {
+        while (this.deadman.isDying()) {
             let require = 1 - this.deadman.hp
             let response = await manager.sendHint(this.goodman.player.id, {
                 hintType: HintType.PEACH,
@@ -36,9 +36,9 @@ export default class AskSavingOp {
                 manager.sendToWorkflow(this.goodman.player.id, CardPos.HAND, [card])
                 await new HealOp(this.goodman, this.deadman, 1, response).perform(manager)
             } else {
-                refused = true
+                break
             }
-        } while (this.deadman.isDying() && !refused)
+        }
     }
 
 }
