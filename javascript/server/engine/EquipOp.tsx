@@ -14,7 +14,7 @@ export class EquipOp {
 
     public async perform(manager: GameManager) {
 
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         let newOwner = manager.context.getPlayer(this.beneficiary)
         let currEquips = newOwner.getCards(CardPos.EQUIP)
@@ -29,7 +29,6 @@ export class EquipOp {
         // newOwner.addCard(this.card, CardPos.EQUIP)
         // manager.broadcast(newOwner, PlayerInfo.sanitize)
 
-        await manager.afterFlowDone.publish(this)
     } 
 }
 
@@ -46,12 +45,11 @@ export class UnequipOp {
 
     public async perform(manager: GameManager) {
 
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         this.card.description = `${this.loser} 装备区弃置`
         manager.sendToWorkflow(this.loser, CardPos.EQUIP, [this.card])
 
-        await manager.afterFlowDone.publish(this)
 
     } 
 }

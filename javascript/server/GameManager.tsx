@@ -31,17 +31,14 @@ export default class GameManager {
     private currentPlayer: number = 0
     public roundStats: RoundStat
     //events go here
-    public beforeFlowHappen : SequenceAwarePubSub
-    public afterFlowDone : SequenceAwarePubSub
-    // public pubsub = new Pubsub()
+    public events : SequenceAwarePubSub
 
     private currentFlows = new ArrayList<Flow>()
     private currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
     private resolver: PlayerActionResolver
 
     public constructor(public context: GameServerContext, private registry: PlayerRegistry) {
-        this.beforeFlowHappen = new SequenceAwarePubSub((ids)=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id))
-        this.afterFlowDone = new SequenceAwarePubSub((ids)=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id))
+        this.events = new SequenceAwarePubSub((ids)=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id))
         this.resolver = new PlayerActionResolver(this)
     }
 
@@ -138,7 +135,10 @@ export default class GameManager {
     }
 
     public getCard=(id: string): Card=> {
-        return this.context.getGameMode().cardManager.getCard(id)
+        let c = this.context.getGameMode().cardManager.getCard(id)
+        delete c.as
+        delete c.description
+        return c
     }
 
     public currPlayer(): PlayerInfo {

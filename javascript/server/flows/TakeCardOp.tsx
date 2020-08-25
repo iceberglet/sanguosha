@@ -3,6 +3,7 @@ import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardTransit } from "../../common/transit/EffectTransit";
+import { CardObtainedEvent } from "./Generic";
 
 //摸牌阶段
 export default class TakeCardOp extends Operation<void> {
@@ -13,13 +14,12 @@ export default class TakeCardOp extends Operation<void> {
     }
 
     public async perform(manager: GameManager): Promise<void> {
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         if(this.amount > 0) {
             await this.do(manager)
         }
 
-        await manager.afterFlowDone.publish(this)
     }
 
     public async do(manager: GameManager) {
@@ -28,6 +28,8 @@ export default class TakeCardOp extends Operation<void> {
         cards.forEach(c => this.player.addCard(c, CardPos.HAND))
         //animation of card transfer. need to sanitize
         manager.broadcast(CardTransit.fromDeck(this.player.player.id, cards), CardTransit.defaultSanitize)
+        //event
+        await manager.events.publish(new CardObtainedEvent(this.player.player.id, cards))
     }
     
 }

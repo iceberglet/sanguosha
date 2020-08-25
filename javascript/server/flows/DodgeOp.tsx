@@ -19,7 +19,7 @@ export default class DodgeOp extends Operation<boolean> {
 
     public async perform(manager: GameManager): Promise<boolean> {
 
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         if(!this.success) {
 
@@ -52,7 +52,6 @@ export default class DodgeOp extends Operation<boolean> {
             }
         }
 
-        await manager.afterFlowDone.publish(this)
         return this.success
     }
 

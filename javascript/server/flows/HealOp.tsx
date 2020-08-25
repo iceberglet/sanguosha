@@ -18,7 +18,7 @@ export default class HealOp extends Operation<void> {
         let targetId = this.target.player.id
 
         //救援增加治疗量? 
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         //Heal可以被防止么?
         if(this.amount > 0) {
@@ -26,7 +26,7 @@ export default class HealOp extends Operation<void> {
             manager.broadcast(this.target, PlayerInfo.sanitize)
 
             //恩怨?
-            await manager.afterFlowDone.publish(this)
+            // await manager.afterFlowDone.publish(this)
         }
     }
 

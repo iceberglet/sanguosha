@@ -11,9 +11,8 @@ export class StageStartFlow extends Flow {
 
     public async doNext(manager: GameManager) {
         //若要跳过任何阶段, 只需改变manager.roundStat
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
-        await manager.afterFlowDone.publish(this)
 
         return true
     }
@@ -28,9 +27,8 @@ export class StageEndFlow extends Flow {
 
     public async doNext(manager: GameManager) {
         //若要跳过任何阶段, 只需改变manager.roundStat
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
-        await manager.afterFlowDone.publish(this)
 
         return true
     }

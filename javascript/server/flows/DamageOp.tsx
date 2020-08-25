@@ -26,6 +26,13 @@ export enum DamageType {
     ENERGY
 }
 
+export enum Timeline {
+    DOING_DAMAGE, //造成伤害时
+    TAKING_DAMAGE, //受到伤害时
+    DID_DAMAGE, //造成伤害后
+    TAKEN_DAMAGE, //受到伤害后
+}
+
 function fromSlash(type: CardType) {
     switch(type) {
         //slash
@@ -40,13 +47,10 @@ function isElemental(type: DamageType) {
     return type === DamageType.FIRE || type === DamageType.THUNDER
 }
 
-export class DyingEvent {
-    public constructor(public who: string){}
-}
-
 export default class DamageOp extends Operation<void> {
 
     public readonly originalDamage: number
+    public timeline: Timeline = Timeline.DOING_DAMAGE
 
     public constructor(public source: PlayerInfo, 
         public target: PlayerInfo, 
@@ -62,7 +66,9 @@ export default class DamageOp extends Operation<void> {
         let targetId = this.target.player.id
 
         //藤甲伤害加深?
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
+        this.timeline = Timeline.TAKING_DAMAGE
+        await manager.events.publish(this)
 
         //伤害可以被防止(曹冲? 沮授?)
         if(this.amount <= 0) {
@@ -92,7 +98,10 @@ export default class DamageOp extends Operation<void> {
         }
 
         //遗计? 反馈? 刚烈?
-        await manager.afterFlowDone.publish(this)
+        this.timeline = Timeline.DID_DAMAGE
+        await manager.events.publish(this)
+        this.timeline = Timeline.TAKING_DAMAGE
+        await manager.events.publish(this)
 
         //铁索连环
         if(isElemental(this.type) && this.target.isChained && this.doChain) {

@@ -35,7 +35,7 @@ export default class JueDou extends SingleRuse<void> {
             let slashed = await new SlashOp(curr, issuer, `${issuer.player.id}和你决斗, 请出杀`).perform(manager)
             if(!slashed) {
                 console.log('玩家决斗放弃出杀, 掉血')
-                await manager.beforeFlowHappen.publish(this)
+                await manager.events.publish(this)
                 await new DamageOp(issuer, curr, this.damage, this.ruseAction, DamageType.NORMAL).perform(manager)
                 break
             } else {

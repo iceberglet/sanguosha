@@ -1,4 +1,5 @@
 import Card, { CardSize, CardType, CardManager, Suit } from "../common/cards/Card"
+import './FactionWarActionDrivers'
 
 export enum Pack {
     STANDARD,
@@ -138,5 +139,6 @@ export const FactionWarCards = new CardManager(normalCards.filter(c =>
     c.type === CardType.JUE_DOU || 
     c.type === CardType.NAN_MAN || 
     c.type === CardType.WU_XIE || 
+    c.type === CardType.HUO_GONG || 
     c.type === CardType.WAN_JIAN
 ));

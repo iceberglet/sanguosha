@@ -10,7 +10,7 @@ import { CardBeingPlayedEvent } from "../flows/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "./EquipOp";
 import JueDou from "./JueDou";
-import { ShunShou, GuoHe, WuZhong } from "./SingleRuseOp";
+import { ShunShou, GuoHe, WuZhong, JieDao, HuoGong } from "./SingleRuseOp";
 import { WanJian, NanMan, TieSuo } from "./MultiRuseOp";
 
 export default class PlayerActionResolver {
@@ -40,7 +40,7 @@ export default class PlayerActionResolver {
             let player = this.manager.context.getPlayer(act.actionSource)
             let card = this.manager.getCard(hand[0])
             let icard = this.manager.interpret(act.actionSource, card.id)
-            await this.manager.beforeFlowHappen.publish(new CardBeingPlayedEvent(act, icard))
+            await this.manager.events.publish(new CardBeingPlayedEvent(act.actionSource, [card], card.type))
 
 
             //装备牌
@@ -92,9 +92,13 @@ export default class PlayerActionResolver {
                     await new WuZhong(act).perform(this.manager)
                     break
                 case CardType.JIE_DAO:
+                    await new JieDao(act).perform(this.manager)
                     break
                 case CardType.GUO_HE:
                     await new GuoHe(act).perform(this.manager)
+                    break
+                case CardType.HUO_GONG:
+                    await new HuoGong(act).perform(this.manager)
                     break
                 case CardType.SHUN_SHOU:
                     await new ShunShou(act).perform(this.manager)

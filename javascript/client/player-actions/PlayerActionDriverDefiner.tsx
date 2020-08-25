@@ -1,7 +1,7 @@
 import { UIPosition, PlayerUIAction, Button, PlayerAction, Marker, isPositionForCard } from "../../common/PlayerAction";
 import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerActionDriver";
 import GameClientContext from "../GameClientContext";
-import Togglable from "../../common/util/Togglable";
+import { TogglableMap } from "../../common/util/Togglable";
 import { ServerHint, isDirectButton } from "../../common/ServerHint";
 
 
@@ -18,19 +18,21 @@ export default class PlayerActionDriverDefiner {
      * @param atMost the least number of cards to proceed
      * @param filter which can be chosen
      */
-    public expectChoose(area: UIPosition, atLeast: number, atMost: number, 
+    public expectChoose(areas: UIPosition[], atLeast: number, atMost: number, 
                         filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
                         msgObtainer: (context: GameClientContext)=>string = ()=>''): PlayerActionDriverDefiner {
-        if(this.steps.find(s => s.area === area)) {
-            throw `Already has defined step for position ${UIPosition[area]}`
-        }
+        areas.forEach(a => {
+            if(this.steps.find(s => s.isConcernedWith(a))) {
+                throw `Already has defined step for position ${UIPosition[a]}`
+            }
+        })
         if(atLeast > atMost) {
             throw `Whaat?`
         }
         if(atMost !== atLeast) {
-            this.steps.push(new StepDataLoose(area, atLeast, atMost, filter, msgObtainer))
+            this.steps.push(new StepDataLoose(areas, atLeast, atMost, filter, msgObtainer))
         } else {
-            this.steps.push(new StepDataExact(area, atLeast, filter, msgObtainer))
+            this.steps.push(new StepDataExact(areas, atLeast, filter, msgObtainer))
         }
         if(this.steps.length === 1) {
             //默认一开始没法子cancel. (cancel啥子??)
@@ -40,7 +42,7 @@ export default class PlayerActionDriverDefiner {
     }
 
     public expectAnyButton(msg: string) {
-        return this.expectChoose(UIPosition.BUTTONS, 1, 1, b=>true, (c)=>msg)
+        return this.expectChoose([UIPosition.BUTTONS], 1, 1, b=>true, (c)=>msg)
     }
 
     public cannotCancel(): PlayerActionDriverDefiner {
@@ -59,9 +61,11 @@ export default class PlayerActionDriverDefiner {
     public whichIs(marker: Marker): PlayerActionDriverDefiner {
         let s = this.steps[this.steps.length - 1]
         if(marker === Marker.USE || marker === Marker.DROP) {
-            if(!isPositionForCard(s.area)) {
-                throw `Not a position for card! ${Marker[marker]} ${UIPosition[s.area]}`
-            }
+            s.areas.forEach(a => {
+                if(!isPositionForCard(a)) {
+                    throw `Not a position for card! ${Marker[marker]} ${UIPosition[a]}`
+                }
+            })
         }
         s.marker = marker
         return this
@@ -79,8 +83,8 @@ export default class PlayerActionDriverDefiner {
 }
 
 interface Step {
-    chosen: Togglable<string>
-    area: UIPosition
+    areas: UIPosition[]
+    chosen: TogglableMap<string, UIPosition>
     canCancel: boolean
     //cannot go back by clicking on some other cards
     noBacksie: boolean
@@ -88,94 +92,120 @@ interface Step {
     msgObtainer: (context: GameClientContext)=>string
     filter: (id: string, context: GameClientContext, existing: string[])=>boolean
     //can click on this at the current stage
-    canClick(id: string): boolean
+    canClick(action: PlayerUIAction): boolean
     //we are at this stage and clicked on this item
     //return true if we want to proceed to next step
-    onClick(id: string): boolean
+    onClick(action: PlayerUIAction): boolean
     //we have passed this stage and clicked back...
     //return false if we want to keep the subsequent steps, true if we want to restart
-    onRetroClick(id: string): boolean
+    onRetroClick(action: PlayerUIAction): boolean
+    //whether this step is concerned with this area
+    isConcernedWith(area: UIPosition): boolean
+    //dump data into
+    dumpDataTo(action: PlayerAction): void
 }
 
-export class StepDataExact implements Step {
-    chosen: Togglable<string>
-    canCancel: boolean = true
-    noBacksie: boolean = false
-    marker: Marker = null
-    constructor(public readonly area: UIPosition,
-                public readonly exactly: number,
+abstract class AbstractStep implements Step {
+    public chosen: TogglableMap<string, UIPosition>
+    public canCancel: boolean = true
+    public noBacksie: boolean = false
+    public marker: Marker = null
+    constructor(public readonly areas: UIPosition[],
+                public readonly size: number,
                 public readonly filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
                 public readonly msgObtainer: (context: GameClientContext)=>string) {
-        this.chosen = new Togglable<string>(exactly)
+        this.chosen = new TogglableMap<string, UIPosition>(size)
     }
-    canClick(id: string): boolean {
-        return (!this.noBacksie && this.chosen.has(id)) || this.chosen.size() < this.exactly
+    abstract onClick(action: PlayerUIAction): boolean
+    abstract onRetroClick(action: PlayerUIAction): boolean
+
+    canClick(action: PlayerUIAction): boolean {
+        return (!this.noBacksie && this.chosen.has(action.itemId)) || this.chosen.size() < this.size
     }
-    onRetroClick(id: string): boolean {
+    isConcernedWith(area: UIPosition) {
+        return this.areas.findIndex(a => a === area) > -1
+    }
+    dumpDataTo(action: PlayerAction) {
+        let selected = this.chosen.toArray()
+        this.areas.forEach(a => {
+            if(action.actionData[a]) {
+                throw `Unacceptable, overlapping action position! ${a}`
+            }
+            action.actionData[a] = selected.filter(s => s[1] === a).map(s => s[0])
+            if(action.markers[a]) {
+                throw `Unacceptable, overlapping marker position! ${a}`
+            }
+            action.markers[a] = this.marker
+        })
+    }
+}
+
+export class StepDataExact extends AbstractStep {
+    constructor(areas: UIPosition[],
+                size: number,
+                filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
+                msgObtainer: (context: GameClientContext)=>string) {
+        super(areas, size, filter, msgObtainer)
+    }
+    onRetroClick(action: PlayerUIAction): boolean {
         if(this.noBacksie) {
             return false
         }
-        let isChosen = this.chosen.has(id)
+        let isChosen = this.chosen.has(action.itemId)
         if(isChosen) {
             //we are removing
-            this.chosen.toggle(id)
+            this.chosen.toggle(action.itemId, action.actionArea)
         } else {
             //we are switching
             this.chosen.clear()
-            this.chosen.toggle(id)
-            if(this.exactly === 1) {
+            this.chosen.toggle(action.itemId, action.actionArea)
+            if(this.size === 1) {
                 return false
             }
         }
         return true
     }
-    onClick(id: string): boolean {
-        this.chosen.toggle(id)
-        if(this.chosen.size() === this.exactly) {
+    onClick(action: PlayerUIAction): boolean {
+        this.chosen.toggle(action.itemId, action.actionArea)
+        if(this.chosen.size() === this.size) {
             return true
         }
         return false
     }
 }
 
-export class StepDataLoose implements Step {
-    chosen: Togglable<string>
-    canCancel: boolean = true
-    noBacksie: boolean = false
-    marker: Marker = null
-    constructor(public readonly area: UIPosition,
-                public readonly min: number, 
-                public readonly max: number,
-                public readonly filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
-                public readonly msgObtainer: (context: GameClientContext)=>string) {
-        this.chosen = new Togglable<string>(max)
-    }
-    canClick(id: string): boolean {
-        return (!this.noBacksie && this.chosen.has(id)) || this.chosen.size() < this.max
+export class StepDataLoose extends AbstractStep {
+    constructor(areas: UIPosition[],
+                private min: number, 
+                max: number,
+                filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
+                msgObtainer: (context: GameClientContext)=>string) {
+        super(areas, max, filter, msgObtainer)
+
     }
     //we have passed this stage and clicked back...
     //return false if we want to keep the subsequent steps, true if we want to restart
-    onRetroClick(id: string): boolean {
+    onRetroClick(action: PlayerUIAction): boolean {
         if(this.noBacksie) {
             return false
         }
-        let isChosen = this.chosen.has(id)
-        if(isChosen || this.chosen.size() < this.max) {
-            //we are removing / adding
-            this.chosen.toggle(id)
+        let isChosen = this.chosen.has(action.itemId)
+        if(isChosen) {
+            //we are removing
+            this.chosen.toggle(action.itemId, action.actionArea)
         } else {
             //we are switching
             this.chosen.clear()
-            this.chosen.toggle(id)
+            this.chosen.toggle(action.itemId, action.actionArea)
         }
         return this.chosen.size() < this.min
     }
     //we are at this stage and clicked on this item
     //return true if we want to proceed to next step
-    onClick(id: string): boolean {
+    onClick(action: PlayerUIAction): boolean {
         //todo: usage of OK / CANCEL button
-        if(this.chosen.has(id) || this.chosen.size() < this.max) {
-            this.chosen.toggle(id)
+        if(this.chosen.has(action.itemId) || this.chosen.size() < this.size) {
+            this.chosen.toggle(action.itemId, action.actionArea)
         }
         //as long as it's more than minimum, we proceed to next stage
         //we can always edit this stage safely
@@ -202,17 +232,14 @@ export class StepByStepActionDriver extends PlayerActionDriver {
                 //abort sends a message to server
                 let actionData: {[key in UIPosition]?: string[]} = {}
                 let markers: {[key in UIPosition]?: Marker} = {}
-                this.steps.forEach(s => {
-                    actionData[s.area] = s.chosen.toArray()
-                    markers[s.area] = s.marker
-                })
-                actionData[UIPosition.BUTTONS] = [action.itemId]
                 let actionToServer: PlayerAction = {
                     serverHint: context.serverHint.hint,
                     actionSource: context.myself.player.id,
                     markers,
                     actionData
                 }
+                this.steps.forEach(s => s.dumpDataTo(actionToServer))
+                actionData[UIPosition.BUTTONS] = [action.itemId]
                 context.submitAction(actionToServer)
                 console.log('[Player Action] Submit direct action. Back to server', actionToServer)
                 return ClickActionResult.DONE
@@ -229,7 +256,7 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         if(stepData !== this.currentStep()) {
             console.log('[Player Action] This is a step already done')
             //an old step
-            if(stepData.onRetroClick(action.itemId)) {
+            if(stepData.onRetroClick(action)) {
                 console.log('[Player Action] Retro operation suggests to go back to step: ', idx)
                 //clean up the subsequent choices
                 this.cleanUpState(idx + 1)
@@ -238,22 +265,19 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         } else {
             console.log('[Player Action] This is the current step')
             //we are at this stage!
-            if(stepData.onClick(action.itemId)) {
+            if(stepData.onClick(action)) {
                 console.log('[Player Action] Step complete, proceeding to next step')
                 this.curr += 1
                 if(this.curr === this.steps.length) {
                     //finish the call!
                     let actionData: {[key in UIPosition]?: string[]} = {}
                     let markers: {[key in UIPosition]?: Marker} = {}
-                    this.steps.forEach(s => {
-                        actionData[s.area] = s.chosen.toArray()
-                        markers[s.area] = s.marker
-                    })
                     let actionToSubmit: PlayerAction = {
                         actionSource: context.myself.player.id,
                         serverHint: context.serverHint.hint,
                         markers, actionData
                     }
+                    this.steps.forEach(s => s.dumpDataTo(actionToSubmit))
                     console.log('[Player Action] All steps done. Finishing the call')
                     context.submitAction(actionToSubmit)
                     return ClickActionResult.DONE
@@ -280,14 +304,15 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         }
         if(stepData !== this.currentStep()) {
             //an old step. if we chose this or this can be chosen, allow it
-            if(stepData.chosen.has(action.itemId) || stepData.filter(action.itemId, context, stepData.chosen.toArray())) {
+            if(stepData.chosen.has(action.itemId) || stepData.filter(action.itemId, context, stepData.chosen.toArray().map(s => s[0]))) {
                 return Clickability.CLICKABLE
             } else {
                 return Clickability.DISABLED
             }
         } else {
             //we are at this stage! make sure we don't click more than we can
-            if(stepData.filter(action.itemId, context, stepData.chosen.toArray()) && stepData.canClick(action.itemId)) {
+            if(stepData.filter(action.itemId, context, stepData.chosen.toArray().map(c => c[0])) && 
+                stepData.canClick(action)) {
                 return Clickability.CLICKABLE
             } else {
                 return Clickability.DISABLED
@@ -319,13 +344,13 @@ export class StepByStepActionDriver extends PlayerActionDriver {
 
     private getStepInConcernSafe = (action: PlayerUIAction): Step => {
         //find out the step for this
-        return this.steps.find((s, idx) => idx <= this.curr && s.area === action.actionArea)
+        return this.steps.find((s, idx) => idx <= this.curr && s.isConcernedWith(action.actionArea))
     }
 
     private getStepInConcern = (action: PlayerUIAction): number => {
         //find out the step for this
         for(let i = 0; i <= this.curr; ++i) {
-            if(this.steps[i].area === action.actionArea) {
+            if(this.steps[i].isConcernedWith(action.actionArea)){
                 return i
             }
         }

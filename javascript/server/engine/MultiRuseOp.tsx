@@ -24,7 +24,7 @@ export abstract class MultiRuse extends Operation<void> {
 
         let ts = this.targets.map(t => t.player.id)
         manager.broadcast(new TextFlashEffect(this.ruseAction.actionSource, ts, this.ruseType.name))
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         let context = new WuXieContext(manager, this.ruseAction, this.ruseType)
         await context.init()
@@ -36,7 +36,6 @@ export abstract class MultiRuse extends Operation<void> {
             await this.doPerform(t, manager)
         }
 
-        await manager.afterFlowDone.publish(this)
     }
 
     public abstract async doPerform(target: PlayerInfo, manager: GameManager): Promise<void>;
@@ -109,6 +108,19 @@ export class WanJian extends MultiRuse {
         } else {
             //过了, 出了杀就成
         }
+    }
+
+}
+
+
+export class WuGu extends MultiRuse {
+
+    public constructor(ruseAction: PlayerAction, targets: PlayerInfo[]) {
+        super(ruseAction, CardType.WAN_JIAN, targets)
+    } 
+
+    public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
+        //todo: show UI!
     }
 
 }

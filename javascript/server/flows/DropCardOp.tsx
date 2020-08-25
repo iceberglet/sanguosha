@@ -4,6 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { isCancel, UIPosition, getFromAction } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType } from "../../common/ServerHint";
+import { CardBeingDroppedEvent } from "./Generic";
 
 //弃牌阶段
 export default class DropCardOp extends Operation<void> {
@@ -19,14 +20,15 @@ export default class DropCardOp extends Operation<void> {
 
         this.amount = Math.max(this.player.getCards(CardPos.HAND).length - this.player.hp, 0)
 
-        await manager.beforeFlowHappen.publish(this);
+        await manager.events.publish(this);
 
         if(this.amount > 0) {
 
             let resp = await manager.sendHint(myId, {
-                hintType: HintType.DROP_CARDS,
+                hintType: HintType.CHOOSE_CARD,
                 hintMsg: `请弃置${this.amount}张手牌`,
-                dropNumber: this.amount
+                cardNumbers: this.amount,
+                positions: [UIPosition.MY_HAND]
             })
             
 
@@ -44,9 +46,9 @@ export default class DropCardOp extends Operation<void> {
                 return card
             })
             manager.sendToWorkflow(myId, CardPos.HAND, dropped, true)
+            await manager.events.publish(new CardBeingDroppedEvent(myId, dropped.map(d => [d, CardPos.HAND])))
         }
 
-        await manager.afterFlowDone.publish(this);
     }
 
     

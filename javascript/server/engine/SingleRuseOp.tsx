@@ -9,6 +9,9 @@ import Card, { CardType } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import TakeCardOp from "../flows/TakeCardOp";
 import PlaySlashOp from "../flows/SlashOp";
+import { CardObtainedEvent, CardBeingDroppedEvent, CardBeingPlayedEvent } from "../flows/Generic";
+import { Suits } from "../../common/util/Util";
+import DamageOp, { DamageType } from "../flows/DamageOp";
 
 export abstract class SingleRuse<T> extends Operation<T> {
 
@@ -22,7 +25,7 @@ export abstract class SingleRuse<T> extends Operation<T> {
 
     public async perform(manager: GameManager): Promise<T> {
 
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         if(this.abort) {
             console.log('锦囊牌被取消了')
@@ -40,7 +43,6 @@ export abstract class SingleRuse<T> extends Operation<T> {
 
         await this.doPerform(manager)
 
-        await manager.afterFlowDone.publish(this)
     }
 
     public abstract async doPerform(manager: GameManager): Promise<T>
@@ -97,7 +99,10 @@ export class ShunShou extends SingleRuse<void> {
         let card = findCard(targetPlayer, res)
         delete card.description
         delete card.as
-        manager.transferCards(this.target, this.ruseAction.actionSource, cardPosNames.get(res.rowName), CardPos.HAND, [card])
+        let pos = cardPosNames.get(res.rowName)
+        manager.transferCards(this.target, this.ruseAction.actionSource, pos, CardPos.HAND, [card])
+        await manager.events.publish(new CardBeingDroppedEvent(this.target, [[card, pos]]))
+        await manager.events.publish(new CardObtainedEvent(this.ruseAction.actionSource, [card]))
     }
 }
 
@@ -123,7 +128,9 @@ export class GuoHe extends SingleRuse<void> {
         let res = resp.customData as CardSelectionResult
         let card = findCard(targetPlayer, res)
         card.description = `${this.target} 被弃置`
-        manager.sendToWorkflow(this.target, cardPosNames.get(res.rowName), [card])
+        let pos = cardPosNames.get(res.rowName)
+        manager.sendToWorkflow(this.target, pos, [card])
+        await manager.events.publish(new CardBeingDroppedEvent(this.target, [[card, pos]]))
     }
 }
 
@@ -172,11 +179,82 @@ export class JieDao extends SingleRuse<void> {
         let targetPs = targets.map(manager.context.getPlayer)
 
         if(isCancel(resp)) {
-            console.log('玩家放弃出杀, 失去武器')
+            console.log('玩家放弃出杀, 失去武器', this.ruseAction.actionSource, actors[0], actors[1])
             manager.transferCards(from.player.id, to.player.id, CardPos.EQUIP, CardPos.HAND, [weapon])
+            //event
+            await manager.events.publish(new CardBeingDroppedEvent(actors[0], [[weapon, CardPos.EQUIP]]))
+            //event
+            await manager.events.publish(new CardObtainedEvent(this.ruseAction.actionSource, [weapon]))
         } else {
             console.log('玩家出杀, 开始结算吧')
             await new PlaySlashOp(resp, targetPs, slashCards).perform(manager)
         }
     }
+}
+
+export class HuoGong extends SingleRuse<void> {
+
+    public constructor(public ruseAction: PlayerAction) {
+        super(ruseAction, CardType.HUO_GONG)
+    }
+
+    public async doPerform(manager: GameManager): Promise<void> {
+        //先令对方亮一张牌
+        let resp = await manager.sendHint(this.target, {
+            hintType: HintType.CHOOSE_CARD,
+            hintMsg: `请选择火攻展示牌`,
+            cardNumbers: 1,
+            positions: [UIPosition.MY_HAND]
+        })
+
+        let c = getFromAction(resp, UIPosition.MY_HAND)[0]
+        let card = manager.getCard(c)
+        let suit = manager.interpret(this.target, c).suit
+        card.description = `${this.target} 火攻展示牌`
+
+        console.log(`${this.target} 为火攻展示手牌 ${c}`)
+        manager.sendToWorkflow(this.target, CardPos.HAND, [card], false, true)
+
+        //火攻出牌
+        let resp2 = await manager.sendHint(this.ruseAction.actionSource, {
+            hintType: HintType.CHOOSE_CARD,
+            hintMsg: `请打出一张花色为[${Suits[suit]}]的手牌`,
+            cardNumbers: 1,
+            positions: [UIPosition.MY_HAND],
+            extraButtons: [Button.CANCEL],
+            suits: [suit]
+        })
+
+        if(!isCancel(resp2)) {
+            let fireCard = getFromAction(resp2, UIPosition.MY_HAND)[0]
+            console.log(`${this.ruseAction.actionSource} 为火攻出了 ${fireCard}`)
+            let fireCardo = manager.getCard(fireCard)
+            fireCardo.description = `${this.ruseAction.actionSource} 火攻使用牌`
+            manager.sendToWorkflow(this.ruseAction.actionSource, CardPos.HAND, [fireCardo])
+
+            await manager.events.publish(new CardBeingDroppedEvent(this.ruseAction.actionSource, [[fireCardo, CardPos.HAND]]))
+
+            await new DamageOp(manager.context.getPlayer(this.ruseAction.actionSource),
+                                manager.context.getPlayer(this.target),
+                                1, resp2, DamageType.FIRE).perform(manager)
+        } else {
+            console.log(`${this.ruseAction.actionSource} 放弃了火攻`)
+        }
+    }
+}
+
+export class YuanJiao extends SingleRuse<void> {
+
+    public constructor(public ruseAction: PlayerAction) {
+        super(ruseAction, CardType.YUAN_JIAO)
+    }
+
+    public async doPerform(manager: GameManager): Promise<void> {
+        //give target one
+        let target = getFromAction(this.ruseAction, UIPosition.PLAYER)[0]
+        await new TakeCardOp(manager.context.getPlayer(target), 1).do(manager)
+        //give self three
+        await new TakeCardOp(manager.context.getPlayer(this.ruseAction.actionSource), 3).do(manager)
+    }
+    
 }

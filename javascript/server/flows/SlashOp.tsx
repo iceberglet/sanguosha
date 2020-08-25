@@ -1,4 +1,4 @@
-import Flow, { Operation } from "../Flow";
+import { Operation } from "../Flow";
 import GameManager from "../GameManager";
 import { PlayerAction, getFromAction, UIPosition, Button, isCancel } from "../../common/PlayerAction";
 import { PlayerInfo } from "../../common/PlayerInfo";
@@ -9,7 +9,8 @@ import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import { isSuitBlack } from "../../common/cards/ICard";
 import { HintType } from "../../common/ServerHint";
 import { CardPos } from "../../common/transit/CardPos";
-import e = require("express");
+
+
 
 //玩家出杀的行动
 export default class PlaySlashOp extends Operation<void> {
@@ -59,7 +60,7 @@ export default class PlaySlashOp extends Operation<void> {
         // 会不会转移目标? (游离)
         // 雌雄双股剑? > 弃牌然后空城
         // leave to the listeners
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         let actor = manager.context.getPlayer(this.action.actionSource)
 
@@ -97,7 +98,7 @@ export class SlashOp extends Operation<boolean> {
     }
 
     public async perform(manager: GameManager): Promise<boolean> {
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
         
         let resp = await manager.sendHint(this.slasher.player.id, {
             hintType: HintType.SLASH,
@@ -120,7 +121,6 @@ export class SlashOp extends Operation<boolean> {
             manager.sendToWorkflow(this.slasher.player.id, CardPos.HAND, cards)
         }
 
-        await manager.afterFlowDone.publish(this)
         return true
     }
 }

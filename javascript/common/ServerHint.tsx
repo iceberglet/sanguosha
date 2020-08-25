@@ -1,12 +1,12 @@
 import RoundStat, { ForbiddenTypes } from "./RoundStat"
-import { Button } from "./PlayerAction"
-import Card from "./cards/Card"
+import { Button, UIPosition } from "./PlayerAction"
+import Card, { Suit } from "./cards/Card"
 
 
 export enum HintType {
     PLAY_HAND,
     //单纯弃牌
-    DROP_CARDS,
+    CHOOSE_CARD,
     //对指定目标出杀, 如果有技能之类的可以额外指定杀的目标...
     PLAY_SLASH,
     //单纯出杀, 无目标 (南蛮 / 决斗)
@@ -17,6 +17,11 @@ export enum HintType {
     PEACH,
     WU_XIE,
 
+
+    /**
+     * 在多个选项中选一个
+     */
+    MULTI_CHOICE,
     /**
      * Custom UI Panel
      * - 过拆之类的
@@ -96,9 +101,23 @@ export type ServerHint = {
      */
     targetPlayers?: string[]
     /**
+     * 需要选择的牌数, 比如弃牌
      * 弃牌如此多张
      */
-    dropNumber?: number
+    cardNumbers?: number
+
+    /**
+     * 选择自己牌的位置
+     * 一般只有手牌 / 装备 或者两者都在
+     */
+    positions?: UIPosition[]
+
+    /**
+     * 可以用的花色
+     * 火攻 / 张角改判定 / 庞统重铸 会用到
+     */
+    suits?: Suit[]
+
 
     /**
      * 当需要 - 过河拆桥 / 顺手牵羊 / 获得这个牌拿走那个牌 的时候

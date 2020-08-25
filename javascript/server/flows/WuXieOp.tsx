@@ -30,7 +30,7 @@ export class WuXieContext {
             }
         })
         // publish WuXieFlow event, 比如卧龙和曹仁有技能可以当做无懈可击, 他们会将 null 改回 自己的flow
-        await this.manager.beforeFlowHappen.publish(this)
+        await this.manager.events.publish(this)
     }
 
     /**
@@ -113,7 +113,8 @@ export class WuXieContext {
     private async processNormal(action: PlayerAction): Promise<void> {
         let card = getFromAction(action, UIPosition.MY_HAND)[0]
         console.log(`打出了${card}作为无懈`)
-        this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [this.manager.getCard(card)])
-        await this.manager.afterFlowDone.publish(new CardBeingPlayedEvent(action, this.manager.interpret(action.actionSource, card)))
+        let actual = this.manager.getCard(card)
+        this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [actual])
+        await this.manager.events.publish(new CardBeingPlayedEvent(action.actionSource, [actual], CardType.WU_XIE))
     }
 }

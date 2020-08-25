@@ -15,7 +15,7 @@ export default class AskSavingOp {
     public async perform(manager: GameManager): Promise<void> {
         let refused = false
         //急救??
-        await manager.beforeFlowHappen.publish(this)
+        await manager.events.publish(this)
 
         let targetId = this.deadman.player.id
         while (this.deadman.isDying()) {
