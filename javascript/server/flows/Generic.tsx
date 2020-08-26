@@ -2,7 +2,7 @@ import Card, { CardType } from "../../common/cards/Card";
 import { CardPos } from "../../common/transit/CardPos";
 
 export class CardBeingPlayedEvent {
-    constructor(public readonly player: string, public readonly played: Card[], public readonly as: CardType) {}
+    constructor(public readonly player: string, public readonly played: Array<[Card, CardPos]>, public readonly as: CardType) {}
 }
 
 export class CardBeingDroppedEvent {

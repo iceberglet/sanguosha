@@ -72,8 +72,8 @@ function gatherCards(info: PlayerInfo): {[key: string]: Array<Card>} {
     return res
 }
 
-function findCard(info: PlayerInfo, res: CardSelectionResult): Card {
-    return info.getCards(cardPosNames.get(res.rowName))[res.idx]
+function findCard(info: PlayerInfo, res: CardSelectionResult): Array<[Card, CardPos]> {
+    return res.map(r => [info.getCards(cardPosNames.get(r.rowName))[r.idx], cardPosNames.get(r.rowName)])
 }
 
 export class ShunShou extends SingleRuse<void> {
@@ -88,18 +88,21 @@ export class ShunShou extends SingleRuse<void> {
         let resp = await manager.sendHint(this.ruseAction.actionSource, {
             hintType: HintType.UI_PANEL,
             hintMsg: '请选择对方一张牌',
-            cardSelectHint: {
-                rowsOfCard: gatherCards(targetPlayer),
-                title: `顺手牵羊 > ${this.target}`,
+            customRequest: {
+                data: {
+                    rowsOfCard: gatherCards(targetPlayer),
+                    title: `顺手牵羊 > ${this.target}`,
+                    chooseSize: 1
+                },
                 mode: 'choose'
             }
         })
         console.log('顺手牵羊成功!', resp)
         let res = resp.customData as CardSelectionResult
-        let card = findCard(targetPlayer, res)
+        let cardAndPos = findCard(targetPlayer, res)[0]
+        let card = cardAndPos[0], pos = cardAndPos[1]
         delete card.description
         delete card.as
-        let pos = cardPosNames.get(res.rowName)
         manager.transferCards(this.target, this.ruseAction.actionSource, pos, CardPos.HAND, [card])
         await manager.events.publish(new CardBeingDroppedEvent(this.target, [[card, pos]]))
         await manager.events.publish(new CardObtainedEvent(this.ruseAction.actionSource, [card]))
@@ -118,17 +121,20 @@ export class GuoHe extends SingleRuse<void> {
         let resp = await manager.sendHint(this.ruseAction.actionSource, {
             hintType: HintType.UI_PANEL,
             hintMsg: '请选择对方一张牌',
-            cardSelectHint: {
-                rowsOfCard: gatherCards(targetPlayer),
-                title: `过河拆桥 > ${this.target}`,
-                mode: 'choose'
+            customRequest: {
+                mode: 'choose',
+                data: {
+                    rowsOfCard: gatherCards(targetPlayer),
+                    title: `过河拆桥 > ${this.target}`,
+                    chooseSize: 1
+                }
             }
         })
         console.log('过河拆桥成功!', resp)
         let res = resp.customData as CardSelectionResult
-        let card = findCard(targetPlayer, res)
+        let cardAndPos = findCard(targetPlayer, res)[0]
+        let card = cardAndPos[0], pos = cardAndPos[1]
         card.description = `${this.target} 被弃置`
-        let pos = cardPosNames.get(res.rowName)
         manager.sendToWorkflow(this.target, pos, [card])
         await manager.events.publish(new CardBeingDroppedEvent(this.target, [[card, pos]]))
     }
@@ -236,7 +242,7 @@ export class HuoGong extends SingleRuse<void> {
 
             await new DamageOp(manager.context.getPlayer(this.ruseAction.actionSource),
                                 manager.context.getPlayer(this.target),
-                                1, resp2, DamageType.FIRE).perform(manager)
+                                1, resp, DamageType.FIRE).perform(manager)
         } else {
             console.log(`${this.ruseAction.actionSource} 放弃了火攻`)
         }

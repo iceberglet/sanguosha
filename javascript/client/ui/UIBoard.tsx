@@ -10,7 +10,7 @@ import GameClientContext from '../GameClientContext'
 import { UIPosition } from '../../common/PlayerAction'
 import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
-import { ServerHintTransit, Rescind, HintType, CardSelectionHint } from '../../common/ServerHint'
+import { ServerHintTransit, Rescind, HintType, CardSelectionHint, CustomRequest } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
 import { TextFlashEffect, CardTransit } from '../../common/transit/EffectTransit'
 import { CardPos } from '../../common/transit/CardPos'
@@ -78,7 +78,7 @@ type State = {
     cardsChecker: Checker,
     buttonChecker: Checker,
     equipChecker: Checker,
-    uiRequest?: CardSelectionHint,
+    uiRequest?: CustomRequest,
     others: PlayerInfo[],
     cardTransitManager: CardTransitManager
 }
@@ -110,7 +110,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             if(con.hint.hintType === HintType.UI_PANEL) {
                 //hijack
                 console.log('Received Special Panel Request. Not sending to context')
-                this.setState({uiRequest: con.hint.cardSelectHint})
+                this.setState({uiRequest: con.hint.customRequest})
             } else {
                 this.refresh()
             }
@@ -176,7 +176,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                                     screenPosObtainer={screenPosObtainer} showDist={showDistance} cardTransitManager={cardTransitManager}
                                     checker={playerChecker} cardManager={context.getGameMode().cardManager}/>
                                     
-                    <UIMounter selectHint={this.state.uiRequest} consumer={res => {
+                    <UIMounter customRequest={this.state.uiRequest} consumer={res => {
                         context.submitAction({
                             actionData: null,
                             actionSource: myId,

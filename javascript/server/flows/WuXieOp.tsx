@@ -115,6 +115,6 @@ export class WuXieContext {
         console.log(`打出了${card}作为无懈`)
         let actual = this.manager.getCard(card)
         this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [actual])
-        await this.manager.events.publish(new CardBeingPlayedEvent(action.actionSource, [actual], CardType.WU_XIE))
+        await this.manager.events.publish(new CardBeingPlayedEvent(action.actionSource, [[actual, CardPos.HAND]], CardType.WU_XIE))
     }
 }

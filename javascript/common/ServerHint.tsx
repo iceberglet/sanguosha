@@ -58,13 +58,14 @@ export type CardSelectionHint = {
     title: string,
     rowsOfCard: {[key: string]: Array<Card>},
     mode: 'choose' | 're-arrange'
-    numberOnTop?: number
+    chooseSize: number
 }
 
-export type CardSelectionResult = {
+export type CardSelectionResult = Array<{
     rowName: string,
     idx: number
-}
+}>
+    
 
 export type CardChoices = {
     cards: {
@@ -123,5 +124,10 @@ export type ServerHint = {
      * 当需要 - 过河拆桥 / 顺手牵羊 / 获得这个牌拿走那个牌 的时候
      * 就要走这个了!
      */
-    cardSelectHint?: CardSelectionHint
+    customRequest?: CustomRequest
+}
+
+export type CustomRequest = {
+    mode: 'choose' | 're-arrange' | 'wu-gu'
+    data: any
 }

@@ -30,7 +30,7 @@ export default class Togglable<T> {
     }
 
     public isFull() {
-        return this.maxSize > this.size()
+        return this.maxSize <= this.size()
     }
 
     public size(): number {

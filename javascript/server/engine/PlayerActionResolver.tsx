@@ -6,7 +6,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import HealOp from "../flows/HealOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import { CardBeingPlayedEvent } from "../flows/Generic";
+import { CardBeingPlayedEvent, CardBeingDroppedEvent } from "../flows/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "./EquipOp";
 import JueDou from "./JueDou";
@@ -40,17 +40,6 @@ export default class PlayerActionResolver {
             let player = this.manager.context.getPlayer(act.actionSource)
             let card = this.manager.getCard(hand[0])
             let icard = this.manager.interpret(act.actionSource, card.id)
-            await this.manager.events.publish(new CardBeingPlayedEvent(act.actionSource, [card], card.type))
-
-
-            //装备牌
-            if(icard.type.isEquipment()) {
-                card.description = `${player.player.id} 装备`
-                this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, true)
-                await new EquipOp(act.actionSource, card).perform(this.manager)
-                return
-            }
-
 
             // can be more than one
             let targetPs = this.getTargets(act)
@@ -62,6 +51,21 @@ export default class PlayerActionResolver {
             }
             this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
             
+
+            if(icard.type === CardType.TIE_SUO && targets.length === 0) {
+                //铁索重铸算作弃置
+                await this.manager.events.publish(new CardBeingDroppedEvent(act.actionSource, [[card, CardPos.HAND]]))
+            } else {
+                await this.manager.events.publish(new CardBeingPlayedEvent(act.actionSource, [[card, CardPos.HAND]], card.type))
+            }
+
+            //装备牌
+            if(icard.type.isEquipment()) {
+                card.description = `${player.player.id} 装备`
+                this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, true)
+                await new EquipOp(act.actionSource, card).perform(this.manager)
+                return
+            }
 
             switch(icard.type) {
                 //slash

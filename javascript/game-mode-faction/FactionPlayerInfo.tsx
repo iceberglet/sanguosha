@@ -6,6 +6,7 @@ import * as React from "react"
 import './faction-war.scss'
 import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
 import { ClassFormatter } from "../common/util/Togglable"
+import { Mask } from "../common/util/Util"
 
 
 export default class FactionPlayerInfo extends PlayerInfo {
@@ -93,7 +94,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
         let color = Color[this.faction.image]
         let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
         return <div className={clazz}>
-            <div className='general'>
+            <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.general, true)}
                 <div className='general-name' style={{background: color}}>
                     {this.general.name}
@@ -101,7 +102,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
                 </div>
                 <div className='title'>主</div>
             </div>
-            <div className='general'>
+            <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.subGeneral, true)}
                 <div className='general-name' style={{background: color}}>
                     {this.subGeneral.name}

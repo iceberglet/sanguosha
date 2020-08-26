@@ -22,6 +22,8 @@ export abstract class MultiRuse extends Operation<void> {
 
     public async perform(manager: GameManager): Promise<void> {
 
+        await this.init(manager)
+
         let ts = this.targets.map(t => t.player.id)
         manager.broadcast(new TextFlashEffect(this.ruseAction.actionSource, ts, this.ruseType.name))
         await manager.events.publish(this)
@@ -36,6 +38,10 @@ export abstract class MultiRuse extends Operation<void> {
             await this.doPerform(t, manager)
         }
 
+    }
+
+    public async init(manager: GameManager) {
+        //no-op by default
     }
 
     public abstract async doPerform(target: PlayerInfo, manager: GameManager): Promise<void>;
@@ -118,6 +124,10 @@ export class WuGu extends MultiRuse {
     public constructor(ruseAction: PlayerAction, targets: PlayerInfo[]) {
         super(ruseAction, CardType.WAN_JIAN, targets)
     } 
+
+    public async init(manager: GameManager) {
+
+    }
 
     public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
         //todo: show UI!

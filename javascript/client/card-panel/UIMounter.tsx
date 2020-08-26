@@ -1,25 +1,25 @@
 import * as React from 'react'
-import { CardSelectionHint, CardSelectionResult } from '../../common/ServerHint'
+import { CardSelectionHint, CustomRequest } from '../../common/ServerHint'
 import CardSelection from './CardSelection'
 
 type Prop = {
-    selectHint: CardSelectionHint,
+    customRequest: CustomRequest,
     consumer: (res: any) => void
 }
 
 export default class UIMounter extends React.Component<Prop, any> {
 
     renderSelection() {
-        let hint = this.props.selectHint
+        let hint = this.props.customRequest
         switch(hint.mode) {
-            case 'choose': return <CardSelection {...hint} onSelectionDone={this.props.consumer} />
+            case 'choose': return <CardSelection {...hint.data as CardSelectionHint} onSelectionDone={this.props.consumer} />
         }
         throw 'Unknown...' + hint.mode
     }
     
 
     render() {
-        if(!this.props.selectHint) {
+        if(!this.props.customRequest) {
             return null
         }
         return <div className='occupy ui-mounter center'>
