@@ -1,11 +1,10 @@
 import { Operation } from "../Flow";
 import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { PlayerAction } from "../../common/PlayerAction";
 import { DamageEffect } from "../../common/transit/EffectTransit";
 import DeathOp from "./DeathOp";
 import AskSavingOp from "./AskSavingOp";
-import { CardType } from "../../common/cards/Card";
+import Card, { CardType } from "../../common/cards/Card";
 
 export enum DamageType {
     /**
@@ -55,7 +54,7 @@ export default class DamageOp extends Operation<void> {
     public constructor(public source: PlayerInfo, 
         public target: PlayerInfo, 
         public amount: number,
-        public cause: PlayerAction,
+        public cards: Card[], //cards that caused this
         public type: DamageType = DamageType.NORMAL,
         public doChain: boolean = true) {
         super()
@@ -85,7 +84,7 @@ export default class DamageOp extends Operation<void> {
         //死没死?
         if(this.target.isDying()) {
             //求桃
-            let toAsk = manager.context.getRingFromPerspective(manager.currPlayer().player.id, true, false)
+            let toAsk = manager.getSortedByCurr(true)
             for(let i = 0; i < toAsk.length && this.target.isDying(); ++i) {
                 await new AskSavingOp(this.target, toAsk[i]).perform(manager)
             }
@@ -116,7 +115,7 @@ export default class DamageOp extends Operation<void> {
                 if(!player.isDead) {
                     console.log('连环伤害:', player.player.id)
                     this.target.isChained = false
-                    await new DamageOp(this.source, player, this.originalDamage, this.cause, this.type, false).perform(manager)
+                    await new DamageOp(this.source, player, this.originalDamage, this.cards, this.type, false).perform(manager)
                 }
             }
         }

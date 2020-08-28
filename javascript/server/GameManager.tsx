@@ -149,6 +149,10 @@ export default class GameManager {
         return this.context.playerInfos.map(p => !p.isDead && p.player.id !== id)
     }
 
+    /**
+     * 当前活着的玩家根据座次排序
+     * @param includeCurr 
+     */
     public getSortedByCurr(includeCurr: boolean): PlayerInfo[] {
         return this.context.getRingFromPerspective(this.currPlayer().player.id, includeCurr)
     }
@@ -170,10 +174,10 @@ export default class GameManager {
         this.broadcast(CardTransit.toWorkflow(fromPlayer, fromPos, cards, head, doNotRemove))
     }
 
-    public takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]) {
+    public takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]): string[] {
         // this.broadcast(new TransferCardEffect(null, toPlayer, cards))
-        this.context.takeFromWorkflow(toPlayer, toPos, cards)
-        this.broadcast(this.context.getPlayer(toPlayer), PlayerInfo.sanitize)
+        return this.context.takeFromWorkflow(toPlayer, toPos, cards)
+        // this.broadcast(this.context.getPlayer(toPlayer), PlayerInfo.sanitize)
     }
     
     /**

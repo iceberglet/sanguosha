@@ -9,9 +9,8 @@ import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import { CardBeingPlayedEvent, CardBeingDroppedEvent } from "../flows/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "./EquipOp";
-import JueDou from "./JueDou";
-import { ShunShou, GuoHe, WuZhong, JieDao, HuoGong } from "./SingleRuseOp";
-import { WanJian, NanMan, TieSuo } from "./MultiRuseOp";
+import { ShunShou, GuoHe, WuZhong, JieDao, HuoGong, JueDou } from "./SingleRuseOp";
+import { WanJian, NanMan, TieSuo, WuGu } from "./MultiRuseOp";
 
 export default class PlayerActionResolver {
 
@@ -72,7 +71,7 @@ export default class PlayerActionResolver {
                 case CardType.SLASH:
                 case CardType.SLASH_FIRE:
                 case CardType.SLASH_THUNDER:
-                    await new PlaySlashOp(act, targetPs, [card]).perform(this.manager)
+                    await new PlaySlashOp(act.actionSource, targetPs, [card]).perform(this.manager)
                     break;
     
                 //peach
@@ -81,7 +80,7 @@ export default class PlayerActionResolver {
                     checkThat(targets.length === 0, '桃不能直接用在别人身上')
                     let info = this.toInfo(act.actionSource)
                     this.manager.broadcast(new TextFlashEffect(act.actionSource, [], '桃'))
-                    await new HealOp(info, info, 1, act).perform(this.manager)
+                    await new HealOp(info, info, 1).perform(this.manager)
                     break;
     
                 //wine
@@ -93,33 +92,34 @@ export default class PlayerActionResolver {
                     break;
 
                 case CardType.WU_ZHONG:
-                    await new WuZhong(act).perform(this.manager)
+                    await new WuZhong(act.actionSource, targets[0], [card]).perform(this.manager)
                     break
                 case CardType.JIE_DAO:
-                    await new JieDao(act).perform(this.manager)
+                    await new JieDao(act.actionSource, targets, [card]).perform(this.manager)
                     break
                 case CardType.GUO_HE:
-                    await new GuoHe(act).perform(this.manager)
+                    await new GuoHe(act.actionSource, targets[0], [card]).perform(this.manager)
                     break
                 case CardType.HUO_GONG:
-                    await new HuoGong(act).perform(this.manager)
+                    await new HuoGong(act.actionSource, targets[0], [card]).perform(this.manager)
                     break
                 case CardType.SHUN_SHOU:
-                    await new ShunShou(act).perform(this.manager)
+                    await new ShunShou(act.actionSource, targets[0], [card]).perform(this.manager)
                     break
                 case CardType.JUE_DOU:
-                    await new JueDou(act).perform(this.manager)
+                    await new JueDou(act.actionSource, targets[0], [card]).perform(this.manager)
                     break
                 case CardType.TIE_SUO:
-                    await new TieSuo(act).perform(this.manager)
+                    await new TieSuo(act.actionSource, targets, [card]).perform(this.manager)
                     break
                 case CardType.WAN_JIAN:
-                    await new WanJian(act, this.manager.getSortedByCurr(false)).perform(this.manager)
+                    await new WanJian([card], act.actionSource, CardType.WAN_JIAN, this.manager.getSortedByCurr(false)).perform(this.manager)
                     break
                 case CardType.NAN_MAN:
-                    await new NanMan(act, this.manager.getSortedByCurr(false)).perform(this.manager)
+                    await new NanMan([card], act.actionSource, CardType.WAN_JIAN, this.manager.getSortedByCurr(false)).perform(this.manager)
                     break
                 case CardType.WU_GU:
+                    await new WuGu([card], act.actionSource, CardType.WAN_JIAN, this.manager.getSortedByCurr(false)).perform(this.manager)
                     break
                 case CardType.TAO_YUAN:
                     break

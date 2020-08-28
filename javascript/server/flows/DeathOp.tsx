@@ -10,8 +10,6 @@ import DamageOp from "./DamageOp";
 //will send event for processing
 export default class DeathOp extends Operation<void> {
 
-    //涅槃? 不屈?
-    abort: boolean = false
     //cards to drop
     //remove stuff from here (曹丕行殇?)
     toDrop: Array<[Card, CardPos]>
@@ -24,12 +22,8 @@ export default class DeathOp extends Operation<void> {
     
     public async perform(manager: GameManager): Promise<void> {
 
+        //行殇在此
         await manager.events.publish(this)
-
-        //涅槃
-        if(this.abort) {
-            return
-        }
 
         //physically transfer everything
         this.toDrop.forEach(cardAndPos => {

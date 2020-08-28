@@ -36,11 +36,21 @@ export default class GameServerContext extends GameContext {
         cards.forEach(this.workflowCards.add)
     }
 
-    takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]) {
+    /**
+     * 尝试从 workflow 处拿牌, 返回拿到的
+     * @param toPlayer 
+     * @param toPos 
+     * @param cards 
+     */
+    takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]): string[] {
+        let res: string[] = []
         cards.forEach(c => {
-            this.workflowCards.removeThat(w => w.id === c)
+            if(this.workflowCards.removeThat(w => w.id === c)) {
+                this.addTo(toPlayer, toPos, [c])
+                res.push(c)
+            }
         })
-        this.addTo(toPlayer, toPos, cards)
+        return res
     }
 
     //将workflow里面的牌扔进弃牌堆

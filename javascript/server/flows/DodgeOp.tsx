@@ -5,13 +5,14 @@ import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
+import PlaySlashOp from "./SlashOp";
 
 export default class DodgeOp extends Operation<boolean> {
 
     public success = false
 
     public constructor(public readonly target: PlayerInfo, 
-                        public readonly slashAction: PlayerAction, 
+                        public readonly source: string, 
                         public readonly numberRequired: number,
                         public readonly hintMsg: string){
         super()
@@ -39,7 +40,7 @@ export default class DodgeOp extends Operation<boolean> {
                 //assume cancel is received?
                 this.success = false
             } else {
-                manager.broadcast(new TextFlashEffect(this.target.player.id, [this.slashAction.actionSource], '闪'))
+                manager.broadcast(new TextFlashEffect(this.target.player.id, [this.source], '闪'))
                 //assume he played it
                 let cards = getFromAction(response, UIPosition.MY_HAND).map(id => manager.getCard(id))
                 if(cards.length !== 1) {

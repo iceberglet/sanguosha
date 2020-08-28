@@ -18,7 +18,6 @@ export class WuXieContext {
     public processors = new Map<string, WuXieProcessor>()
 
     public constructor(private manager: GameManager, 
-                        public ruseAction: PlayerAction, 
                         public readonly ruseType: CardType) {
     }
 

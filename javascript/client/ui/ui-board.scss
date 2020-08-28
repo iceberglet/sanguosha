@@ -91,7 +91,7 @@
                 // height: 172px;
                 padding: 4px;
                 background-color: rgba(56, 52, 29, 0.767);
-                box-shadow: inset 0px 0px 10px #9a9a9a;
+                box-shadow: inset 0px 0px 5px #ffffff;
                 z-index: 3;  //要高过手牌栏
     
                 .my-judge {
@@ -112,8 +112,10 @@
             position: relative;
             height: 180px;
             flex-grow: 1;
-            background-color: #161616a2;
-            box-shadow: inset 0px 0px 10px #9a9a9a;
+            // background-color: #161616a2;
+            background-image: url('ui/bak.png');
+            background-repeat: repeat;
+            box-shadow: inset 0px 0px 5px #ffffff;
             // border: 1px solid red;
             display: flex;
         }

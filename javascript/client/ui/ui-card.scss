@@ -52,8 +52,9 @@
         position: relative;
         width: 95%;
         height: 95%;
-        border: 5px solid black;
+        border: 5px solid #272727;
         border-radius: 7px;
+        filter: drop-shadow(2px 4px 4px #272727);
     }
                     
     .as {

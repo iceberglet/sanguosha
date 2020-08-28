@@ -8,9 +8,8 @@ export default class HealOp extends Operation<void> {
 
 
     public constructor(public source: PlayerInfo, 
-        public target: PlayerInfo, 
-        public amount: number,
-        public cause: PlayerAction) {
+                        public target: PlayerInfo, 
+                        public amount: number) {
         super()
     }
 
