@@ -121,7 +121,7 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
             width: this.dom.current.getBoundingClientRect().width - cardWidth - rowOffset * 2,
             height: this.dom.current.getBoundingClientRect().height - btmOffset - cardHeight
         }
-        console.log('Setting Workflow Size', size)
+        // console.log('Setting Workflow Size', size)
         this.setState(size)
     }
 

@@ -1,7 +1,7 @@
 import { playerActionDriverProvider } from "../client/player-actions/PlayerActionDriverProvider"
 import { HintType } from "../common/ServerHint"
 import PlayerActionDriverDefiner from "../client/player-actions/PlayerActionDriverDefiner"
-import { UIPosition, Marker } from "../common/PlayerAction"
+import { UIPosition } from "../common/PlayerAction"
 import FactionPlayerInfo from "./FactionPlayerInfo"
 import { CardPos } from "../common/transit/CardPos"
 import { CardType } from "../common/cards/Card"
@@ -12,7 +12,6 @@ import { CardType } from "../common/cards/Card"
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段出知己知彼')
             .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.ZHI_JI)
-            .whichIs(Marker.USE)
             .expectChoose([UIPosition.PLAYER], 1, 1, 
                 (id, context)=>{
                     let target = context.getPlayer(id) as FactionPlayerInfo
@@ -30,7 +29,6 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段出以逸待劳')
             .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.YI_YI)
-            .whichIs(Marker.USE)
             .expectAnyButton('点击确定使用以逸待劳')
             .build(hint)
 })
@@ -43,7 +41,6 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
                 }
                 return context.interpret(id).type === CardType.YUAN_JIAO
             })
-            .whichIs(Marker.USE)
             .expectChoose([UIPosition.PLAYER], 1, 1, 
                 (id, context)=>{
                     let faction = context.getPlayer(id).getFaction()

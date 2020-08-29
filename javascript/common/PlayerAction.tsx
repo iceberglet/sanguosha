@@ -55,14 +55,6 @@ export class PlayerActionTransit {
     }
 }
 
-/**
- * 决定这个牌/点击的东西是使用了还是弃置了
- */
-export enum Marker {
-    USE,   //使用
-    DROP,  //弃置
-    INVOKE //技能, 装备特性
-}
 
 /**
  * 每个玩家的操作都是一个Player Action
@@ -78,24 +70,8 @@ export type PlayerAction = {
     serverHint: ServerHint
     actionSource: string
     actionData: {[key in UIPosition]?: string[]}
-    markers: {[key in UIPosition]?: Marker}
     //this can be anything
     customData?: any
-}
-
-/**
- * Get all cards that are marked as "USE"
- * @param action 
- */
-export function getCardsUsed(action: PlayerAction): string[] {
-    let res: string[] = []
-    Object.keys(action.markers).forEach((p: any) => {
-        let pos = p as UIPosition
-        if(action.markers[pos] === Marker.USE) {
-            res.push(...action.actionData[pos])
-        }
-    })
-    return res
 }
 
 export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {

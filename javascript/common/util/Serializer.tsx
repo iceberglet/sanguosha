@@ -13,6 +13,7 @@ import { Stage } from "../Stage"
 import { TextFlashEffect, DamageEffect, CardTransit, CurrentPlayerEffect } from '../transit/EffectTransit';
 import { FWCard } from "../../game-mode-faction/FactionWarCardSet"
 import RoundStat from "../RoundStat"
+import { CustomUIData } from "../../client/card-panel/CustomUIRegistry"
 
 
 export type Payload = {
@@ -166,6 +167,7 @@ Serde.register(Package)
 Serde.register(Faction)
 Serde.register(Identity)
 Serde.register(Rescind)
+Serde.register(CustomUIData)
 Serde.register(RoundStat)
 Serde.register(Button)
 Serde.register(Stage)

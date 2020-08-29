@@ -214,7 +214,6 @@ export class DefaultCardEndpoint extends React.Component<Prop, State> implements
  */
 export default class CardTransitManager {
 
-    static ALL_POS = 'all_pos'
     endpoints = new Map<string, CardEndpoint>()
 
     /**

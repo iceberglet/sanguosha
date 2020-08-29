@@ -1,8 +1,6 @@
 import * as React from 'react'
-import UICardRow, { UIMarkRow } from './UICardRow'
 
 import './ui-board.scss'
-import UIEquipGrid from './UIEquipGrid'
 import { UIMyPlayerCard } from './UIMyPlayerCard'
 import UIButton from './UIButton'
 import UIPlayGround from './UIPlayGround' 
@@ -10,10 +8,9 @@ import GameClientContext from '../GameClientContext'
 import { UIPosition } from '../../common/PlayerAction'
 import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
-import { ServerHintTransit, Rescind, HintType, CardSelectionHint, CustomRequest } from '../../common/ServerHint'
+import { ServerHintTransit, Rescind, HintType, CustomRequest } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
 import { TextFlashEffect, CardTransit } from '../../common/transit/EffectTransit'
-import { CardPos } from '../../common/transit/CardPos'
 import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
 import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
@@ -21,6 +18,7 @@ import UIMounter from '../card-panel/UIMounter'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import CardTransitManager from './CardTransitManager'
 import UIMyCards from './UIMyCards'
+import { CustomUIData } from '../card-panel/CustomUIRegistry'
 
 type UIBoardProp = {
     myId: string
@@ -79,6 +77,7 @@ type State = {
     buttonChecker: Checker,
     equipChecker: Checker,
     uiRequest?: CustomRequest,
+    uiData?: CustomUIData<any>,
     others: PlayerInfo[],
     cardTransitManager: CardTransitManager
 }
@@ -102,6 +101,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             equipChecker: new CheckerImpl(UIPosition.MY_EQUIP, context, this.refresh),
             cardTransitManager: new CardTransitManager(),
             uiRequest: null,
+            uiData: null,
             others: context.getRingFromPerspective(myId, false, true)
         }
         //need to forceupdate to register new changes
@@ -115,6 +115,9 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 this.refresh()
             }
         })
+        p.pubsub.on(CustomUIData, (uiData: CustomUIData<any>)=>{
+            this.setState({uiData})
+        })
 
         //只有无懈可击之类的才会rescind之前的请求
         p.pubsub.on(Rescind, ()=>{
@@ -126,18 +129,6 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             this.effectProducer.processEffect(effect)
         })
         p.pubsub.on(CardTransit, (effect: CardTransit)=>{
-            // if(effect.from === effect.to) {
-            //     //just update the player infos
-            //     console.log('Card transfer on the same person', effect)
-            //     let f = this.props.context.getPlayer(effect.from)
-            //     let t = this.props.context.getPlayer(effect.to)
-            //     effect.cards.forEach(c => {
-            //         f.removeCard(c.id)
-            //         t.addCard(c, effect.toPos)
-            //     })
-            //     this.forceUpdate()
-            //     return
-            // }
             this.state.cardTransitManager.onCardTransfer(effect)
         })
         p.pubsub.on(FactionPlayerInfo, (info: FactionPlayerInfo)=>{
@@ -176,12 +167,12 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                                     screenPosObtainer={screenPosObtainer} showDist={showDistance} cardTransitManager={cardTransitManager}
                                     checker={playerChecker} cardManager={context.getGameMode().cardManager}/>
                                     
-                    <UIMounter customRequest={this.state.uiRequest} consumer={res => {
-                        context.submitAction({
+                    <UIMounter customRequest={this.state.uiRequest} 
+                        commonUI={this.state.uiData}
+                        consumer={res => {context.submitAction({
                             actionData: null,
                             actionSource: myId,
                             serverHint: null,
-                            markers: null,
                             customData: res
                         })
                         this.setState({uiRequest: null})

@@ -32,7 +32,7 @@ export default class GameServerContext extends GameContext {
 
     //将牌从玩家身上扔进workflow堆中(打出或者弃置的牌)
     sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: Card[]) {
-        this.removeFrom(fromPlayer, fromPos, cards.map(w => w.id))
+        this.removeFrom(fromPlayer, fromPos, cards)
         cards.forEach(this.workflowCards.add)
     }
 
@@ -42,10 +42,10 @@ export default class GameServerContext extends GameContext {
      * @param toPos 
      * @param cards 
      */
-    takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]): string[] {
-        let res: string[] = []
+    takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: Card[]): Card[] {
+        let res: Card[] = []
         cards.forEach(c => {
-            if(this.workflowCards.removeThat(w => w.id === c)) {
+            if(this.workflowCards.removeThat(w => w.id === c.id)) {
                 this.addTo(toPlayer, toPos, [c])
                 res.push(c)
             }
@@ -55,7 +55,7 @@ export default class GameServerContext extends GameContext {
 
     //将workflow里面的牌扔进弃牌堆
     dropWorkflowCards() {
-        this.addTo(null, CardPos.DROPPED, this.workflowCards._data.map(w => w.id))
+        this.addTo(null, CardPos.DROPPED, this.workflowCards._data)
         this.workflowCards.clear()
     }
     
@@ -68,23 +68,23 @@ export default class GameServerContext extends GameContext {
      * @param to to position. 
      * @param cards cards. Sequence depends on this position
      */
-    transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: string[]) {
+    transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: Card[]) {
         this.removeFrom(fromPlayer, from, cards)
         this.addTo(toPlayer, to, cards)
     }
 
-    private removeFrom(fromPlayer: string, from: CardPos, cards: string[]) {
+    private removeFrom(fromPlayer: string, from: CardPos, cards: Card[]) {
         try {
             if(cards.length === 0) {
                 return
             }
             if(fromPlayer) {
-                cards.forEach(c => this.getPlayer(fromPlayer).removeFromPos(c, from))
+                cards.forEach(c => this.getPlayer(fromPlayer).removeFromPos(c.id, from))
             } else {
                 switch(from) {
                     case CardPos.WORKFLOW:
                         cards.forEach(c => {
-                            if(!this.workflowCards.removeThat(x => x.id === c)) {
+                            if(!this.workflowCards.removeThat(x => x.id === c.id)) {
                                 throw `Unable to find card ${c} in workflow cards!`
                             }
                         })
@@ -99,9 +99,9 @@ export default class GameServerContext extends GameContext {
         }
     }
 
-    private addTo(toPlayer: string, to: CardPos, cards: string[]) {
+    private addTo(toPlayer: string, to: CardPos, cards: Card[]) {
         if(toPlayer) {
-            cards.forEach(c => this.getPlayer(toPlayer).addCard(this.getGameMode().cardManager.getCard(c), to))
+            cards.forEach(c => this.getPlayer(toPlayer).addCard(c, to))
         } else {
             switch(to) {
                 case CardPos.DECK_TOP:
@@ -114,7 +114,12 @@ export default class GameServerContext extends GameContext {
                 //     cards.forEach(c => this.workflowCards.add(c))
                 //     break
                 case CardPos.DROPPED:
-                    this.deck.dropped.push(...cards.map(this.getGameMode().cardManager.getCard))
+                    this.deck.dropped.push(...cards.map(c => {
+                        let card = this.getGameMode().cardManager.getCard(c.id)
+                        delete card.as
+                        delete card.description
+                        return card
+                    }))
                     break
                 default: 
                     throw 'Not Possible to send cards to ' + CardPos[to]

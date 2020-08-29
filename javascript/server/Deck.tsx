@@ -22,13 +22,13 @@ export default class Deck {
         }
     }
 
-    placeCardsAtTop(ids: string[]) {
-        this.deck.unshift(...(ids.map(id => this.cardManager.getCard(id))))
+    placeCardsAtTop(cards: Card[]) {
+        this.deck.unshift(...cards)
     }
 
     //也就观星用用吧？？
-    placeCardsAtBtm(ids: string[]) {
-        this.deck.push(...(ids.map(id => this.cardManager.getCard(id))))
+    placeCardsAtBtm(cards: Card[]) {
+        this.deck.push(...cards)
     }
 
     getCardsFromDropped(cardIds: string[]): Card[] {
@@ -41,4 +41,7 @@ export default class Deck {
         })
     }
 
+    size() {
+        return this.deck.length + this.dropped.length
+    }
 }

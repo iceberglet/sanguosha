@@ -41,6 +41,10 @@ export class CardTransit {
         return new CardTransit(CardTransit.DECK, CardPos.DECK_TOP, player, CardPos.HAND, cards, 1200)
     }
 
+    public static deckToWorkflow(cards: Card[]) {
+        return new CardTransit(CardTransit.DECK, CardPos.DECK_TOP, CardTransit.WORKFLOW, CardPos.WORKFLOW, cards, 700)
+    }
+
     /**
      * Default Sanitization Logic
      * Cards are sanitized if the observer is not recipient or receiver, and the cards are exclusively on the hands

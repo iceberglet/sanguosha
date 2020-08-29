@@ -71,7 +71,11 @@ export default class GameClientContext extends GameContext {
 
     public interpret(cardId: string, player: PlayerInfo = null): ICard {
         player = player || this.myself
-        return player.cardInterpreter(this.getGameMode().cardManager.getCard(cardId))
+        let card = this.getGameMode().cardManager.getCard(cardId)
+        if(!card) {
+            throw `Unable to find this card!! ${cardId}`
+        }
+        return player.cardInterpreter(card)
     }
 
     //-------- Interactions with server -----------

@@ -51,7 +51,7 @@ export default class DamageOp extends Operation<void> {
     public readonly originalDamage: number
     public timeline: Timeline = Timeline.DOING_DAMAGE
 
-    public constructor(public source: PlayerInfo, 
+    public constructor(public source: PlayerInfo, //nullable 闪电无伤害来源
         public target: PlayerInfo, 
         public amount: number,
         public cards: Card[], //cards that caused this
@@ -114,7 +114,7 @@ export default class DamageOp extends Operation<void> {
                 //player might die half way...
                 if(!player.isDead) {
                     console.log('连环伤害:', player.player.id)
-                    this.target.isChained = false
+                    player.isChained = false
                     await new DamageOp(this.source, player, this.originalDamage, this.cards, this.type, false).perform(manager)
                 }
             }

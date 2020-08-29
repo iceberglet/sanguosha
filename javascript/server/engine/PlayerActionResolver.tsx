@@ -6,11 +6,12 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import HealOp from "../flows/HealOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import { CardBeingPlayedEvent, CardBeingDroppedEvent } from "../flows/Generic";
+import { CardBeingPlayedEvent, CardBeingDroppedEvent, CardBeingUsedEvent } from "../flows/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "./EquipOp";
 import { ShunShou, GuoHe, WuZhong, JieDao, HuoGong, JueDou } from "./SingleRuseOp";
-import { WanJian, NanMan, TieSuo, WuGu } from "./MultiRuseOp";
+import { WanJian, NanMan, TieSuo, WuGu, TaoYuan } from "./MultiRuseOp";
+import { UseDelayedRuseOp } from "./DelayedRuseOp";
 
 export default class PlayerActionResolver {
 
@@ -48,14 +49,13 @@ export default class PlayerActionResolver {
             } else {
                 card.description = `${player.player.id} 使用`
             }
-            this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
             
 
             if(icard.type === CardType.TIE_SUO && targets.length === 0) {
                 //铁索重铸算作弃置
                 await this.manager.events.publish(new CardBeingDroppedEvent(act.actionSource, [[card, CardPos.HAND]]))
             } else {
-                await this.manager.events.publish(new CardBeingPlayedEvent(act.actionSource, [[card, CardPos.HAND]], card.type))
+                await this.manager.events.publish(new CardBeingUsedEvent(act.actionSource, [[card, CardPos.HAND]], card.type))
             }
 
             //装备牌
@@ -64,6 +64,8 @@ export default class PlayerActionResolver {
                 this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, true)
                 await new EquipOp(act.actionSource, card).perform(this.manager)
                 return
+            } else if (!icard.type.isDelayedRuse()) {
+                this.manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
             }
 
             switch(icard.type) {
@@ -116,12 +118,13 @@ export default class PlayerActionResolver {
                     await new WanJian([card], act.actionSource, CardType.WAN_JIAN, this.manager.getSortedByCurr(false)).perform(this.manager)
                     break
                 case CardType.NAN_MAN:
-                    await new NanMan([card], act.actionSource, CardType.WAN_JIAN, this.manager.getSortedByCurr(false)).perform(this.manager)
+                    await new NanMan([card], act.actionSource, CardType.NAN_MAN, this.manager.getSortedByCurr(false)).perform(this.manager)
                     break
                 case CardType.WU_GU:
-                    await new WuGu([card], act.actionSource, CardType.WAN_JIAN, this.manager.getSortedByCurr(false)).perform(this.manager)
+                    await new WuGu([card], act.actionSource, CardType.WU_GU, this.manager.getSortedByCurr(true)).perform(this.manager)
                     break
                 case CardType.TAO_YUAN:
+                    await new TaoYuan([card], act.actionSource, CardType.TAO_YUAN, this.manager.getSortedByCurr(true).filter(p => p.hp < p.maxHp)).perform(this.manager)
                     break
 
                 case CardType.YI_YI:
@@ -132,10 +135,11 @@ export default class PlayerActionResolver {
                     break
 
                 case CardType.LE_BU:
-                    break
                 case CardType.BING_LIANG:
+                    await new UseDelayedRuseOp(card, act.actionSource, CardPos.HAND, targets[0]).perform(this.manager)
                     break
                 case CardType.SHAN_DIAN:
+                    await new UseDelayedRuseOp(card, act.actionSource, CardPos.HAND, act.actionSource).perform(this.manager)
                     break
                 
                 //dodge

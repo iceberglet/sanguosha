@@ -22,6 +22,7 @@ import DropCardOp from "./flows/DropCardOp";
 import { CurrentPlayerEffect, CardTransit } from "../common/transit/EffectTransit";
 import PlayerActionResolver from "./engine/PlayerActionResolver";
 import { ICard } from "../common/cards/ICard";
+import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
 
 
 //Manages the rounds
@@ -32,6 +33,8 @@ export default class GameManager {
     public roundStats: RoundStat
     //events go here
     public events : SequenceAwarePubSub
+    //for custom ui components
+    public onReconnect: ()=>void
 
     private currentFlows = new ArrayList<Flow>()
     private currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
@@ -111,7 +114,7 @@ export default class GameManager {
 
 
     /**
-     * Rescind all server hints. ignore there responses, if any
+     * Rescind all server hints. ignore their responses, if any
      */
     public async rescindAll() {
         //send such request to all players
@@ -130,6 +133,9 @@ export default class GameManager {
         this.registry.send(player, context.sanitize(player))
         if(this.currEffect) {
             this.registry.send(player, this.currEffect)
+        }
+        if(this.onReconnect) {
+            this.onReconnect()
         }
         this.registry.onPlayerReconnected(player)
     }
@@ -166,6 +172,7 @@ export default class GameManager {
      * @param fromPos 玩家打出的位置
      * @param cards 任何玩家打出的牌
      * @param head 整个flow的发起牌. (杀 / 锦囊 / 南蛮 / 离间用的牌, 等等)
+     * @param doNotRemove 不要从玩家手中拿走
      */
     public sendToWorkflow(fromPlayer: string, fromPos: CardPos, cards: Card[], head: boolean = false, doNotRemove: boolean = false) {
         if(!doNotRemove) {
@@ -174,7 +181,7 @@ export default class GameManager {
         this.broadcast(CardTransit.toWorkflow(fromPlayer, fromPos, cards, head, doNotRemove))
     }
 
-    public takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: string[]): string[] {
+    public takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: Card[]): Card[] {
         // this.broadcast(new TransferCardEffect(null, toPlayer, cards))
         return this.context.takeFromWorkflow(toPlayer, toPos, cards)
         // this.broadcast(this.context.getPlayer(toPlayer), PlayerInfo.sanitize)
@@ -190,7 +197,7 @@ export default class GameManager {
      * @param cards cards. Sequence depends on this position
      */
     public transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: Card[]) {
-        this.context.transferCards(fromPlayer, toPlayer, from, to, cards.map(c => c.id))
+        this.context.transferCards(fromPlayer, toPlayer, from, to, cards)
         this.broadcast(new CardTransit(fromPlayer, from, toPlayer, to, cards, 1000), CardTransit.defaultSanitize)
     }
 
@@ -203,6 +210,12 @@ export default class GameManager {
 
     private async processJudgingStage() {
         let p = this.currPlayer()
+        let judgeCards = [...p.getCards(CardPos.JUDGE)]
+        console.log('[Game Manager] 开始结算延时锦囊: ', judgeCards.map(j => (j.as || j.type).name).join(', '))
+        for(let j = 0; j < judgeCards.length; ++j) {
+            console.log('[Game Manager] 结算', judgeCards[j].type)
+            await new JudgeDelayedRuseOp(p, judgeCards[j]).perform(this)
+        }
     }
 
     private async processTakeCardStage() {
@@ -231,7 +244,7 @@ export default class GameManager {
     }
 
     private async processStage(info: PlayerInfo, stage: Stage, midProcessor: () => Promise<void> = null) {
-        console.log(`[Game Manager] Enter ${info.player.id} ${stage.name}`)
+        console.log(`[Game Manager] Enter ${info.player.id} ${stage.name} 场上卡牌数 ${this.countAllCards()}`)
         this.currentFlows.addToFront(new StageStartFlow(info, stage))
         await this.processFlows()
         if(!this.roundStats.skipStages.get(stage)) {
@@ -268,6 +281,11 @@ export default class GameManager {
         console.log('进入下一个玩家的回合:', this.currPlayer().player.id)
     }
 
+    private countAllCards() {
+        let count = this.context.workflowCards.size() + this.context.deck.size()
+        this.context.playerInfos.forEach(p => count += p.getAllCards().length)
+        return count 
+    }
 }
 
 

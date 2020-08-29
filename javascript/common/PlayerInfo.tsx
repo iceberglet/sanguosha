@@ -158,27 +158,37 @@ export abstract class PlayerInfo {
         return this.cards.get(pos) || []
     }
 
+    /**
+     * 在手牌/装备/判定区中有牌的人
+     */
     hasCards(): boolean {
         for(let kv of this.cards) {
-            if(kv[1].length > 0) {
-                return true
+            if(kv[0] === CardPos.HAND || kv[0] === CardPos.EQUIP || kv[0] === CardPos.JUDGE) {
+                if(kv[1].length > 0) {
+                    return true
+                }
             }
         }
+        return false
+    }
+
+    hasJudgeCard(type: CardType) {
+        return !!this.getCards(CardPos.JUDGE).find(c => (c.as || c.type) === type)
     }
 
     findCardAt(pos: CardPos, genre: CardGenre): Card {
         return this.cards.get(pos)?.find(c => c.type.genre === genre)
     }
 
-    findCard(cardId: string): Card {
-        for(let kv of this.cards) {
-            let c = kv[1].find(c => c.id === cardId)
-            if(c) {
-                return c
-            }
-        }
-        return null
-    }
+    // findCard(cardId: string): Card {
+    //     for(let kv of this.cards) {
+    //         let c = kv[1].find(c => c.id === cardId)
+    //         if(c) {
+    //             return c
+    //         }
+    //     }
+    //     return null
+    // }
 
     isDying(): boolean {
         return this.hp <= 0

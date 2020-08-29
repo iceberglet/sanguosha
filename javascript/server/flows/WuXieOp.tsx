@@ -101,7 +101,7 @@ export class WuXieContext {
                 await delay(1000)
             } catch (err) {
                 // 若无人使用无懈, 则break, 本轮宣告完结, 撒花~
-                console.log('无人使用无懈, 进行锦囊牌结算', err)
+                console.log('[无懈的结算] 无人使用无懈, 进行锦囊牌结算', err)
                 //取消对所有人征求无懈的请求
                 this.manager.rescindAll()
                 return isRuseAbort
@@ -111,8 +111,9 @@ export class WuXieContext {
 
     private async processNormal(action: PlayerAction): Promise<void> {
         let card = getFromAction(action, UIPosition.MY_HAND)[0]
-        console.log(`打出了${card}作为无懈`)
+        console.log(`[无懈的结算] 打出了${card}作为无懈`)
         let actual = this.manager.getCard(card)
+        actual.description = `${action.actionSource} 打出`
         this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [actual])
         await this.manager.events.publish(new CardBeingPlayedEvent(action.actionSource, [[actual, CardPos.HAND]], CardType.WU_XIE))
     }

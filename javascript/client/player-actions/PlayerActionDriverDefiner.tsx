@@ -1,4 +1,4 @@
-import { UIPosition, PlayerUIAction, Button, PlayerAction, Marker, isPositionForCard } from "../../common/PlayerAction";
+import { UIPosition, PlayerUIAction, Button, PlayerAction, isPositionForCard } from "../../common/PlayerAction";
 import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerActionDriver";
 import GameClientContext from "../GameClientContext";
 import { TogglableMap } from "../../common/util/Togglable";
@@ -55,21 +55,6 @@ export default class PlayerActionDriverDefiner {
         return this
     }
 
-    /**
-     * mark this as being played out
-     * */
-    public whichIs(marker: Marker): PlayerActionDriverDefiner {
-        let s = this.steps[this.steps.length - 1]
-        if(marker === Marker.USE || marker === Marker.DROP) {
-            s.areas.forEach(a => {
-                if(!isPositionForCard(a)) {
-                    throw `Not a position for card! ${Marker[marker]} ${UIPosition[a]}`
-                }
-            })
-        }
-        s.marker = marker
-        return this
-    }
 
     public build(serverHint: ServerHint, buttons: Button[] = [Button.OK, Button.CANCEL]): PlayerActionDriver {
         if(this.steps.length === 0) {
@@ -88,7 +73,6 @@ interface Step {
     canCancel: boolean
     //cannot go back by clicking on some other cards
     noBacksie: boolean
-    marker: Marker
     msgObtainer: (context: GameClientContext)=>string
     filter: (id: string, context: GameClientContext, existing: string[])=>boolean
     //can click on this at the current stage
@@ -109,7 +93,6 @@ abstract class AbstractStep implements Step {
     public chosen: TogglableMap<string, UIPosition>
     public canCancel: boolean = true
     public noBacksie: boolean = false
-    public marker: Marker = null
     constructor(public readonly areas: UIPosition[],
                 public readonly size: number,
                 public readonly filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
@@ -132,10 +115,6 @@ abstract class AbstractStep implements Step {
                 throw `Unacceptable, overlapping action position! ${a}`
             }
             action.actionData[a] = selected.filter(s => s[1] === a).map(s => s[0])
-            if(action.markers[a]) {
-                throw `Unacceptable, overlapping marker position! ${a}`
-            }
-            action.markers[a] = this.marker
         })
     }
 }
@@ -186,6 +165,7 @@ export class StepDataLoose extends AbstractStep {
     //we have passed this stage and clicked back...
     //return false if we want to keep the subsequent steps, true if we want to restart
     onRetroClick(action: PlayerUIAction): boolean {
+        console.log('onClick', action, this.chosen.size(), this.size, this.chosen.has(action.itemId))
         if(this.noBacksie) {
             return false
         }
@@ -194,8 +174,10 @@ export class StepDataLoose extends AbstractStep {
             //we are removing
             this.chosen.toggle(action.itemId, action.actionArea)
         } else {
-            //we are switching
-            this.chosen.clear()
+            if(this.chosen.size() === this.size) {
+                //we are switching if full
+                this.chosen.clear()
+            }
             this.chosen.toggle(action.itemId, action.actionArea)
         }
         return this.chosen.size() < this.min
@@ -231,11 +213,9 @@ export class StepByStepActionDriver extends PlayerActionDriver {
             if(isDirectButton(context.serverHint.hint, action.itemId)) {
                 //abort sends a message to server
                 let actionData: {[key in UIPosition]?: string[]} = {}
-                let markers: {[key in UIPosition]?: Marker} = {}
                 let actionToServer: PlayerAction = {
                     serverHint: context.serverHint.hint,
                     actionSource: context.myself.player.id,
-                    markers,
                     actionData
                 }
                 this.steps.forEach(s => s.dumpDataTo(actionToServer))
@@ -271,11 +251,10 @@ export class StepByStepActionDriver extends PlayerActionDriver {
                 if(this.curr === this.steps.length) {
                     //finish the call!
                     let actionData: {[key in UIPosition]?: string[]} = {}
-                    let markers: {[key in UIPosition]?: Marker} = {}
                     let actionToSubmit: PlayerAction = {
                         actionSource: context.myself.player.id,
                         serverHint: context.serverHint.hint,
-                        markers, actionData
+                        actionData
                     }
                     this.steps.forEach(s => s.dumpDataTo(actionToSubmit))
                     console.log('[Player Action] All steps done. Finishing the call')

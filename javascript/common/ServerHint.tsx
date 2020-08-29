@@ -128,6 +128,6 @@ export type ServerHint = {
 }
 
 export type CustomRequest = {
-    mode: 'choose' | 're-arrange' | 'wu-gu'
+    mode: 'choose'
     data: any
 }

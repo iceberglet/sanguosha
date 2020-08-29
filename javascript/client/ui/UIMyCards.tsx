@@ -74,7 +74,7 @@ export default class UIMyCards extends React.Component<Prop, object> {
     }
 
     componentWillUnmount() {
-        console.log('UICardRow unsubscribing to card transit')
+        // console.log('UICardRow unsubscribing to card transit')
         this.props.cardTransitManager.register(null, this.props.info.player.id)
     }
 
