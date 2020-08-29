@@ -99,7 +99,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             cardsChecker: new CheckerImpl(UIPosition.MY_HAND, context, this.refresh),
             buttonChecker: new CheckerImpl(UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new CheckerImpl(UIPosition.MY_EQUIP, context, this.refresh),
-            cardTransitManager: new CardTransitManager(),
+            cardTransitManager: new CardTransitManager(context.getGameMode().cardManager),
             uiRequest: null,
             uiData: null,
             others: context.getRingFromPerspective(myId, false, true)

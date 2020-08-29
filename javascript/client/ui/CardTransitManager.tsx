@@ -1,4 +1,4 @@
-import Card from "../../common/cards/Card";
+import Card, { CardManager } from "../../common/cards/Card";
 import { Coor } from "./ScreenPosObtainer";
 import { CardTransit } from "../../common/transit/EffectTransit";
 import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";
@@ -216,6 +216,10 @@ export default class CardTransitManager {
 
     endpoints = new Map<string, CardEndpoint>()
 
+    public constructor(private cardManager: CardManager) {
+
+    }
+
     /**
      * 
      * @param endpoint endpoint 本身 null->unregister
@@ -243,7 +247,7 @@ export default class CardTransitManager {
         console.log('On Card Transfer', transfer)
 
         //do not remove if told (for show case only)
-        let initial = f.performRemovalAnimation(transfer.cards, transfer.fromPos, transfer.doNotRemove).map(item => ({...item, 
+        let initial = f.performRemovalAnimation(transfer.cards.map(this.cardManager.cleanCard), transfer.fromPos, transfer.doNotRemove).map(item => ({...item, 
             animDuration: transfer.animDurationSeconds,
             uuid: uuidv4()
         }))

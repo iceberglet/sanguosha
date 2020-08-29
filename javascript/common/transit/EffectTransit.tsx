@@ -59,6 +59,7 @@ export class CardTransit {
         return transit
     }
 
+    public specialEffect: string
 
     public constructor(
         public from : string,

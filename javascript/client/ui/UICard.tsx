@@ -19,6 +19,7 @@ type CardProp = {
     onMouseStay?: CallBack
     onPos?: PosCallBack
     elementStatus: ElementStatus
+    className?: string
 }
 
 export default function UICard(prop: CardProp) {
@@ -38,7 +39,7 @@ export default function UICard(prop: CardProp) {
     }, [])
 
     let {elementStatus, card, isShown} = prop
-    let clazz = new ClassFormatter('ui-card')
+    let clazz = new ClassFormatter('ui-card ' + prop.className)
                 .and(elementStatus.isSelectable, 'selectable')
                 .and(elementStatus === ElementStatus.SELECTED, 'selected')
                 .and(elementStatus === ElementStatus.DISABLED, 'darkened')
@@ -54,6 +55,9 @@ export default function UICard(prop: CardProp) {
     }
     return <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseOver={onMouseStay}
                 onClick={onMouseClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} ref={myRef}>
+        <img className='back'
+            src={`cards/back.png`}
+            alt='HiddenCard'/>
         <img className='itself' 
             src={`cards/${card.type.id}.png`} 
             alt={card.type.id}/>

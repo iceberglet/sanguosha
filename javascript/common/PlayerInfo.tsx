@@ -173,7 +173,8 @@ export abstract class PlayerInfo {
     }
 
     hasJudgeCard(type: CardType) {
-        return !!this.getCards(CardPos.JUDGE).find(c => (c.as || c.type) === type)
+        // console.log(this.player.id, '有这个延时锦囊??',  type.name, this.getCards(CardPos.JUDGE).find(c => (c.as || c.type).name === type.name))
+        return !!this.getCards(CardPos.JUDGE).find(c => (c.as || c.type).name === type.name)
     }
 
     findCardAt(pos: CardPos, genre: CardGenre): Card {

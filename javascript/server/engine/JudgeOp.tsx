@@ -35,7 +35,9 @@ export default class JudgeOp extends Operation<Card> {
         this.judgeCard = manager.context.deck.getCardsFromTop(1)[0]
 
         this.judgeCard.description = this.judgeCardMsg
-        manager.broadcast(CardTransit.deckToWorkflow([this.judgeCard]))
+        let transit = CardTransit.deckToWorkflow([this.judgeCard])
+        transit.specialEffect = 'flip'
+        manager.broadcast(transit)
         //and send it to workflow for dropping
         manager.context.workflowCards.add(this.judgeCard)
         await delay(1000)

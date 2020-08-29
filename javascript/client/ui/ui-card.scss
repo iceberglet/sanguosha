@@ -31,17 +31,35 @@
     }
 }
 
+//prevent back from animation
+.ui-card.selected {
+    .back {
+        display: none;
+    }
+}
+
+.ui-card.selectable:not(.selected):hover {
+    .back {
+        display: none;
+    }
+}
+
 .ui-card.darkened {
     filter: brightness(50%);
 }
 
+.ui-card.flip {
+    animation: flip 0.8s linear forwards;
+}
+
 .ui-card {
-    min-width: 110px;
-    max-width: 110px;
+    min-width: 115px;
+    max-width: 115px;
     height: 155px;
     position: relative;
-    padding-right: 10px;
+    // padding-right: 10px;
     pointer-events: auto;
+    transform-style: preserve-3d;
 
     > * {
         pointer-events: none;
@@ -49,12 +67,26 @@
     }
 
     .itself {
-        position: relative;
-        width: 95%;
-        height: 95%;
+        position: absolute;
+        width: 105px;
+        height: 145px;
         border: 5px solid #272727;
         border-radius: 7px;
         filter: drop-shadow(2px 4px 4px #272727);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+    }
+
+    .back {
+        position: absolute;
+        width: 105px;
+        height: 145px;
+        border: 5px solid #272727;
+        border-radius: 7px;
+        filter: drop-shadow(2px 4px 4px #272727);
+        transform: rotateY(180deg);
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
     }
                     
     .as {
@@ -129,4 +161,9 @@
 
 .judge-cards {
     margin-right: 2px;
+}
+
+@keyframes flip {
+    0% {transform: rotateY(180deg)}
+    100% {transform: rotateY(0deg)}
 }

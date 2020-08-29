@@ -4,7 +4,7 @@ import { WuXieContext } from "../flows/WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import Card, { CardType } from "../../common/cards/Card";
 import DamageOp, { DamageType } from "../flows/DamageOp";
-import { checkThat } from "../../common/util/Util";
+import { checkThat, delay } from "../../common/util/Util";
 import { CardPos } from "../../common/transit/CardPos";
 import JudgeOp from "./JudgeOp";
 import { Stage } from "../../common/Stage";
@@ -77,6 +77,18 @@ export class JudgeDelayedRuseOp extends Operation<void> {
         } else {
             console.log(`[延迟锦囊] 进入判定 ${type.name} ${p}`)
             //开始结算
+            switch(type) {
+                case CardType.LE_BU: 
+                case CardType.BING_LIANG: 
+                    manager.sendToWorkflow(p, CardPos.JUDGE, [this.card])
+                    break;
+                case CardType.SHAN_DIAN: 
+                    manager.sendToWorkflow(p, CardPos.JUDGE, [this.card], false, true)
+                    break;
+            }
+            
+            await delay(1000)
+
             let card = await new JudgeOp(`${p} 的 ${type.name} 判定`, p).perform(manager)
             let icard = manager.interpret(p, card.id)
 
@@ -86,14 +98,12 @@ export class JudgeDelayedRuseOp extends Operation<void> {
                         console.log(`[延迟锦囊] 乐不思蜀生效 ${p}`)
                         manager.roundStats.skipStages.set(Stage.USE_CARD, true)
                     }
-                    manager.sendToWorkflow(p, CardPos.JUDGE, [this.card])
                     break;
                 case CardType.BING_LIANG: 
                     if(icard.suit !== 'club') {
                         console.log(`[延迟锦囊] 兵粮寸断生效 ${p}`)
                         manager.roundStats.skipStages.set(Stage.TAKE_CARD, true)
                     }
-                    manager.sendToWorkflow(p, CardPos.JUDGE, [this.card])
                     break;
                 case CardType.SHAN_DIAN: 
                     if(icard.suit === 'spade' && icard.size.size >= 2 && icard.size.size <= 9) {
@@ -103,7 +113,7 @@ export class JudgeDelayedRuseOp extends Operation<void> {
                     } else {
                         let candidates = manager.getSortedByCurr(false).filter(p => !p.hasJudgeCard(CardType.SHAN_DIAN))
                         let next = candidates.length > 0? candidates[0].player.id : p
-                        console.log(`[延迟锦囊] 闪电失效, 移入 ${next}`)
+                        console.log(`[延迟锦囊] 闪电失效, 移给 ${next}`)
                         await new UseDelayedRuseOp(this.card, p, CardPos.JUDGE, next).perform(manager)
                     }
                     break;

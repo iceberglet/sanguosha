@@ -10,6 +10,7 @@ import { CardPos } from "../../common/transit/CardPos"
 import { CardTransit } from "../../common/transit/EffectTransit"
 import ArrayList from "../../common/util/ArrayList"
 import { ClassFormatter } from "../../common/util/Togglable"
+import e = require("express")
 
 //left offset: 220
 //btm offset: 
@@ -29,6 +30,7 @@ type Renderable = InCardAndCoor & {
     rendered: boolean
     //once marked, this is gonna be gone!
     goner: boolean
+    effect: string
 }
 
 type State = {
@@ -70,7 +72,7 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
                 w.coor.x -= rect.left,
                 w.coor.y -= rect.top
             }
-            return {...w, rendered: false, goner: false}
+            return {...w, rendered: false, goner: false, effect: transfer.specialEffect}
         })
         this.setState(s => {
             if(transfer.head) {
@@ -143,7 +145,7 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
                     }
                     let clazz = new ClassFormatter('ui-card-wrapper').and(w.goner, 'goner').done()
                     return <div key={w.uuid} className={clazz} style={myStyle}>
-                        <UICard card={w.card} isShown={true} elementStatus={ElementStatus.NORMAL} />
+                        <UICard className={w.effect} card={w.card} isShown={true} elementStatus={ElementStatus.NORMAL} />
                     </div>
                 })}
         </div>

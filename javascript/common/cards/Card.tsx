@@ -165,6 +165,13 @@ export class CardManager {
         return this.cards.get(id);
     }
 
+    cleanCard = (card: Card) => {
+        let c = this.getCard(card.id)
+        c.as = card.as
+        c.description = card.description
+        return c
+    }
+
     getShuffledDeck = () => {
         return shuffle([...this.deck])
     }
