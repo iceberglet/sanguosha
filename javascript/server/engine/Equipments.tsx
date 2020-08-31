@@ -2,7 +2,7 @@ import GameManager from "../GameManager";
 import { SlashCompute, SlashDodgedEvent } from "../flows/SlashOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardType } from "../../common/cards/Card";
-import { Timeline } from "../Flow";
+import { Timeline } from "../Operation";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
 import { Button, isCancel, UIPosition, getCardsFromAction } from "../../common/PlayerAction";
 import DamageOp, { DamageType, DamageTimeline, DamageSource } from "../flows/DamageOp";

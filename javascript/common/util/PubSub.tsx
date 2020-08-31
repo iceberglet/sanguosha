@@ -115,7 +115,7 @@ export class SequenceAwarePubSub implements GameEventListener, EventRegistry {
         if(generalListeners) {
             count += generalListeners.size()
             for(let l of generalListeners._data) {
-                l(obj)
+                await l(obj)
             }
         }
 

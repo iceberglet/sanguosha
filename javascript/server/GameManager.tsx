@@ -1,11 +1,10 @@
 import GameContext from "../common/GameContext";
 import Card, { CardSize, CardType } from "../common/cards/Card"
 import { PlayerInfo, Identity } from "../common/PlayerInfo"
-import Flow, { PlayerDeadInHisRound } from "./Flow";
+import { PlayerDeadInHisRound } from "./Operation";
 import RoundStat from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
 import { ServerHint, HintType, Rescind } from "../common/ServerHint";
-import ArrayList from "../common/util/ArrayList";
 import { SequenceAwarePubSub, EventRegistry, GameEventListener, CompositeListener } from "../common/util/PubSub";
 import { PlayerAction, Button, UIPosition } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
@@ -40,7 +39,6 @@ export default class GameManager {
     //for custom ui components
     public onReconnect: ()=>void
 
-    private currentFlows = new ArrayList<Flow>()
     private currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
     public resolver: PlayerActionResolver
 
@@ -225,9 +223,8 @@ export default class GameManager {
     private async processJudgingStage() {
         let p = this.currPlayer()
         let judgeCards = [...p.getCards(CardPos.JUDGE)]
-        console.log('[Game Manager] 开始结算延时锦囊: ', judgeCards.map(j => (j.as || j.type).name).join(', '))
         for(let j = 0; j < judgeCards.length; ++j) {
-            console.log('[Game Manager] 结算', judgeCards[j].type)
+            console.log('[Game Manager] 延时锦囊结算', judgeCards[j].type)
             await new JudgeDelayedRuseOp(p, judgeCards[j]).perform(this)
         }
     }
@@ -264,8 +261,8 @@ export default class GameManager {
 
     private async processStage(info: PlayerInfo, stage: Stage, midProcessor: () => Promise<void> = null) {
         console.log(`[Game Manager] Enter ${info.player.id} ${stage.name} 场上卡牌数 ${this.countAllCards()}`)
-        this.currentFlows.addToFront(new StageStartFlow(info, stage))
-        await this.processFlows()
+        await new StageStartFlow(info, stage).perform(this)
+        console.log(`[Game Manager] Enter2 ${info.player.id} ${stage.name} `)
         if(!this.roundStats.skipStages.get(stage)) {
             this.setPlayerAndStage(this.currPlayer().player.id, stage)
             this.broadcast(this.currEffect)
@@ -273,24 +270,9 @@ export default class GameManager {
                 await midProcessor()
             }
         }
-        this.currentFlows.addToFront(new StageEndFlow(info, stage))
-        await this.processFlows()
+        await new StageEndFlow(info, stage).perform(this)
+        this.context.dropWorkflowCards()
         console.log(`[Game Manager] Leave ${info.player.id} ${stage.name}`)
-    }
-
-    private async processFlows() {
-        while(this.currentFlows.size() > 0) {
-            let flow = this.currentFlows.get(0)
-            let flowIsDone = await flow.doNext(this)
-            if(flowIsDone) {
-                //因为我们可能加入了新的flow, 所以需要搜回之前的flow
-                this.currentFlows.remove(flow)
-                //将workflow中的牌扔进弃牌堆
-                this.context.dropWorkflowCards()
-                //maybe just let it go
-                // this.broadcast(new C(true, null))
-            }
-        }
     }
 
     private goToNextPlayer() {
@@ -309,43 +291,9 @@ export default class GameManager {
 
 
 export function sampleFactionWarContext() {
-    let cardManager = GameMode.get(GameModeEnum.FactionWarGame).cardManager
     let p = {id: '青青子吟'}
-    let cards = cardManager.getShuffledDeck()
-    let player = new FactionPlayerInfo(p, FactionWarGeneral.xiao_qiao, FactionWarGeneral.xu_sheng).init()
-    player.isGeneralRevealed = false
-    player.isSubGeneralRevealed = true
-    player.hp = 2;
-    // player.declareDeath()
-    
-    let player2 = new FactionPlayerInfo({id: '欧阳挠挠'}, FactionWarGeneral.dong_zhuo, FactionWarGeneral.diao_chan).init()
-    player2.hp = 1
-    // player2.declareDeath()
-
-    // let player3 = new FactionPlayerInfo({id: '东郭旭銮'}, FactionWarGeneral.lu_xun, FactionWarGeneral.gan_ning).init()
-    // player3.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
-    // player3.addCard(new Card('heart', CardSize.KING, CardType.ZHUA_HUANG), CardPos.EQUIP)
-    // player3.isGeneralRevealed = true
-    // player3.isSubGeneralRevealed = true
-
-    // let player4 = new FactionPlayerInfo({id: '新荷'}, FactionWarGeneral.wo_long, FactionWarGeneral.zhu_ge_liang).init()
-    // player4.addCard(new Card('club', CardSize.JACK, CardType.TIE_SUO), CardPos.JUDGE, 'bing_liang')
-    // player4.hp = 1
-    // player4.faction = Faction.YE
-    // player4.isGeneralRevealed = true
-    // player4.isSubGeneralRevealed = true
-    // player3.isTurnedOver = true
-    // player3.isDrunk = true
-
-    // let player5 = new FactionPlayerInfo({id: 'Iceberglet'}, FactionWarGeneral.zhang_ren, FactionWarGeneral.lv_bu).init()
-    // player5.isGeneralRevealed = true
-    // player5.isSubGeneralRevealed = true
-    // player3.isDrunk = true
-    
-    // let player6 = new FactionPlayerInfo({id: '广东吴彦祖'}, FactionWarGeneral.hua_tuo, FactionWarGeneral.jia_xu).init()
-    // player6.addCard(new Card('club', CardSize.TWO, CardType.BA_GUA), CardPos.EQUIP)
-    // player6.isGeneralRevealed = true
-
+    let player = new FactionPlayerInfo(p, FactionWarGeneral.jia_xu, FactionWarGeneral.li_jue_guo_si).init()
+    let player2 = new FactionPlayerInfo({id: '欧阳挠挠'}, FactionWarGeneral.diao_chan, FactionWarGeneral.dong_zhuo).init()
     let context = new GameServerContext([player, player2], GameModeEnum.FactionWarGame)
     context.init()
 

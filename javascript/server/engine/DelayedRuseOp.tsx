@@ -1,4 +1,4 @@
-import { Operation } from "../Flow";
+import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { WuXieContext } from "../flows/WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
@@ -8,7 +8,7 @@ import { checkThat, delay } from "../../common/util/Util";
 import { CardPos } from "../../common/transit/CardPos";
 import JudgeOp from "./JudgeOp";
 import { Stage } from "../../common/Stage";
-import { CardTransit } from "../../common/transit/EffectTransit";
+import { TextFlashEffect } from "../../common/transit/EffectTransit";
 
 
 export class UseDelayedRuseOp extends Operation<void> {
@@ -26,6 +26,7 @@ export class UseDelayedRuseOp extends Operation<void> {
     public async perform(manager: GameManager) {
         console.log(`${this.source} 对 ${this.target} 使用了延时锦囊 ${this.card.id} : ${this.card.as}`)
         manager.events.publish(this)
+        manager.broadcast(new TextFlashEffect(this.source, [this.target], (this.card.as || this.card.type).name))
 
         if(!this.abort) {
             //show card in workflow

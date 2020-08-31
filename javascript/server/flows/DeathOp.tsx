@@ -1,7 +1,7 @@
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import Card from "../../common/cards/Card";
-import { Operation, PlayerDeadInHisRound } from "../Flow";
+import { Operation, PlayerDeadInHisRound } from "../Operation";
 import GameManager from "../GameManager";
 import DamageOp from "./DamageOp";
 

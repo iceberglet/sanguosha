@@ -1,4 +1,4 @@
-import { Operation } from "../Flow";
+import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { PlayerAction, getFromAction, UIPosition } from "../../common/PlayerAction";
 import { WuXieContext } from "../flows/WuXieOp";

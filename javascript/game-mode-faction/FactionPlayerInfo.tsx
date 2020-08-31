@@ -75,14 +75,16 @@ export default class FactionPlayerInfo extends PlayerInfo {
 
     draw(): React.ReactElement[] {
         let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
+        let main = this.general? this.general.name : '主将'
+        let sub = this.subGeneral? this.subGeneral.name : '副将'
         return [<div className={clazz} key={'pics'}>
-            <div className='general'>
+            <div className='general' style={{letterSpacing: main.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.general, false)}
-                <div className='general-name'>{this.general? this.general.name : '主将'}</div>
+                <div className='general-name'>{main}</div>
             </div>
-            <div className='general'>
+            <div className='general' style={{letterSpacing: sub.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.subGeneral, false)}
-                <div className='general-name'>{this.subGeneral? this.subGeneral.name : '副将'}</div>
+                <div className='general-name'>{sub}</div>
             </div>
             <div className='player-name'>{this.player.id}</div>
         </div>,
@@ -95,7 +97,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
         return <div className={clazz}>
             <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.general, true)}
-                <div className='general-name' style={{background: color}}>
+                <div className='general-name' style={{background: color, letterSpacing: this.general.name.length > 2 ? '-4px' : '0px'}}>
                     {this.general.name}
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>

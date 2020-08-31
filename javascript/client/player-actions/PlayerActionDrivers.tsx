@@ -286,7 +286,10 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
 
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段丈八出杀')
-            .expectChoose([UIPosition.MY_EQUIP], 1, 1, (id, context)=>context.interpret(id).type === CardType.ZHANG_BA)
+            .expectChoose([UIPosition.MY_EQUIP], 1, 1, (id, context)=>{
+                let roundStat = context.serverHint.hint.roundStat
+                return context.interpret(id).type === CardType.ZHANG_BA && roundStat.slashMax > roundStat.slashCount
+            })
             .expectChoose([UIPosition.MY_HAND], 2, 2, (id)=>true, ()=>'请选择两张手牌')
             .expectChoose([UIPosition.PLAYER], 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
             .expectAnyButton('点击确定出杀')

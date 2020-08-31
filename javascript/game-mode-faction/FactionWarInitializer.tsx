@@ -10,6 +10,9 @@ import { PlayerInfo } from "../common/PlayerInfo";
 import DamageOp, { DamageSource, DamageTimeline } from "../server/flows/DamageOp";
 import { HintType } from "../common/ServerHint";
 import { Button, isCancel, getFromAction, UIPosition } from "../common/PlayerAction";
+import { StageStartFlow } from "../server/flows/StageFlows";
+import { Faction } from "../common/General";
+import { Stage } from "../common/Stage";
 
 export default class FactionWarInitializer implements Initializer {
 
@@ -72,11 +75,65 @@ export default class FactionWarInitializer implements Initializer {
                 if(d[1] === CardPos.EQUIP && !d[0].type.isHorse()) {
                     console.log(`[装备] ${dropEvent.player} 卸下了 ${d[0].id}`)
                     if(!this.playerAndEquipments.has(d[0].id)) {
-                        throw 'Missing equipment... not registered ' + d[0].id
+                        console.warn('Missing equipment... not registered (这是丈八?) ' + d[0].id)
                     }
                     await this.playerAndEquipments.get(d[0].id).onDropped()
                 }
             }
+        })
+
+        //勉強用這個吧...
+        manager.skillRegistry.onGeneral<StageStartFlow>(StageStartFlow, async (start)=>{
+            if(start.stage !== Stage.ROUND_BEGIN) {
+                return
+            }
+            let p = start.info as FactionPlayerInfo
+            let choices: Button[] = []
+            if(!p.isGeneralRevealed) {
+                choices.push(new Button('general', '明置主将'))
+            }
+            if(!p.isSubGeneralRevealed) {
+                choices.push(new Button('subgeneral', '明置副将'))
+            }
+            if(!p.isGeneralRevealed && !p.isSubGeneralRevealed) {
+                choices.push(new Button('all', '全部明置'))
+            }
+            if(choices.length === 0) {
+                return //nothing more to do
+            }
+            let resp = await manager.sendHint(p.player.id, {
+                hintType: HintType.MULTI_CHOICE,
+                hintMsg: '回合开始, 你是否要明置武将?',
+                extraButtons: [...choices, Button.CANCEL]
+            })
+            if(isCancel(resp)) {
+                return
+            }
+            let choice = getFromAction(resp, UIPosition.BUTTONS)[0]
+            let wasRevealed = p.isRevealed()
+            if(choice === 'general') {
+                p.isGeneralRevealed = true
+            } else if (choice === 'subgeneral') {
+                p.isSubGeneralRevealed = true
+            } else if (choice === 'all') {
+                p.isGeneralRevealed = true
+                p.isSubGeneralRevealed = true
+            }
+            let isRevealed = p.isRevealed()
+            if(!wasRevealed && isRevealed) {
+                console.log(`[牌局] ${p.player.id} 身份亮明`)
+                //身份要确认
+                let numberOfFriends = manager.getSortedByCurr(true)
+                                    .filter(pp => (pp as FactionPlayerInfo).isRevealed())
+                                    .filter(pp => pp.getFaction() === p.getFaction())
+                                    .length
+                //若场上势力相同的加上你已经超过了全体玩家的一半, 则你成为野
+                if(numberOfFriends > manager.context.playerInfos.length / 2) {
+                    console.log(`[牌局] ${p.player.id} 野了`)
+                    p.faction = Faction.YE
+                }
+            }
+            manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
         })
     }
 }

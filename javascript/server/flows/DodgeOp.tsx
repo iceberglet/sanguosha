@@ -1,4 +1,4 @@
-import { Operation } from "../Flow";
+import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { Button, isCancel, getFromAction, UIPosition } from "../../common/PlayerAction";
 import { HintType } from "../../common/ServerHint";

@@ -17,6 +17,7 @@
                 width: 100px;
                 height: 22px;
                 color: white;
+                white-space: nowrap;
             }
             .general-name-after {
                 width: 0;
@@ -121,6 +122,7 @@
                 color: #e7e3a5;
                 pointer-events: none;
                 text-shadow: 0px 0px 4px black;
+                white-space: nowrap;
             }
         }
     }

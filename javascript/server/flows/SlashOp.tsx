@@ -1,4 +1,4 @@
-import { Operation, UseEventOperation } from "../Flow";
+import { Operation, UseEventOperation } from "../Operation";
 import GameManager from "../GameManager";
 import { getFromAction, UIPosition, Button, isCancel } from "../../common/PlayerAction";
 import { PlayerInfo } from "../../common/PlayerInfo";

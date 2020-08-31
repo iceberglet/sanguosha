@@ -1,4 +1,4 @@
-import { Operation } from "../Flow";
+import { Operation } from "../Operation";
 import { ICard } from "../../common/cards/ICard";
 import GameManager from "../GameManager";
 import Card from "../../common/cards/Card";
