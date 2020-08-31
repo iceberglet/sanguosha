@@ -3,7 +3,7 @@ import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { isCancel, UIPosition, Button, getCardsFromAction } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
-import { HintType, CardSelectionResult } from "../../common/ServerHint";
+import { HintType, CardSelectionResult, ServerHint } from "../../common/ServerHint";
 import { CardBeingDroppedEvent, gatherCards, findCard } from "./Generic";
 import { flattenMap } from "../../common/util/Util";
 
@@ -33,7 +33,7 @@ export class DropOthersCardRequest {
     public async perform(manager: GameManager, source: string, target: string, title: string, poses: CardPos[]) {
         let targetPlayer = manager.context.getPlayer(target)
 
-        let resp = await manager.sendHint(source, {
+        let hint: ServerHint = {
             hintType: HintType.UI_PANEL,
             hintMsg: '请选择对方一张牌',
             customRequest: {
@@ -44,7 +44,9 @@ export class DropOthersCardRequest {
                     chooseSize: 1
                 }
             }
-        })
+        }
+        console.log('[弃牌] 请求弃牌', hint)
+        let resp = await manager.sendHint(source, hint)
         console.log('[弃牌] 弃置成功!', resp)
         let res = resp.customData as CardSelectionResult
         let cardAndPos = findCard(targetPlayer, res)[0]

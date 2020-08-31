@@ -130,3 +130,6 @@ normalCards.push(new FWCard('diamond', CardSize.KING, CardType.DODGE))
 normalCards.push(new FWCard('diamond', CardSize.KING, CardType.ZI_XING))
 
 export const FactionWarCards = new CardManager(normalCards.filter(c => true));
+// export const FactionWarCards = new CardManager(normalCards.filter(c => {
+//     return c.type.isSlash() || c.type === CardType.HAN_BING
+// }));

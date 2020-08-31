@@ -110,7 +110,7 @@ export default class DamageOp extends Operation<void> {
         //注意死亡的角色不会触发技能
         this.timeline = DamageTimeline.DID_DAMAGE
         await manager.events.publish(this)
-        this.timeline = DamageTimeline.TAKING_DAMAGE
+        this.timeline = DamageTimeline.TAKEN_DAMAGE
         await manager.events.publish(this)
 
         //铁索连环

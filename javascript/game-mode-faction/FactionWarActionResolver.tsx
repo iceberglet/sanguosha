@@ -13,6 +13,7 @@ import { MultiRuse } from "../server/engine/MultiRuseOp";
 import { PlayerInfo } from "../common/PlayerInfo";
 import DropCardOp, { DropCardRequest } from "../server/flows/DropCardOp";
 import { Faction } from "../common/General";
+import { EquipOp } from "../server/engine/EquipOp";
 
 
 
@@ -26,15 +27,16 @@ export default class FactionWarActionResolver extends ActionResolver {
         }
 
         //weapons?
-        // else if(getFromAction(act, UIPosition.MY_EQUIP).length > 0) {
+        else if(getFromAction(act, UIPosition.MY_EQUIP).length > 0) {
             //吴六剑 + 三尖两刃刀 都是没有主动技能的!
-        // }
+            return false
+        }
 
         else if(getFromAction(act, UIPosition.MY_HAND).length > 0) {
 
             let hand = getFromAction(act, UIPosition.MY_HAND)
             if(hand.length > 1) {
-                throw `How can you play 2 cards at once????? ${act}`
+                throw `How can you play 2 cards at once????? ${act.actionSource} ${act.actionData[UIPosition.MY_HAND].join(', ')}`
             }
             let player = manager.context.getPlayer(act.actionSource) as FactionPlayerInfo
             let card = manager.getCard(hand[0])
@@ -58,34 +60,43 @@ export default class FactionWarActionResolver extends ActionResolver {
             } else {
                 await manager.events.publish(new CardBeingUsedEvent(act.actionSource, [[card, CardPos.HAND]], card.type))
             }
-            
-            manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
 
-            switch(icard.type) {
-
-                case CardType.YI_YI:
-                    //find out the targets
-                    if(player.getFaction() === Faction.UNKNOWN || player.getFaction() === Faction.YE) {
-                        //just yourself
-                        await new YiYiDaiLao([card], act.actionSource, CardType.YI_YI, [player]).perform(manager)
-                    } else {
-                        let impact = manager.getSortedByCurr(false).filter(p => {
-                            player.getFaction().name === p.getFaction().name
-                        })
-                        await new YiYiDaiLao([card], act.actionSource, CardType.YI_YI, [player, ...impact]).perform(manager)
-                    }
-                    return true
-                case CardType.ZHI_JI:
-                    if(targets.length > 0) {
-                        await new ZhiJiZhiBi(act.actionSource, targets[0], [card]).perform(manager)
-                    } else {
-                        await new TakeCardOp(manager.context.getPlayer(act.actionSource), 1).perform(manager)
-                    }
-                    return true
-                case CardType.YUAN_JIAO:
-                    await new YuanJiao(act.actionSource, targets[0], [card]).perform(manager)
-                    return true
+            if(icard.type.isEquipment()) {
+                card.description = `${player.player.id} 装备`
+                manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, true)
+                await new EquipOp(act.actionSource, card).perform(manager)
+            } else {
+                manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
+                switch(icard.type) {
+    
+                    case CardType.YI_YI:
+                        //find out the targets
+                        if(player.getFaction() === Faction.UNKNOWN || player.getFaction() === Faction.YE) {
+                            //just yourself
+                            await new YiYiDaiLao([card], act.actionSource, CardType.YI_YI, [player]).perform(manager)
+                        } else {
+                            let impact = manager.getSortedByCurr(false).filter(p => {
+                                player.getFaction().name === p.getFaction().name
+                            })
+                            await new YiYiDaiLao([card], act.actionSource, CardType.YI_YI, [player, ...impact]).perform(manager)
+                        }
+                        break
+                    case CardType.ZHI_JI:
+                        if(targets.length > 0) {
+                            await new ZhiJiZhiBi(act.actionSource, targets[0], [card]).perform(manager)
+                        } else {
+                            await new TakeCardOp(manager.context.getPlayer(act.actionSource), 1).perform(manager)
+                        }
+                        break
+                    case CardType.YUAN_JIAO:
+                        await new YuanJiao(act.actionSource, targets[0], [card]).perform(manager)
+                        break
+                    default:
+                        throw '未知国战牌:' + card.id
+                }
             }
+
+            return true
         }
 
         return false

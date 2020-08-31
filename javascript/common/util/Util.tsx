@@ -21,7 +21,7 @@ export function shuffle<T>(array: T[]): T[] {
 
 export function takeFromArray<T>(array: T[], matcher: (t: T)=>boolean): T {
   let c = array.findIndex(matcher)
-  if(c != -1) {
+  if(c !== -1) {
       return array.splice(c, 1)[0]
   }
 }

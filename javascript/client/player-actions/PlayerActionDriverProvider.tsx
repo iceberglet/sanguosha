@@ -32,7 +32,11 @@ class PlayerActionDriverProvider {
     unregisterProvider(hintType: HintType, provider: Provider) {
         let ps = this.providers.get(hintType)
         let idx = ps.findIndex(p => p === provider)
-        this.providers.get(hintType).splice(idx, 1)
+        if(idx > -1) {
+            this.providers.get(hintType).splice(idx, 1)
+        } else {
+            throw 'Not Found'
+        }
         // console.log(`Unregistering PlayerActionDriverProvider ${hintType} > ${provider.constructor.name}`)
     }
 

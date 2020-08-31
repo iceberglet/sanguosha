@@ -293,6 +293,9 @@ export class LianNu extends Equipment {
     }
 
     performEffect = async (op: StageStartFlow): Promise<void> => {
+        if(op.info.player.id !== this.player) {
+            return
+        }
         let potential = op.info.getCards(CardPos.EQUIP).find(c => c.type === CardType.LIAN_NU)
         if(!potential) {
             throw `不可能! 我登记过的就应该有这个武器! 连弩 ${this.player}`
@@ -409,10 +412,13 @@ export class TengJia extends Equipment {
             console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
             return
         }
-        console.log(`[装备] 藤甲将 ${this.player} 移出万箭/南蛮的影响对象`)
-        let curr = aoe.targets.length
-        aoe.targets.splice(aoe.targets.findIndex(t => t.player.id === this.player), 1)
-        checkThat(curr === aoe.targets.length + 1, 'WHAAAT?')
+        let idx = aoe.targets.findIndex(t => t.player.id === this.player)
+        if(idx > -1) {
+            console.log(`[装备] 藤甲将 ${this.player} 移出万箭/南蛮的影响对象`)
+            let curr = aoe.targets.length
+            aoe.targets.splice(idx, 1)
+            checkThat(curr === aoe.targets.length + 1, 'WHAAAT?')
+        }
     }
 
     amplifyFire = async (op: DamageOp) => {

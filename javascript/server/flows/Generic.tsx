@@ -36,7 +36,7 @@ export function gatherCards(info: PlayerInfo, poses: CardPos[]): {[key: string]:
     for(let n of cardPosNames.keys()) {
         let pos = cardPosNames.get(n)
         if(!poses.find(p => pos === p)) {
-            return // not interested in this position
+            continue // not interested in this position
         }
         let cards = info.getCards(pos)
         if(cards.length === 0) {

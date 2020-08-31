@@ -3,8 +3,6 @@ import Card, { CardType } from '../../common/cards/Card'
 import UICard from './UICard'
 import { Checker } from './UIBoard'
 import { InCardAndCoor, CardWidth, CardEndpoint, CardAndCoor } from './CardTransitManager'
-import { render } from 'react-dom'
-import e = require('express')
 import { Coor } from './ScreenPosObtainer'
 import ArrayList from '../../common/util/ArrayList'
 import { CardPos } from '../../common/transit/CardPos'
@@ -163,7 +161,7 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
                 }
                 return <div className='ui-card-wrapper' style={myStyle} key={c.card.id} >
                     <UICard key={c.card.id} card={c.card} isShown={isShown} onPos={this.settingRef}
-                                    elementStatus={status} 
+                                    elementStatus={status} nodescript={true}
                                     onMouseLeave={()=>{if(hover===i){this.setState({hover: -1})}}}
                                     onMouseEnter={()=>this.setState({hover: i})}
                                     onMouseClick={(cc)=>status.isSelectable && checker.onClicked(cc.id)}/>
