@@ -101,7 +101,7 @@ export default class DamageOp extends Operation<void> {
             //拯救不力, 还是死了
             if(this.target.isDying()) {
                 //this will throw an error and to be caught by game manager
-                await new DeathOp(this.target, this).perform(manager)
+                await new DeathOp(this.target, this.source, this).perform(manager)
             }
         }
 

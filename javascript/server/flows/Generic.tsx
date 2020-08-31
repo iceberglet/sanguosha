@@ -5,17 +5,22 @@ import { CardSelectionResult } from "../../common/ServerHint";
 
 //使用
 export class CardBeingUsedEvent {
-    constructor(public readonly player: string, public readonly played: Array<[Card, CardPos]>, public readonly as: CardType) {}
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, public readonly as: CardType) {}
 }
 
 //打出
 export class CardBeingPlayedEvent {
-    constructor(public readonly player: string, public readonly played: Array<[Card, CardPos]>, public readonly as: CardType) {}
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, public readonly as: CardType) {}
 }
 
 //弃置
 export class CardBeingDroppedEvent {
-    constructor(public readonly player: string, public readonly dropped: Array<[Card, CardPos]>) {}
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
+}
+
+//拿走
+export class CardBeingTakenEvent {
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
 }
 
 //获得

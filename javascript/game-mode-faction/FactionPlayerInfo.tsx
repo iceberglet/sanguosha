@@ -1,5 +1,5 @@
 import FactionWarGeneral from "./FactionWarGenerals"
-import { Faction, Gender } from '../common/General'
+import { Faction, Gender, factionDiffers, factionsSame } from '../common/General'
 import { Player } from "../common/Player"
 import { PlayerInfo } from "../common/PlayerInfo"
 import * as React from "react"
@@ -45,6 +45,9 @@ export default class FactionPlayerInfo extends PlayerInfo {
         return 'Nil'
     }
 
+    /**
+     * 返回明置的势力
+     */
     getFaction() {
         if(!this.isRevealed()) {
             return Faction.UNKNOWN
@@ -137,27 +140,11 @@ export default class FactionPlayerInfo extends PlayerInfo {
      * @param b 
      */
     static factionDifferent(a: FactionPlayerInfo, b: FactionPlayerInfo): boolean {
-        if(!a.isRevealed() || !b.isRevealed()) {
-            return false
-        }
-        if(a.getFaction().name === Faction.YE.name || 
-            b.getFaction().name === Faction.YE.name || 
-            a.getFaction().name !== b.getFaction().name) {
-            return true
-        }
-        return false
+        return factionDiffers(a.getFaction(), b.getFaction())
     }
 
     static factionSame(a: FactionPlayerInfo, b: FactionPlayerInfo): boolean {
-        if(!a.isRevealed() || !b.isRevealed()) {
-            return false
-        }
-        if(a.getFaction().name !== Faction.YE.name || 
-            b.getFaction().name !== Faction.YE.name || 
-            a.getFaction().name === b.getFaction().name) {
-            return true
-        }
-        return false
+        return factionsSame(a.getFaction(), b.getFaction())
     }
 }
 

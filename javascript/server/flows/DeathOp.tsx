@@ -14,10 +14,9 @@ export default class DeathOp extends Operation<void> {
     //remove stuff from here (曹丕行殇?)
     toDrop: Array<[Card, CardPos]>
 
-    public constructor(public readonly info: PlayerInfo, public readonly dmanageOp: DamageOp) {
+    public constructor(public readonly deceased: PlayerInfo, public readonly killer: PlayerInfo, public readonly dmanageOp: DamageOp) {
         super()
-        this.info.declareDeath()
-        this.toDrop = this.info.getAllCards()
+        this.toDrop = this.deceased.getAllCards()
     }
     
     public async perform(manager: GameManager): Promise<void> {
@@ -27,15 +26,15 @@ export default class DeathOp extends Operation<void> {
 
         //physically transfer everything
         this.toDrop.forEach(cardAndPos => {
-            cardAndPos[0].description = `${this.info.player.id} 阵亡弃牌`
-            manager.sendToWorkflow(this.info.player.id, cardAndPos[1], [cardAndPos[0]])
+            cardAndPos[0].description = `${this.deceased.player.id} 阵亡弃牌`
+            manager.sendToWorkflow(this.deceased.player.id, cardAndPos[1], [cardAndPos[0]])
         })
 
         //show player death. no need to sanitize anymore
-        this.info.declareDeath()
-        manager.broadcast(this.info)
+        // this.deceased.declareDeath()
+        // manager.broadcast(this.deceased)
 
-        if(manager.currPlayer().player.id === this.info.player.id) {
+        if(manager.currPlayer().player.id === this.deceased.player.id) {
             throw new PlayerDeadInHisRound()
         }
 

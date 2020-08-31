@@ -9,6 +9,7 @@ export class Faction {
     public static QUN = new Faction('群', 'qun')
 
     public static YE = new Faction('野', 'ye')
+    //未验明, 未知
     public static UNKNOWN = new Faction('未知', 'unknown')
 
     public static SHEN = new Faction('神', 'shen')
@@ -16,6 +17,20 @@ export class Faction {
     private constructor(public readonly name: string, public readonly image: string) {
 
     }
+}
+
+export function factionDiffers(a: Faction, b: Faction) {
+    if(a.name === Faction.YE.name || a.name === Faction.UNKNOWN.name || b.name === Faction.YE.name || b.name === Faction.UNKNOWN.name) {
+        return true
+    }
+    return a.name !== b.name
+}
+
+export function factionsSame(a: Faction, b: Faction) {
+    if(a.name === Faction.YE.name || a.name === Faction.UNKNOWN.name || b.name === Faction.YE.name || b.name === Faction.UNKNOWN.name) {
+        return false
+    }
+    return a.name === b.name
 }
 
 type UIOffSet = {

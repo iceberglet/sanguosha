@@ -11,8 +11,11 @@ import DamageOp, { DamageSource, DamageTimeline } from "../server/flows/DamageOp
 import { HintType } from "../common/ServerHint";
 import { Button, isCancel, getFromAction, UIPosition } from "../common/PlayerAction";
 import { StageStartFlow } from "../server/flows/StageFlows";
-import { Faction } from "../common/General";
+import { Faction, factionsSame } from "../common/General";
 import { Stage } from "../common/Stage";
+import DeathOp from "../server/flows/DeathOp";
+import GameEnding from "../server/GameEnding";
+import TakeCardOp from "../server/flows/TakeCardOp";
 
 export default class FactionWarInitializer implements Initializer {
 
@@ -71,11 +74,12 @@ export default class FactionWarInitializer implements Initializer {
 
         manager.equipmentRegistry.onGeneral<CardBeingDroppedEvent>(CardBeingDroppedEvent, async (dropEvent)=>{
             //unregister equipments
-            for(let d of dropEvent.dropped) {
+            for(let d of dropEvent.cards) {
                 if(d[1] === CardPos.EQUIP && !d[0].type.isHorse()) {
                     console.log(`[装备] ${dropEvent.player} 卸下了 ${d[0].id}`)
                     if(!this.playerAndEquipments.has(d[0].id)) {
                         console.warn('Missing equipment... not registered (这是丈八?) ' + d[0].id)
+                        continue
                     }
                     await this.playerAndEquipments.get(d[0].id).onDropped()
                 }
@@ -121,20 +125,142 @@ export default class FactionWarInitializer implements Initializer {
             }
             let isRevealed = p.isRevealed()
             if(!wasRevealed && isRevealed) {
-                console.log(`[牌局] ${p.player.id} 身份亮明`)
-                //身份要确认
-                let numberOfFriends = manager.getSortedByCurr(true)
-                                    .filter(pp => (pp as FactionPlayerInfo).isRevealed())
-                                    .filter(pp => pp.getFaction() === p.getFaction())
-                                    .length
-                //若场上势力相同的加上你已经超过了全体玩家的一半, 则你成为野
-                if(numberOfFriends > manager.context.playerInfos.length / 2) {
-                    console.log(`[牌局] ${p.player.id} 野了`)
-                    p.faction = Faction.YE
-                }
+                this.revealPlayer(p, manager)
             }
             manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
         })
+
+        manager.skillRegistry.onGeneral<DeathOp>(DeathOp, async (death)=>{
+            let deceased = death.deceased as FactionPlayerInfo
+            let killer = death.deceased as FactionPlayerInfo
+            if(!deceased.isRevealed()) {
+                console.log(`[牌局] ${deceased.player.id} 未亮明身份, 强行翻开`)
+                deceased.isDead = true
+                //亮明
+                deceased.isGeneralRevealed = true
+                deceased.isSubGeneralRevealed = true
+                this.revealPlayer(deceased, manager)
+            }
+
+            this.checkGameEndingCondition(deceased, manager)
+
+            //奖惩
+            if(!killer.isRevealed()) {
+                console.log(`[牌局] ${killer.player.id} 未亮明身份不来奖惩`)
+                return
+            }
+            if(killer.getFaction() === Faction.YE) {
+                console.log(`[牌局] ${killer.player.id} 野人杀人拿三张`)
+                await new TakeCardOp(killer, 3).perform(manager)
+            }
+            if(factionsSame(killer.getFaction(), deceased.getFaction())) {
+                //打了自己人... 弃牌吧...
+                console.log(`[牌局] ${killer.player.id} 杀死了阵营相同的 ${deceased.player.id} 弃置所有牌`)
+
+                let equips = killer.getCards(CardPos.EQUIP).map(c => {
+                    c.description = `${killer.player.id} 杀害队友被弃置`
+                    return c
+                })
+                manager.sendToWorkflow(killer.player.id, CardPos.EQUIP, equips)
+                await manager.events.publish(new CardBeingDroppedEvent(killer.player.id, equips.map(e => [e, CardPos.EQUIP])))
+
+                let hands = killer.getCards(CardPos.HAND).map(c => {
+                    c.description = `${killer.player.id} 杀害队友被弃置`
+                    return c
+                })
+                manager.sendToWorkflow(killer.player.id, CardPos.HAND, hands)
+                await manager.events.publish(new CardBeingDroppedEvent(killer.player.id, hands.map(e => [e, CardPos.HAND])))
+
+            } else {
+                let reward = manager.getSortedByCurr(true)
+                                    .filter(p => p !== deceased)
+                                    .filter(p => factionsSame(p.getFaction(), deceased.getFaction()))
+                                    .length + 1
+                console.log(`[牌局] ${killer.player.id} 杀死了阵营不同的 ${deceased.player.id} 获得 ${reward} 张牌`)
+                await new TakeCardOp(killer, reward).perform(manager)
+            }
+        })
+    }
+
+    revealPlayer(p: FactionPlayerInfo, manager: GameManager) {
+        console.log(`[牌局] ${p.player.id} 身份亮明`)
+        //身份要确认
+        let numberOfFriends = manager.context.playerInfos
+                            // .filter(pp => (pp as FactionPlayerInfo).isRevealed())
+                            .filter(pp => pp.getFaction().name === p.getFaction().name)
+                            .length
+        //若场上势力相同的加上你已经超过了全体玩家的一半, 则你成为野
+        if(numberOfFriends > manager.context.playerInfos.length / 2) {
+            console.log(`[牌局] ${p.player.id} 野了`)
+            p.faction = Faction.YE
+        }
+        manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
+    }
+
+    /**
+     * 判断是否进入鏖战模式. true -> 进入鏖战
+     * @param manager 
+     */
+    checkAoZhan(manager: GameManager): boolean {
+        let survivors = manager.getSortedByCurr(true)
+        if(survivors.length <= 4) {
+            let set = new Set<Faction>()
+            for(let s of survivors) {
+                let sF = s.getFaction()
+                if(set.has(sF) && sF.name !== Faction.YE.name && sF.name !== Faction.UNKNOWN.name) {
+                    return false
+                }
+                set.add(sF)
+            }
+        }
+        return true
+    }
+
+    /**
+     * 判断是否游戏结束
+     * 游戏结束条件: 场上所有玩家*如果明置*均属于统一势力的话, 则结束, 强行翻开未明置的将牌
+     * 不然继续打
+     * @param deceased 
+     * @param manager 
+     */
+    checkGameEndingCondition(deceased: PlayerInfo, manager: GameManager) {
+        let surviving = manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id) as FactionPlayerInfo[]
+        if(surviving.length === 1) {
+            console.log('[牌局] 只剩一人了!')
+            //强制结算
+            if(!surviving[0].isRevealed()) {
+                this.revealPlayer(surviving[0], manager)
+            }
+            //declare winners!
+            this.declareWinners(surviving[0], manager)
+        } else {
+            //不能有未验明的势力也不能有野
+            let tentativeFac : Faction
+            for(let s of surviving) {
+                if(s.getFaction() === Faction.UNKNOWN || s.getFaction() === Faction.YE) {
+                    console.log('[牌局] 尚有人野/未亮明, 不能结束游戏')
+                    return
+                }
+                if(tentativeFac && tentativeFac !== s.getFaction()) {
+                    console.log('[牌局] 尚有人势力相同, 不能结束游戏')
+                    return
+                }
+                tentativeFac = s.getFaction()
+            }
+            this.declareWinners(surviving[0], manager)
+        }
+    }
+
+    declareWinners(player: FactionPlayerInfo, manager: GameManager) {
+        console.log('[牌局] 胜利条件达到, 计算胜利者!')
+        let winnerFac = player.getFaction()
+        if(winnerFac === Faction.UNKNOWN) {
+            throw 'How????'
+        } else if (winnerFac === Faction.YE) {
+            throw new GameEnding([player.player.id])
+        } else {
+            throw new GameEnding(manager.context.playerInfos.filter(p => p.getFaction() === winnerFac).map(p => p.player.id))
+        }
     }
 }
 
@@ -185,7 +311,7 @@ export class SanJian extends Equipment {
         if(op.timeline !== DamageTimeline.DID_DAMAGE) {
             return
         }
-        let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === CardType.QI_LIN)
+        let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === CardType.SAN_JIAN)
         if(!potential) {
             throw `不可能! 我登记过的就应该有这个武器! 三尖两刃刀 ${this.player}`
         }
@@ -206,7 +332,8 @@ export class SanJian extends Equipment {
             hintType: HintType.SPECIAL,
             specialId: CardType.SAN_JIAN.name,
             hintMsg: '发动三尖两刃刀',
-            sourcePlayer: op.target.player.id
+            sourcePlayer: op.target.player.id,
+            extraButtons: [Button.CANCEL]
         })
         if(isCancel(resp)) {
             console.log('[装备] 玩家放弃发动三尖两刃刀')

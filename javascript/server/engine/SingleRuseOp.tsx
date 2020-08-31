@@ -8,7 +8,7 @@ import Card, { CardType } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import TakeCardOp from "../flows/TakeCardOp";
 import { AskForSlashOp } from "../flows/SlashOp";
-import { CardObtainedEvent, CardBeingDroppedEvent, findCard, gatherCards } from "../flows/Generic";
+import { CardObtainedEvent, CardBeingDroppedEvent, findCard, gatherCards, CardBeingTakenEvent } from "../flows/Generic";
 import { Suits } from "../../common/util/Util";
 import DamageOp, { DamageType, DamageSource } from "../flows/DamageOp";
 import { DropOthersCardRequest } from "../flows/DropCardOp";
@@ -123,7 +123,7 @@ export class ShunShou extends SingleRuse<void> {
         delete card.description
         delete card.as
         manager.transferCards(this.target, this.source, pos, CardPos.HAND, [card])
-        await manager.events.publish(new CardBeingDroppedEvent(this.target, [[card, pos]]))
+        await manager.events.publish(new CardBeingTakenEvent(this.target, [[card, pos]]))
         await manager.events.publish(new CardObtainedEvent(this.source, [card]))
     }
 }
