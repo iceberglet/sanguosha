@@ -1,15 +1,14 @@
 import { Operation } from "../Flow";
 import GameManager from "../GameManager";
-import { PlayerAction, Button, isCancel, getFromAction, UIPosition } from "../../common/PlayerAction";
+import { Button, isCancel, getFromAction, UIPosition } from "../../common/PlayerAction";
 import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import PlaySlashOp from "./SlashOp";
 
 export default class DodgeOp extends Operation<boolean> {
 
-    public success = false
+    public playedDodgeSomehow = false
 
     public constructor(public readonly target: PlayerInfo, 
                         public readonly source: string, 
@@ -20,13 +19,23 @@ export default class DodgeOp extends Operation<boolean> {
 
     public async perform(manager: GameManager): Promise<boolean> {
 
-        await manager.events.publish(this)
+        let needed = this.numberRequired
 
-        if(!this.success) {
+        while(needed > 0) {
+            this.playedDodgeSomehow = false
+            //八卦? 倾国?
+            await manager.events.publish(this)
+
+            if(this.playedDodgeSomehow) {
+                needed--
+                continue
+            }
+
+            console.log('[Dodge OP] 开始求闪')
 
             let hintMsg = this.hintMsg
             if(this.numberRequired > 1) {
-                hintMsg += `(共需要${this.numberRequired}张)`
+                hintMsg += `(还需要${this.numberRequired}张)`
             }
 
             let response = await manager.sendHint(this.target.player.id, {
@@ -38,8 +47,9 @@ export default class DodgeOp extends Operation<boolean> {
             if(isCancel(response)) {
                 //player gave up on dodging
                 //assume cancel is received?
-                this.success = false
+                return false
             } else {
+                needed--
                 manager.broadcast(new TextFlashEffect(this.target.player.id, [this.source], '闪'))
                 //assume he played it
                 let cards = getFromAction(response, UIPosition.MY_HAND).map(id => manager.getCard(id))
@@ -47,13 +57,11 @@ export default class DodgeOp extends Operation<boolean> {
                     throw `Player played dodge cards but not one card!!!! ${response.actionSource} ${cards}`
                 }
                 //张角呢??
-
                 manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [cards[0]])
-                this.success = true
             }
         }
 
-        return this.success
+        return true
     }
 
 }

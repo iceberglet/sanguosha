@@ -30,6 +30,7 @@ export default class GameClientContext extends GameContext {
             this.serverHint = null
             this.currentDriver = NoActionDriver.INSTANCE
         } else {
+            console.warn('Getting Server Hint', hint)
             if(this.currentDriver !== NoActionDriver.INSTANCE) {
                 throw `Invalid State: There is an existing action driver. Cannot start new action when current one is not complete! ${this.currentDriver}`
             }

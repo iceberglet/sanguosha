@@ -1,12 +1,11 @@
 import FactionWarGeneral from "./FactionWarGenerals"
-import { Faction } from '../common/General'
+import { Faction, Gender } from '../common/General'
 import { Player } from "../common/Player"
 import { PlayerInfo } from "../common/PlayerInfo"
 import * as React from "react"
 import './faction-war.scss'
 import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
 import { ClassFormatter } from "../common/util/Togglable"
-import { Mask } from "../common/util/Util"
 
 
 export default class FactionPlayerInfo extends PlayerInfo {
@@ -36,7 +35,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
         return this
     }
 
-    getGender() {
+    getGender(): Gender {
         if(this.isGeneralRevealed) {
             return this.general.gender
         }
@@ -125,6 +124,38 @@ export default class FactionPlayerInfo extends PlayerInfo {
         this.isGeneralRevealed = true
         this.isSubGeneralRevealed = true
         super.declareDeath()
+    }
+
+    /**
+     * 返回两人是否不同阵营:
+     * 要求: 
+     * - 均明置武将
+     * - 阵营不同
+     * @param a 
+     * @param b 
+     */
+    static factionDifferent(a: FactionPlayerInfo, b: FactionPlayerInfo): boolean {
+        if(!a.isRevealed() || !b.isRevealed()) {
+            return false
+        }
+        if(a.getFaction().name === Faction.YE.name || 
+            b.getFaction().name === Faction.YE.name || 
+            a.getFaction().name !== b.getFaction().name) {
+            return true
+        }
+        return false
+    }
+
+    static factionSame(a: FactionPlayerInfo, b: FactionPlayerInfo): boolean {
+        if(!a.isRevealed() || !b.isRevealed()) {
+            return false
+        }
+        if(a.getFaction().name !== Faction.YE.name || 
+            b.getFaction().name !== Faction.YE.name || 
+            a.getFaction().name === b.getFaction().name) {
+            return true
+        }
+        return false
     }
 }
 

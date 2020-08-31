@@ -99,9 +99,9 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
         let width = con? con.getBoundingClientRect().width - CardWidth - leftOffset * 2 : 700
         let sep: number
 
-        if(hover >= 0 && hover < count) {
+        if(count > 2 && hover >= 0 && hover < count) {
             //only if there is some hover and *not* on the last card
-            sep = (width - CardWidth) / count
+            sep = (width - CardWidth) / (count - 1)
         } else {
             sep = width / count
         }

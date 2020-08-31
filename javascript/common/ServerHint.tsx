@@ -1,4 +1,4 @@
-import RoundStat, { ForbiddenTypes } from "./RoundStat"
+import RoundStat from "./RoundStat"
 import { Button, UIPosition } from "./PlayerAction"
 import Card, { Suit } from "./cards/Card"
 
@@ -17,7 +17,12 @@ export enum HintType {
     PEACH,
     WU_XIE,
 
+    SPECIAL,
 
+    /**
+     * 选择一名或多名玩家发动技能
+     */
+    CHOOSE_PLAYER,
     /**
      * 在多个选项中选一个
      */
@@ -35,10 +40,6 @@ export class ServerHintTransit {
         public hintId: number, 
         public toPlayer: string, 
         public hint: ServerHint){}
-}
-
-export function forbids(hint: ServerHint, type: ForbiddenTypes) {
-    return hint.roundStat.forbiddenChoices && hint.roundStat.forbiddenChoices.indexOf(type) >= 0
 }
 
 export function isDirectButton(hint: ServerHint, buttonId: string): Button {
@@ -79,6 +80,10 @@ export type CardChoices = {
 export type ServerHint = {
     hintType: HintType
     hintMsg: string
+
+    //to invoke custom providers (skills / others)
+    specialId?: string
+
     /**
      * 放了optional?但其实是一定会发的
      */
@@ -92,20 +97,19 @@ export type ServerHint = {
     extraButtons?: Button[]
     /**
      * 令你出此操作的人
+     * - 濒死求桃的人
      */
     sourcePlayer?: string
     /**
      * 你的操作对象
      * e.g. 
-     * - 濒死求桃的人
-     * - 被决斗求无懈可击的人
      */
     targetPlayers?: string[]
     /**
      * 需要选择的牌数, 比如弃牌
      * 弃牌如此多张
      */
-    cardNumbers?: number
+    quantity?: number
 
     /**
      * 选择自己牌的位置
@@ -118,6 +122,11 @@ export type ServerHint = {
      * 火攻 / 张角改判定 / 庞统重铸 会用到
      */
     suits?: Suit[]
+
+    /**
+     * 不可以选择的人 / 卡牌
+     */
+    forbidden?: string[]
 
 
     /**

@@ -25,22 +25,26 @@ export enum DamageType {
     ENERGY
 }
 
-export enum Timeline {
+export enum DamageTimeline {
     DOING_DAMAGE, //造成伤害时
     TAKING_DAMAGE, //受到伤害时
     DID_DAMAGE, //造成伤害后
     TAKEN_DAMAGE, //受到伤害后
 }
 
-function fromSlash(type: CardType) {
-    switch(type) {
-        //slash
-        case CardType.SLASH: return DamageType.NORMAL;
-        case CardType.SLASH_FIRE: return DamageType.FIRE;
-        case CardType.SLASH_THUNDER: return DamageType.THUNDER;
-        default: throw 'Donno'
-    }
+export enum DamageSource {
+    SLASH, DUEL, NAN_MAN, WAN_JIAN, SKILL, SHAN_DIAN, HUO_GONG
 }
+
+// function fromSlash(type: CardType) {
+//     switch(type) {
+//         //slash
+//         case CardType.SLASH: return DamageType.NORMAL;
+//         case CardType.SLASH_FIRE: return DamageType.FIRE;
+//         case CardType.SLASH_THUNDER: return DamageType.THUNDER;
+//         default: throw 'Donno'
+//     }
+// }
 
 function isElemental(type: DamageType) {
     return type === DamageType.FIRE || type === DamageType.THUNDER
@@ -48,17 +52,16 @@ function isElemental(type: DamageType) {
 
 export default class DamageOp extends Operation<void> {
 
-    public readonly originalDamage: number
-    public timeline: Timeline = Timeline.DOING_DAMAGE
+    public timeline: DamageTimeline = DamageTimeline.DOING_DAMAGE
 
     public constructor(public source: PlayerInfo, //nullable 闪电无伤害来源
         public target: PlayerInfo, 
         public amount: number,
-        public cards: Card[], //cards that caused this
+        public cards: Card[], //cards that caused this, can be null / empty
+        public damageSource: DamageSource,
         public type: DamageType = DamageType.NORMAL,
         public doChain: boolean = true) {
         super()
-        this.originalDamage = amount
     }
 
     public async perform(manager: GameManager): Promise<void> {
@@ -66,13 +69,19 @@ export default class DamageOp extends Operation<void> {
 
         //藤甲伤害加深?
         await manager.events.publish(this)
-        this.timeline = Timeline.TAKING_DAMAGE
+        if(this.amount <= 0) {
+            console.log('[伤害结算] 伤害被防止, 停止结算')
+            return
+        }
+
+        this.timeline = DamageTimeline.TAKING_DAMAGE
         await manager.events.publish(this)
 
         //伤害可以被防止(曹冲? 沮授?)
-        if(this.amount <= 0) {
-            return
-        }
+        // if(this.amount <= 0) {
+        //     console.log('[伤害结算] 伤害被防止, 停止结算')
+        //     return
+        // }
 
 
         this.target.damage(this.amount)
@@ -96,26 +105,28 @@ export default class DamageOp extends Operation<void> {
             }
         }
 
+        //https://sgs.fandom.com/zh/wiki/%E4%BA%8B%E4%BB%B6%E6%B5%81%E7%A8%8B%EF%BC%9A%E4%BC%A4%E5%AE%B3
         //遗计? 反馈? 刚烈?
-        this.timeline = Timeline.DID_DAMAGE
+        //注意死亡的角色不会触发技能
+        this.timeline = DamageTimeline.DID_DAMAGE
         await manager.events.publish(this)
-        this.timeline = Timeline.TAKING_DAMAGE
+        this.timeline = DamageTimeline.TAKING_DAMAGE
         await manager.events.publish(this)
 
         //铁索连环
         if(isElemental(this.type) && this.target.isChained && this.doChain) {
-            console.log('触发铁索连环')
+            console.log('[伤害结算] 触发铁索连环')
             this.target.isChained = false
             manager.broadcast(this.target, PlayerInfo.sanitize)
 
             let chained = manager.context.getRingFromPerspective(this.target.player.id, false).filter(p => p.isChained)
-            console.log('触发铁索连环于', chained.map(c => c.player.id))
+            console.log('[伤害结算] 触发铁索连环于', chained.map(c => c.player.id))
             for(let player of chained) {
                 //player might die half way...
                 if(!player.isDead) {
-                    console.log('连环伤害:', player.player.id)
+                    console.log('[伤害结算] 连环伤害:', player.player.id)
                     player.isChained = false
-                    await new DamageOp(this.source, player, this.originalDamage, this.cards, this.type, false).perform(manager)
+                    await new DamageOp(this.source, player, this.amount, this.cards, this.damageSource, this.type, false).perform(manager)
                 }
             }
         }

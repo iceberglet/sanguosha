@@ -6,6 +6,21 @@ type Provider = (hint: ServerHint)=>PlayerActionDriver
 class PlayerActionDriverProvider {
 
     providers = new Map<HintType, Provider[]>()
+    special = new Map<string, Provider>()
+
+    registerSpecial(key: string, provider: Provider) {
+        if(this.special.has(key)) {
+            throw 'This key is already registered! ' + key
+        }
+        this.special.set(key, provider)
+    }
+
+    unregisterSpecial(key: string) {
+        if(!this.special.has(key)) {
+            throw 'This key does not exist! ' + key
+        }
+        this.special.delete(key)
+    }
 
     registerProvider(hintType: HintType, provider: Provider) {
         let curr = this.providers.get(hintType) || []
@@ -22,6 +37,9 @@ class PlayerActionDriverProvider {
     }
 
     getDriver(hint: ServerHint): PlayerActionDriver {
+        if(hint.hintType === HintType.SPECIAL) {
+            return this.special.get(hint.specialId)(hint)
+        }
         let p = this.providers.get(hint.hintType) || []
         let drivers = p.map((provider)=>provider(hint))
             .filter(p => p)

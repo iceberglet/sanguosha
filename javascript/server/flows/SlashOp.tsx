@@ -1,8 +1,8 @@
-import { Operation } from "../Flow";
+import { Operation, UseEventOperation } from "../Flow";
 import GameManager from "../GameManager";
-import { PlayerAction, getFromAction, UIPosition, Button, isCancel } from "../../common/PlayerAction";
+import { getFromAction, UIPosition, Button, isCancel } from "../../common/PlayerAction";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import DamageOp, { DamageType } from "./DamageOp";
+import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import DodgeOp from "./DodgeOp";
 import Card, { Suit, CardType } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
@@ -11,9 +11,9 @@ import { HintType } from "../../common/ServerHint";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardBeingPlayedEvent } from "./Generic";
 
-enum Timeline {
-    CHOOSING_TARGET,    //流离
-    TARGET_ACQUIRED,    //其他
+export class SlashDodgedEvent {
+    constructor(public readonly slashOp: SlashCompute) {
+    }
 }
 
 /**
@@ -28,7 +28,8 @@ export default class PlaySlashOp extends Operation<void> {
     public damage = 1
     public damageType: DamageType = DamageType.NORMAL
     public suit: Suit
-    public timeline = Timeline.CHOOSING_TARGET
+    public currentTarget: PlayerInfo
+    public currentDodged: boolean
     
     public constructor(public readonly source: string, 
                         public targets: PlayerInfo[],
@@ -37,19 +38,24 @@ export default class PlaySlashOp extends Operation<void> {
     }
 
     public async perform(manager: GameManager): Promise<void> {
-        let icards = this.cards.map(c => manager.interpret(this.source, c.id))
-        if(icards.length === 1) {
-            if(icards[0].type === CardType.SLASH_FIRE) {
-                this.damageType = DamageType.FIRE
-            } else if(icards[0].type === CardType.SLASH_THUNDER){
-                this.damageType = DamageType.THUNDER
-            }
-            this.suit = icards[0].suit
-        } else if (icards.length > 1) {
-            this.suit = icards[0].suit
-            for(let icard of icards) {
-                if(icard.suit !== this.suit) {
-                    this.suit = 'none'
+        if(!this.cards || this.cards.length === 0) {
+            this.suit = 'none'
+            this.damageType = DamageType.NORMAL
+        } else {
+            let icards = this.cards.map(c => manager.interpret(this.source, c.id))
+            if(icards.length === 1) {
+                if(icards[0].type === CardType.SLASH_FIRE) {
+                    this.damageType = DamageType.FIRE
+                } else if(icards[0].type === CardType.SLASH_THUNDER){
+                    this.damageType = DamageType.THUNDER
+                }
+                this.suit = icards[0].suit
+            } else if (icards.length > 1) {
+                this.suit = icards[0].suit
+                for(let icard of icards) {
+                    if(icard.suit !== this.suit) {
+                        this.suit = 'none'
+                    }
                 }
             }
         }
@@ -62,17 +68,15 @@ export default class PlaySlashOp extends Operation<void> {
             manager.broadcast(new TextFlashEffect(this.source, this.targets.map(t => t.player.id), isSuitBlack(this.suit)? '杀' : '红杀'))
         }
 
-        manager.roundStats.slashCount--;
+        manager.roundStats.slashCount++;
 
         //todo: 
-        // 可以无效化
+        // 可以无效化 (将自己从target中移除)
         // 裸衣增加伤害? 最后一张手牌,方天画戟询问增加目标?
         // 会不会转移目标? (游离)
         // 雌雄双股剑? > 弃牌然后空城
         // leave to the listeners
-        await manager.events.publish(this)
-        this.timeline = Timeline.TARGET_ACQUIRED
-        await manager.events.publish(this)
+        // await manager.events.publish(this)
 
         let actor = manager.context.getPlayer(this.source)
 
@@ -84,23 +88,44 @@ export default class PlaySlashOp extends Operation<void> {
         }
 
         for(let t of this.targets) {
-            let dodgeNeeded = this.dodgeRequired
             if(t.isDead) {
                 console.warn('Player already dead, not doing slash on him', t.player.id)
-                continue
+                return
             }
-            //开始杀的结算, 要求出闪
-            while(dodgeNeeded > 0) {
-                let success = await new DodgeOp(t, this.source, dodgeNeeded, `[${this.source}] 对你出杀, 请出闪`).perform(manager)
-                if(!success) {
-                    let source = manager.context.getPlayer(this.source)
-                    await new DamageOp(source, t, this.damage, this.cards, this.damageType).perform(manager)
-                    break
-                }
-                dodgeNeeded--
+
+            await new SlashCompute(actor, t, this.cards, this.dodgeRequired, this.damage, this.damageType, this.suit).perform(manager)
+        }
+    }
+}
+
+export class SlashCompute extends UseEventOperation<void> {
+
+    //todo: 不可被闪避?
+    constructor(public readonly source: PlayerInfo,
+                public target: PlayerInfo,
+                public readonly cards: Card[],
+                public readonly dodgeRequired: number,
+                public readonly damageAmount: number,
+                public damageType: DamageType,
+                public suit: Suit
+                ) {
+        super()
+    }
+    
+    public async doPerform(manager: GameManager): Promise<void> {
+        let dodgeNeeded = this.dodgeRequired
+        //开始杀的结算, 要求出闪
+        if(dodgeNeeded > 0) {
+            let success = await new DodgeOp(this.target, this.source.player.id, dodgeNeeded, `[${this.source.player.id}] 对你出杀, 请出闪`).perform(manager)
+            if(!success) {
+                await new DamageOp(this.source, this.target, this.damageAmount, this.cards, DamageSource.SLASH, this.damageType).perform(manager)
+            } else {
+                //闪避成功! 贯石斧?
+                await manager.events.publish(new SlashDodgedEvent(this))
             }
         }
     }
+
 }
 
 /**

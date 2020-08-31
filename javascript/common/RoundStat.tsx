@@ -1,14 +1,16 @@
 import { Stage } from "./Stage"
 
-
-export type ForbiddenTypes = 'wine'
+export const WINE_TAKEN = 'WINE_TAKEN'
 
 export default class RoundStat {
 
     skipStages = new Map<Stage, boolean>()
 
     //出杀的次数
-    slashCount: number = 1
+    slashCount: number = 0
+
+    //最多出杀的次数 (技能/连弩可以增加这个)
+    slashMax: number = 1
 
     /**
      * 可以指定杀的目标
@@ -18,7 +20,6 @@ export default class RoundStat {
 
     /**
      * 100 = 无限距离
-     * -1 = 不能再出杀
      * 默认(0)距离 > 用武器决定
      */
     slashReach: number = 0
@@ -31,8 +32,9 @@ export default class RoundStat {
     ruseReach: number = 1
 
     /**
-     * 不能出杀了? 不能喝酒了?
+     * 不能喝酒了?
+     * 一回合一次的技能?
      */
-    forbiddenChoices: ForbiddenTypes[] = []
+    customData: {[key: string]: any} = {}
 
 }

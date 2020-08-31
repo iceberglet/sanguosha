@@ -1,4 +1,5 @@
 import { ServerHint } from "./ServerHint"
+import { CardPos } from "./transit/CardPos"
 
 
 export enum UIPosition {
@@ -37,9 +38,7 @@ export class Button {
     public static OK = new Button('ok', '确定')
     public static CANCEL = new Button('cancel', '取消')
 
-    public enabled: boolean = true
-
-    public constructor(public readonly id: string, public readonly display: string) {
+    public constructor(public readonly id: string, public readonly display: string, public enabled: boolean = true) {
 
     }
 
@@ -76,6 +75,23 @@ export type PlayerAction = {
 
 export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {
     return action.actionData[pos] || []
+}
+
+export function getCardsFromAction(action: PlayerAction, ...pos: UIPosition[]): Map<CardPos, string[]> {
+    let map = new Map<CardPos, string[]>()
+    pos.forEach(p => {
+        map.set(mapToCardPos(p), action.actionData[p] || [])
+    })
+    return map
+}
+
+export function mapToCardPos(ui: UIPosition): CardPos {
+    switch(ui) {
+        case UIPosition.MY_EQUIP: return CardPos.EQUIP
+        case UIPosition.MY_HAND: return CardPos.HAND
+        case UIPosition.MY_JUDGE: return CardPos.JUDGE
+        default: throw 'Cannot map ' + UIPosition[ui]
+    }
 }
 
 export function isCancel(action: PlayerAction) {

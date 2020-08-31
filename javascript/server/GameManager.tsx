@@ -6,7 +6,7 @@ import RoundStat from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
 import { ServerHint, HintType, Rescind } from "../common/ServerHint";
 import ArrayList from "../common/util/ArrayList";
-import { SequenceAwarePubSub } from "../common/util/PubSub";
+import { SequenceAwarePubSub, EventRegistry, GameEventListener, CompositeListener } from "../common/util/PubSub";
 import { PlayerAction, Button, UIPosition } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
@@ -31,18 +31,32 @@ export default class GameManager {
     //index of GameContext#playerInfos
     private currentPlayer: number = 0
     public roundStats: RoundStat
-    //events go here
-    public events : SequenceAwarePubSub
+    /**
+     * 事件的触发与结算
+     */
+    public equipmentRegistry: EventRegistry
+    public skillRegistry: EventRegistry
+    public events : GameEventListener
     //for custom ui components
     public onReconnect: ()=>void
 
     private currentFlows = new ArrayList<Flow>()
     private currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
-    private resolver: PlayerActionResolver
+    public resolver: PlayerActionResolver
 
     public constructor(public context: GameServerContext, private registry: PlayerRegistry) {
-        this.events = new SequenceAwarePubSub((ids)=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id))
-        this.resolver = new PlayerActionResolver(this)
+        //event pubsub
+        let sequencer = (ids: string[])=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id)
+        let equipmentRegistry = new SequenceAwarePubSub(sequencer)
+        let skillRegistry = new SequenceAwarePubSub(sequencer)
+        this.equipmentRegistry = equipmentRegistry
+        this.skillRegistry = skillRegistry
+        //先触发技能, 再触发装备...
+        this.events = new CompositeListener([skillRegistry, equipmentRegistry])
+
+        //other initialization
+        this.resolver = new PlayerActionResolver(context.getGameMode().resolver)
+        context.getGameMode().initializer.init(this)
     }
 
     public async startGame() {
@@ -235,7 +249,12 @@ export default class GameManager {
                 break;
             }
             //process this action
-            await this.resolver.on(resp)
+            await this.resolver.on(resp, this)
+        }
+        if(this.currPlayer().isDrunk) {
+            //醒酒
+            this.currPlayer().isDrunk = false
+            this.broadcast(this.currPlayer(), PlayerInfo.sanitize)
         }
     }
 

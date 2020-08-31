@@ -1,7 +1,7 @@
 import { playerActionDriverProvider } from "../client/player-actions/PlayerActionDriverProvider"
 import { HintType } from "../common/ServerHint"
 import PlayerActionDriverDefiner from "../client/player-actions/PlayerActionDriverDefiner"
-import { UIPosition } from "../common/PlayerAction"
+import { UIPosition, Button } from "../common/PlayerAction"
 import FactionPlayerInfo from "./FactionPlayerInfo"
 import { CardPos } from "../common/transit/CardPos"
 import { CardType } from "../common/cards/Card"
@@ -22,7 +22,7 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
                 },
                 ()=>`选择‘知己知彼’的对象`)
             .expectAnyButton('点击确定使用知己知彼')
-            .build(hint)
+            .build(hint, [Button.OK, Button.CANCEL, new Button('chong_zhu', '重铸')])
 })
 
 // 已经有范围锦囊了
@@ -43,8 +43,8 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             })
             .expectChoose([UIPosition.PLAYER], 1, 1, 
                 (id, context)=>{
-                    let faction = context.getPlayer(id).getFaction()
-                    return faction.name !== context.myself.getFaction().name && id !== context.myself.player.id
+                    return FactionPlayerInfo.factionDifferent(context.myself as FactionPlayerInfo, context.getPlayer(id) as FactionPlayerInfo) && 
+                            id !== context.myself.player.id
                 },  // 不能是自己, 对象也不能是同势力
                 ()=>`选择一个不同阵营的玩家作为‘远交近攻’的对象`)
             .expectAnyButton('点击确定使用远交近攻')

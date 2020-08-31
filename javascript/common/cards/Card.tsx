@@ -77,16 +77,22 @@ export class CardType {
     public static SHAN_DIAN = new CardType('shan_dian', '闪电', 'single-delay-ruse')
 
     ////////// ----------------- 国战 -----------------------//////////////////
-    public static YI_YI = new CardType('yi_yi', '以逸待劳', 'group-ruse')
-    public static ZHI_JI = new CardType('zhi_ji', '知己知彼', 'single-immediate-ruse')
-    public static YUAN_JIAO = new CardType('yuan_jiao', '远交近攻', 'single-immediate-ruse')
-    public static WU_LIU = new CardType('wu_liu', '吴六剑', 'weapon').withDistance(2)
-    public static SAN_JIAN = new CardType('san_jian', '三尖两刃刀', 'weapon').withDistance(3)
+    public static YI_YI = new CardType('yi_yi', '以逸待劳', 'group-ruse').withPackage('国战')
+    public static ZHI_JI = new CardType('zhi_ji', '知己知彼', 'single-immediate-ruse').withPackage('国战')
+    public static YUAN_JIAO = new CardType('yuan_jiao', '远交近攻', 'single-immediate-ruse').withPackage('国战')
+    public static WU_LIU = new CardType('wu_liu', '吴六剑', 'weapon').withDistance(2).withPackage('国战')
+    public static SAN_JIAN = new CardType('san_jian', '三尖两刃刀', 'weapon').withDistance(3).withPackage('国战')
 
     public distance: number = -1
+    public package: string = '普通'
 
     private withDistance(dist: number) {
         this.distance = dist
+        return this
+    }
+
+    private withPackage(pack: string) {
+        this.package = pack
         return this
     }
 
@@ -103,6 +109,10 @@ export class CardType {
 
     public isRuse(): boolean {
         return this.genre === 'single-delay-ruse' || this.genre === 'single-immediate-ruse' || this.genre === 'group-ruse'
+    }
+
+    public isHorse(): boolean {
+        return this.genre === 'horse+1' || this.genre === 'horse-1'
     }
 
     public isNonDelayedRuse(): boolean {

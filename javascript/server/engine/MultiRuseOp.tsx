@@ -6,7 +6,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import Card, { CardType } from "../../common/cards/Card";
 import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit";
 import TakeCardOp from "../flows/TakeCardOp";
-import DamageOp, { DamageType } from "../flows/DamageOp";
+import DamageOp, { DamageType, DamageSource } from "../flows/DamageOp";
 import { AskForSlashOp } from "../flows/SlashOp";
 import DodgeOp from "../flows/DodgeOp";
 import { CustomUIData } from "../../client/card-panel/CustomUIRegistry";
@@ -105,7 +105,7 @@ export class NanMan extends MultiRuse {
         let slashed = await new AskForSlashOp(target, issuer, `${this.source} 使用南蛮, 请出杀`).perform(manager)
         if(!slashed) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃南蛮出杀, 掉血`)
-            await new DamageOp(issuer, target, 1, this.cards, DamageType.NORMAL).perform(manager)
+            await new DamageOp(issuer, target, 1, this.cards, DamageSource.NAN_MAN, DamageType.NORMAL).perform(manager)
         } else {
             //过了, 出了杀就成
         }
@@ -119,7 +119,7 @@ export class WanJian extends MultiRuse {
         let dodged = await new DodgeOp(target, this.source, 1, `${this.source} 的万箭齐发, 请出闪`).perform(manager)
         if(!dodged) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃万箭出闪, 掉血`)
-            await new DamageOp(manager.context.getPlayer(this.source), target, 1, this.cards, DamageType.NORMAL).perform(manager)
+            await new DamageOp(manager.context.getPlayer(this.source), target, 1, this.cards, DamageSource.WAN_JIAN, DamageType.NORMAL).perform(manager)
         } else {
             //过了, 出了杀就成
         }
