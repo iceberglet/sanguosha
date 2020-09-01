@@ -1,14 +1,12 @@
 import { General, Faction } from "../common/General"
+import {Pairs} from "../common/util/Multimap"
 
 
-const defRender = {
-    x: -41,
-    y: -6,
-    w: 120,
-    h: 120
-}
+
+
 
 export default class FactionWarGeneral extends General {
+
 
     private constructor(id: string, name: string, faction: Faction, hp: number, 
         ...abilities: string[]) {
@@ -112,3 +110,46 @@ export default class FactionWarGeneral extends General {
     // public static standard_hua_xiong = new General('standard_hua_xiong', '华雄', Faction.QUN, 6, 'qixi')
     
 }
+
+//https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
+//珠联璧合
+const generalPairs = new Pairs()
+generalPairs.registerPair('刘备', '甘夫人')
+generalPairs.registerPair('刘备', '关羽')
+generalPairs.registerPair('刘备', '张飞')
+generalPairs.registerPair('刘备', '法正')
+generalPairs.registerPair('赵云', '刘禅')
+generalPairs.registerPair('诸葛亮', '黄月英')
+generalPairs.registerPair('诸葛亮', '庞统')
+generalPairs.registerPair('魏延', '黄忠')
+generalPairs.registerPair('孟获', '祝融')
+generalPairs.registerPair('马超', '马岱')
+
+generalPairs.registerPair('曹操', '许褚')
+generalPairs.registerPair('曹操', '典韦')
+generalPairs.registerPair('曹操', '卞夫人')
+generalPairs.registerPair('曹操', '郭嘉') //I added
+generalPairs.registerPair('夏侯惇', '夏侯渊')
+generalPairs.registerPair('李典', '乐进')
+generalPairs.registerPair('臧霸', '张辽')
+generalPairs.registerPair('荀彧', '荀攸')
+generalPairs.registerPair('曹丕', '甄姬')
+generalPairs.registerPair('曹仁', '曹洪')
+
+generalPairs.registerPair('孙策', '大乔')
+generalPairs.registerPair('孙策', '周瑜')
+generalPairs.registerPair('孙策', '太史慈')
+generalPairs.registerPair('孙权', '周泰')
+generalPairs.registerPair('周瑜', '黄盖')
+generalPairs.registerPair('周瑜', '小乔')
+generalPairs.registerPair('大乔', '小乔')
+generalPairs.registerPair('徐盛', '丁奉')
+generalPairs.registerPair('蒋钦', '周泰')
+
+generalPairs.registerPair('吕布', '貂蝉')
+generalPairs.registerPair('袁绍', '颜良文丑')
+generalPairs.registerPair('凌统', '甘宁')
+generalPairs.registerPair('贾诩', '李傕郭汜')
+generalPairs.registerPair('贾诩', '邹氏')
+
+

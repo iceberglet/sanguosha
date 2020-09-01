@@ -3,14 +3,14 @@ import UIBoard from './ui/UIBoard';
 import UILogin from './ui/UILogin';
 import GameClientContext from './GameClientContext';
 import { PreGame } from '../common/PreGame';
-import { PlayerInfo } from '../common/PlayerInfo';
 import { Player } from '../common/Player';
 import { Serde } from '../common/util/Serializer';
 import LoginMessage from '../server/Login';
 import Pubsub from '../common/util/PubSub';
 import { checkNotNull } from '../common/util/Util';
-import { GameMode } from '../common/GameMode';
 import GameContext from '../common/GameContext';
+import FactionWarGeneral from '../game-mode-faction/FactionWarGenerals';
+import FactionGeneralUI from '../game-mode-faction/FactionGeneralUI';
 
 type AppState = {
     myself?: Player,
@@ -18,6 +18,11 @@ type AppState = {
     context?: GameClientContext,
     socket: WebSocket
 }
+
+// const audio = new Audio('sounds/ren_de.mp3')
+// setInterval(()=>{
+//     audio.play()
+// }, 2000)
 
 export default class App extends React.Component<object, AppState> {
     
@@ -102,6 +107,7 @@ export default class App extends React.Component<object, AppState> {
     }
 
     render() {
+        // return <FactionGeneralUI general={FactionWarGeneral.cao_cao} />
         return <div className='occupy'>
             {this.doRender()}
         </div>

@@ -46,9 +46,11 @@ export default class PlayerActionResolver extends ActionResolver {
             //只有丈八有主动技吧??
             let weapon = getFromAction(act, UIPosition.MY_EQUIP)
             if(weapon.length === 1 && manager.getCard(weapon[0]).type === CardType.ZHANG_BA) {
-                let hand = getFromAction(act, UIPosition.MY_HAND)
+                let hand = getFromAction(act, UIPosition.MY_HAND).map(h => manager.getCard(h))
                 let targetPs = this.getTargets(act, manager)
-                await new PlaySlashOp(act.actionSource, targetPs, hand.map(h => manager.getCard(h))).perform(manager)
+                manager.sendToWorkflow(act.actionSource, CardPos.HAND, hand, true)
+                await manager.events.publish(new CardBeingUsedEvent(act.actionSource, hand.map(h => [h, CardPos.HAND]), CardType.SLASH))
+                await new PlaySlashOp(act.actionSource, targetPs, hand).perform(manager)
             } else {
                 throw `不可能吧...只有丈八蛇矛可以用...实际上却是 [${weapon.join(',')}]`
             }

@@ -298,9 +298,9 @@ export default class GameManager {
 export function sampleFactionWarContext() {
     let p = {id: '青青子吟'}
     let player = new FactionPlayerInfo(p, FactionWarGeneral.jia_xu, FactionWarGeneral.li_jue_guo_si).init()
-    player.hp = 1
+    // player.hp = 1
     let player2 = new FactionPlayerInfo({id: '欧阳挠挠'}, FactionWarGeneral.diao_chan, FactionWarGeneral.dong_zhuo).init()
-    player2.hp = 1
+    // player2.hp = 1
     let context = new GameServerContext([player, player2], GameModeEnum.FactionWarGame)
     context.init()
 

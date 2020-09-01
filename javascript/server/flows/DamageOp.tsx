@@ -4,7 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { DamageEffect } from "../../common/transit/EffectTransit";
 import DeathOp from "./DeathOp";
 import AskSavingOp from "./AskSavingOp";
-import Card, { CardType } from "../../common/cards/Card";
+import Card from "../../common/cards/Card";
 
 export enum DamageType {
     /**
@@ -55,12 +55,12 @@ export default class DamageOp extends Operation<void> {
     public timeline: DamageTimeline = DamageTimeline.DOING_DAMAGE
 
     public constructor(public source: PlayerInfo, //nullable 闪电无伤害来源
-        public target: PlayerInfo, 
-        public amount: number,
-        public cards: Card[], //cards that caused this, can be null / empty
-        public damageSource: DamageSource,
-        public type: DamageType = DamageType.NORMAL,
-        public doChain: boolean = true) {
+                        public target: PlayerInfo, 
+                        public amount: number,
+                        public cards: Card[], //cards that caused this, can be null / empty
+                        public damageSource: DamageSource,
+                        public type: DamageType = DamageType.NORMAL,
+                        public doChain: boolean = true) {
         super()
     }
 

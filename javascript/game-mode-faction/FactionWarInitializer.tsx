@@ -1,7 +1,7 @@
 import { Initializer } from "../common/GameMode";
 import GameManager from "../server/GameManager";
 import { EquipOp } from "../server/engine/EquipOp";
-import { CardBeingDroppedEvent } from "../server/flows/Generic";
+import { CardBeingDroppedEvent, CardBeingPlayedEvent, CardBeingTakenEvent, CardBeingUsedEvent, CardAwayEvent } from "../server/flows/Generic";
 import { Equipment, CiXiong, QingGang, GuanShi, GuDing, ZhuQue, HanBing, Qilin, LianNu, RenWang, TengJia, BaGua, BaiYin } from "../server/engine/Equipments";
 import { CardPos } from "../common/transit/CardPos";
 import { CardType } from "../common/cards/Card";
@@ -72,19 +72,10 @@ export default class FactionWarInitializer implements Initializer {
             await equip.onEquipped()
         })
 
-        manager.equipmentRegistry.onGeneral<CardBeingDroppedEvent>(CardBeingDroppedEvent, async (dropEvent)=>{
-            //unregister equipments
-            for(let d of dropEvent.cards) {
-                if(d[1] === CardPos.EQUIP && !d[0].type.isHorse()) {
-                    console.log(`[装备] ${dropEvent.player} 卸下了 ${d[0].id}`)
-                    if(!this.playerAndEquipments.has(d[0].id)) {
-                        console.warn('Missing equipment... not registered (这是丈八?) ' + d[0].id)
-                        continue
-                    }
-                    await this.playerAndEquipments.get(d[0].id).onDropped()
-                }
-            }
-        })
+        manager.equipmentRegistry.onGeneral<CardBeingDroppedEvent>(CardBeingDroppedEvent, this.checkEquipmentDrop)
+        manager.equipmentRegistry.onGeneral<CardBeingPlayedEvent>(CardBeingPlayedEvent, this.checkEquipmentDrop)
+        manager.equipmentRegistry.onGeneral<CardBeingTakenEvent>(CardBeingTakenEvent, this.checkEquipmentDrop)
+        manager.equipmentRegistry.onGeneral<CardBeingUsedEvent>(CardBeingUsedEvent, this.checkEquipmentDrop)
 
         //勉強用這個吧...
         manager.skillRegistry.onGeneral<StageStartFlow>(StageStartFlow, async (start)=>{
@@ -132,7 +123,7 @@ export default class FactionWarInitializer implements Initializer {
 
         manager.skillRegistry.onGeneral<DeathOp>(DeathOp, async (death)=>{
             let deceased = death.deceased as FactionPlayerInfo
-            let killer = death.deceased as FactionPlayerInfo
+            let killer = death.killer as FactionPlayerInfo
             if(!deceased.isRevealed()) {
                 console.log(`[牌局] ${deceased.player.id} 未亮明身份, 强行翻开`)
                 deceased.isDead = true
@@ -145,6 +136,10 @@ export default class FactionWarInitializer implements Initializer {
             this.checkGameEndingCondition(deceased, manager)
 
             //奖惩
+            if(!killer) {
+                console.log('[牌局] 天谴死亡, 不计奖惩...')
+                return
+            }
             if(!killer.isRevealed()) {
                 console.log(`[牌局] ${killer.player.id} 未亮明身份不来奖惩`)
                 return
@@ -180,6 +175,20 @@ export default class FactionWarInitializer implements Initializer {
                 await new TakeCardOp(killer, reward).perform(manager)
             }
         })
+    }
+
+    checkEquipmentDrop = async (dropEvent: CardAwayEvent): Promise<void> =>{
+        //unregister equipments
+        for(let d of dropEvent.cards) {
+            if(d[1] === CardPos.EQUIP && !d[0].type.isHorse()) {
+                console.log(`[装备] ${dropEvent.player} 卸下了 ${d[0].id}`)
+                if(!this.playerAndEquipments.has(d[0].id)) {
+                    console.warn('Missing equipment... not registered (这是丈八?) ' + d[0].id)
+                    continue
+                }
+                await this.playerAndEquipments.get(d[0].id).onDropped()
+            }
+        }
     }
 
     revealPlayer(p: FactionPlayerInfo, manager: GameManager) {
@@ -305,7 +314,7 @@ export class SanJian extends Equipment {
     }
 
     performEffect = async (op: DamageOp) => {
-        if(op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
+        if(!op.source || op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
             return
         }
         if(op.timeline !== DamageTimeline.DID_DAMAGE) {

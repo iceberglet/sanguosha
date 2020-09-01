@@ -147,7 +147,7 @@ export class GuDing extends Equipment {
     }
 
     performEffect = async (op: DamageOp) => {
-        if(op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
+        if(!op.source || op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
             return
         }
         let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === CardType.GU_DING)
@@ -225,7 +225,7 @@ export class Qilin extends Equipment {
     }
 
     performEffect = async (op: DamageOp) => {
-        if(op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
+        if(!op.source || op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
             return
         }
         let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === CardType.QI_LIN)
@@ -319,7 +319,7 @@ export class HanBing extends Equipment {
     }
 
     performEffect = async (op: DamageOp): Promise<void> => {
-        if(op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
+        if(!op.source || op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
             return
         }
         let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === CardType.HAN_BING)

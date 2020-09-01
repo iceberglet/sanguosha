@@ -3,23 +3,28 @@ import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardSelectionResult } from "../../common/ServerHint";
 
+export interface CardAwayEvent {
+    player: string
+    cards: Array<[Card, CardPos]>
+}
+
 //使用
-export class CardBeingUsedEvent {
+export class CardBeingUsedEvent implements CardAwayEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, public readonly as: CardType) {}
 }
 
 //打出
-export class CardBeingPlayedEvent {
+export class CardBeingPlayedEvent implements CardAwayEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, public readonly as: CardType) {}
 }
 
 //弃置
-export class CardBeingDroppedEvent {
+export class CardBeingDroppedEvent implements CardAwayEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
 }
 
 //拿走
-export class CardBeingTakenEvent {
+export class CardBeingTakenEvent implements CardAwayEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
 }
 
