@@ -10,7 +10,7 @@ import { PlayerAction, Button, UIPosition } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
 import IdentityWarGeneral from "../game-mode-identity/IdentityWarGenerals";
-import { GameMode, GameModeEnum } from "../common/GameMode";
+import { GameMode } from "../common/GameMode";
 import GameServerContext from "./engine/GameServerContext";
 import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
 import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
@@ -19,10 +19,12 @@ import { StageStartFlow, StageEndFlow } from "./flows/StageFlows";
 import TakeCardOp from "./flows/TakeCardOp";
 import DropCardOp from "./flows/DropCardOp";
 import { CurrentPlayerEffect, CardTransit } from "../common/transit/EffectTransit";
-import PlayerActionResolver from "./engine/PlayerActionResolver";
+import PlayerActionResolver, { ActionResolver } from "./engine/PlayerActionResolver";
 import { ICard } from "../common/cards/ICard";
 import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
 import GameEnding from "./GameEnding";
+import { GameModeEnum } from "../common/GameModeEnum";
+import GameStatsCollector from "./GameStatsCollector";
 
 
 //Manages the rounds
@@ -43,22 +45,27 @@ export default class GameManager {
     private currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
     public resolver: PlayerActionResolver
 
-    public constructor(public context: GameServerContext, private registry: PlayerRegistry) {
+    public constructor(public context: GameServerContext, 
+                        private registry: PlayerRegistry,
+                        resolver: ActionResolver,
+                        private statsCollector: GameStatsCollector) {
         //event pubsub
         let sequencer = (ids: string[])=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id)
         let equipmentRegistry = new SequenceAwarePubSub(sequencer)
         let skillRegistry = new SequenceAwarePubSub(sequencer)
+        let adminRegistry = new SequenceAwarePubSub(sequencer)
         this.equipmentRegistry = equipmentRegistry
         this.skillRegistry = skillRegistry
         //先触发技能, 再触发装备...
-        this.events = new CompositeListener([skillRegistry, equipmentRegistry])
+        this.events = new CompositeListener([adminRegistry, skillRegistry, equipmentRegistry])
 
         //other initialization
-        this.resolver = new PlayerActionResolver(context.getGameMode().resolver)
-        context.getGameMode().initializer.init(this)
+        this.resolver = new PlayerActionResolver(resolver)
+        statsCollector.subscribeTo(adminRegistry)
     }
 
-    public async startGame() {
+    public async startGame(): Promise<string[]> {
+        console.log('[Game Manager] 开始发牌, 进入游戏!')
         //cards for everyone
         await Promise.all(this.context.playerInfos.map(async p => await new TakeCardOp(p, 4).do(this)))
         
@@ -89,7 +96,18 @@ export default class GameManager {
                     }
                     if(err instanceof GameEnding) {
                         console.log('The Game has ended', err.winners)
-                        break
+                        let stats = this.statsCollector.declareWinner(err.winners)
+                        await Promise.all(this.context.playerInfos.map(info => {
+                            return this.sendHint(info.player.id, {
+                                hintType: HintType.UI_PANEL,
+                                hintMsg: '牌局结束',
+                                customRequest: {
+                                    mode: 'game-end',
+                                    data: stats
+                                }
+                            })
+                        }))
+                        return this.context.playerInfos.map(p => p.player.id)
                     }
                     console.error(err)
                     throw err
@@ -158,7 +176,7 @@ export default class GameManager {
     }
 
     public getCard=(id: string): Card=> {
-        let c = this.context.getGameMode().cardManager.getCard(id)
+        let c = this.context.cardManager.getCard(id)
         delete c.as
         delete c.description
         return c
@@ -302,7 +320,6 @@ export function sampleFactionWarContext() {
     let player2 = new FactionPlayerInfo({id: '欧阳挠挠'}, FactionWarGeneral.diao_chan, FactionWarGeneral.dong_zhuo).init()
     // player2.hp = 1
     let context = new GameServerContext([player, player2], GameModeEnum.FactionWarGame)
-    context.init()
 
     return context
 }

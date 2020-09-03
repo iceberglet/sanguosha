@@ -1,4 +1,4 @@
-import { ServerHint } from "./ServerHint"
+import { ServerHint, CardSelectionResult, GeneralSelectionResult } from "./ServerHint"
 import { CardPos } from "./transit/CardPos"
 
 
@@ -70,7 +70,8 @@ export type PlayerAction = {
     actionSource: string
     actionData: {[key in UIPosition]?: string[]}
     //this can be anything
-    customData?: any
+    //五谷丰登会返回卡牌名
+    customData?: CardSelectionResult | GeneralSelectionResult | string
 }
 
 export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {

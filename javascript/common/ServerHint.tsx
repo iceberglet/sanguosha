@@ -1,6 +1,8 @@
 import RoundStat from "./RoundStat"
 import { Button, UIPosition } from "./PlayerAction"
 import Card, { Suit } from "./cards/Card"
+import { General } from "./General"
+import { GameStats } from "../server/GameStatsCollector"
 
 
 export enum HintType {
@@ -58,8 +60,17 @@ export class Rescind {
 export type CardSelectionHint = {
     title: string,
     rowsOfCard: {[key: string]: Array<Card>},
-    mode: 'choose' | 're-arrange'
     chooseSize: number
+}
+
+export type GeneralSelectionHint = {
+    generals: General[]
+}
+
+export type DisplayHint = {
+    title: string,
+    items: Array<Card | General>,
+    mode: 'card' | 'general'
 }
 
 export type CardSelectionResult = Array<{
@@ -67,6 +78,8 @@ export type CardSelectionResult = Array<{
     idx: number
 }>
     
+//just the ids
+export type GeneralSelectionResult = Array<string>
 
 export type CardChoices = {
     cards: {
@@ -137,6 +150,11 @@ export type ServerHint = {
 }
 
 export type CustomRequest = {
-    mode: 'choose'
-    data: any
+    mode: 'choose' | 'display' | 'game-end'
+    //过拆 
+    //展示手牌
+    //选将
+    //牌局结束数据
+    //单纯给个true允许你操作
+    data: CardSelectionHint | DisplayHint | GeneralSelectionHint | GameStats | boolean
 }

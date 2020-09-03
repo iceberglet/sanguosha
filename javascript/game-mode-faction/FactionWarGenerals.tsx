@@ -2,8 +2,7 @@ import { General, Faction } from "../common/General"
 import {Pairs} from "../common/util/Multimap"
 
 
-
-
+export const allGenerals = new Map<string, FactionWarGeneral>()
 
 export default class FactionWarGeneral extends General {
 
@@ -11,6 +10,9 @@ export default class FactionWarGeneral extends General {
     private constructor(id: string, name: string, faction: Faction, hp: number, 
         ...abilities: string[]) {
         super(id, name, faction, hp, abilities)
+        if(id !== 'guo_soldier_female' && id !== 'guo_soldier_male') {
+            allGenerals.set(id, this)
+        }
     }
 
     //when soldier is used to replace people the hp and factions are already set so no worries
@@ -72,7 +74,7 @@ export default class FactionWarGeneral extends General {
     public static yan_liang_wen_chou = new FactionWarGeneral('fire_yan_liang_wen_chou', '颜良文丑', Faction.QUN, 2, '双雄')
     public static jia_xu = new FactionWarGeneral('forest_jia_xu', '贾诩', Faction.QUN, 1.5, '完杀', '乱武', '帷幕')
     public static pang_de = new FactionWarGeneral('fire_pang_de', '庞德', Faction.QUN, 2, '马术', '鞬出')
-    public static zhang_jiao = new FactionWarGeneral('wind_zhang_jiao', '张角', Faction.QUN, 3, '雷击', '鬼道')
+    public static zhang_jiao = new FactionWarGeneral('wind_zhang_jiao', '张角', Faction.QUN, 1.5, '雷击', '鬼道')
     public static cai_wen_ji = new FactionWarGeneral('mountain_cai_wen_ji', '蔡文姬', Faction.QUN, 1.5, '悲歌', '断肠').asFemale() as FactionWarGeneral
     public static ma_teng = new FactionWarGeneral('guo_ma_teng', '马腾', Faction.QUN, 2, '马术', '雄异')
     public static kong_rong = new FactionWarGeneral('guo_kong_rong', '孔融', Faction.QUN, 1.5, '名士', '礼让')
@@ -90,7 +92,7 @@ export default class FactionWarGeneral extends General {
     public static he_tai_hou = new FactionWarGeneral('guo_he_tai_hou', '何太后', Faction.QUN, 1.5, '鸩毒', '戚乱').asFemale() as FactionWarGeneral
     public static yu_ji = new FactionWarGeneral('wind_yu_ji', '于吉', Faction.QUN, 1.5, '千幻')
     
-    public static li_dian = new FactionWarGeneral('bound_li_dian', '李典', Faction.WEI, 2, '恂恂', '忘隙')
+    public static li_dian = new FactionWarGeneral('bound_li_dian', '李典', Faction.WEI, 1.5, '恂恂', '忘隙')
     public static zang_ba = new FactionWarGeneral('guo_zang_ba', '臧霸', Faction.WEI, 2, '横江')
     public static ma_dai = new FactionWarGeneral('fame_ma_dai', '马岱', Faction.SHU, 2, '马术', '潜袭')
     public static mi_fu_ren = new FactionWarGeneral('guo_mi_fu_ren', '糜夫人', Faction.SHU, 1.5, '闺秀', '存嗣').asFemale() as FactionWarGeneral
@@ -113,7 +115,7 @@ export default class FactionWarGeneral extends General {
 
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
-const generalPairs = new Pairs()
+export const generalPairs = new Pairs()
 generalPairs.registerPair('刘备', '甘夫人')
 generalPairs.registerPair('刘备', '关羽')
 generalPairs.registerPair('刘备', '张飞')

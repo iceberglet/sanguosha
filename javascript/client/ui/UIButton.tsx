@@ -7,7 +7,7 @@ type ButtonProp = {
 }
 
 export default function UIButton(p: ButtonProp) {
-    return <button className='ui-button' disabled={p.disabled} onClick={p.onClick}>
+    return <button className='ui-button' disabled={p.disabled} onClick={()=>p.disabled || p.onClick()}>
         {p.display}
     </button>
 }

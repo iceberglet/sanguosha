@@ -1,0 +1,124 @@
+
+.general-selection-container {
+    display: flex;
+    padding: 15px;
+    min-width: 80%;
+    min-height: 80%;
+
+
+    .player-statuses {
+        position: relative;
+        padding: 8px;
+        min-width: 200px;
+
+        .player-status {
+            display: flex;
+
+            .player-name {
+                flex-grow: 1;
+                align-items: center;
+                display: flex;
+            }
+            .status {
+                width: 70px;
+                align-items: center;
+                display: flex;
+                color: rgb(73, 73, 73);
+            }
+            .status.chosen {
+                // background: green;
+                color: green
+            }
+        }
+        
+        .heading > * {
+            background: rgba(43, 43, 43, 0.671);
+            color: white !important;
+        }
+    }
+
+    .player-statuses::before {
+        z-index: -1;
+        content: '';
+        position: absolute;
+        left: 0px;
+        top: 0px;
+        width: 100%;
+        height: 100%;
+        background-image: url(ui/wallpaper.jpg);
+        background-repeat: repeat;
+        filter: brightness(134%);
+    }
+
+
+    .my-choices {
+        padding: 8px;
+        background-image: url('ui/bak.png');
+        background-repeat: repeat;
+        flex-grow: 1;    
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        .title {
+            color: white;
+            font-size: 1.4em;
+            margin-bottom: 10px;
+        }
+
+        .available {
+
+            display: flex;
+            justify-content: center;
+
+            .general-wrapper {
+                cursor: pointer;
+                transition: 0.2s;
+                margin: 3px;
+                border: 1px solid black;
+                border-radius: 10px;
+                // filter: drop-shadow(0px 0px 4px black);
+                overflow: hidden;
+                box-shadow: 0px 0px 10px black;
+
+                &:hover {
+                    transform: translate(0px, -10px);
+                }
+
+                &.disabled {
+                    cursor: initial;
+                    filter: brightness(50%);
+                }
+
+                &.disabled:hover {
+                    transform: none;
+                }
+
+                &.highlighted {
+                    filter: drop-shadow(0px 0px 10px gold);
+                }
+            }
+        }
+
+        .chosen {
+
+            padding: 5px;
+
+            .place-holder {
+                cursor: pointer;
+                background: grey;
+
+                transition: 0.2s;
+                margin: 3px;
+                border: 1px solid black;
+                border-radius: 10px;
+                filter: drop-shadow(0px 0px 4px black);
+                overflow: hidden;
+            }
+        }
+
+        .button-container {
+            padding: 5px;
+        }
+    }
+}

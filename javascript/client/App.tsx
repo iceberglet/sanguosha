@@ -2,19 +2,18 @@ import * as React from 'react';
 import UIBoard from './ui/UIBoard';
 import UILogin from './ui/UILogin';
 import GameClientContext from './GameClientContext';
-import { PreGame } from '../common/PreGame';
 import { Player } from '../common/Player';
 import { Serde } from '../common/util/Serializer';
 import LoginMessage from '../server/Login';
 import Pubsub from '../common/util/PubSub';
 import { checkNotNull } from '../common/util/Util';
 import GameContext from '../common/GameContext';
-import FactionWarGeneral from '../game-mode-faction/FactionWarGenerals';
-import FactionGeneralUI from '../game-mode-faction/FactionGeneralUI';
+import { Circus } from '../game-mode-faction/FactionWarGameHoster';
+import PregameUI from './pregame/PregameUI';
 
 type AppState = {
     myself?: Player,
-    pregame?: PreGame,
+    pregame?: Circus,
     context?: GameClientContext,
     socket: WebSocket
 }
@@ -31,16 +30,9 @@ export default class App extends React.Component<object, AppState> {
     constructor(p: any) {
         super(p)
         let socket = new WebSocket('ws://' + location.host)
-        this.pubsub = new Pubsub()
 
         let myself = this.getPlayer()
-        this.pubsub.on(GameContext, (transit: GameContext)=>{
-            checkNotNull(this.state.myself)
-            console.log('Received Game Context', transit)
-            this.setState({
-                context: new GameClientContext(transit, this.state.myself, this.state.socket)
-            })
-        })
+        this.resetPubsub()
         //listen to login results or other messages
         socket.addEventListener('message', message => {
             let msg = Serde.deserialize(message.data)
@@ -70,6 +62,29 @@ export default class App extends React.Component<object, AppState> {
         }
     }
 
+    resetPubsub() {
+        this.pubsub = new Pubsub()
+        this.pubsub.on(GameContext, (transit: GameContext)=>{
+            checkNotNull(this.state.myself)
+            console.log('Received Game Context', transit)
+            this.resetPubsub()
+            this.setState({
+                context: new GameClientContext(transit, this.state.myself, this.state.socket, transit.gameMode),
+                pregame: null
+            })
+        })
+        this.pubsub.on(Circus, (circus: Circus)=>{
+            console.log('Received Pregame', circus)
+            if(this.state.context) {
+                this.resetPubsub()
+            }
+            this.setState({
+                pregame: circus,
+                context: null
+            })
+        })
+    }
+
     getPlayer() {
         return {
             id: localStorage.getItem('id')
@@ -89,7 +104,7 @@ export default class App extends React.Component<object, AppState> {
     }
 
     renderPrep() {
-        return <div />
+        return <PregameUI pubsub={this.pubsub} circus={this.state.pregame} socket={this.state.socket} myId={this.state.myself.id}/>
     }
 
     renderGame() {

@@ -95,7 +95,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
     }
 
     drawSelf() {
-        let color = Color[this.faction.image]
+        let color = Color[this.getFaction().image]
         let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
         return <div className={clazz}>
             <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>

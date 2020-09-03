@@ -6,16 +6,6 @@ import { Serde } from "../common/util/Serializer";
 import { PlayerAction, PlayerActionTransit } from "../common/PlayerAction";
 import Pubsub from "../common/util/PubSub";
 
-export class Stats {
-    rounds: number = 0
-    wins: number = 0
-    kill: number = 0
-    death: number = 0
-
-    totalDamage: number = 0
-    totalHeal: number = 0
-}
-
 export class ServerPlayer {
     player: Player
     connection: WebSocket
@@ -32,7 +22,6 @@ export type Sanitizer<F> = (t: F, playerId: string) => F
 export class PlayerRegistry {
     private _byId = new Map<string, ServerPlayer>()
     private _byConnection = new Map<WebSocket, ServerPlayer>()
-    private _stats = new Map<string, Stats>()
     private _currentExpectors = new Map<string, ActionExpector>()
     private _failedHint = new Map<string, ServerHintTransit>()
     private static hintCount = 0
@@ -50,9 +39,6 @@ export class PlayerRegistry {
         p.connection = conn
         this._byId.set(player.id, p)
         this._byConnection.set(conn, p)
-        if(!this._stats.get(player.id)) {
-            this._stats.set(player.id, new Stats())
-        }
     }
 
     public onPlayerReconnected(player: string) {
@@ -144,10 +130,6 @@ export class PlayerRegistry {
             throw `Dunno this player! ${id}`
         }
         return p
-    }
-
-    public getStats(id: string): Stats {
-        return this._stats.get(id)
     }
 
     private startExpecting=(expector: ActionExpector)=> {

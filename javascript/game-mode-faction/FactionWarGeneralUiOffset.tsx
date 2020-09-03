@@ -112,12 +112,3 @@ export function toFactionWarAvatarStyle(id: string, isBig: boolean) {
         height: render.h + '%'
     }
 }
-
-
-export function toFactionWarCardStyle(id: string) {
-
-    return {
-        backgroundImage: `url('generals/${id}.png')`, 
-        backgroundSize: 'cover'
-    }
-}

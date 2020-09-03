@@ -1,5 +1,5 @@
 import ArrayList from './ArrayList'
-import { getKeys } from './Util'
+import { getKeys, takeFromArray } from './Util'
 
 type Consumer<T> = (t: T) => void
 type AckingConsumer<T> = (t: T) => Promise<void>
@@ -14,6 +14,10 @@ export default class Pubsub {
         this._map.set(type, con)
     }
     
+    off<T>(type: Function, consumer: Consumer<T>) {
+        let con: Consumer<any>[] = this._map.get(type)
+        takeFromArray(con, item=>item === consumer)
+    }
 
     publish(obj: any) {
         let con: Consumer<any>[] = this._map.get(obj.constructor)

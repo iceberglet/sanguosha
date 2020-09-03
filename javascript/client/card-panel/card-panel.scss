@@ -79,6 +79,40 @@
     }
 }
 
+.game-result {
+    min-width: 500px;
+    background-image: url('ui/bak.png');
+    background-repeat: repeat;
+    border-radius: 3px;
+    box-shadow: 0px 0px 5px black;
+
+    .title {
+        padding: 10px;
+    }
+    .results {
+        .winner {
+            color: rgb(30, 201, 30);
+        }
+        .row {
+            display: flex;
+
+            .player-name {
+                flex-grow: 1;
+            }
+
+            .col {
+                width: 70px;
+            }
+
+            .col-2 {
+                width: 100px;
+            }
+        }
+    }
+    .button-container {
+        padding: 20px;
+    }
+}
 
 .wugu-container {
     width: 500px;

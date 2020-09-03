@@ -8,19 +8,24 @@ import './player-actions/PlayerActionDrivers'
 import { Player } from "../common/Player";
 import { Serde } from "../common/util/Serializer";
 import { ICard } from "../common/cards/ICard";
+import { CardManager } from "../common/cards/Card";
+import { GameMode } from "../common/GameMode";
+import { GameModeEnum } from "../common/GameModeEnum";
 
 export default class GameClientContext extends GameContext {
 
     private currentDriver: PlayerActionDriver = NoActionDriver.INSTANCE
+    public readonly cardManager: CardManager
     public myself: PlayerInfo
     /**
      * Current Server Hint
      */
     public serverHint: ServerHintTransit
 
-    public constructor(context: GameContext, myself: Player, private socket: WebSocket) {
-        super(context.playerInfos, context.gameMode)
+    public constructor(context: GameContext, myself: Player, private socket: WebSocket, gameMode: GameModeEnum) {
+        super(context.playerInfos, gameMode)
         this.myself = this.playerInfos.find(i => i.player.id === myself.id)
+        this.cardManager = GameMode.get(gameMode).cardManager
         this.currentDriver = NoActionDriver.INSTANCE
     }
 
@@ -72,7 +77,7 @@ export default class GameClientContext extends GameContext {
 
     public interpret(cardId: string, player: PlayerInfo = null): ICard {
         player = player || this.myself
-        let card = this.getGameMode().cardManager.getCard(cardId)
+        let card = this.cardManager.getCard(cardId)
         if(!card) {
             throw `Unable to find this card!! ${cardId}`
         }

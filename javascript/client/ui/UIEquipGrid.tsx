@@ -71,7 +71,7 @@ function getStyle(genre: CardGenre) {
 
 function getType(type: CardType): [string, string] {
     if(type.genre === 'weapon') {
-        return ['weapon', toChinese(type.distance)]
+        return ['weapon', toChinese(type.distance - 1)]
     }
     if(type.genre === 'shield') {
         return ['shield', null]

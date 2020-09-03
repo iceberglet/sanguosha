@@ -113,7 +113,7 @@ class YiYiDaiLao extends MultiRuse {
     }
 }
 
-class ZhiJiZhiBi extends SingleRuse<void> {
+export class ZhiJiZhiBi extends SingleRuse<void> {
 
     static ZHU_JIANG = 'general'
     static FU_JIANG = 'subGeneral'
@@ -147,12 +147,48 @@ class ZhiJiZhiBi extends SingleRuse<void> {
         switch(b) {
             case ZhiJiZhiBi.ZHU_JIANG:
                 console.log(`${this.source} 选择观看了 ${this.target} 的主将`)
+                await manager.sendHint(this.source, {
+                    hintType: HintType.UI_PANEL,
+                    hintMsg: `${this.target} 的主将`,
+                    customRequest: {
+                        data: {
+                            title: `${this.target} 的主将`,
+                            items: [targetP.general],
+                            mode: 'general'
+                        },
+                        mode: 'display'
+                    }
+                })
                 break;
             case ZhiJiZhiBi.FU_JIANG:
                 console.log(`${this.source} 选择观看了 ${this.target} 的副将`)
+                await manager.sendHint(this.source, {
+                    hintType: HintType.UI_PANEL,
+                    hintMsg: `${this.target} 的副将`,
+                    customRequest: {
+                        data: {
+                            title: `${this.target} 的副将`,
+                            items: [targetP.subGeneral],
+                            mode: 'general'
+                        },
+                        mode: 'display'
+                    }
+                })
                 break;
             case ZhiJiZhiBi.SHOU_PAI:
                 console.log(`${this.source} 选择观看了 ${this.target} 的手牌`)
+                await manager.sendHint(this.source, {
+                    hintType: HintType.UI_PANEL,
+                    hintMsg: `${this.target} 的手牌`,
+                    customRequest: {
+                        data: {
+                            title: `${this.target} 的手牌`,
+                            items: targetP.getCards(CardPos.HAND),
+                            mode: 'card'
+                        },
+                        mode: 'display'
+                    }
+                })
                 break;
             default:
                 throw 'Unknown choice! ' + b

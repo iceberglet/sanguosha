@@ -1,0 +1,179 @@
+import { GameHoster } from "../server/GameHoster";
+import GameManager from "../server/GameManager";
+import FactionWarInitializer from "./FactionWarInitializer";
+import FactionWarGeneral, { allGenerals } from "./FactionWarGenerals";
+import { PlayerRegistry } from "../server/PlayerRegistry";
+import { BlockedEquipment } from "../server/engine/Equipments";
+import { Player } from "../common/Player";
+import GameServerContext from "../server/engine/GameServerContext";
+import FactionWarActionResolver from "./FactionWarActionResolver";
+import { Serde } from "../common/util/Serializer";
+import { GameModeEnum } from "../common/GameModeEnum";
+import { shuffle, flattenMap, delay } from "../common/util/Util";
+import FactionPlayerInfo from "./FactionPlayerInfo";
+import { HintType, GeneralSelectionResult } from "../common/ServerHint";
+import GameStatsCollector from "../server/GameStatsCollector";
+
+const myMode = GameModeEnum.FactionWarGame
+
+export default class FactionWarGameHoster implements GameHoster {
+
+    circus: Circus
+    choices: Array<Array<FactionWarGeneral>>
+    initializer = new FactionWarInitializer()
+    manager: GameManager
+    statsCollector: GameStatsCollector
+
+    constructor(private registry: PlayerRegistry, private numberOfPlayer: number) {
+
+    }
+
+    init(): void {
+        console.log('[选将] 进入准备工作, 分发将牌, 等待玩家选将')
+        this.choices = this.generateGeneralChoices(this.numberOfPlayer)
+        this.circus = new Circus()
+        this.manager = null
+    }
+
+    async onPlayerConnected(playerId: string): Promise<void> {
+        if(!this.manager) {
+            if(!this.circus.statuses.find(s => s.player.id === playerId))  {
+                let status = new PlayerPrepChoice({id: playerId})
+                this.circus.statuses.push(status)
+                await this.addNewPlayer(status)
+            } else {
+                console.log('[选将] 玩家重连: ' + playerId)
+                //circus
+                this.registry.send(playerId, Circus.sanitize(this.circus, playerId))
+                //pause a bit for UI to load on client
+                await delay(300)
+                //then server hint
+                this.registry.onPlayerReconnected(playerId)
+            }
+        } else {
+            this.manager.onPlayerReconnected(playerId)
+        }
+    }
+
+    async addNewPlayer(player: PlayerPrepChoice): Promise<void> {
+        //this player has no status
+        console.log('[选将] 新玩家加入! ' + player.player.id, player)
+        this.registry.broadcast(this.circus, Circus.sanitize)
+
+        //pause a bit for UI to load on client
+        await delay(300)
+        //send a selection hint
+        this.registry.sendServerAsk(player.player.id, {
+            hintType: HintType.UI_PANEL,
+            hintMsg: '选将',
+            customRequest: {
+                mode: 'choose',
+                data: {
+                    generals: this.choices.shift()
+                }
+            }
+        }).then((resp) => {
+            let res = resp.customData as GeneralSelectionResult
+            player.chosenGeneral = allGenerals.get(res[0])
+            player.chosenSubGeneral = allGenerals.get(res[1])
+            this.registry.broadcast(this.circus, Circus.sanitize)
+            this.tryStartTheGame()
+        })
+    }
+
+    tryStartTheGame(): void {
+        if(this.choices.length === 0) {
+            for(let s of this.circus.statuses) {
+                if(!s.chosenGeneral || !s.chosenSubGeneral) {
+                    return
+                }
+            }
+            console.log('[选将] 准备完毕, 开始游戏!')
+            this.startGame()
+            return
+        }
+        console.log('[选将] 还没有准备好')
+    }
+
+    startGame(): void {
+        if(!this.statsCollector) {
+            this.statsCollector = new GameStatsCollector(this.circus.statuses.map(s => s.player))
+        }
+        let context = new GameServerContext(this.circus.statuses.map(s => {
+            let info = new FactionPlayerInfo(s.player, s.chosenGeneral, s.chosenSubGeneral)
+            info.init()
+            return info
+        }), myMode)
+        this.initializer = new FactionWarInitializer()
+        BlockedEquipment.clear()
+        this.manager = new GameManager(context, this.registry, new FactionWarActionResolver(), this.statsCollector);
+        this.initializer.init(this.manager)
+        //强制广播context
+        this.circus.statuses.forEach(s => {
+            this.manager.onPlayerReconnected(s.player.id)
+        })
+        
+        //1. display results (by sending a server hint to all ppl)
+        //2. wait till all are okay to proceed
+        //3. init again
+        //4. broadcast new circus again
+        //5. start asking general selections (note we can take the responders from 2. as players for next round)
+        this.manager.startGame().then((ids)=>{
+            this.init()
+            ids.forEach(id => {
+                let status = new PlayerPrepChoice({id})
+                this.circus.statuses.push(status)
+            })
+            Promise.all(this.circus.statuses.map(sta => this.addNewPlayer(sta)))
+        })
+    }
+
+    generateGeneralChoices(playerNo: number) {
+        let choices: Array<Array<FactionWarGeneral>> = []
+
+        let gs = flattenMap(allGenerals).map(g => g[1])
+        shuffle(gs)
+        for(let i = 0; i < playerNo; ++i) {
+            choices.push(gs.splice(0, 7))
+        }
+        return choices
+    }
+}
+
+export class Circus {
+    statuses: PlayerPrepChoice[] = []
+    gameMode: GameModeEnum = myMode
+
+    static sanitize(circus: Circus, id: string) {
+        let cir = new Circus()
+        cir.statuses = circus.statuses.map(s => PlayerPrepChoice.sanitize(s, id))
+        cir.gameMode = circus.gameMode
+        return cir
+    }
+}
+
+export class PlayerPrepChoice {
+    chosenGeneral: FactionWarGeneral
+    chosenSubGeneral: FactionWarGeneral
+    
+    constructor(public readonly player: Player) {
+
+    }
+
+    static sanitize(status: PlayerPrepChoice, id: string): PlayerPrepChoice {
+        if(!status) {
+            throw 'What??'
+        }
+        if(id === status.player.id) {
+            return status
+        } else {
+            let copy = new PlayerPrepChoice(status.player)
+            copy.chosenGeneral = status.chosenGeneral? FactionWarGeneral.soldier_male : null
+            copy.chosenSubGeneral = status.chosenSubGeneral? FactionWarGeneral.soldier_male : null
+            return copy
+        }
+    }
+}
+
+Serde.register(PlayerPrepChoice)
+Serde.register(Circus)

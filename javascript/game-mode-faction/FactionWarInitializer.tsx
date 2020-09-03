@@ -116,7 +116,7 @@ export default class FactionWarInitializer implements Initializer {
             }
             let isRevealed = p.isRevealed()
             if(!wasRevealed && isRevealed) {
-                this.revealPlayer(p, manager)
+                this.computeFactionForPlayer(p, manager)
             }
             manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
         })
@@ -130,7 +130,7 @@ export default class FactionWarInitializer implements Initializer {
                 //亮明
                 deceased.isGeneralRevealed = true
                 deceased.isSubGeneralRevealed = true
-                this.revealPlayer(deceased, manager)
+                this.computeFactionForPlayer(deceased, manager)
             }
 
             this.checkGameEndingCondition(deceased, manager)
@@ -191,7 +191,7 @@ export default class FactionWarInitializer implements Initializer {
         }
     }
 
-    revealPlayer(p: FactionPlayerInfo, manager: GameManager) {
+    computeFactionForPlayer(p: FactionPlayerInfo, manager: GameManager) {
         console.log(`[牌局] ${p.player.id} 身份亮明`)
         //身份要确认
         let numberOfFriends = manager.context.playerInfos
@@ -238,7 +238,9 @@ export default class FactionWarInitializer implements Initializer {
             console.log('[牌局] 只剩一人了!')
             //强制结算
             if(!surviving[0].isRevealed()) {
-                this.revealPlayer(surviving[0], manager)
+                surviving[0].isGeneralRevealed = true
+                surviving[0].isSubGeneralRevealed = true
+                this.computeFactionForPlayer(surviving[0], manager)
             }
             //declare winners!
             this.declareWinners(surviving[0], manager)

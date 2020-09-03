@@ -4,14 +4,18 @@ import { FactionWarCards } from "../game-mode-faction/FactionWarCardSet";
 import FactionWarActionResolver from "../game-mode-faction/FactionWarActionResolver";
 import { ActionResolver } from "../server/engine/PlayerActionResolver";
 import GameManager from "../server/GameManager";
-import FactionWarInitializer from "../game-mode-faction/FactionWarInitializer";
+import { GameHoster } from "../server/GameHoster";
+import FactionWarGameHoster from "../game-mode-faction/FactionWarGameHoster";
+import { PlayerRegistry } from "../server/PlayerRegistry";
+import { GameModeEnum } from "./GameModeEnum";
 
-export enum GameModeEnum {
-    IdentityWarGame,
-    FactionWarGame
-}
 
 export interface Initializer {
+    
+    /**
+     * initialize game manager after
+     * @param manager 
+     */
     init(manager: GameManager): void
 }
 
@@ -31,7 +35,7 @@ export class GameMode {
                         public readonly name: string, 
                         public readonly cardManager: CardManager,
                         public readonly resolver: ActionResolver,
-                        public readonly initializer: Initializer) {
+                        public readonly gameHosterProvider: (registry: PlayerRegistry, no: number)=>GameHoster) {
         GameMode.rules.set(id, this)
     }
 
@@ -40,5 +44,8 @@ export class GameMode {
     // public abstract isTheGameEnded(): boolean
 }
 
-new GameMode(GameModeEnum.IdentityWarGame, '身份局', IdentityWarCards, null, null)
-new GameMode(GameModeEnum.FactionWarGame, '国战', FactionWarCards, new FactionWarActionResolver(), new FactionWarInitializer())
+new GameMode(GameModeEnum.IdentityWarGame, '身份局', IdentityWarCards, 
+                null, null)
+new GameMode(GameModeEnum.FactionWarGame, '国战', FactionWarCards, 
+                new FactionWarActionResolver(),
+                (registry, no) => new FactionWarGameHoster(registry, no))

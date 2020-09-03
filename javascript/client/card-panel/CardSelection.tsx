@@ -11,8 +11,6 @@ type Prop = CardSelectionHint & {
     onSelectionDone: (res: CardSelectionResult)=>void
 }
 
-const SPLIT = '@*@'
-
 /**
  * By Default, selects just one card from it
  */

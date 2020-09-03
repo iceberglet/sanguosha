@@ -99,7 +99,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             cardsChecker: new CheckerImpl(UIPosition.MY_HAND, context, this.refresh),
             buttonChecker: new CheckerImpl(UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new CheckerImpl(UIPosition.MY_EQUIP, context, this.refresh),
-            cardTransitManager: new CardTransitManager(context.getGameMode().cardManager),
+            cardTransitManager: new CardTransitManager(context.cardManager),
             uiRequest: null,
             uiData: null,
             others: context.getRingFromPerspective(myId, false, true)
@@ -165,7 +165,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 <div className='playground'>
                     <UIPlayGround players={others} distanceComputer={context.getMyDistanceTo} pubsub={pubsub}
                                     screenPosObtainer={screenPosObtainer} showDist={showDistance} cardTransitManager={cardTransitManager}
-                                    checker={playerChecker} cardManager={context.getGameMode().cardManager}/>
+                                    checker={playerChecker} cardManager={context.cardManager}/>
                                     
                     <UIMounter customRequest={this.state.uiRequest} 
                         commonUI={this.state.uiData}

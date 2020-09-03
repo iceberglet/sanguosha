@@ -1,7 +1,7 @@
 import { PlayerInfo } from "./PlayerInfo";
 import { CardPos, isCardPosHidden } from "./transit/CardPos";
-import { GameModeEnum, GameMode } from "./GameMode";
 import Card from "./cards/Card";
+import { GameModeEnum } from "./GameModeEnum";
 
 /**
  * Contains current state of the game
@@ -14,12 +14,6 @@ export default class GameContext {
     //------------- listeners -------------------
     constructor(public readonly playerInfos: PlayerInfo[], public readonly gameMode: GameModeEnum) {
     }
-
-
-    getGameMode() {
-        return GameMode.get(this.gameMode)
-    }
-
 
     //todo: 马术？神曹操？公孙瓒？
     computeDistance(fromPlayer: string, toPlayer: string): number {

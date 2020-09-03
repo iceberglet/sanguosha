@@ -1,8 +1,3 @@
-import { Player } from "../Player"
-import { Identity } from "../PlayerInfo"
-import { General } from "../General"
-import { GameModeEnum } from "../GameMode"
-
 
 export enum CardPos {
     //手牌？ 判定？ 装备？ 

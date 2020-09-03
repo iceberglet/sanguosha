@@ -1,0 +1,66 @@
+
+
+.faction-general {
+
+    position: relative;
+    width: 150px;
+    height: 220px;
+    overflow: hidden;
+
+    .avatar {
+        position: absolute;
+        width: 88%;
+        height: 93%;
+        right: 0px;
+        bottom: 0px;
+    }
+
+    .frame {
+        position: absolute;
+        background-size: contain;
+
+        &.wei {
+            background-image: url('ui/frame-wei.png');
+        }
+
+        &.shu {
+            background-image: url('ui/frame-shu.png');
+        }
+
+        &.wu {
+            background-image: url('ui/frame-wu.png');
+        }
+
+        &.qun {
+            background-image: url('ui/frame-qun.png');
+        }
+    }
+
+    .general-name {
+        position: absolute;
+        top: 18%;
+        left: 3%;
+        width: 14%;
+        font-size: 22px;
+        display: flex;
+        align-items: center;
+        height: 100px;
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        color: #fffcc7;
+        pointer-events: none;
+        text-shadow: 0px 0px 4px black;
+        white-space: nowrap;
+    }
+
+    .hp-container {
+        position: absolute;
+        left: 23%;
+        top: 2%;
+        display: flex;
+
+        .hp {
+            margin-right: 3px;
+        }
+    }
+}

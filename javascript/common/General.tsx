@@ -72,3 +72,16 @@ export class General {
         return this
     }
 }
+
+
+
+export function toGeneralCardStyle(id: string) {
+
+    return {
+        backgroundImage: `url('generals/${id}.png')`, 
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        width: '100%',
+        height: '100%'
+    }
+}

@@ -1,19 +1,24 @@
 import * as React from 'react'
-import FactionWarGeneral from './FactionWarGenerals'
-import { toFactionWarCardStyle } from './FactionWarGeneralUiOffset'
-
+import { General, toGeneralCardStyle } from '../../common/General'
+import './general-ui.scss'
 
 type Prop = {
-    general: FactionWarGeneral
+    general: General
 }
 
-export default function FactionGeneralUI(p: Prop) {
+export default function GeneralUI(p: Prop) {
+
+    if(!p.general) {
+        return <div className='faction-general'></div>
+    }
 
     let yy = Math.floor(p.general.hp)
     let hasHalf = Math.round((p.general.hp - yy)*2) === 1
     
-    return <div className='faction-general' >
-        <div style={toFactionWarCardStyle(p.general.id)} />
+    return <div className='faction-general noselect'>
+        <div className='avatar'>
+            <div style={toGeneralCardStyle(p.general.id)} />
+        </div>
         <div className={'frame occupy ' + p.general.faction.image} />
         <div className='general-name'>{p.general.name}</div>
         <div className='hp-container'>

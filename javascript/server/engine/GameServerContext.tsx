@@ -1,33 +1,26 @@
 import Deck from "../Deck"
 import ArrayList from "../../common/util/ArrayList"
 import { PlayerInfo } from "../../common/PlayerInfo"
-import { GameModeEnum } from "../../common/GameMode"
 import GameContext from "../../common/GameContext"
 import { CardPos } from "../../common/transit/CardPos"
-import Card from "../../common/cards/Card"
+import Card, { CardManager } from "../../common/cards/Card"
+import { GameMode } from "../../common/GameMode"
+import { GameModeEnum } from "../../common/GameModeEnum"
 
 
 export default class GameServerContext extends GameContext {
 
     deck: Deck
     workflowCards = new ArrayList<Card>()
+    public readonly cardManager: CardManager
 
-    constructor(playerInfos: PlayerInfo[], gameMode: GameModeEnum) {
-        super(playerInfos, gameMode)
+    constructor(playerInfos: PlayerInfo[], gamemode: GameModeEnum) {
+        super(playerInfos, gamemode)
+        this.cardManager = GameMode.get(gamemode).cardManager
         for(let i = 0; i < playerInfos.length; ++i) {
             playerInfos[i].idx = i
         }
-    }
-    
-    init() {
-        this.deck = new Deck(this.getGameMode().cardManager)
-        //todo: assign identities
-        //todo: let players choose heroes
-
-        // this.roundManager = new RoundManager(this)
-
-        //todo: start the flow
-
+        this.deck = new Deck(this.cardManager)
     }
 
     //将牌从玩家身上扔进workflow堆中(打出或者弃置的牌)
@@ -115,7 +108,7 @@ export default class GameServerContext extends GameContext {
                 //     break
                 case CardPos.DROPPED:
                     this.deck.dropped.push(...cards.map(c => {
-                        let card = this.getGameMode().cardManager.getCard(c.id)
+                        let card = this.cardManager.getCard(c.id)
                         delete card.as
                         delete card.description
                         return card

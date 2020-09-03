@@ -4,15 +4,9 @@ import * as WebSocket from 'ws';
 import { Serde } from './common/util/Serializer';
 import Pubsub from './common/util/PubSub';
 import LoginMessage from './server/Login';
-import GameManager, { sampleIdentityWarContext, sampleFactionWarContext } from './server/GameManager';
 import { PlayerRegistry } from './server/PlayerRegistry';
-import { ServerHintTransit, HintType } from './common/ServerHint';
-import { TextFlashEffect, DamageEffect, CurrentPlayerEffect } from './common/transit/EffectTransit';
-import { Stage } from './common/Stage';
-import { PlayerInfo } from './common/PlayerInfo';
-import { CardPos } from './common/transit/CardPos';
-import RoundStat from './common/RoundStat';
-import Card, { CardType } from './common/cards/Card';
+import { GameMode } from './common/GameMode';
+import { GameModeEnum } from './common/GameModeEnum';
 
 let app = express()
 
@@ -25,11 +19,12 @@ const wss = new WebSocket.Server({ server });
 
 const pubsub = new Pubsub()
 const playerRegistry = new PlayerRegistry(pubsub)
-const context = sampleFactionWarContext()
-const gameManager = new GameManager(context, playerRegistry)
+//todo: make game mode from config
+const gameHost = GameMode.get(GameModeEnum.FactionWarGame).gameHosterProvider(playerRegistry, 2)
 
 try {
-    gameManager.startGame()
+    //todo: make this come from config
+    gameHost.init()
 } catch (err) {
     console.error('Game Failure', err)
 }
@@ -56,7 +51,7 @@ wss.on('connection', (ws: WebSocket) => {
             //send back the samething so they know they are logged in.
             ws.send(Serde.serialize(login))
             //send the current state to this newly logged in person
-            gameManager.onPlayerReconnected(login.id)
+            gameHost.onPlayerConnected(login.id)
 
         } else {
             pubsub.publish(msg)
