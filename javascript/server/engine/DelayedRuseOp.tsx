@@ -25,7 +25,7 @@ export class UseDelayedRuseOp extends Operation<void> {
 
     public async perform(manager: GameManager) {
         console.log(`${this.source} 对 ${this.target} 使用了延时锦囊 ${this.card.id} : ${this.card.as}`)
-        manager.events.publish(this)
+        await manager.events.publish(this)
         manager.broadcast(new TextFlashEffect(this.source, [this.target], (this.card.as || this.card.type).name))
 
         if(!this.abort) {

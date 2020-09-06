@@ -30,6 +30,10 @@ export default class ArrayList<T> {
         return res
     }
 
+    public find(filter: (t: T)=>boolean): T {
+        return this._data.find(filter)
+    }
+
     public filter(callbackfn: (value: T, index: number, array: T[]) => boolean): T[] {
         return this._data.filter(callbackfn)
     }

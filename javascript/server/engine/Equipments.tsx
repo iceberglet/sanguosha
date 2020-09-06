@@ -473,7 +473,7 @@ export class BaGua extends Equipment {
     }
 
     pretendDodge = async (dodgeOp: DodgeOp): Promise<void> => {
-        if(dodgeOp.target.player.id === this.player) {
+        if(dodgeOp.target.player.id === this.player && !dodgeOp.playedDodgeSomehow) {
             if(BlockedEquipment.has(this.cardId)) {
                 console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
                 return

@@ -63,7 +63,7 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.BING_LIANG)
             .expectChoose([UIPosition.PLAYER], 1, 1, 
                 (id, context)=>id !== context.myself.player.id &&       //不能是自己
-                                (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.ruseReach || 1)) && //范围得是1
+                                (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.binLiangReach)) && //范围得是1
                                 !context.getPlayer(id).hasJudgeCard(CardType.BING_LIANG), //不能已经有兵粮了
                 ()=>`选择‘兵粮寸断’的对象`)
             .expectAnyButton('点击确定使用兵粮寸断')
@@ -101,7 +101,7 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
                 (id, context)=>{
                     return id !== context.myself.player.id &&   // 不能是自己
                     context.getPlayer(id).hasCards() &&         // 必须有牌能拿
-                    (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.ruseReach || 1))
+                    (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.shunshouReach))
                 },
                 ()=>`选择‘顺手牵羊’的对象`)
             .expectAnyButton('点击确定使用顺手牵羊')
@@ -249,7 +249,7 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, (hint)=>{
 
 playerActionDriverProvider.registerProvider(HintType.WU_XIE, (hint)=>{
     return new PlayerActionDriverDefiner(hint.hintMsg)
-                .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.WU_XIE, ()=>hint.hintMsg)
+                .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isWuxie(), ()=>hint.hintMsg)
                 .expectAnyButton('点击确定使用无懈可击')
                 .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
 })
@@ -262,7 +262,7 @@ playerActionDriverProvider.registerProvider(HintType.MULTI_CHOICE, (hint)=>{
 
 playerActionDriverProvider.registerProvider(HintType.CHOOSE_PLAYER, (hint)=>{
     return new PlayerActionDriverDefiner(hint.hintMsg)
-                .expectChoose([UIPosition.PLAYER], hint.quantity, hint.quantity, 
+                .expectChoose([UIPosition.PLAYER], hint.minQuantity, hint.quantity, 
                     (id, context)=>{
                         if(hint.forbidden) {
                             return !hint.forbidden.find(f => f === id)

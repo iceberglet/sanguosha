@@ -3,12 +3,14 @@ import UIHpCol from './UIHpCol'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import './ui-my-player-card.scss'
 import { ClassFormatter } from '../../common/util/Togglable'
-import { ElementStatus } from './UIBoard'
+import { ElementStatus, Checker } from './UIBoard'
 import { Mask } from '../../common/util/Util'
 import Pubsub from '../../common/util/PubSub'
 import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { Stage } from '../../common/Stage'
+import { Skill, SkillStatus } from '../../game-mode-faction/skill/Skill'
+import { ServerHint } from '../../common/ServerHint'
 
 const damageDuration = 2000
 
@@ -17,7 +19,8 @@ type CardProp = {
     onUseSkill: (s: string)=>void,
     elementStatus: ElementStatus,
     onSelect: (s: string)=>void,
-    pubsub: Pubsub
+    pubsub: Pubsub,
+    skillButtons: SkillButtonProp[]
 }
 
 type State = {
@@ -51,7 +54,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
     }
 
     render() {
-        let {info, elementStatus} = this.props
+        let {info, elementStatus, skillButtons} = this.props
         let {damaged,effect} = this.state
         let clazz = new ClassFormatter('ui-player-card ui-my-player-card')
                         .and(elementStatus.isSelectable, 'selectable')
@@ -60,7 +63,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
                         .done()
 
         return <div className={clazz}  onClick={this.onClick}>
-            {info.drawSelf()}
+            {info.drawSelf(skillButtons)}
             
             <Mask isMasked={info.isDrunk} maskClass={'drunk'} />
             <Mask isMasked={info.isTurnedOver} maskClass={'turned-over'} />
@@ -90,3 +93,60 @@ export function StageDeclarer(p: Prop) {
     </div>
 
 } 
+
+export type SkillButtonProp = {
+    skill: Skill<any>
+    skillChecker: Checker
+    statusUpdater: (skillEvent: SkillStatus)=>void
+}
+
+type ButtonProp = SkillButtonProp & {
+    className: string
+}
+
+export function SkillButton(p: ButtonProp) {
+    
+    // isRevealed = false
+    //      click => send event: isForewarned = true / false
+    // isRevealed = true
+    //      enabled if it is enabled, and player action triggers it (via checker)?
+    //      
+    let {isRevealed, isDisabled, isForewarned} = p.skill
+    let cb = ()=>{
+        if(isRevealed) {
+            if(isDisabled){
+                console.log('Clicked on ', p.skill.id, ' but not reacting as the skill is disabled')
+            } else {
+                p.skillChecker.onClicked(p.skill.id)
+            }
+        } else {
+            if(p.skillChecker?.getStatus(p.skill.id).isSelectable) {
+                console.log('Skill is not revealed but we are forcing it through a given action')
+                p.skillChecker.onClicked(p.skill.id)
+            } else {
+                let status = p.skill.toStatus()
+                status.isForewarned = !status.isForewarned
+                console.log('Player Changing Forewarnning ', p.skill.id, status)
+                p.statusUpdater(status)
+            }
+        }
+    }
+
+    let clazz: string
+    if(isRevealed) {
+        let status = (p.skillChecker?.getStatus(p.skill.id)) || ElementStatus.NORMAL
+        clazz = new ClassFormatter('skill-button center ' + p.className)
+                    .and(status.isSelectable && !p.skill.isDisabled, 'selectable')
+                    .and(status === ElementStatus.SELECTED, 'selected')
+                    .done()
+    } else {
+        clazz = new ClassFormatter('skill-button center selectable ' + p.className)
+                    .and(isForewarned, 'selected')
+                    // .and(!isDisabled, 'enabled') //即使暗置也可以使用
+                    .done()
+    }
+
+    return <div className={clazz} onClick={cb} >
+        {p.skill.displayName}
+    </div>
+}

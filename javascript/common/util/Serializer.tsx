@@ -14,6 +14,9 @@ import { TextFlashEffect, DamageEffect, CardTransit, CurrentPlayerEffect } from 
 import { FWCard } from "../../game-mode-faction/FactionWarCardSet"
 import RoundStat from "../RoundStat"
 import { CustomUIData } from "../../client/card-panel/CustomUIRegistry"
+import { GameStats } from "../../server/GameStatsCollector"
+import { PlayerPrepChoice, Circus } from '../../game-mode-faction/FactionWarGameHoster'
+import { SkillStatus } from "../../game-mode-faction/skill/Skill"
 
 
 export type Payload = {
@@ -213,3 +216,7 @@ Serde.register(Array, {
         return obj.map(delegate)
     }
 })
+Serde.register(GameStats)
+Serde.register(PlayerPrepChoice)
+Serde.register(Circus)
+Serde.register(SkillStatus)

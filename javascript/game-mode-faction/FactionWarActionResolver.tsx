@@ -6,24 +6,54 @@ import { CardBeingUsedEvent, CardBeingDroppedEvent } from "../server/flows/Gener
 import Card, { CardType } from "../common/cards/Card";
 import { SingleRuse } from "../server/engine/SingleRuseOp";
 import TakeCardOp from "../server/flows/TakeCardOp";
-import FactionWarGeneral from "./FactionWarGenerals";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { HintType } from "../common/ServerHint";
 import { MultiRuse } from "../server/engine/MultiRuseOp";
 import { PlayerInfo } from "../common/PlayerInfo";
-import DropCardOp, { DropCardRequest } from "../server/flows/DropCardOp";
+import { DropCardRequest } from "../server/flows/DropCardOp";
 import { Faction } from "../common/General";
 import { EquipOp } from "../server/engine/EquipOp";
+import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
+import DodgeOp from "../server/flows/DodgeOp";
+import { Skill } from "./skill/Skill";
+import { RevealEvent } from "./FactionWarInitializer";
 
 
 
-export default class FactionWarActionResolver extends ActionResolver { 
+export default class FactionWarActionResolver extends ActionResolver {
 
+    skillRepo: FactionWarSkillRepo
+
+    public register(skillRepo: FactionWarSkillRepo) {
+        this.skillRepo = skillRepo
+    }
+
+    private async getSkillAndRevealIfNeeded(act: PlayerAction, manager: GameManager): Promise<Skill<any>> {
+        let skillId = getFromAction(act, UIPosition.MY_SKILL)[0]
+        let skill = this.skillRepo.getSkill(act.actionSource, skillId)
+        if(!skill.isRevealed) {
+            await manager.events.publish(new RevealEvent(act.actionSource, skill.isMain, !skill.isMain))
+        }
+        return skill
+    }
+
+    public async onDodge(act: PlayerAction, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean> {
+        if(getFromAction(act, UIPosition.MY_SKILL).length > 0) {
+            //武将技能
+            let skill = await this.getSkillAndRevealIfNeeded(act, manager)
+            await skill.onPlayerAction(act, dodgeOp, manager)
+            return true
+        }
+        return false
+    } 
     
     public async on(act: PlayerAction, manager: GameManager): Promise<boolean> {
         //skills?
         if(getFromAction(act, UIPosition.MY_SKILL).length > 0) {
             //武将技能
+            let skill = await this.getSkillAndRevealIfNeeded(act, manager)
+            //no event...
+            await skill.onPlayerAction(act, null, manager)
         }
 
         //weapons?
@@ -108,7 +138,7 @@ export default class FactionWarActionResolver extends ActionResolver {
 class YiYiDaiLao extends MultiRuse {
 
     public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
-        await new TakeCardOp(target, 2).do(manager)
+        await new TakeCardOp(target, 2).perform(manager)
         await new DropCardRequest().perform(target.player.id, 2, manager, '(以逸待劳) 请弃置2张牌', [UIPosition.MY_HAND, UIPosition.MY_EQUIP])
     }
 }
@@ -206,9 +236,9 @@ class YuanJiao extends SingleRuse<void> {
 
     public async doPerform(manager: GameManager): Promise<void> {
         //give target one
-        await new TakeCardOp(manager.context.getPlayer(this.target), 1).do(manager)
+        await new TakeCardOp(manager.context.getPlayer(this.target), 1).perform(manager)
         //give self three
-        await new TakeCardOp(manager.context.getPlayer(this.source), 3).do(manager)
+        await new TakeCardOp(manager.context.getPlayer(this.source), 3).perform(manager)
     }
     
 }

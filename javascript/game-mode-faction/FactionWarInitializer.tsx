@@ -1,13 +1,10 @@
 import { Initializer } from "../common/GameMode";
 import GameManager from "../server/GameManager";
-import { EquipOp } from "../server/engine/EquipOp";
-import { CardBeingDroppedEvent, CardBeingPlayedEvent, CardBeingTakenEvent, CardBeingUsedEvent, CardAwayEvent } from "../server/flows/Generic";
-import { Equipment, CiXiong, QingGang, GuanShi, GuDing, ZhuQue, HanBing, Qilin, LianNu, RenWang, TengJia, BaGua, BaiYin } from "../server/engine/Equipments";
+import { CardBeingDroppedEvent } from "../server/flows/Generic";
 import { CardPos } from "../common/transit/CardPos";
 import { CardType } from "../common/cards/Card";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
-import DamageOp, { DamageSource, DamageTimeline } from "../server/flows/DamageOp";
 import { HintType } from "../common/ServerHint";
 import { Button, isCancel, getFromAction, UIPosition } from "../common/PlayerAction";
 import { StageStartFlow } from "../server/flows/StageFlows";
@@ -16,69 +13,23 @@ import { Stage } from "../common/Stage";
 import DeathOp from "../server/flows/DeathOp";
 import GameEnding from "../server/GameEnding";
 import TakeCardOp from "../server/flows/TakeCardOp";
+import { describer } from "../common/util/Describer";
+import initializeEquipments from "./FactionWarEquipmentInitializer";
+
+export class RevealEvent {
+    public constructor(public readonly playerId: string, 
+                        public readonly mainReveal: boolean,
+                        public readonly subReveal: boolean) {}
+}
 
 export default class FactionWarInitializer implements Initializer {
 
-    playerAndEquipments = new Map<string, Equipment>()
-
     init(manager: GameManager) : void {
-        manager.equipmentRegistry.onGeneral<EquipOp>(EquipOp, async (equipOp)=>{
-            //register equipments
-            if(equipOp.card.type.isHorse()) {
-                return //no need to do this for horses
-            }
-            let type = equipOp.card.type.name
-            let equip: Equipment
-            switch(type) {
-                case CardType.CI_XIONG.name: equip = new CiXiong(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.QING_GANG.name: equip = new QingGang(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.ZHU_QUE.name: equip = new ZhuQue(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.GU_DING.name: equip = new GuDing(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.GUAN_SHI.name: equip = new GuanShi(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.LIAN_NU.name: equip = new LianNu(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.HAN_BING.name: equip = new HanBing(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.QI_LIN.name: equip = new Qilin(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.WU_LIU.name: equip = new WuLiu(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.SAN_JIAN.name: equip = new SanJian(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.ZHANG_BA.name: 
-                    //丈八的效果仅限于玩家主动施放
-                    return
 
+        initializeEquipments(manager)
 
-                case CardType.SILVER_LION.name: equip = new BaiYin(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.REN_WANG.name: equip = new RenWang(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.TENG_JIA.name: equip = new TengJia(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                case CardType.BA_GUA.name: equip = new BaGua(equipOp.beneficiary, equipOp.card.id, manager)
-                    break
-                default:
-                    throw 'Unknown equipment!!! ' + type
-            }
-
-            console.log(`[装备] ${equipOp.beneficiary} 装备了 ${equipOp.card.id}`)
-            this.playerAndEquipments.set(equipOp.card.id, equip)
-            await equip.onEquipped()
-        })
-
-        manager.equipmentRegistry.onGeneral<CardBeingDroppedEvent>(CardBeingDroppedEvent, this.checkEquipmentDrop)
-        manager.equipmentRegistry.onGeneral<CardBeingPlayedEvent>(CardBeingPlayedEvent, this.checkEquipmentDrop)
-        manager.equipmentRegistry.onGeneral<CardBeingTakenEvent>(CardBeingTakenEvent, this.checkEquipmentDrop)
-        manager.equipmentRegistry.onGeneral<CardBeingUsedEvent>(CardBeingUsedEvent, this.checkEquipmentDrop)
-
-        //勉強用這個吧...
-        manager.skillRegistry.onGeneral<StageStartFlow>(StageStartFlow, async (start)=>{
+        //回合开始的时候问是否要明置武将
+        manager.adminRegistry.onGeneral<StageStartFlow>(StageStartFlow, async (start)=>{
             if(start.stage !== Stage.ROUND_BEGIN) {
                 return
             }
@@ -105,23 +56,32 @@ export default class FactionWarInitializer implements Initializer {
                 return
             }
             let choice = getFromAction(resp, UIPosition.BUTTONS)[0]
-            let wasRevealed = p.isRevealed()
             if(choice === 'general') {
-                p.isGeneralRevealed = true
+                await manager.events.publish(new RevealEvent(p.player.id, true, false))
             } else if (choice === 'subgeneral') {
-                p.isSubGeneralRevealed = true
+                await manager.events.publish(new RevealEvent(p.player.id, false, true))
             } else if (choice === 'all') {
-                p.isGeneralRevealed = true
-                p.isSubGeneralRevealed = true
+                await manager.events.publish(new RevealEvent(p.player.id, true, true))
+            } else {
+                throw 'Unknown option ' + choice
             }
+        })
+
+        manager.adminRegistry.onGeneral<RevealEvent>(RevealEvent, async (reveal)=>{
+            console.log('[牌局] 明置武将 ', reveal.playerId, reveal.mainReveal, reveal.subReveal)
+            let p = manager.context.getPlayer(reveal.playerId) as FactionPlayerInfo
+            let wasRevealed = p.isRevealed()
+            p.isGeneralRevealed = p.isGeneralRevealed || reveal.mainReveal
+            p.isSubGeneralRevealed = p.isSubGeneralRevealed || reveal.subReveal
             let isRevealed = p.isRevealed()
             if(!wasRevealed && isRevealed) {
                 this.computeFactionForPlayer(p, manager)
             }
+            //todo: update server side skill conditions
             manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
         })
 
-        manager.skillRegistry.onGeneral<DeathOp>(DeathOp, async (death)=>{
+        manager.adminRegistry.onGeneral<DeathOp>(DeathOp, async (death)=>{
             let deceased = death.deceased as FactionPlayerInfo
             let killer = death.killer as FactionPlayerInfo
             if(!deceased.isRevealed()) {
@@ -177,19 +137,44 @@ export default class FactionWarInitializer implements Initializer {
         })
     }
 
-    checkEquipmentDrop = async (dropEvent: CardAwayEvent): Promise<void> =>{
-        //unregister equipments
-        for(let d of dropEvent.cards) {
-            if(d[1] === CardPos.EQUIP && !d[0].type.isHorse()) {
-                console.log(`[装备] ${dropEvent.player} 卸下了 ${d[0].id}`)
-                if(!this.playerAndEquipments.has(d[0].id)) {
-                    console.warn('Missing equipment... not registered (这是丈八?) ' + d[0].id)
-                    continue
-                }
-                await this.playerAndEquipments.get(d[0].id).onDropped()
-            }
-        }
+
+    initClient() {
+        
+        describer.register(CardType.TENG_JIA.id, '锁定技，【南蛮入侵】、【万箭齐发】和普通【杀】对你无效。当你受到火焰伤害时，此伤害+1。')
+        describer.register(CardType.SILVER_LION.id, '锁定技，当你受到伤害时，若此伤害多于1点，则防止多余的伤害；当你失去装备区里的【白银狮子】时，你回复1点体力。')
+        describer.register(CardType.REN_WANG.id, '锁定技，黑色的【杀】对你无效。')
+        describer.register(CardType.BA_GUA.id, '每当你需要使用或打出一张【闪】时，你可以进行一次判定：若判定结果为红色，则视为你使用或打出了一张【闪】。')
+        describer.register(CardType.QI_LIN.id, '当你使用【杀】对目标角色造成伤害时，你可以弃置其装备区里的一张坐骑牌。')
+        describer.register(CardType.ZHU_QUE.id, '你可以将一张普通【杀】当具火焰伤害的【杀】使用。')
+        describer.register(CardType.ZHANG_BA.id, '你可以将两张手牌当【杀】使用或打出。')
+        describer.register(CardType.GUAN_SHI.id, '当你使用的【杀】被抵消时，你可以弃置两张牌，则此【杀】依然造成伤害。')
+        describer.register(CardType.SAN_JIAN.id, '你使用【杀】对目标角色造成伤害后，可弃置一张手牌并对该角色距离1的另一名角色造成1点伤害。')
+        describer.register(CardType.WU_LIU.id, '锁定技，与你势力相同的其他角色攻击范围+1。')
+        describer.register(CardType.HAN_BING.id, '当你使用【杀】对目标角色造成伤害时，若该角色有牌，你可以防止此伤害，改为依次弃置其两张牌。')
+        describer.register(CardType.CI_XIONG.id, '当你使用【杀】指定一名异性角色为目标后，你可以令其选择一项：弃一张手牌；或令你摸一张牌。')
+        describer.register(CardType.QING_GANG.id, '锁定技，当你使用【杀】指定一名角色为目标后，无视其防具。')
+        describer.register(CardType.LIAN_NU.id, '出牌阶段，你可以使用任意数量的【杀】。')
+        describer.register(CardType.BING_LIANG.id, '出牌阶段，对距离为1的一名其他角色使用。将【兵粮寸断】放置于该角色的判定区里，若判定结果不为梅花，跳过其摸牌阶段。')
+        describer.register(CardType.LE_BU.id, '出牌阶段，对一名其他角色使用。将【乐不思蜀】放置于该角色的判定区里，若判定结果不为红桃，则跳过其出牌阶段。')
+        describer.register(CardType.SHAN_DIAN.id, '出牌阶段，对自己使用。将【闪电】放置于自己的判定区里。若判定结果为黑桃2~9，则目标角色受到3点雷电伤害。若判定不为此结果，将之移动到下家的判定区里。')
+        describer.register(CardType.WU_GU.id, '出牌阶段，对所有角色使用。你从牌堆亮出等同于现存角色数量的牌，每名目标角色选择并获得其中的一张。')
+        describer.register(CardType.TAO_YUAN.id, '出牌阶段，对所有角色使用。每名目标角色回复1点体力。')
+        describer.register(CardType.NAN_MAN.id, '出牌阶段，对所有其他角色使用。每名目标角色需打出一张【杀】，否则受到1点伤害。')
+        describer.register(CardType.WAN_JIAN.id, '出牌阶段，对所有其他角色使用。每名目标角色需打出一张【闪】，否则受到1点伤害。')
+        describer.register(CardType.YUAN_JIAO.id, '出牌阶段，对有明置武将牌且与你势力不同的一名角色使用。该角色摸一张牌，然后你摸三张牌。')
+        describer.register(CardType.ZHI_JI.id, '出牌阶段，对一名其他角色使用。观看其一张暗置的武将牌或其手牌。重铸，出牌阶段，你可以将此牌置入弃牌堆，然后摸一张牌。')
+        describer.register(CardType.YI_YI.id, '出牌阶段，对你和与你势力相同的角色使用。每名目标角色各摸两张牌，然后弃置两张牌。')
+        describer.register(CardType.HUO_GONG.id, '该角色展示一张手牌，然后若你弃置一张与所展示牌相同花色的手牌，则【火攻】对其造成1点火焰伤害。')
+        describer.register(CardType.TIE_SUO.id, '连环: 出牌阶段使用，分别横置或重置其武将牌（被横置武将牌的角色处于“连环状态 ·即使第一名受伤害的角色死亡，也会令其它处于连环状态的角色受到该属性伤害。 ·经由连环传导的伤害不能再次被传导。重铸: 出牌阶段，你可以将此牌置入弃牌堆，然后摸一张牌。')
+        describer.register(CardType.WU_XIE.id, '抵消目标锦囊对一名角色产生的效果；或抵消另一张无懈可击产生的效果。')
+        describer.register(CardType.JIE_DAO.id, '出牌阶段，对装备区里有武器牌的一名其他角色使用。该角色需对其攻击范围内，由你指定的另一名角色使用一张【杀】，否则将装备区里的武器牌交给你。')
+        describer.register(CardType.SHUN_SHOU.id, '出牌阶段，对距离为1且区域内有牌的一名其他角色使用。你获得其区域内的一张牌。')
+        describer.register(CardType.GUO_HE.id, '出牌阶段，对一名区域内有牌的其他角色使用。你将其区域内的一张牌弃置。')
+        describer.register(CardType.WU_ZHONG.id, '出牌阶段，对自己使用。摸两张牌。')
+        describer.register(CardType.JUE_DOU.id, '出牌阶段，对一名其他角色使用。由该角色开始，你与其轮流打出一张【杀】，首先不出【杀】的一方受到另一方造成的1点伤害。')
+        describer.register(CardType.WU_XIE_GUO.id, '抵消目标锦囊牌对一名角色或一种势力产生的效果，或抵消另一张【无懈可击】产生的效果。')
     }
+
 
     computeFactionForPlayer(p: FactionPlayerInfo, manager: GameManager) {
         console.log(`[牌局] ${p.player.id} 身份亮明`)
@@ -271,90 +256,6 @@ export default class FactionWarInitializer implements Initializer {
             throw new GameEnding([player.player.id])
         } else {
             throw new GameEnding(manager.context.playerInfos.filter(p => p.getFaction() === winnerFac).map(p => p.player.id))
-        }
-    }
-}
-
-
-export class WuLiu extends Equipment {
-
-    async onEquipped(): Promise<void> {
-        let me = this.manager.context.getPlayer(this.player) as FactionPlayerInfo
-        console.log('[装备] 吴六剑装备')
-        this.manager.getSortedByCurr(true)
-                    .filter(p => p.player.id !== this.player && FactionPlayerInfo.factionSame(me, p as FactionPlayerInfo))
-                    .forEach(p => {
-                        p.reachModifier += 1
-                        console.log(`[装备] ${p.player.id} 受吴六剑装备的影响, reachModifier成为${p.reachModifier}`)
-                        this.manager.broadcast(p, PlayerInfo.sanitize)
-                    })
-        //todo: newly revealed players need to have this as well!
-    }
-
-    async onDropped(): Promise<void> {
-        let me = this.manager.context.getPlayer(this.player) as FactionPlayerInfo
-        console.log('[装备] 吴六剑卸下')
-        this.manager.getSortedByCurr(true)
-                    .filter(p => p.player.id !== this.player && FactionPlayerInfo.factionSame(me, p as FactionPlayerInfo))
-                    .forEach(p => {
-                        p.reachModifier -= 1
-                        console.log(`[装备] ${p.player.id} 受吴六剑卸下的影响, reachModifier成为${p.reachModifier}`)
-                        this.manager.broadcast(p, PlayerInfo.sanitize)
-                    })
-    }
-}
-
-
-export class SanJian extends Equipment {
-    
-    async onEquipped(): Promise<void> {
-        this.manager.equipmentRegistry.on<DamageOp>(DamageOp, this.player, this.performEffect)
-    }
-
-    async onDropped(): Promise<void> {
-        this.manager.equipmentRegistry.off<DamageOp>(DamageOp, this.player, this.performEffect)
-    }
-
-    performEffect = async (op: DamageOp) => {
-        if(!op.source || op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
-            return
-        }
-        if(op.timeline !== DamageTimeline.DID_DAMAGE) {
-            return
-        }
-        let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === CardType.SAN_JIAN)
-        if(!potential) {
-            throw `不可能! 我登记过的就应该有这个武器! 三尖两刃刀 ${this.player}`
-        }
-        if(op.target.isDead || op.source.isDead) {
-            console.log('[装备] 三尖两刃刀无法发动, 因玩家已死', op.target.isDead, op.source.isDead)
-            return 
-        }
-        let ask = await this.manager.sendHint(this.player, {
-            hintType: HintType.MULTI_CHOICE,
-            hintMsg: `是否发动三尖两刃刀特效`,
-            extraButtons: [Button.OK, Button.CANCEL]
-        })
-        if(isCancel(ask)) {
-            console.log('[装备] 玩家放弃发动三尖两刃刀')
-            return
-        }
-        let resp = await this.manager.sendHint(this.player, {
-            hintType: HintType.SPECIAL,
-            specialId: CardType.SAN_JIAN.name,
-            hintMsg: '发动三尖两刃刀',
-            sourcePlayer: op.target.player.id,
-            extraButtons: [Button.CANCEL]
-        })
-        if(isCancel(resp)) {
-            console.log('[装备] 玩家放弃发动三尖两刃刀')
-            return 
-        } else {
-            let card = this.manager.getCard(getFromAction(resp, UIPosition.MY_HAND)[0])
-            delete card.as
-            card.description = this.player + ' 三尖两刃刀弃牌'
-            this.manager.sendToWorkflow(this.player, CardPos.HAND, [card], true)
-            await new DamageOp(op.source, op.target, 1, [], DamageSource.SKILL).perform(this.manager)
         }
     }
 }

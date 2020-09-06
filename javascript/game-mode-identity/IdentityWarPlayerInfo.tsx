@@ -12,6 +12,11 @@ export default class IdentityWarPlayerInfo extends PlayerInfo {
         super(player)
     }
     
+    
+    getSkillIds(): Array<[string, boolean]> {
+        return this.general.abilities.map(a => [a, true])
+    }
+
     init(): IdentityWarPlayerInfo {
         this.hp = this.general.hp
         this.maxHp = this.general.hp

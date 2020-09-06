@@ -1,4 +1,4 @@
-import { shuffle, Suits } from "../util/Util"
+import { shuffle } from "../util/Util"
 import { ICard } from "./ICard"
 
 export type CardGenre = 'basic' | 'single-immediate-ruse' | 'single-delay-ruse' | 'group-ruse' | 'horse+1' | 'horse-1' | 'weapon' | 'shield' | 'none'
@@ -82,6 +82,7 @@ export class CardType {
     public static YUAN_JIAO = new CardType('yuan_jiao', '远交近攻', 'single-immediate-ruse').withPackage('国战')
     public static WU_LIU = new CardType('wu_liu', '吴六剑', 'weapon').withDistance(2).withPackage('国战')
     public static SAN_JIAN = new CardType('san_jian', '三尖两刃刀', 'weapon').withDistance(3).withPackage('国战')
+    public static WU_XIE_GUO = new CardType('wu_xie_guo', '无懈可击·国', 'single-immediate-ruse').withPackage('国战')
 
     public distance: number = -1
     public package: string = '普通'
@@ -111,6 +112,10 @@ export class CardType {
         return this.genre === 'single-delay-ruse' || this.genre === 'single-immediate-ruse' || this.genre === 'group-ruse'
     }
 
+    public isWuxie(): boolean {
+        return this.id === CardType.WU_XIE.id || this.id === CardType.WU_XIE_GUO.id
+    }
+
     public isHorse(): boolean {
         return this.genre === 'horse+1' || this.genre === 'horse-1'
     }
@@ -131,6 +136,7 @@ export class CardType {
         return this.genre === 'basic'
     }
 }
+
 
 export default class Card implements ICard {
     static DUMMY = new Card('none', null, CardType.BACK)

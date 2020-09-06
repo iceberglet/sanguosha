@@ -63,6 +63,60 @@
         top: -12px;
         right: -5px;
     }
+
+    //contained in .skill-buttons 
+    .skill-buttons {
+        display: flex;
+        position: absolute;
+        bottom: 8px;
+        left: 6px;
+        right: 3px;
+        pointer-events: all;
+
+        .skill-button {
+            margin: 3px 3px 3px 0px;
+            // background: gray;
+            color: white;
+            transition: 0.2s;
+            flex-grow: 1;
+            border-radius: 3px;
+            border: 1px solid black;
+            filter: brightness(0.5);
+            overflow: hidden;
+            
+
+    
+            &.selectable {
+                // background: rgb(20, 141, 20);
+                cursor: pointer;
+                filter: brightness(1.2);
+                box-shadow: inset -1px -1px 0px 1px #00000091;
+            }
+
+            &.selectable:hover {
+                // background: rgb(36, 201, 36);
+                // filter: brightness(2);
+                transform: translate(0px, -2px);
+            }
+    
+            &.selected:after {
+                // background: rgb(20, 141, 20);
+                // animation: flash-bak 1.3s infinite;
+                animation: flashing 1s infinite;
+                background: #fff;
+                content: "";
+                height: 155px;
+                left: -75px;
+                opacity: .2;
+                position: absolute;
+                top: -50px;
+                transform: rotate(35deg);
+                transition: all 550ms cubic-bezier(0.19, 1, 0.22, 1);
+                width: 50px;
+                z-index: -10;
+            }
+        }
+    }
 }
 
 .player-stage {
@@ -81,4 +135,9 @@
 @keyframes appear {
     0% {transform: translate(-10px, 0px)}
     100% {transform: translate(0px, 0px)}
+}
+
+@keyframes flashing {
+    0% {left: -75px}
+    100% {left: 120%}
 }

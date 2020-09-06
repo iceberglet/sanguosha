@@ -11,6 +11,7 @@ export default class Deck {
     }
 
     getCardsFromTop(amount: number): Card[] {
+        //todo: failure = 平局
         if(amount > this.deck.length) {
             let res = this.deck
             this.deck = shuffle(this.dropped)

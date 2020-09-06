@@ -1,8 +1,10 @@
 import ArrayList from './ArrayList'
 import { getKeys, takeFromArray } from './Util'
+import { StageEndFlow } from '../../server/flows/StageFlows'
+import { Stage } from '../Stage'
 
 type Consumer<T> = (t: T) => void
-type AckingConsumer<T> = (t: T) => Promise<void>
+export type AckingConsumer<T> = (t: T) => Promise<void>
 
 export default class Pubsub {
 
@@ -114,7 +116,6 @@ export class SequenceAwarePubSub implements GameEventListener, EventRegistry {
      */
     async publish(obj: any): Promise<number> {
         let count = 0
-        let playerToConsumersMap: Map<string, ArrayList<AckingConsumer<void>>> = this._map.get(obj.constructor)
         let generalListeners = this._generalListeners.get(obj.constructor)
         if(generalListeners) {
             count += generalListeners.size()
@@ -123,6 +124,7 @@ export class SequenceAwarePubSub implements GameEventListener, EventRegistry {
             }
         }
 
+        let playerToConsumersMap: Map<string, ArrayList<AckingConsumer<void>>> = this._map.get(obj.constructor)
         if(!playerToConsumersMap) {
             // console.warn(`No one is listening to this message! ${obj.constructor.name}`)
             return count
@@ -132,7 +134,9 @@ export class SequenceAwarePubSub implements GameEventListener, EventRegistry {
                 continue
             }
             count += playerToConsumersMap.get(p).size()
-            await Promise.all(playerToConsumersMap.get(p)._data.map(c => c(obj)))
+            for(let c of playerToConsumersMap.get(p)._data) {
+                await c(obj)
+            }
         }
         return count
     }

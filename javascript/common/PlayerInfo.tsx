@@ -3,8 +3,9 @@ import { takeFromArray } from "./util/Util"
 import {Player} from "./Player"
 import { Gender, Faction } from "./General"
 import { ICard } from "./cards/ICard"
-import { CardPos, isSharedPosition, isCardPosHidden } from "./transit/CardPos"
+import { CardPos, isSharedPosition } from "./transit/CardPos"
 import { ReactElement } from "react"
+import { SkillButtonProp } from "../client/ui/UIMyPlayerCard"
 
 export class Identity {
 
@@ -45,7 +46,6 @@ export abstract class PlayerInfo {
     //喝酒了吗
     isDrunk: boolean = false
     isDead: boolean = false
-    skills: string[]
 
     //在别人想和你计算distance的时候用到
     //当你有 +1 马的时候别人计算与你的距离+1
@@ -57,6 +57,8 @@ export abstract class PlayerInfo {
     reachModifier: number = 0
 
     cards = new Map<CardPos, Card[]>()
+
+    //阴阳鱼,珠联璧合,先驱,限定技
     attributes: {[key: string]: any}
     
     cardInterpreter: CardInterpreter = NoopInterpreter
@@ -64,6 +66,10 @@ export abstract class PlayerInfo {
     constructor(public player: Player) {
     }
 
+    /**
+     * skillid & isMain
+     */
+    abstract getSkillIds(): Array<[string, boolean]>
     /**
      * Called once at game start only, by server
      */
@@ -90,7 +96,7 @@ export abstract class PlayerInfo {
      */
     abstract draw(): ReactElement | ReactElement[];
 
-    abstract drawSelf(): ReactElement | ReactElement[];
+    abstract drawSelf(skillButtons: SkillButtonProp[]): ReactElement | ReactElement[];
 
     heal(amount: number) {
         //sometimes max hp changes O.o

@@ -19,6 +19,14 @@ export function shuffle<T>(array: T[]): T[] {
     return array;
 }
 
+export function getRandom<T>(array: T[]): T {
+    let idx = Math.floor(Math.random() * array.length)
+    if(idx >= array.length) {
+      idx = array.length - 1
+    }
+    return array[idx]
+}
+
 export function takeFromArray<T>(array: T[], matcher: (t: T)=>boolean): T {
   let c = array.findIndex(matcher)
   if(c !== -1) {

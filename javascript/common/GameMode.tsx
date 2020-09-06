@@ -8,6 +8,8 @@ import { GameHoster } from "../server/GameHoster";
 import FactionWarGameHoster from "../game-mode-faction/FactionWarGameHoster";
 import { PlayerRegistry } from "../server/PlayerRegistry";
 import { GameModeEnum } from "./GameModeEnum";
+import { Skill } from "../game-mode-faction/skill/Skill";
+import { FactionSkillProviders } from "../game-mode-faction/skill/FactionWarSkillRepo";
 
 
 export interface Initializer {
@@ -17,6 +19,9 @@ export interface Initializer {
      * @param manager 
      */
     init(manager: GameManager): void
+
+
+    initClient(): void
 }
 
 export class GameMode {
@@ -35,7 +40,8 @@ export class GameMode {
                         public readonly name: string, 
                         public readonly cardManager: CardManager,
                         public readonly resolver: ActionResolver,
-                        public readonly gameHosterProvider: (registry: PlayerRegistry, no: number)=>GameHoster) {
+                        public readonly gameHosterProvider: (registry: PlayerRegistry, no: number)=>GameHoster,
+                        public readonly skillProvider: (skillId: string, playerId: string)=>Skill<any>) {
         GameMode.rules.set(id, this)
     }
 
@@ -45,7 +51,8 @@ export class GameMode {
 }
 
 new GameMode(GameModeEnum.IdentityWarGame, '身份局', IdentityWarCards, 
-                null, null)
+                null, null, null)
 new GameMode(GameModeEnum.FactionWarGame, '国战', FactionWarCards, 
                 new FactionWarActionResolver(),
-                (registry, no) => new FactionWarGameHoster(registry, no))
+                (registry, no) => new FactionWarGameHoster(registry, no),
+                (s, p)=>FactionSkillProviders.get(s, p))

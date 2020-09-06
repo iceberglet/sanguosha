@@ -105,7 +105,17 @@ export class UIWorkflowCardRow extends React.Component<SimpleRowProp, State> imp
      * @param card 
      */
     performRemovalAnimation(cards: Card[], pos: CardPos): Array<CardAndCoor> {
-        throw 'Impossible!!' //actually we should be able to!
+        let rect = this.dom.current.getBoundingClientRect()
+        return cards.map(c => {
+            let r = this.state.cards.find(sc => sc.card.id === c.id)
+            return {
+                card: c,
+                coor: {
+                    x: r.coor.x + rect.left,
+                    y: r.coor.y + rect.top
+                }
+            }
+        })
     }
 
     componentDidMount() {

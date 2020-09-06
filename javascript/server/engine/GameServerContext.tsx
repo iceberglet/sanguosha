@@ -39,10 +39,14 @@ export default class GameServerContext extends GameContext {
         let res: Card[] = []
         cards.forEach(c => {
             if(this.workflowCards.removeThat(w => w.id === c.id)) {
+                console.log('[牌堆] 从Workflow中取出', c.id)
                 this.addTo(toPlayer, toPos, [c])
                 res.push(c)
             }
         })
+        if(cards.length !== res.length) {
+            console.error('[牌堆] 没有拿到期待的牌:', cards.map(c => c.id), res.map(c => c.id))
+        }
         return res
     }
 

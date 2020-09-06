@@ -6,11 +6,12 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import HealOp from "../flows/HealOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import { CardBeingPlayedEvent, CardBeingDroppedEvent, CardBeingUsedEvent } from "../flows/Generic";
+import { CardBeingDroppedEvent, CardBeingUsedEvent } from "../flows/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "./EquipOp";
 import { ShunShou, GuoHe, WuZhong, JieDao, HuoGong, JueDou } from "./SingleRuseOp";
 import { WanJian, NanMan, TieSuo, WuGu, TaoYuan } from "./MultiRuseOp";
+import DodgeOp from '../flows/DodgeOp'
 import { UseDelayedRuseOp } from "./DelayedRuseOp";
 import { WINE_TAKEN } from "../../common/RoundStat";
 
@@ -21,6 +22,8 @@ export abstract class ActionResolver {
      * @returns true if resolved
      */
     abstract async on(act: PlayerAction, manager: GameManager): Promise<boolean>
+
+    abstract async onDodge(act: PlayerAction, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean>
 
     protected getTargets=(act: PlayerAction, manager: GameManager): PlayerInfo[] =>{
         let targets = getFromAction(act, UIPosition.PLAYER)
@@ -42,11 +45,20 @@ export default class PlayerActionResolver extends ActionResolver {
             return
         }
 
-        if(getFromAction(act, UIPosition.MY_EQUIP).length > 0) {
+        if(getFromAction(act, UIPosition.MY_SKILL).length > 0) {
+            //武将技能应当在delegate中处理完毕
+            throw '武将技能应当在delegate中处理完毕: ' + act.actionSource
+
+        } else if(getFromAction(act, UIPosition.MY_EQUIP).length > 0) {
             //只有丈八有主动技吧??
             let weapon = getFromAction(act, UIPosition.MY_EQUIP)
             if(weapon.length === 1 && manager.getCard(weapon[0]).type === CardType.ZHANG_BA) {
-                let hand = getFromAction(act, UIPosition.MY_HAND).map(h => manager.getCard(h))
+                let hand = getFromAction(act, UIPosition.MY_HAND).map(h => {
+                    let cardo = manager.getCard(h)
+                    cardo.as = CardType.SLASH
+                    cardo.description = '丈八蛇矛'
+                    return cardo
+                })
                 let targetPs = this.getTargets(act, manager)
                 manager.sendToWorkflow(act.actionSource, CardPos.HAND, hand, true)
                 await manager.events.publish(new CardBeingUsedEvent(act.actionSource, hand.map(h => [h, CardPos.HAND]), CardType.SLASH))
@@ -120,7 +132,7 @@ export default class PlayerActionResolver extends ActionResolver {
                     break;
 
                 case CardType.WU_ZHONG:
-                    await new WuZhong(act.actionSource, targets[0], [card]).perform(manager)
+                    await new WuZhong(act.actionSource, act.actionSource, [card]).perform(manager)
                     break
                 case CardType.JIE_DAO:
                     await new JieDao(act.actionSource, targets, [card]).perform(manager)
@@ -164,6 +176,7 @@ export default class PlayerActionResolver extends ActionResolver {
                 //dodge
                 case CardType.DODGE:
                 case CardType.WU_XIE:
+                case CardType.WU_XIE_GUO:
                     throw `无法直接出闪/无懈可击!! ${act}`
                 default:
                     throw `无法处理这张卡牌!!! ` + card.type.name
@@ -173,4 +186,17 @@ export default class PlayerActionResolver extends ActionResolver {
 
     }
 
+    public async onDodge(act: PlayerAction, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean> {
+        if(!await this.delegate.onDodge(act, dodgeOp, manager)) {
+            manager.broadcast(new TextFlashEffect(dodgeOp.target.player.id, [dodgeOp.source], '闪'))
+            //assume he played it
+            let cards = getFromAction(act, UIPosition.MY_HAND).map(id => manager.getCard(id))
+            if(cards.length !== 1) {
+                throw `Player played dodge cards but not one card!!!! ${act.actionSource} ${cards}`
+            }
+            manager.sendToWorkflow(dodgeOp.target.player.id, CardPos.HAND, [cards[0]])
+        }
+        //张角呢??
+        return true
+    }
 }

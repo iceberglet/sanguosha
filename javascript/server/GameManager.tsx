@@ -16,7 +16,7 @@ import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
 import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
 import FactionWarGeneral from "../game-mode-faction/FactionWarGenerals";
 import { StageStartFlow, StageEndFlow } from "./flows/StageFlows";
-import TakeCardOp from "./flows/TakeCardOp";
+import TakeCardOp, { TakeCardStageOp } from "./flows/TakeCardOp";
 import DropCardOp from "./flows/DropCardOp";
 import { CurrentPlayerEffect, CardTransit } from "../common/transit/EffectTransit";
 import PlayerActionResolver, { ActionResolver } from "./engine/PlayerActionResolver";
@@ -25,6 +25,7 @@ import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
 import GameEnding from "./GameEnding";
 import { GameModeEnum } from "../common/GameModeEnum";
 import GameStatsCollector from "./GameStatsCollector";
+import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
 
 
 //Manages the rounds
@@ -36,8 +37,9 @@ export default class GameManager {
     /**
      * 事件的触发与结算
      */
+    public adminRegistry: EventRegistry
     public equipmentRegistry: EventRegistry
-    public skillRegistry: EventRegistry
+    public skillRegistry: EventRegistryForSkills
     public events : GameEventListener
     //for custom ui components
     public onReconnect: ()=>void
@@ -49,25 +51,28 @@ export default class GameManager {
                         private registry: PlayerRegistry,
                         resolver: ActionResolver,
                         private statsCollector: GameStatsCollector) {
+        //other initialization
+        this.resolver = new PlayerActionResolver(resolver)
+    }
+
+    public init(skillRegistry: EventRegistryForSkills & GameEventListener) {
         //event pubsub
-        let sequencer = (ids: string[])=>context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id)
+        let sequencer = (ids: string[])=>this.context.sortFromPerspective(this.currPlayer().player.id, ids).map(p => p.player.id)
         let equipmentRegistry = new SequenceAwarePubSub(sequencer)
-        let skillRegistry = new SequenceAwarePubSub(sequencer)
         let adminRegistry = new SequenceAwarePubSub(sequencer)
+        this.adminRegistry = adminRegistry
         this.equipmentRegistry = equipmentRegistry
         this.skillRegistry = skillRegistry
         //先触发技能, 再触发装备...
         this.events = new CompositeListener([adminRegistry, skillRegistry, equipmentRegistry])
 
-        //other initialization
-        this.resolver = new PlayerActionResolver(resolver)
-        statsCollector.subscribeTo(adminRegistry)
+        this.statsCollector.subscribeTo(adminRegistry)
     }
 
     public async startGame(): Promise<string[]> {
         console.log('[Game Manager] 开始发牌, 进入游戏!')
         //cards for everyone
-        await Promise.all(this.context.playerInfos.map(async p => await new TakeCardOp(p, 4).do(this)))
+        await Promise.all(this.context.playerInfos.map(async p => await new TakeCardOp(p, 4).perform(this)))
         
         while(true) {
             //go to next round
@@ -129,6 +134,10 @@ export default class GameManager {
             this.setPending([player])
         }
         return await this.registry.sendServerAsk(player, hint)
+    }
+
+    public send(anyone: string, anything: any) {
+        this.registry.send(anyone, anything)
     }
 
     /**
@@ -216,10 +225,21 @@ export default class GameManager {
         this.broadcast(CardTransit.toWorkflow(fromPlayer, fromPos, cards, head, doNotRemove))
     }
 
+    public stillInWorkflow(card: Card): boolean {
+        if(!this.context.workflowCards.find(w => w.id === card.id)) {
+            return false
+        }
+        return true
+    }
+
     public takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: Card[]): Card[] {
+        // if(!this.stillInWorkflow(cards)) {
+        //     console.error('Workflow 没有这些卡了!')
+        // }
         // this.broadcast(new TransferCardEffect(null, toPlayer, cards))
-        return this.context.takeFromWorkflow(toPlayer, toPos, cards)
-        // this.broadcast(this.context.getPlayer(toPlayer), PlayerInfo.sanitize)
+        let cardos = this.context.takeFromWorkflow(toPlayer, toPos, cards)
+        this.broadcast(CardTransit.fromWorkflow(toPlayer, toPos, cardos))
+        return cardos
     }
     
     /**
@@ -253,7 +273,7 @@ export default class GameManager {
     }
 
     private async processTakeCardStage() {
-        await new TakeCardOp(this.currPlayer(), 2).perform(this)
+        await new TakeCardStageOp(this.currPlayer(), 2).perform(this)
     }
 
     private async processUseCardStage() {
@@ -285,7 +305,6 @@ export default class GameManager {
     private async processStage(info: PlayerInfo, stage: Stage, midProcessor: () => Promise<void> = null) {
         console.log(`[Game Manager] Enter ${info.player.id} ${stage.name} 场上卡牌数 ${this.countAllCards()}`)
         await new StageStartFlow(info, stage).perform(this)
-        console.log(`[Game Manager] Enter2 ${info.player.id} ${stage.name} `)
         if(!this.roundStats.skipStages.get(stage)) {
             this.setPlayerAndStage(this.currPlayer().player.id, stage)
             this.broadcast(this.currEffect)
@@ -313,67 +332,67 @@ export default class GameManager {
 }
 
 
-export function sampleFactionWarContext() {
-    let p = {id: '青青子吟'}
-    let player = new FactionPlayerInfo(p, FactionWarGeneral.jia_xu, FactionWarGeneral.li_jue_guo_si).init()
-    // player.hp = 1
-    let player2 = new FactionPlayerInfo({id: '欧阳挠挠'}, FactionWarGeneral.diao_chan, FactionWarGeneral.dong_zhuo).init()
-    // player2.hp = 1
-    let context = new GameServerContext([player, player2], GameModeEnum.FactionWarGame)
+// export function sampleFactionWarContext() {
+//     let p = {id: '青青子吟'}
+//     let player = new FactionPlayerInfo(p, FactionWarGeneral.jia_xu, FactionWarGeneral.li_jue_guo_si).init()
+//     // player.hp = 1
+//     let player2 = new FactionPlayerInfo({id: '欧阳挠挠'}, FactionWarGeneral.diao_chan, FactionWarGeneral.dong_zhuo).init()
+//     // player2.hp = 1
+//     let context = new GameServerContext([player, player2], GameModeEnum.FactionWarGame)
 
-    return context
-}
+//     return context
+// }
 
 
-export function sampleIdentityWarContext() {
-    let cardManager = GameMode.get(GameModeEnum.IdentityWarGame).cardManager
-    let p = {id: '青青子吟'}
-    let cards = cardManager.getShuffledDeck()
-    let player = new IdentityWarPlayerInfo(p, Identity.ZHU_GONG, IdentityWarGeneral.standard_zhang_liao).init()
-    player.addCard(cards.find(c => c.type === CardType.SLASH), CardPos.HAND)
-    player.addCard(cards.find(c => c.type === CardType.WAN_JIAN), CardPos.HAND)
-    player.addCard(cards.find(c => c.type === CardType.DODGE), CardPos.HAND)
-    player.addCard(cards.find(c => c.type === CardType.PEACH), CardPos.HAND)
-    player.addCard(cards.find(c => c.type === CardType.HUO_GONG), CardPos.HAND)
-    // player.addCard(cards.find(c => c.type === CardType.SHUN_SHOU), CardPos.HAND)
-    // player.addCard(cards.find(c => c.type === CardType.GUO_HE), CardPos.HAND)
-    // player.addCard(cards.find(c => c.type === CardType.JUE_DOU), CardPos.HAND)
-    // player.addCard(cards.find(c => c.type === CardType.TIE_SUO), CardPos.HAND)
-    // player.addCard(cards.find(c => c.type === CardType.BING_LIANG), CardPos.HAND)
-    // player.addCard(cards.find(c => c.type === CardType.LE_BU), CardPos.HAND)
-    // player.addCard(cards.find(c => c.type === CardType.SHAN_DIAN), CardPos.HAND)
-    player.addCard(new Card('diamond', CardSize.FIVE, CardType.GUAN_SHI), CardPos.EQUIP)
-    player.addCard(new Card('spade', CardSize.SIX, CardType.LE_BU), CardPos.JUDGE)
-    player.addCard(new Card('heart', CardSize.QUEEN, CardType.SHAN_DIAN), CardPos.JUDGE)
-    player.hp = 2;
+// export function sampleIdentityWarContext() {
+//     let cardManager = GameMode.get(GameModeEnum.IdentityWarGame).cardManager
+//     let p = {id: '青青子吟'}
+//     let cards = cardManager.getShuffledDeck()
+//     let player = new IdentityWarPlayerInfo(p, Identity.ZHU_GONG, IdentityWarGeneral.standard_zhang_liao).init()
+//     player.addCard(cards.find(c => c.type === CardType.SLASH), CardPos.HAND)
+//     player.addCard(cards.find(c => c.type === CardType.WAN_JIAN), CardPos.HAND)
+//     player.addCard(cards.find(c => c.type === CardType.DODGE), CardPos.HAND)
+//     player.addCard(cards.find(c => c.type === CardType.PEACH), CardPos.HAND)
+//     player.addCard(cards.find(c => c.type === CardType.HUO_GONG), CardPos.HAND)
+//     // player.addCard(cards.find(c => c.type === CardType.SHUN_SHOU), CardPos.HAND)
+//     // player.addCard(cards.find(c => c.type === CardType.GUO_HE), CardPos.HAND)
+//     // player.addCard(cards.find(c => c.type === CardType.JUE_DOU), CardPos.HAND)
+//     // player.addCard(cards.find(c => c.type === CardType.TIE_SUO), CardPos.HAND)
+//     // player.addCard(cards.find(c => c.type === CardType.BING_LIANG), CardPos.HAND)
+//     // player.addCard(cards.find(c => c.type === CardType.LE_BU), CardPos.HAND)
+//     // player.addCard(cards.find(c => c.type === CardType.SHAN_DIAN), CardPos.HAND)
+//     player.addCard(new Card('diamond', CardSize.FIVE, CardType.GUAN_SHI), CardPos.EQUIP)
+//     player.addCard(new Card('spade', CardSize.SIX, CardType.LE_BU), CardPos.JUDGE)
+//     player.addCard(new Card('heart', CardSize.QUEEN, CardType.SHAN_DIAN), CardPos.JUDGE)
+//     player.hp = 2;
     
-    let player2 = new IdentityWarPlayerInfo({id: '欧阳挠挠'}, Identity.ZHONG_CHEN, IdentityWarGeneral.forest_dong_zhuo).init()
-    player2.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
-    player2.addCard(new Card('spade', CardSize.QUEEN, CardType.ZHANG_BA), CardPos.EQUIP)
-    player2.addCard(new Card('spade', CardSize.KING, CardType.DA_YUAN), CardPos.EQUIP)
-    player2.addCard(new Card('diamond', CardSize.KING, CardType.HUA_LIU), CardPos.EQUIP)
-    player2.addCard(new Card('diamond', CardSize.ACE, CardType.LE_BU), CardPos.JUDGE)
-    player2.hp = 2;
+//     let player2 = new IdentityWarPlayerInfo({id: '欧阳挠挠'}, Identity.ZHONG_CHEN, IdentityWarGeneral.forest_dong_zhuo).init()
+//     player2.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
+//     player2.addCard(new Card('spade', CardSize.QUEEN, CardType.ZHANG_BA), CardPos.EQUIP)
+//     player2.addCard(new Card('spade', CardSize.KING, CardType.DA_YUAN), CardPos.EQUIP)
+//     player2.addCard(new Card('diamond', CardSize.KING, CardType.HUA_LIU), CardPos.EQUIP)
+//     player2.addCard(new Card('diamond', CardSize.ACE, CardType.LE_BU), CardPos.JUDGE)
+//     player2.hp = 2;
 
-    let player3 = new IdentityWarPlayerInfo({id: '东郭旭銮'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_cao_cao).init()
-    player3.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
-    player3.addCard(new Card('heart', CardSize.KING, CardType.ZHUA_HUANG), CardPos.EQUIP)
+//     let player3 = new IdentityWarPlayerInfo({id: '东郭旭銮'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_cao_cao).init()
+//     player3.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
+//     player3.addCard(new Card('heart', CardSize.KING, CardType.ZHUA_HUANG), CardPos.EQUIP)
 
-    let player4 = new IdentityWarPlayerInfo({id: '新荷'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_huang_gai).init()
-    player4.addCard(new Card('club', CardSize.JACK, CardType.BING_LIANG), CardPos.JUDGE)
-    player4.hp = 1
+//     let player4 = new IdentityWarPlayerInfo({id: '新荷'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_huang_gai).init()
+//     player4.addCard(new Card('club', CardSize.JACK, CardType.BING_LIANG), CardPos.JUDGE)
+//     player4.hp = 1
 
-    let player5 = new IdentityWarPlayerInfo({id: 'Iceberglet'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_guan_yu).init()
+//     let player5 = new IdentityWarPlayerInfo({id: 'Iceberglet'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_guan_yu).init()
     
-    let player6 = new IdentityWarPlayerInfo({id: '广东吴彦祖'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_ma_chao).init()
-    player6.addCard(new Card('club', CardSize.TWO, CardType.BA_GUA), CardPos.EQUIP)
+//     let player6 = new IdentityWarPlayerInfo({id: '广东吴彦祖'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_ma_chao).init()
+//     player6.addCard(new Card('club', CardSize.TWO, CardType.BA_GUA), CardPos.EQUIP)
     
-    let player7 = new IdentityWarPlayerInfo({id: '豫章铁锅'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_zhang_fei).init()
-    player7.hp = 3
+//     let player7 = new IdentityWarPlayerInfo({id: '豫章铁锅'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_zhang_fei).init()
+//     player7.hp = 3
 
-    let player8 = new IdentityWarPlayerInfo({id: 'tester-8'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_xu_chu).init()
+//     let player8 = new IdentityWarPlayerInfo({id: 'tester-8'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_xu_chu).init()
 
-    let context = new GameServerContext([player, player2, player3, player4, player5, player6, player7, player8], GameModeEnum.IdentityWarGame)
+//     let context = new GameServerContext([player, player2, player3, player4, player5, player6, player7, player8], GameModeEnum.IdentityWarGame)
 
-    return context
-}
+//     return context
+// }

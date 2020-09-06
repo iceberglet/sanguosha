@@ -1,7 +1,7 @@
 import * as React from 'react'
 
 import './ui-board.scss'
-import { UIMyPlayerCard } from './UIMyPlayerCard'
+import { UIMyPlayerCard, SkillButtonProp } from './UIMyPlayerCard'
 import UIButton from './UIButton'
 import UIPlayGround from './UIPlayGround' 
 import GameClientContext from '../GameClientContext'
@@ -19,6 +19,8 @@ import { PlayerInfo } from '../../common/PlayerInfo'
 import CardTransitManager from './CardTransitManager'
 import UIMyCards from './UIMyCards'
 import { CustomUIData } from '../card-panel/CustomUIRegistry'
+import { GameMode } from '../../common/GameMode'
+import { SkillStatus } from '../../game-mode-faction/skill/Skill'
 
 type UIBoardProp = {
     myId: string
@@ -76,6 +78,7 @@ type State = {
     cardsChecker: Checker,
     buttonChecker: Checker,
     equipChecker: Checker,
+    skillButtons: SkillButtonProp[],
     uiRequest?: CustomRequest,
     uiData?: CustomUIData<any>,
     others: PlayerInfo[],
@@ -91,6 +94,18 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         super(p)
         let {myId, context} = p
         let screenPosObtainer = new ScreenPosObtainer()
+        let skillChecker = new CheckerImpl(UIPosition.MY_SKILL, context, this.refresh)
+        let skillButtons: SkillButtonProp[] = context.getPlayer(myId).getSkillIds().map(s => {
+            let skill = GameMode.get(context.gameMode).skillProvider(s[0], myId)
+            skill.isMain = s[1]
+            skill.bootstrapClient()
+            return {
+                skill,
+                skillChecker, statusUpdater:(s)=>{
+                    context.sendSkillStatus(s)
+                }
+            }
+        })
         this.state = {
             hideCards: false,
             showDistance: false,
@@ -102,8 +117,20 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             cardTransitManager: new CardTransitManager(context.cardManager),
             uiRequest: null,
             uiData: null,
+            skillButtons,
             others: context.getRingFromPerspective(myId, false, true)
         }
+        p.pubsub.on(SkillStatus, (s: SkillStatus)=>{
+            // console.log('Received Skill Status', s)
+            this.setState(state => {
+                let match = state.skillButtons.find(prop => {
+                    return prop.skill.id === s.id && prop.skill.playerId === s.playerId
+                })
+                Object.assign(match.skill, s)
+                console.log('Updated skill', match.skill.isRevealed, match.skill)
+                return state
+            })
+        })
         //need to forceupdate to register new changes
         p.pubsub.on(ServerHintTransit, (con: ServerHintTransit)=>{
             context.setHint(con)
@@ -155,7 +182,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
 
     render() {
         let {myId, context, pubsub} = this.props
-        let {showDistance, hideCards, screenPosObtainer, others, 
+        let {showDistance, hideCards, screenPosObtainer, others, skillButtons,
             playerChecker, cardsChecker, buttonChecker, equipChecker, cardTransitManager} = this.state
         let playerInfo = context.getPlayer(myId)
         // console.log(context.playerInfos, myId, playerInfo)
@@ -185,7 +212,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             <div className='btm' ref={this.dom}>
                 {/* 状态 */}
                 <UIMyPlayerCard info={playerInfo} onUseSkill={(s)=>{}} elementStatus={playerChecker.getStatus(myId)} 
-                                onSelect={(s)=>playerChecker.onClicked(s)} pubsub={pubsub}/>
+                                onSelect={(s)=>playerChecker.onClicked(s)} pubsub={pubsub} skillButtons={skillButtons}/>
                 <UIMyCards info={playerInfo} equipChecker={equipChecker} cardsChecker={cardsChecker} 
                             hideCards={hideCards} cardTransitManager={cardTransitManager}/>
                 <div className='player-buttons'>

@@ -7,14 +7,17 @@ import { BlockedEquipment } from "../server/engine/Equipments";
 import { Player } from "../common/Player";
 import GameServerContext from "../server/engine/GameServerContext";
 import FactionWarActionResolver from "./FactionWarActionResolver";
-import { Serde } from "../common/util/Serializer";
 import { GameModeEnum } from "../common/GameModeEnum";
 import { shuffle, flattenMap, delay } from "../common/util/Util";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { HintType, GeneralSelectionResult } from "../common/ServerHint";
 import GameStatsCollector from "../server/GameStatsCollector";
+import { SequenceAwareSkillPubSub } from "./skill/SkillPubsub";
+import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
+import { SkillStatus } from "./skill/Skill";
 
 const myMode = GameModeEnum.FactionWarGame
+const generalsToPickFrom = 3
 
 export default class FactionWarGameHoster implements GameHoster {
 
@@ -23,9 +26,10 @@ export default class FactionWarGameHoster implements GameHoster {
     initializer = new FactionWarInitializer()
     manager: GameManager
     statsCollector: GameStatsCollector
+    skillRepo: FactionWarSkillRepo
 
     constructor(private registry: PlayerRegistry, private numberOfPlayer: number) {
-
+        registry.pubsub.on<SkillStatus>(SkillStatus, this.onSkillStatusUpate)
     }
 
     init(): void {
@@ -52,6 +56,9 @@ export default class FactionWarGameHoster implements GameHoster {
             }
         } else {
             this.manager.onPlayerReconnected(playerId)
+            this.skillRepo.getSkills(playerId).forEach(s => {
+                this.manager.send(playerId, s.toStatus())
+            })
         }
     }
 
@@ -81,6 +88,11 @@ export default class FactionWarGameHoster implements GameHoster {
         })
     }
 
+    onSkillStatusUpate = (s: SkillStatus) => {
+        this.skillRepo.onClientUpdateSkill(s)
+        this.manager.send(s.playerId, s)
+    }
+
     tryStartTheGame(): void {
         if(this.choices.length === 0) {
             for(let s of this.circus.statuses) {
@@ -106,7 +118,17 @@ export default class FactionWarGameHoster implements GameHoster {
         }), myMode)
         this.initializer = new FactionWarInitializer()
         BlockedEquipment.clear()
-        this.manager = new GameManager(context, this.registry, new FactionWarActionResolver(), this.statsCollector);
+
+        let resolver = new FactionWarActionResolver()
+        this.manager = new GameManager(context, this.registry, resolver, this.statsCollector);
+
+        let skillRegistry = new SequenceAwareSkillPubSub(this.manager, 
+                (ids: string[])=>context.sortFromPerspective(this.manager.currPlayer().player.id, ids).map(p => p.player.id))
+        this.manager.init(skillRegistry)
+
+        this.skillRepo = new FactionWarSkillRepo(this.manager, skillRegistry)
+        resolver.register(this.skillRepo)
+
         this.initializer.init(this.manager)
         //强制广播context
         this.circus.statuses.forEach(s => {
@@ -134,7 +156,7 @@ export default class FactionWarGameHoster implements GameHoster {
         let gs = flattenMap(allGenerals).map(g => g[1])
         shuffle(gs)
         for(let i = 0; i < playerNo; ++i) {
-            choices.push(gs.splice(0, 7))
+            choices.push(gs.splice(0, generalsToPickFrom))
         }
         return choices
     }
@@ -174,6 +196,3 @@ export class PlayerPrepChoice {
         }
     }
 }
-
-Serde.register(PlayerPrepChoice)
-Serde.register(Circus)

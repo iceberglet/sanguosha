@@ -2,7 +2,7 @@
 .ui-player-card.ui-my-player-card{
     .faction-war {
         width: 320px;
-        overflow: hidden;
+        // overflow: hidden;
         position: relative;
         display: flex;
         pointer-events: none;
@@ -56,6 +56,22 @@
                 filter: drop-shadow(0px 0px 6px black);
                 font-size: 24px;
             }
+        }
+
+        .my-faction-mark {
+            width: 24px;
+            height: 24px;
+            position: absolute;
+            top: -4px;
+            right: 0px;
+            border-radius: 15px;
+            font-size: 34px;
+            border: double black;
+            color: white;
+            justify-content: center;
+            display: flex;
+            align-items: center;
+            z-index: 9; //go over the drunk/turn over effects
         }
     }
 }
@@ -142,9 +158,9 @@
         align-items: center;
         z-index: 1; //go over the drunk/turn over effects
 
-        .myself {
-            left: 0px;
-        }
+        // .myself {
+        //     left: 0px;
+        // }
     }
 
     .wei {

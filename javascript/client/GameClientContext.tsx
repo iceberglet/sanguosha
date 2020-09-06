@@ -11,6 +11,7 @@ import { ICard } from "../common/cards/ICard";
 import { CardManager } from "../common/cards/Card";
 import { GameMode } from "../common/GameMode";
 import { GameModeEnum } from "../common/GameModeEnum";
+import { SkillStatus } from "../game-mode-faction/skill/Skill";
 
 export default class GameClientContext extends GameContext {
 
@@ -88,5 +89,10 @@ export default class GameClientContext extends GameContext {
     public submitAction(action: PlayerAction) {
         console.warn('[Client] Submitting Action To Server', this.serverHint.hintId, action)
         this.socket.send(Serde.serialize(new PlayerActionTransit(this.serverHint.hintId, action)))
+    }
+
+    public sendSkillStatus(skillStatus: SkillStatus) {
+        console.warn('[Client] Submitting Skill Status To Server', skillStatus)
+        this.socket.send(Serde.serialize(skillStatus))
     }
 }

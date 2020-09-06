@@ -5,6 +5,7 @@ import * as WebSocket from 'ws';
 import { Serde } from "../common/util/Serializer";
 import { PlayerAction, PlayerActionTransit } from "../common/PlayerAction";
 import Pubsub from "../common/util/PubSub";
+import { SkillStatus } from "../game-mode-faction/skill/Skill";
 
 export class ServerPlayer {
     player: Player
@@ -26,7 +27,7 @@ export class PlayerRegistry {
     private _failedHint = new Map<string, ServerHintTransit>()
     private static hintCount = 0
 
-    constructor(pubsub: Pubsub) {
+    constructor(public pubsub: Pubsub) {
         pubsub.on(PlayerActionTransit, this.onPlayerAction)
     }
 

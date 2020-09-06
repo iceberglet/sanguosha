@@ -4,7 +4,6 @@ import { Button, PlayerAction, UIPosition, getFromAction } from "../../common/Pl
 import { CardPos } from "../../common/transit/CardPos";
 import { filterMap, promiseAny, delay } from "../../common/util/Util";
 import { HintType } from "../../common/ServerHint";
-import { ICard } from "../../common/cards/ICard";
 import { CardBeingPlayedEvent } from "./Generic";
 
 const REFUSE = 'refuse'
@@ -24,7 +23,7 @@ export class WuXieContext {
     public async init() {
         // 检查所有人的手牌查看是否有无懈, 没有的直接 null 处理
         this.manager.context.playerInfos.filter(p => !p.isDead).forEach(p => {
-            if(p.getCards(CardPos.HAND).filter(c => c.type === CardType.WU_XIE).length > 0) {
+            if(p.getCards(CardPos.HAND).filter(c => c.type.isWuxie()).length > 0) {
                 this.processors.set(p.player.id, async(act) => this.processNormal(act))
             }
         })
@@ -48,7 +47,7 @@ export class WuXieContext {
 
             candidates = candidates.filter(kv=>{
                 //有无懈牌并且没有放弃无懈的权利
-                return this.manager.context.getPlayer(kv[0]).getCards(CardPos.HAND).filter(c => c.type === CardType.WU_XIE).length > 0
+                return this.manager.context.getPlayer(kv[0]).getCards(CardPos.HAND).filter(c => c.type.isWuxie()).length > 0
                         && !pplNotInterestedInThisPlayer.has(kv[0])
             })
 
@@ -115,6 +114,6 @@ export class WuXieContext {
         let actual = this.manager.getCard(card)
         actual.description = `${action.actionSource} 打出`
         this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [actual])
-        await this.manager.events.publish(new CardBeingPlayedEvent(action.actionSource, [[actual, CardPos.HAND]], CardType.WU_XIE))
+        await this.manager.events.publish(new CardBeingPlayedEvent(action.actionSource, [[actual, CardPos.HAND]], actual.type))
     }
 }

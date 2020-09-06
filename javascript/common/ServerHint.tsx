@@ -118,8 +118,15 @@ export type ServerHint = {
      * e.g. 
      */
     targetPlayers?: string[]
+
+    /**
+     * 至少需要选择的牌数, 比如弃牌
+     * 或者需要选择的玩家数
+     */
+    minQuantity?: number
     /**
      * 需要选择的牌数, 比如弃牌
+     * 或者需要选择的玩家数
      * 弃牌如此多张
      */
     quantity?: number

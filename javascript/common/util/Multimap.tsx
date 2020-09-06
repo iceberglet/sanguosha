@@ -1,3 +1,4 @@
+import { flattenMap } from "./Util"
 
 
 export default class Multimap<K, V> {
@@ -35,6 +36,9 @@ export default class Multimap<K, V> {
         return toArray(this.get(k))
     }
 
+    keys(): K[] {
+        return flattenMap(this._map).map(kv=>kv[0])
+    }
 }
 
 

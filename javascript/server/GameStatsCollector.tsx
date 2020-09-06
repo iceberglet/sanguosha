@@ -94,6 +94,3 @@ export type OverallStats = Stats & {
     wins: number
     thisRound: Stats
 }
-
-
-Serde.register(GameStats)

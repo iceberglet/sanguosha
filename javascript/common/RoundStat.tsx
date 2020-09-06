@@ -29,7 +29,14 @@ export default class RoundStat {
      * -1 = 不能使用
      * 默认(1)使用默认距离
      */
-    ruseReach: number = 1
+    shunshouReach: number = 1
+
+    /**
+     * 100 = 无限距离
+     * -1 = 不能使用
+     * 默认(1)使用默认距离
+     */
+    binLiangReach: number = 1
 
     /**
      * 不能喝酒了?

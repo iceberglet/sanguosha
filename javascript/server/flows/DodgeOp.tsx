@@ -50,14 +50,7 @@ export default class DodgeOp extends Operation<boolean> {
                 return false
             } else {
                 needed--
-                manager.broadcast(new TextFlashEffect(this.target.player.id, [this.source], '闪'))
-                //assume he played it
-                let cards = getFromAction(response, UIPosition.MY_HAND).map(id => manager.getCard(id))
-                if(cards.length !== 1) {
-                    throw `Player played dodge cards but not one card!!!! ${response.actionSource} ${cards}`
-                }
-                //张角呢??
-                manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [cards[0]])
+                await manager.resolver.onDodge(response, this, manager)
             }
         }
 

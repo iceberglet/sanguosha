@@ -5,11 +5,10 @@ import { CardPos } from "../../common/transit/CardPos";
 import { CardTransit } from "../../common/transit/EffectTransit";
 import { CardObtainedEvent } from "./Generic";
 
-//摸牌阶段
-export default class TakeCardOp extends Operation<void> {
-
+export class TakeCardStageOp extends Operation<void> {
+    
     public constructor(public player: PlayerInfo, 
-                        public amount: number) {
+        public amount: number) {
         super()
     }
 
@@ -19,10 +18,22 @@ export default class TakeCardOp extends Operation<void> {
         if(this.amount > 0) {
             await this.do(manager)
         }
-
     }
 
     public async do(manager: GameManager) {
+        await new TakeCardOp(this.player, this.amount).perform(manager)
+    }
+}
+
+//摸牌阶段
+export default class TakeCardOp extends Operation<void> {
+
+    public constructor(public player: PlayerInfo, 
+                        public amount: number) {
+        super()
+    }
+
+    public async perform(manager: GameManager): Promise<void> {
         let cards = manager.context.deck.getCardsFromTop(this.amount)
         //add cards from deck to player
         cards.forEach(c => this.player.addCard(c, CardPos.HAND))

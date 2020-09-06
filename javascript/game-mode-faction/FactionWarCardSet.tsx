@@ -96,8 +96,7 @@ normalCards.push(new FWCard('club', CardSize.JACK, CardType.SLASH))
 normalCards.push(new FWCard('club', CardSize.JACK, CardType.SLASH))
 normalCards.push(new FWCard('club', CardSize.QUEEN, CardType.JIE_DAO))
 normalCards.push(new FWCard('club', CardSize.QUEEN, CardType.TIE_SUO))
-//todo: 无懈可击:国
-normalCards.push(new FWCard('club', CardSize.KING, CardType.WU_XIE))
+normalCards.push(new FWCard('club', CardSize.KING, CardType.WU_XIE_GUO))
 normalCards.push(new FWCard('club', CardSize.KING, CardType.TIE_SUO))
 
 

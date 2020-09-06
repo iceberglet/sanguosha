@@ -6,6 +6,7 @@ import * as React from "react"
 import './faction-war.scss'
 import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
 import { ClassFormatter } from "../common/util/Togglable"
+import { SkillButtonProp, SkillButton } from "../client/ui/UIMyPlayerCard"
 
 
 export default class FactionPlayerInfo extends PlayerInfo {
@@ -20,6 +21,18 @@ export default class FactionPlayerInfo extends PlayerInfo {
         public general: FactionWarGeneral,
         public subGeneral: FactionWarGeneral) {
         super(player)
+    }
+
+    
+    getSkillIds(): Array<[string, boolean]> {
+        let res: Array<[string, boolean]> = []
+        this.general.abilities.forEach(a => {
+            res.push([a, true])
+        })
+        this.subGeneral.abilities.forEach(a => {
+            res.push([a, false])
+        })
+        return res
     }
 
     init() {
@@ -94,8 +107,9 @@ export default class FactionPlayerInfo extends PlayerInfo {
         <FactionMark key={'faction-mark'} info={this}/>]
     }
 
-    drawSelf() {
-        let color = Color[this.getFaction().image]
+    drawSelf(skillButtons: SkillButtonProp[]) {
+        let fac = this.isRevealed()? this.getFaction() : this.general.faction
+        let color = Color[fac.image]
         let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
         return <div className={clazz}>
             <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
@@ -105,6 +119,11 @@ export default class FactionPlayerInfo extends PlayerInfo {
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>
                 <div className='title'>主</div>
+                <div className='skill-buttons'>
+                    {skillButtons.filter(b=>b.skill.isMain).map(b=>{
+                        return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
+                    })}
+                </div>
             </div>
             <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.subGeneral, true)}
@@ -113,6 +132,14 @@ export default class FactionPlayerInfo extends PlayerInfo {
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>
                 <div className='title'>副</div>
+                <div className='skill-buttons'>
+                    {skillButtons.filter(b=>!b.skill.isMain).map(b=>{
+                        return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
+                    })}
+                </div>
+            </div>
+            <div className={'my-faction-mark ' + fac.image}>
+                {fac.name}
             </div>
             {/* <div className='player-name'>{this.player.id}</div> */}
         </div>

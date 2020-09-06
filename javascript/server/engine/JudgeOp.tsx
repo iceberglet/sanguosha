@@ -1,11 +1,10 @@
 import { Operation } from "../Operation";
-import { ICard } from "../../common/cards/ICard";
 import GameManager from "../GameManager";
 import Card from "../../common/cards/Card";
 import { CardTransit } from "../../common/transit/EffectTransit";
 import { delay } from "../../common/util/Util";
 
-enum Timeline {
+export enum JudgeTimeline {
 
     BEGIN, //开始判定, 还没拿出判定牌
     CONFIRMING, //生效中, 可以改判
@@ -22,7 +21,7 @@ enum Timeline {
 export default class JudgeOp extends Operation<Card> {
 
     public judgeCard: Card = null
-    public timeline: Timeline = Timeline.BEGIN
+    public timeline: JudgeTimeline = JudgeTimeline.BEGIN
 
     constructor(public readonly judgeCardMsg: string,
                 public readonly owner: string) {
@@ -30,7 +29,7 @@ export default class JudgeOp extends Operation<Card> {
     }
 
     public async perform(manager: GameManager): Promise<Card> {
-        manager.events.publish(this)
+        await manager.events.publish(this)
 
         this.judgeCard = manager.context.deck.getCardsFromTop(1)[0]
 
@@ -43,15 +42,15 @@ export default class JudgeOp extends Operation<Card> {
         await delay(1000)
 
         //改判定??
-        this.timeline = Timeline.CONFIRMING
-        manager.events.publish(this)
+        this.timeline = JudgeTimeline.CONFIRMING
+        await manager.events.publish(this)
 
         //判定结束了, 发布结果
         let result = this.judgeCard
 
         //天妒 可在此从workflow拿走判定牌
-        this.timeline = Timeline.CONFIRMED
-        manager.events.publish(this)
+        this.timeline = JudgeTimeline.CONFIRMED
+        await manager.events.publish(this)
 
         await delay(1000)
         return result
