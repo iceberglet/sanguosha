@@ -18,7 +18,7 @@ import e = require("express")
 const cardWidth = 120 //100 (card) + 5*2 (border)
 const cardHeight = 154
 const rowOffset = 270
-const btmOffset = 80
+const btmOffset = 40
 
 type SimpleRowProp = {
     cardManager: CardManager,

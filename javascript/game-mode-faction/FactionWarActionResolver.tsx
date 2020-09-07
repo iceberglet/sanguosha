@@ -54,6 +54,7 @@ export default class FactionWarActionResolver extends ActionResolver {
             let skill = await this.getSkillAndRevealIfNeeded(act, manager)
             //no event...
             await skill.onPlayerAction(act, null, manager)
+            return true
         }
 
         //weapons?

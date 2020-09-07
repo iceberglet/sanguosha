@@ -70,8 +70,10 @@
         position: absolute;
         bottom: 8px;
         left: 6px;
-        right: 3px;
+        right: 20px; //不能挡着血条了...
         pointer-events: all;
+        z-index: 9;
+        flex-wrap: wrap;
 
         .skill-button {
             margin: 3px 3px 3px 0px;
@@ -79,11 +81,11 @@
             color: white;
             transition: 0.2s;
             flex-grow: 1;
+            min-width: 38px;
             border-radius: 3px;
             border: 1px solid black;
             filter: brightness(0.5);
             overflow: hidden;
-            
 
     
             &.selectable {

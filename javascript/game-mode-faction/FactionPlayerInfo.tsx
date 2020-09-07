@@ -7,6 +7,7 @@ import './faction-war.scss'
 import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
 import { ClassFormatter } from "../common/util/Togglable"
 import { SkillButtonProp, SkillButton } from "../client/ui/UIMyPlayerCard"
+import { wrapGeneral } from "../client/ui/UIPlayerCard"
 
 
 export default class FactionPlayerInfo extends PlayerInfo {
@@ -94,14 +95,14 @@ export default class FactionPlayerInfo extends PlayerInfo {
         let main = this.general? this.general.name : '主将'
         let sub = this.subGeneral? this.subGeneral.name : '副将'
         return [<div className={clazz} key={'pics'}>
-            <div className='general' style={{letterSpacing: main.length > 2 ? '-4px' : '0px'}}>
+            {wrapGeneral(this.general, <div className='general' style={{letterSpacing: main.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.general, false)}
                 <div className='general-name'>{main}</div>
-            </div>
-            <div className='general' style={{letterSpacing: sub.length > 2 ? '-4px' : '0px'}}>
+            </div>)}
+            {wrapGeneral(this.subGeneral, <div className='general' style={{letterSpacing: sub.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.subGeneral, false)}
                 <div className='general-name'>{sub}</div>
-            </div>
+            </div>)}
             <div className='player-name'>{this.player.id}</div>
         </div>,
         <FactionMark key={'faction-mark'} info={this}/>]
@@ -112,9 +113,9 @@ export default class FactionPlayerInfo extends PlayerInfo {
         let color = Color[fac.image]
         let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
         return <div className={clazz}>
-            <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
+            {wrapGeneral(this.general, <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.general, true)}
-                <div className='general-name' style={{background: color, letterSpacing: this.general.name.length > 2 ? '-4px' : '0px'}}>
+                <div className='general-name' style={{background: color, letterSpacing: this.general.name.length > 3 ? '-4px' : '0px'}}>
                     {this.general.name}
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>
@@ -124,10 +125,10 @@ export default class FactionPlayerInfo extends PlayerInfo {
                         return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
                     })}
                 </div>
-            </div>
-            <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
+            </div>)}
+            {wrapGeneral(this.subGeneral, <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.subGeneral, true)}
-                <div className='general-name' style={{background: color}}>
+                <div className='general-name' style={{background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-4px' : '0px'}}>
                     {this.subGeneral.name}
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>
@@ -137,7 +138,8 @@ export default class FactionPlayerInfo extends PlayerInfo {
                         return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
                     })}
                 </div>
-            </div>
+            </div>)}
+            
             <div className={'my-faction-mark ' + fac.image}>
                 {fac.name}
             </div>

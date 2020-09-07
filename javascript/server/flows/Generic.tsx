@@ -42,6 +42,7 @@ const cardPosNames = new Map<string, CardPos>([
 ])
 
 export function gatherCards(info: PlayerInfo, poses: CardPos[]): {[key: string]: Array<Card>} {
+    let count = 0
     let res: {[key: string]: Array<Card>} = {}
     for(let n of cardPosNames.keys()) {
         let pos = cardPosNames.get(n)
@@ -52,11 +53,16 @@ export function gatherCards(info: PlayerInfo, poses: CardPos[]): {[key: string]:
         if(cards.length === 0) {
             continue
         }
+        count += cards.length
         if(isCardPosHidden(pos)) {
             res[n] = cards.map(c => Card.DUMMY)
         } else {
             res[n] = cards
         }
+    }
+    if(count === 0) {
+        console.error('无法取得这些位置的牌...', info.player.id, poses)
+        return null
     }
     return res
 }

@@ -4,6 +4,11 @@ import './ui-card.scss'
 import { Suits } from '../../common/util/Util'
 import { ElementStatus } from './UIBoard'
 import { ClassFormatter } from '../../common/util/Togglable'
+// import "bootstrap/dist/css/bootstrap.css";
+import './tooltip.scss'
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
+import { describer } from '../../common/util/Describer'
 
 type CallBack = (id: Card)=>void
 type PosCallBack = (id: string, ref: React.RefObject<HTMLDivElement>)=>void
@@ -54,8 +59,10 @@ export default function UICard(prop: CardProp) {
                 alt='HiddenCard'/>
         </div>
     }
-    return <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseOver={onMouseStay}
-                onClick={onMouseClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} ref={myRef}>
+
+
+    return wrapCard(card, <div className={clazz} onMouseDown={onMouseDown} onMouseUp={onMouseUp} onMouseOver={onMouseStay} 
+                                onClick={onMouseClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} ref={myRef}>
         <img className='back'
             src={`cards/back.png`}
             alt='HiddenCard'/>
@@ -70,5 +77,22 @@ export default function UICard(prop: CardProp) {
         </div>
         {!nodescript && card.as && <div className='as center'>{card.as.name}</div>}
         {!nodescript && card.description && <div className='description'>{card.description}</div>}
-    </div>
+    </div>)
+}
+
+export function wrapCard(card: Card, ele: React.ReactElement) {
+    let des = describer.get(card.type.id)
+    let as = card.as && describer.get(card.as.id)
+    if(des || as) {
+        let overlay = (props: any) => <Tooltip {...props}>
+                {<p>{`${Suits[card.suit]} ${card.size.symbol} ${card.type.name}`}</p>}
+                {des? <p>{'【'+card.type.name+'】' + des}</p> : null}
+                {as? <p>{'【'+card.as.name+'】' + as}</p> : null}
+            </Tooltip>
+        return <OverlayTrigger placement='auto' key={card.id} overlay={overlay} delay={{show: 1000, hide: 200}}>
+            {ele}
+        </OverlayTrigger>
+    } else {
+        return ele
+    }
 }

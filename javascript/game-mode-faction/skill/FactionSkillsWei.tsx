@@ -308,7 +308,7 @@ export class QinGuo extends Skill<DodgeOp> {
                     .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
                     .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>isSuitBlack(context.interpret(id).suit), ()=>'选择一张黑色手牌作为闪')
                     .expectAnyButton('点击确定使用倾国')
-                    .build(hint)
+                    .build(hint, [Button.OK])
         })
     }
 
@@ -436,6 +436,10 @@ export class ShenSu extends Skill<StageStartFlow> {
                 for(let kv of equipp) {
                     let pos = kv[0]
                     let c = kv[1][0]
+                    if(!c) {
+                        console.warn('[神速] 忽略空array', CardPos[pos])
+                        continue
+                    }
                     console.log('[神速] 弃置的为', CardPos[pos], c)
                     let card = manager.getCard(c)
                     delete card.as
@@ -479,7 +483,7 @@ export class DuanLiang extends Skill<StageStartFlow> {
 
     async onPlayerAction(act: PlayerAction, ignore: any, manager: GameManager): Promise<void> {
         let target = getFromAction(act, UIPosition.PLAYER)[0]
-        manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
+        // manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
         //assume he played it
         let posAndCards = flattenMap(getCardsFromAction(act, UIPosition.MY_HAND, UIPosition.MY_EQUIP))[0]
         let pos = posAndCards[0]

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import Card, { CardType } from '../../common/cards/Card'
-import UICard from './UICard'
+import UICard, { wrapCard } from './UICard'
 import { Checker } from './UIBoard'
 import { InCardAndCoor, CardWidth, CardEndpoint, CardAndCoor } from './CardTransitManager'
 import { Coor } from './ScreenPosObtainer'
@@ -177,10 +177,10 @@ type MarkProp = {
 
 export function UIMarkRow(p: MarkProp) {
  
-    return <div className='ui-card-row'>
-        {p.marks.map(m => {
+    return <div className='ui-mark-row'>
+        {p.marks.map((m: Card) => {
             let as: CardType = m.as || m.type
-            return <img className='judge-cards' key={as.name} src={`icons/${as.id}.png`} ref={r => r}/>
+            return wrapCard(m, <img className='judge-cards' key={as.name} src={`icons/${as.id}.png`} ref={r => r}/>)
         })}
     </div>
 }

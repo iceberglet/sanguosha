@@ -104,19 +104,25 @@ export class ShunShou extends SingleRuse<void> {
     public async doPerform(manager: GameManager) {
         let targetPlayer = manager.context.getPlayer(this.target)
 
+        let candidates = gatherCards(targetPlayer, [CardPos.JUDGE, CardPos.HAND, CardPos.EQUIP])
+        if(!candidates) {
+            console.error('[顺手] 无法进行顺手结算, 此玩家没有牌可以拿')
+            return
+        }
+        
         let resp = await manager.sendHint(this.source, {
             hintType: HintType.UI_PANEL,
             hintMsg: '请选择对方一张牌',
             customRequest: {
                 data: {
-                    rowsOfCard: gatherCards(targetPlayer, [CardPos.JUDGE, CardPos.HAND, CardPos.EQUIP]),
+                    rowsOfCard: candidates,
                     title: `顺手牵羊 > ${this.target}`,
                     chooseSize: 1
                 },
                 mode: 'choose'
             }
         })
-        console.log('顺手牵羊成功!', resp)
+        console.log('[顺手] 顺手牵羊成功!', resp)
         let res = resp.customData as CardSelectionResult
         let cardAndPos = findCard(targetPlayer, res)[0]
         let card = cardAndPos[0], pos = cardAndPos[1]
@@ -172,9 +178,13 @@ export class JieDao extends SingleRuse<void> {
         let to = this.actors[1]
         let weapon = from.getCards(CardPos.EQUIP).find(c => c.type.genre === 'weapon')
 
-        if(!weapon || this.actors.length !== 2) {
-            console.error('借刀杀人指令不对', this.source, this.target)
+        if(this.actors.length !== 2) {
+            console.error('借刀杀人指令不对', this.source, this.target, this.actors)
             throw `Invalid!!`
+        }
+        if(!weapon) {
+            console.error('[借刀] 无法执行, 对象没有刀了!')
+            return
         }
 
         let resp = await manager.sendHint(from.player.id, {
@@ -211,6 +221,11 @@ export class HuoGong extends SingleRuse<void> {
     }
 
     public async doPerform(manager: GameManager): Promise<void> {
+        if(manager.context.getPlayer(this.target).getCards(CardPos.HAND).length === 0) {
+            console.error('[火攻] 玩家没有手牌, 无法火攻!! (最后手牌是无懈?)', this.target)
+            return
+        }
+
         //先令对方亮一张牌
         let resp = await manager.sendHint(this.target, {
             hintType: HintType.CHOOSE_CARD,

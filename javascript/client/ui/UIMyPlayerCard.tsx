@@ -56,10 +56,12 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
     render() {
         let {info, elementStatus, skillButtons} = this.props
         let {damaged,effect} = this.state
+        let pendingOnMe = effect.pendingUser?.has(info.player.id)
         let clazz = new ClassFormatter('ui-player-card ui-my-player-card')
                         .and(elementStatus.isSelectable, 'selectable')
                         .and(elementStatus === ElementStatus.SELECTED, 'selected')
                         .and(damaged, 'damaged')
+                        .and(pendingOnMe, 'glow-on-hover')
                         .done()
 
         return <div className={clazz}  onClick={this.onClick}>
@@ -114,10 +116,10 @@ export function SkillButton(p: ButtonProp) {
     let {isRevealed, isDisabled, isForewarned} = p.skill
     let cb = ()=>{
         if(isRevealed) {
-            if(isDisabled){
-                console.log('Clicked on ', p.skill.id, ' but not reacting as the skill is disabled')
-            } else {
+            if (p.skillChecker?.getStatus(p.skill.id).isSelectable && !isDisabled){
                 p.skillChecker.onClicked(p.skill.id)
+            } else {
+                console.log('Clicked on ', p.skill.id, ' but not reacting as the skill is disabled or not appropriate')
             }
         } else {
             if(p.skillChecker?.getStatus(p.skill.id).isSelectable) {

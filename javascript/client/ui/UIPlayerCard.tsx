@@ -13,6 +13,9 @@ import { ScreenPosObtainer } from './ScreenPosObtainer'
 import { CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { ElementStatus } from './UIBoard'
 import CardTransitManager, { DefaultCardEndpoint, CardEndpoint } from './CardTransitManager'
+import { General } from '../../common/General'
+import { Tooltip, OverlayTrigger } from 'react-bootstrap'
+import { describer } from '../../common/util/Describer'
 
 type CardProp = {
     info: PlayerInfo,
@@ -57,7 +60,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
                         .and(elementStatus === ElementStatus.SELECTED, 'selected')
                         .and(isDamaged, 'damaged')
                         .and(inMyTurn, 'in-turn')
-                        .and(pendingOnMe, 'pending')
+                        .and(pendingOnMe, 'glow-on-hover')
                         .done()
         //todo: highlight, click
         return <div className={clazz} ref={this.dom} onClick={this.onClick}>
@@ -92,5 +95,22 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
             <div className='seat-number'>{toChinese(info.idx)}</div>
             <DefaultCardEndpoint info={info} callback={()=>this.forceUpdate()} ref={this.doRegister}/>
         </div>
+    }
+}
+
+
+export function wrapGeneral (general: General, ele: React.ReactElement) {
+    if(general) {
+        let overlay = (props: any) => <Tooltip {...props}>
+                <p>{'【'+general.name+'】'}</p>
+                {general.abilities.map(skill=>{
+                    return <p key={skill}>{'【'+ skill +'】 ' + describer.get(skill)}</p>
+                })}
+            </Tooltip>
+        return <OverlayTrigger placement='auto' overlay={overlay} delay={{show: 1000, hide: 200}}>
+            {ele}
+        </OverlayTrigger>
+    } else {
+        return ele
     }
 }

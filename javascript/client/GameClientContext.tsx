@@ -27,6 +27,7 @@ export default class GameClientContext extends GameContext {
         super(context.playerInfos, gameMode)
         this.myself = this.playerInfos.find(i => i.player.id === myself.id)
         this.cardManager = GameMode.get(gameMode).cardManager
+        GameMode.get(gameMode).initClient()
         this.currentDriver = NoActionDriver.INSTANCE
     }
 

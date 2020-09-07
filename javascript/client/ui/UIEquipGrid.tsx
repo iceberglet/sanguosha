@@ -5,6 +5,7 @@ import { Suits, toChinese } from '../../common/util/Util'
 import { Checker, ElementStatus } from './UIBoard'
 import { ClassFormatter } from '../../common/util/Togglable'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
+import { wrapCard } from './UICard'
 
 type EquipGridProp = {
     cards: Card[],
@@ -47,7 +48,7 @@ function Equip(p: EquipProp) {
     if(!p.card) {
         return <div />
     }
-    return <div className='equip'>
+    return wrapCard(p.card, <div className='equip'>
             <img key='1' className='corner corner-top-left' src={'equips/corner.png'} />
             <img key='2' className='corner corner-btm-left' src={'equips/corner.png'} />
             <img key='3' className='corner corner-top-right' src={'equips/corner.png'} />
@@ -58,7 +59,7 @@ function Equip(p: EquipProp) {
             <div key='7' className='text-two'>{p.card.type.name}</div>
             <div key='8' className={'number ' + p.card.suit}>{p.card.size.symbol}</div>
             <div key='9' className={'suit ' + p.card.suit}>{Suits[p.card.suit]}</div>
-        </div>
+        </div>)
 }
 
 function getStyle(genre: CardGenre) {

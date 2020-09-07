@@ -8,6 +8,7 @@ import { HintType } from "../../common/ServerHint";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { UIPosition } from "../../common/PlayerAction";
 import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang } from "./FactionSkillsWei";
+import { describer } from "../../common/util/Describer";
 
 class DummySkill extends Skill<void> {
 
@@ -43,6 +44,7 @@ class FactionSkillProvider {
 
     public register(skillId: string, provider: (pid: string)=>Skill<any>) {
         this._map.set(skillId, provider)
+        describer.register(skillId, provider('dummy').description)
     }
 
     public get(skillId: string, playerId: string): Skill<any> {

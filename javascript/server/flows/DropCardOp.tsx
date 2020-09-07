@@ -32,6 +32,11 @@ export default class DropCardOp extends Operation<void> {
 export class DropOthersCardRequest {
     public async perform(manager: GameManager, source: string, target: string, title: string, poses: CardPos[]) {
         let targetPlayer = manager.context.getPlayer(target)
+        let cards = gatherCards(targetPlayer, poses)
+        if(!cards) {
+            console.error('[弃牌] 无法弃置, 此玩家没有牌可以弃置')
+            return
+        }
 
         let hint: ServerHint = {
             hintType: HintType.UI_PANEL,
@@ -39,7 +44,7 @@ export class DropOthersCardRequest {
             customRequest: {
                 mode: 'choose',
                 data: {
-                    rowsOfCard: gatherCards(targetPlayer, poses),
+                    rowsOfCard: cards,
                     title, // `过河拆桥 > ${this.target}`,
                     chooseSize: 1
                 }
