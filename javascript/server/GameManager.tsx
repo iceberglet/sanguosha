@@ -11,22 +11,22 @@ import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
 import IdentityWarGeneral from "../game-mode-identity/IdentityWarGenerals";
 import { GameMode } from "../common/GameMode";
-import GameServerContext from "./engine/GameServerContext";
+import GameServerContext from "./context/GameServerContext";
 import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
 import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
 import FactionWarGeneral from "../game-mode-faction/FactionWarGenerals";
-import { StageStartFlow, StageEndFlow } from "./flows/StageFlows";
-import TakeCardOp, { TakeCardStageOp } from "./flows/TakeCardOp";
-import DropCardOp from "./flows/DropCardOp";
+import { StageStartFlow, StageEndFlow } from "./engine/StageFlows";
+import TakeCardOp, { TakeCardStageOp } from "./engine/TakeCardOp";
+import DropCardOp from "./engine/DropCardOp";
 import { CurrentPlayerEffect, CardTransit, PlaySound } from "../common/transit/EffectTransit";
-import PlayerActionResolver, { ActionResolver } from "./engine/PlayerActionResolver";
+import PlayerActionResolver, { ActionResolver } from "./context/PlayerActionResolver";
 import { ICard } from "../common/cards/ICard";
 import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
 import GameEnding from "./GameEnding";
 import { GameModeEnum } from "../common/GameModeEnum";
 import GameStatsCollector from "./GameStatsCollector";
 import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
-import { CardBeingPlayedEvent, CardBeingUsedEvent } from "./flows/Generic";
+import { CardBeingPlayedEvent, CardBeingUsedEvent } from "./engine/Generic";
 
 
 //Manages the rounds

@@ -1,9 +1,9 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
-import { WuXieContext } from "../flows/WuXieOp";
+import { WuXieContext } from "./WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import Card, { CardType } from "../../common/cards/Card";
-import DamageOp, { DamageType, DamageSource } from "../flows/DamageOp";
+import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import { checkThat, delay } from "../../common/util/Util";
 import { CardPos } from "../../common/transit/CardPos";
 import JudgeOp from "./JudgeOp";

@@ -1,17 +1,17 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { getFromAction, UIPosition, Button, isCancel } from "../../common/PlayerAction";
-import { WuXieContext } from "../flows/WuXieOp";
+import { WuXieContext } from "./WuXieOp";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
 import { CardPos } from "../../common/transit/CardPos";
 import Card, { CardType } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import TakeCardOp from "../flows/TakeCardOp";
-import { AskForSlashOp } from "../flows/SlashOp";
-import { CardObtainedEvent, CardBeingDroppedEvent, findCard, gatherCards, CardBeingTakenEvent } from "../flows/Generic";
+import TakeCardOp from "./TakeCardOp";
+import { AskForSlashOp } from "./SlashOp";
+import { CardObtainedEvent, CardBeingDroppedEvent, findCard, gatherCards, CardBeingTakenEvent } from "./Generic";
 import { Suits } from "../../common/util/Util";
-import DamageOp, { DamageType, DamageSource } from "../flows/DamageOp";
-import { DropOthersCardRequest } from "../flows/DropCardOp";
+import DamageOp, { DamageType, DamageSource } from "./DamageOp";
+import { DropOthersCardRequest } from "./DropCardOp";
 
 export abstract class SingleRuse<T> extends Operation<T> {
 

@@ -1,7 +1,7 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import HealOp from "../flows/HealOp";
+import HealOp from "./HealOp";
 
 export default class PeachOp extends Operation<void> {
 

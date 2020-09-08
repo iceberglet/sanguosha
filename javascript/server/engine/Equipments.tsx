@@ -1,23 +1,23 @@
 import GameManager from "../GameManager";
-import { SlashCompute, SlashDodgedEvent, SlashOP } from "../flows/SlashOp";
+import { SlashCompute, SlashDodgedEvent, SlashOP } from "./SlashOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardType } from "../../common/cards/Card";
 import { Timeline } from "../Operation";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
 import { Button, isCancel, UIPosition, getCardsFromAction } from "../../common/PlayerAction";
-import DamageOp, { DamageType, DamageTimeline, DamageSource } from "../flows/DamageOp";
+import DamageOp, { DamageType, DamageTimeline, DamageSource } from "./DamageOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { DropCardRequest, DropOthersCardRequest } from "../flows/DropCardOp";
-import TakeCardOp from "../flows/TakeCardOp";
+import { DropCardRequest, DropOthersCardRequest } from "./DropCardOp";
+import TakeCardOp from "./TakeCardOp";
 import { flattenMap, checkThat } from "../../common/util/Util";
-import { CardBeingDroppedEvent } from "../flows/Generic";
-import { StageStartFlow } from "../flows/StageFlows";
+import { CardBeingDroppedEvent } from "./Generic";
+import { StageStartFlow } from "./StageFlows";
 import { Stage } from "../../common/Stage";
 import { WanJian, NanMan } from "./MultiRuseOp";
 import { isSuitBlack, isSuitRed } from "../../common/cards/ICard";
-import DodgeOp from "../flows/DodgeOp";
+import DodgeOp from "./DodgeOp";
 import JudgeOp from "./JudgeOp";
-import HealOp from "../flows/HealOp";
+import HealOp from "./HealOp";
 
 export const BlockedEquipment = new Set<string>()
 

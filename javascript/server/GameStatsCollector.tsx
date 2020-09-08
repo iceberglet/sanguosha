@@ -1,9 +1,9 @@
 import { Serde } from "../common/util/Serializer";
 import { Player } from "../common/Player";
-import DeathOp from "./flows/DeathOp";
+import DeathOp from "./engine/DeathOp";
 import { SequenceAwarePubSub } from "../common/util/PubSub";
-import DamageOp, { DamageTimeline } from "./flows/DamageOp";
-import HealOp, { HealTimeline } from "./flows/HealOp";
+import DamageOp, { DamageTimeline } from "./engine/DamageOp";
+import HealOp, { HealTimeline } from "./engine/HealOp";
 
 
 export default class GameStatsCollector {

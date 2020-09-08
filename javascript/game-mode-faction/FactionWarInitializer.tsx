@@ -1,18 +1,18 @@
 import { Initializer } from "../common/GameMode";
 import GameManager from "../server/GameManager";
-import { CardBeingDroppedEvent } from "../server/flows/Generic";
+import { CardBeingDroppedEvent } from "../server/engine/Generic";
 import { CardPos } from "../common/transit/CardPos";
 import { CardType } from "../common/cards/Card";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
 import { HintType } from "../common/ServerHint";
 import { Button, isCancel, getFromAction, UIPosition } from "../common/PlayerAction";
-import { StageStartFlow } from "../server/flows/StageFlows";
+import { StageStartFlow } from "../server/engine/StageFlows";
 import { Faction, factionsSame } from "../common/General";
 import { Stage } from "../common/Stage";
-import DeathOp from "../server/flows/DeathOp";
+import DeathOp from "../server/engine/DeathOp";
 import GameEnding from "../server/GameEnding";
-import TakeCardOp from "../server/flows/TakeCardOp";
+import TakeCardOp from "../server/engine/TakeCardOp";
 import { describer } from "../common/util/Describer";
 import initializeEquipments from "./FactionWarEquipmentInitializer";
 

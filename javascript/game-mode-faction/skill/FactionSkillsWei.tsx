@@ -1,26 +1,26 @@
-import DamageOp, { DamageTimeline, DamageSource, DamageType } from "../../server/flows/DamageOp";
+import DamageOp, { DamageTimeline, DamageSource, DamageType } from "../../server/engine/DamageOp";
 import { Skill, EventRegistryForSkills } from "./Skill";
 import GameManager from "../../server/GameManager";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
-import { gatherCards, findCard, CardBeingTakenEvent, CardObtainedEvent, CardBeingPlayedEvent, CardBeingDroppedEvent, CardBeingUsedEvent } from "../../server/flows/Generic";
+import { gatherCards, findCard, CardBeingTakenEvent, CardObtainedEvent, CardBeingPlayedEvent, CardBeingDroppedEvent, CardBeingUsedEvent } from "../../server/engine/Generic";
 import JudgeOp, {JudgeTimeline} from "../../server/engine/JudgeOp";
 import { UIPosition, Button, isCancel, getFromAction, getCardsFromAction, PlayerAction } from "../../common/PlayerAction";
 import { flattenMap, getRandom } from "../../common/util/Util";
-import { StageEndFlow, StageStartFlow } from "../../server/flows/StageFlows";
+import { StageEndFlow, StageStartFlow } from "../../server/engine/StageFlows";
 import { Stage } from "../../common/Stage";
-import TakeCardOp, { TakeCardStageOp } from "../../server/flows/TakeCardOp";
+import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import DodgeOp from "../../server/flows/DodgeOp";
+import DodgeOp from "../../server/engine/DodgeOp";
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { isSuitBlack } from "../../common/cards/ICard";
 import Card, { CardType } from "../../common/cards/Card";
-import { SlashCompute, SlashOP } from "../../server/flows/SlashOp";
+import { SlashCompute, SlashOP } from "../../server/engine/SlashOp";
 import { EquipOp } from "../../server/engine/EquipOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
 import FactionPlayerInfo from "../FactionPlayerInfo";
-import DeathOp from "../../server/flows/DeathOp";
+import DeathOp from "../../server/engine/DeathOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 
 export abstract class SkillForDamageTaken extends Skill<DamageOp> {

@@ -6,7 +6,7 @@ import { HintType } from "../../common/ServerHint"
 import { takeFromArray } from "../../common/util/Util"
 import { RevealEvent } from "../FactionWarInitializer"
 import { GameEventListener, SequenceAwarePubSub, AckingConsumer } from "../../common/util/PubSub"
-import { StageEndFlow } from "../../server/flows/StageFlows"
+import { StageEndFlow } from "../../server/engine/StageFlows"
 import JudgeOp from "../../server/engine/JudgeOp"
 
 

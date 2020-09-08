@@ -1,20 +1,20 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { PlayerAction, getFromAction, UIPosition } from "../../common/PlayerAction";
-import { WuXieContext } from "../flows/WuXieOp";
+import { WuXieContext } from "./WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import Card, { CardType } from "../../common/cards/Card";
 import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit";
-import TakeCardOp from "../flows/TakeCardOp";
-import DamageOp, { DamageType, DamageSource } from "../flows/DamageOp";
-import { AskForSlashOp } from "../flows/SlashOp";
-import DodgeOp from "../flows/DodgeOp";
+import TakeCardOp from "./TakeCardOp";
+import DamageOp, { DamageType, DamageSource } from "./DamageOp";
+import { AskForSlashOp } from "./SlashOp";
+import DodgeOp from "./DodgeOp";
 import { CustomUIData } from "../../client/card-panel/CustomUIRegistry";
 import { flattenMap } from "../../common/util/Util";
 import { HintType } from "../../common/ServerHint";
 import { CardPos } from "../../common/transit/CardPos";
-import { CardObtainedEvent } from "../flows/Generic";
-import HealOp from "../flows/HealOp";
+import { CardObtainedEvent } from "./Generic";
+import HealOp from "./HealOp";
 
 
 export abstract class MultiRuse extends Operation<void> {

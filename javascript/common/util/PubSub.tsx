@@ -1,6 +1,6 @@
 import ArrayList from './ArrayList'
 import { getKeys, takeFromArray } from './Util'
-import { StageEndFlow } from '../../server/flows/StageFlows'
+import { StageEndFlow } from '../../server/engine/StageFlows'
 import { Stage } from '../Stage'
 
 type Consumer<T> = (t: T) => void

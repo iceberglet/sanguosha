@@ -1,9 +1,9 @@
 import GameManager from "../server/GameManager";
 import { EquipOp } from "../server/engine/EquipOp";
-import { CardBeingDroppedEvent, CardBeingPlayedEvent, CardBeingTakenEvent, CardBeingUsedEvent, CardAwayEvent } from "../server/flows/Generic";
+import { CardBeingDroppedEvent, CardBeingPlayedEvent, CardBeingTakenEvent, CardBeingUsedEvent, CardAwayEvent } from "../server/engine/Generic";
 import { Equipment, CiXiong, QingGang, GuanShi, GuDing, ZhuQue, HanBing, Qilin, LianNu, RenWang, TengJia, BaGua, BaiYin } from "../server/engine/Equipments";
 import { CardType } from "../common/cards/Card";
-import DamageOp, { DamageSource, DamageTimeline } from "../server/flows/DamageOp";
+import DamageOp, { DamageSource, DamageTimeline } from "../server/engine/DamageOp";
 import { CardPos } from "../common/transit/CardPos";
 import { HintType } from "../common/ServerHint";
 import { Button, isCancel, getFromAction, UIPosition } from "../common/PlayerAction";

@@ -2,7 +2,7 @@ import { CardManager, CardType } from "./cards/Card";
 import { IdentityWarCards } from "../game-mode-identity/IdentityWarCardSet";
 import { FactionWarCards } from "../game-mode-faction/FactionWarCardSet";
 import FactionWarActionResolver from "../game-mode-faction/FactionWarActionResolver";
-import { ActionResolver } from "../server/engine/PlayerActionResolver";
+import { ActionResolver } from "../server/context/PlayerActionResolver";
 import GameManager from "../server/GameManager";
 import { GameHoster } from "../server/GameHoster";
 import FactionWarGameHoster from "../game-mode-faction/FactionWarGameHoster";

@@ -2,7 +2,7 @@ import GameManager from "../GameManager";
 import Card from "../../common/cards/Card";
 import { CardPos } from "../../common/transit/CardPos";
 import {PlayerInfo} from '../../common/PlayerInfo'
-import { CardBeingDroppedEvent } from "../flows/Generic";
+import { CardBeingDroppedEvent } from "./Generic";
 import { PlaySound } from "../../common/transit/EffectTransit";
 
 export class EquipOp {
