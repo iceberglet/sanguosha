@@ -3,7 +3,7 @@ import GameManager from "../../server/GameManager"
 import { DamageType } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
 import { Stage } from "../../common/Stage"
-import { UIPosition, PlayerAction, getFromAction, Button, isCancel, getCardsFromAction, getOneCardFromAction } from "../../common/PlayerAction"
+import { UIPosition, Button } from "../../common/PlayerAction"
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
 import { HintType } from "../../common/ServerHint"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
@@ -17,8 +17,8 @@ import PeachOp from "../../server/engine/PeachOp"
 import PlaySlashOp, { SlashOP, AskForSlashOp } from "../../server/engine/SlashOp"
 import { isSuitRed } from "../../common/cards/ICard"
 import { CardBeingPlayedEvent, CardBeingUsedEvent } from "../../server/engine/Generic"
-import { getTargets } from "../../server/context/PlayerActionResolver"
 import TakeCardOp from "../../server/engine/TakeCardOp"
+import PlayerAct from "../../server/context/PlayerAct"
 
 export class Rende extends Skill<void> {
 
@@ -55,20 +55,20 @@ export class Rende extends Skill<void> {
         })
     }
 
-    async onPlayerAction(act: PlayerAction, ignore: void, manager: GameManager): Promise<void> {
+    async onPlayerAction(act: PlayerAct, ignore: void, manager: GameManager): Promise<void> {
         let hasGiven = manager.roundStats.customData[this.id] as Set<string>
-        let target = getFromAction(act, UIPosition.PLAYER)[0]
+        let target = act.targets[0]
         let me = manager.context.getPlayer(this.playerId)
-        hasGiven.add(target)
+        hasGiven.add(target.player.id)
 
         this.playSound(manager, 1)
-        manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
+        manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
         //assume he played it
-        let cards = getFromAction(act, UIPosition.MY_HAND).map(id => manager.getCard(id))
+        let cards = act.getCardsAtPos(CardPos.HAND)
         if(cards.length === 0) {
-            throw `[仁德] 牌呢?? ${act.actionSource} ${cards}`
+            throw `[仁德] 牌呢?? ${act.source.player.id} ${cards}`
         }
-        manager.transferCards(this.playerId, target, CardPos.HAND, CardPos.HAND, cards)
+        manager.transferCards(this.playerId, target.player.id, CardPos.HAND, CardPos.HAND, cards)
         if(this.givenAmount < 2 && this.givenAmount + cards.length >= 2) {
             //给出了仁德牌
             console.log('[仁德] 给出了第二张牌, 询问使用何种基本牌')
@@ -92,14 +92,14 @@ export class Rende extends Skill<void> {
                 hintMsg: '请选择仁德要使用的基本牌',
                 extraButtons: [...slashButtons, peachButton, wineButton, Button.CANCEL]
             })
-            if(isCancel(resp)) {
+            if(resp.isCancel()) {
                 console.log('[仁德] 放弃使用基本牌')
             } else {
-                let choice = getFromAction(resp, UIPosition.BUTTONS)[0]
-                let targets = getFromAction(resp, UIPosition.PLAYER).map(t => manager.context.getPlayer(t))
+                let choice = resp.button
+                let targets = resp.targets
                 switch(choice) {
-                    case CardType.WINE.id: await new WineOp(this.playerId).perform(manager); break
-                    case CardType.PEACH.id: await new PeachOp(this.playerId).perform(manager); break
+                    case CardType.WINE.id: await new WineOp(resp.source).perform(manager); break
+                    case CardType.PEACH.id: await new PeachOp(resp.source).perform(manager); break
                     case CardType.SLASH.id:
                         await new SlashOP(me, targets, [], 1, DamageType.NORMAL, 'none').perform(manager)
                         break
@@ -170,26 +170,27 @@ export class WuSheng extends Skill<void> {
         })
     }
 
-    public async onPlayerAction(act: PlayerAction, event: any, manager: GameManager) {
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
         if(event && !(event instanceof AskForSlashOp)) {
             throw '[武圣] 不会对此做出反应: ' + event
         }
         this.playSound(manager, 1)
-        let posAndCard = getOneCardFromAction(act, UIPosition.MY_HAND, UIPosition.MY_EQUIP)
-        let card = manager.getCard(posAndCard[1])
+        let posAndCard = act.getSingleCardAndPos()
+        let card = posAndCard[0]
+        let pos = posAndCard[1]
         if(!event) {
             //玩家直接出杀了
-            let targetPs = getTargets(act, manager)
-            manager.sendToWorkflow(act.actionSource, posAndCard[0], [card], true)
-            await manager.events.publish(new CardBeingUsedEvent(act.actionSource, [[card, posAndCard[0]]], CardType.SLASH, true))
-            await new PlaySlashOp(act.actionSource, targetPs, [card]).perform(manager)
+            let targetPs = act.targets
+            manager.sendToWorkflow(act.source.player.id, pos, [card], true)
+            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true))
+            await new PlaySlashOp(act.source, targetPs, [card]).perform(manager)
 
         } else if(event instanceof AskForSlashOp) {
             //被迫出的杀
             card.as = CardType.SLASH
             card.description = this.id
-            await manager.events.publish(new CardBeingPlayedEvent(act.actionSource, [[card, posAndCard[0]]], CardType.SLASH, true))
-            manager.sendToWorkflow(act.actionSource, posAndCard[0], [card])
+            await manager.events.publish(new CardBeingPlayedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true))
+            manager.sendToWorkflow(act.source.player.id, pos, [card])
         }
     }
 

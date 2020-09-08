@@ -2,11 +2,10 @@ import { Initializer } from "../common/GameMode";
 import GameManager from "../server/GameManager";
 import { CardBeingDroppedEvent } from "../server/engine/Generic";
 import { CardPos } from "../common/transit/CardPos";
-import { CardType } from "../common/cards/Card";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
 import { HintType } from "../common/ServerHint";
-import { Button, isCancel, getFromAction, UIPosition } from "../common/PlayerAction";
+import { Button, UIPosition } from "../common/PlayerAction";
 import { StageStartFlow } from "../server/engine/StageFlows";
 import { Faction, factionsSame } from "../common/General";
 import { Stage } from "../common/Stage";
@@ -52,10 +51,10 @@ export default class FactionWarInitializer implements Initializer {
                 hintMsg: '回合开始, 你是否要明置武将?',
                 extraButtons: [...choices, Button.CANCEL]
             })
-            if(isCancel(resp)) {
+            if(resp.isCancel()) {
                 return
             }
-            let choice = getFromAction(resp, UIPosition.BUTTONS)[0]
+            let choice = resp.button
             if(choice === 'general') {
                 await manager.events.publish(new RevealEvent(p.player.id, true, false))
             } else if (choice === 'subgeneral') {

@@ -2,17 +2,17 @@ import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import HealOp from "./HealOp";
+import { PlayerInfo } from "../../common/PlayerInfo";
 
 export default class PeachOp extends Operation<void> {
 
-    public constructor(private player: string) {
+    public constructor(private player: PlayerInfo) {
         super()
     }
 
     public async perform(manager: GameManager): Promise<void> {
-        let info = manager.context.getPlayer(this.player)
-        manager.broadcast(new TextFlashEffect(this.player, [], '桃'))
-        await new HealOp(info, info, 1).perform(manager)
+        manager.broadcast(new TextFlashEffect(this.player.player.id, [], '桃'))
+        await new HealOp(this.player, this.player, 1).perform(manager)
     }
     
 }

@@ -1,16 +1,18 @@
 import GameManager from "../GameManager";
 import { CardType } from "../../common/cards/Card";
-import { Button, PlayerAction, UIPosition, getFromAction } from "../../common/PlayerAction";
+import { Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { filterMap, promiseAny, delay } from "../../common/util/Util";
 import { HintType } from "../../common/ServerHint";
 import { CardBeingPlayedEvent } from "./Generic";
+import { PlayerInfo } from "../../common/PlayerInfo";
+import PlayerAct from "../context/PlayerAct";
 
 const REFUSE = 'refuse'
 const REFUSE_ALL = 'refuse_all'
 
 
-type WuXieProcessor = (resp: PlayerAction) => Promise<void>
+type WuXieProcessor = (resp: PlayerAct) => Promise<void>
 
 export class WuXieContext {
 
@@ -36,7 +38,7 @@ export class WuXieContext {
      * returns true - 锦囊牌失效
      * @param onPlayer 
      */
-    public async doOneRound(onPlayer: string): Promise<boolean> {
+    public async doOneRound(onPlayer: PlayerInfo): Promise<boolean> {
         //these people are the only ones who can do it
         let candidates = filterMap(this.processors, (k, v)=>!!v)
         let isRuseAbort = false
@@ -71,7 +73,7 @@ export class WuXieContext {
                             hintMsg: msg,
                             extraButtons: buttons
                         }, true)
-                        let button = resp.actionData[UIPosition.BUTTONS][0]
+                        let button = resp.button
                         if(button === Button.OK.id) {
                             return resp
                         }
@@ -91,7 +93,7 @@ export class WuXieContext {
                 // 取消对所有人征求无懈的请求
                 this.manager.rescindAll()
                 // Invoke potentially custom wu_xie process
-                this.processors.get(resp.actionSource)(resp)
+                this.processors.get(resp.source.player.id)(resp)
 
                 // 开启新的一轮寻求无懈
                 isRuseAbort = !isRuseAbort
@@ -108,12 +110,11 @@ export class WuXieContext {
         }
     }
 
-    private async processNormal(action: PlayerAction): Promise<void> {
-        let card = getFromAction(action, UIPosition.MY_HAND)[0]
-        console.log(`[无懈的结算] 打出了${card}作为无懈`)
-        let actual = this.manager.getCard(card)
-        actual.description = `${action.actionSource} 打出`
-        this.manager.sendToWorkflow(action.actionSource, CardPos.HAND, [actual])
-        await this.manager.events.publish(new CardBeingPlayedEvent(action.actionSource, [[actual, CardPos.HAND]], actual.type))
+    private async processNormal(action: PlayerAct): Promise<void> {
+        let card = action.getSingleCardAndPos()[0]
+        console.log(`[无懈的结算] 打出了${card.id}作为无懈`)
+        card.description = `${action.source.player.id} 打出`
+        this.manager.sendToWorkflow(action.source.player.id, CardPos.HAND, [card])
+        await this.manager.events.publish(new CardBeingPlayedEvent(action.source.player.id, [[card, CardPos.HAND]], card.type))
     }
 }

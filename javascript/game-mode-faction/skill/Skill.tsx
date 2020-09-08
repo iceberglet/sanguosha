@@ -1,7 +1,7 @@
 import GameManager from "../../server/GameManager";
-import { PlayerAction } from "../../common/PlayerAction";
 import { AckingConsumer } from "../../common/util/PubSub";
 import { PlaySound } from "../../common/transit/EffectTransit";
+import PlayerAct from "../../server/context/PlayerAct";
 
 
 export interface EventRegistryForSkills {
@@ -78,7 +78,7 @@ export abstract class Skill<T> extends SkillStatus {
         //no-op by default
     }
 
-    public async onPlayerAction(act: PlayerAction, event: any, manager: GameManager): Promise<void> {
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager): Promise<void> {
         throw 'Forgot to override me?'
     }
 

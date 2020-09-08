@@ -27,6 +27,7 @@ import { GameModeEnum } from "../common/GameModeEnum";
 import GameStatsCollector from "./GameStatsCollector";
 import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
 import { CardBeingPlayedEvent, CardBeingUsedEvent } from "./engine/Generic";
+import PlayerAct from "./context/PlayerAct";
 
 
 //Manages the rounds
@@ -146,12 +147,12 @@ export default class GameManager {
      * @param player target for the hint
      * @param hint 
      */
-    public async sendHint(player: string, hint: ServerHint, isCollective: boolean = false): Promise<PlayerAction> {
+    public async sendHint(player: string, hint: ServerHint, isCollective: boolean = false): Promise<PlayerAct> {
         hint.roundStat = this.roundStats
         if(!isCollective) {
             this.setPending([player])
         }
-        return await this.registry.sendServerAsk(player, hint)
+        return new PlayerAct(await this.registry.sendServerAsk(player, hint), this)
     }
 
     public send(anyone: string, anything: any) {
@@ -302,7 +303,7 @@ export default class GameManager {
                 roundStat: this.roundStats,
                 extraButtons: [new Button('abort', '结束出牌')]
             })
-            if(resp.actionData[UIPosition.BUTTONS][0] === 'abort') {
+            if(resp.button === 'abort') {
                 //进入弃牌阶段
                 break;
             }

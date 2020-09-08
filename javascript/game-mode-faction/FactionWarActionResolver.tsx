@@ -1,6 +1,6 @@
-import { getFromAction, PlayerAction, UIPosition, Button } from "../common/PlayerAction";
+import { UIPosition, Button } from "../common/PlayerAction";
 import GameManager from "../server/GameManager";
-import { ActionResolver, getTargets } from "../server/context/PlayerActionResolver";
+import { ActionResolver } from "../server/context/PlayerActionResolver";
 import { CardPos } from "../common/transit/CardPos";
 import { CardBeingUsedEvent, CardBeingDroppedEvent } from "../server/engine/Generic";
 import Card, { CardType } from "../common/cards/Card";
@@ -18,6 +18,7 @@ import DodgeOp from "../server/engine/DodgeOp";
 import { Skill } from "./skill/Skill";
 import { RevealEvent } from "./FactionWarInitializer";
 import { AskForSlashOp } from "../server/engine/SlashOp";
+import PlayerAct from "../server/context/PlayerAct";
 
 
 
@@ -29,17 +30,17 @@ export default class FactionWarActionResolver extends ActionResolver {
         this.skillRepo = skillRepo
     }
 
-    private async getSkillAndRevealIfNeeded(act: PlayerAction, manager: GameManager): Promise<Skill<any>> {
-        let skillId = getFromAction(act, UIPosition.MY_SKILL)[0]
-        let skill = this.skillRepo.getSkill(act.actionSource, skillId)
+    private async getSkillAndRevealIfNeeded(act: PlayerAct, manager: GameManager): Promise<Skill<any>> {
+        let skillId = act.skill
+        let skill = this.skillRepo.getSkill(act.source.player.id, skillId)
         if(!skill.isRevealed) {
-            await manager.events.publish(new RevealEvent(act.actionSource, skill.isMain, !skill.isMain))
+            await manager.events.publish(new RevealEvent(act.source.player.id, skill.isMain, !skill.isMain))
         }
         return skill
     }
 
-    public async onAskingForSlash(act: PlayerAction, askForSlashOp: AskForSlashOp, manager: GameManager): Promise<boolean> {
-        if(getFromAction(act, UIPosition.MY_SKILL).length > 0) {
+    public async onAskingForSlash(act: PlayerAct, askForSlashOp: AskForSlashOp, manager: GameManager): Promise<boolean> {
+        if(act.skill) {
             //武将技能
             let skill = await this.getSkillAndRevealIfNeeded(act, manager)
             await skill.onPlayerAction(act, askForSlashOp, manager)
@@ -48,8 +49,8 @@ export default class FactionWarActionResolver extends ActionResolver {
         return false
     }
 
-    public async onDodge(act: PlayerAction, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean> {
-        if(getFromAction(act, UIPosition.MY_SKILL).length > 0) {
+    public async onDodge(act: PlayerAct, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean> {
+        if(act.skill) {
             //武将技能
             let skill = await this.getSkillAndRevealIfNeeded(act, manager)
             await skill.onPlayerAction(act, dodgeOp, manager)
@@ -58,9 +59,9 @@ export default class FactionWarActionResolver extends ActionResolver {
         return false
     } 
     
-    public async on(act: PlayerAction, manager: GameManager): Promise<boolean> {
+    public async on(act: PlayerAct, manager: GameManager): Promise<boolean> {
         //skills?
-        if(getFromAction(act, UIPosition.MY_SKILL).length > 0) {
+        if(act.skill) {
             //武将技能
             let skill = await this.getSkillAndRevealIfNeeded(act, manager)
             //no event...
@@ -69,26 +70,27 @@ export default class FactionWarActionResolver extends ActionResolver {
         }
 
         //weapons?
-        else if(getFromAction(act, UIPosition.MY_EQUIP).length > 0) {
+        else if(act.getCardsAtPos(CardPos.EQUIP).length > 0) {
             //吴六剑 + 三尖两刃刀 都是没有主动技能的!
+            //还给parent resolver
             return false
         }
 
-        else if(getFromAction(act, UIPosition.MY_HAND).length > 0) {
+        else if(act.getCardsAtPos(CardPos.HAND).length > 0) {
 
-            let hand = getFromAction(act, UIPosition.MY_HAND)
+            let hand = act.getCardsAtPos(CardPos.HAND)
             if(hand.length > 1) {
-                throw `How can you play 2 cards at once????? ${act.actionSource} ${act.actionData[UIPosition.MY_HAND].join(', ')}`
+                throw `How can you play 2 cards at once????? ${act}`
             }
-            let player = manager.context.getPlayer(act.actionSource) as FactionPlayerInfo
-            let card = manager.getCard(hand[0])
-            let icard = manager.interpret(act.actionSource, card.id)
+            let player = act.source as FactionPlayerInfo
+            let card = hand[0]
+            let icard = act.source.cardInterpreter(card)
             if(icard.type.package !== '国战') {
                 return false
             }
 
             // can be more than one
-            let targetPs = getTargets(act, manager)
+            let targetPs = act.targets
             let targets = targetPs.map(p => p.player.id)
             if(targets.length > 0) {
                 card.description = `${player.player.id} > ${targets.join(', ')}`
@@ -98,40 +100,40 @@ export default class FactionWarActionResolver extends ActionResolver {
             
             if(icard.type === CardType.ZHI_JI && targets.length === 0) {
                 //知己知彼重铸算作弃置
-                await manager.events.publish(new CardBeingDroppedEvent(act.actionSource, [[card, CardPos.HAND]]))
+                await manager.events.publish(new CardBeingDroppedEvent(act.source.player.id, [[card, CardPos.HAND]]))
             } else {
-                await manager.events.publish(new CardBeingUsedEvent(act.actionSource, [[card, CardPos.HAND]], card.type))
+                await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, CardPos.HAND]], card.type))
             }
 
             if(icard.type.isEquipment()) {
                 card.description = `${player.player.id} 装备`
-                manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true, true)
-                await new EquipOp(act.actionSource, card).perform(manager)
+                manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true, true)
+                await new EquipOp(act.source.player.id, card).perform(manager)
             } else {
-                manager.sendToWorkflow(act.actionSource, CardPos.HAND, [card], true)
+                manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true)
                 switch(icard.type) {
     
                     case CardType.YI_YI:
                         //find out the targets
                         if(player.getFaction() === Faction.UNKNOWN || player.getFaction() === Faction.YE) {
                             //just yourself
-                            await new YiYiDaiLao([card], act.actionSource, CardType.YI_YI, [player]).perform(manager)
+                            await new YiYiDaiLao([card], act.source, CardType.YI_YI, [player]).perform(manager)
                         } else {
                             let impact = manager.getSortedByCurr(false).filter(p => {
                                 player.getFaction().name === p.getFaction().name
                             })
-                            await new YiYiDaiLao([card], act.actionSource, CardType.YI_YI, [player, ...impact]).perform(manager)
+                            await new YiYiDaiLao([card], act.source, CardType.YI_YI, [player, ...impact]).perform(manager)
                         }
                         break
                     case CardType.ZHI_JI:
                         if(targets.length > 0) {
-                            await new ZhiJiZhiBi(act.actionSource, targets[0], [card]).perform(manager)
+                            await new ZhiJiZhiBi(act.source, targetPs[0], [card]).perform(manager)
                         } else {
-                            await new TakeCardOp(manager.context.getPlayer(act.actionSource), 1).perform(manager)
+                            await new TakeCardOp(manager.context.getPlayer(act.source.player.id), 1).perform(manager)
                         }
                         break
                     case CardType.YUAN_JIAO:
-                        await new YuanJiao(act.actionSource, targets[0], [card]).perform(manager)
+                        await new YuanJiao(act.source, targetPs[0], [card]).perform(manager)
                         break
                     default:
                         throw '未知国战牌:' + card.id
@@ -161,8 +163,8 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
     static FU_JIANG = 'subGeneral'
     static SHOU_PAI = 'hand'
 
-    public constructor(public readonly source: string, 
-                        public readonly target: string, 
+    public constructor(public readonly source: PlayerInfo, 
+                        public readonly target: PlayerInfo, 
                         public readonly cards: Card[]
                         ) {
         super(source, target, cards, CardType.ZHI_JI)
@@ -171,25 +173,25 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
     public async doPerform(manager: GameManager): Promise<void> {
 
         //ask what to get...
-        let targetP = manager.context.getPlayer(this.target) as FactionPlayerInfo
+        let targetP = this.target as FactionPlayerInfo
         let buttons: Button[] = []
         buttons.push(new Button(ZhiJiZhiBi.ZHU_JIANG, '观看主将', !targetP.isGeneralRevealed))
         buttons.push(new Button(ZhiJiZhiBi.FU_JIANG, '观看副将', !targetP.isSubGeneralRevealed))
         buttons.push(new Button(ZhiJiZhiBi.SHOU_PAI, '观看手牌', targetP.getCards(CardPos.HAND).length > 0))
         
-        let resp = await manager.sendHint(this.source, {
+        let resp = await manager.sendHint(this.source.player.id, {
             hintType: HintType.MULTI_CHOICE,
             hintMsg: '请选择一项',
             extraButtons: buttons
         })
 
-        let b = getFromAction(resp, UIPosition.BUTTONS)[0]
+        let b = resp.button
 
         //todo!!!
         switch(b) {
             case ZhiJiZhiBi.ZHU_JIANG:
                 console.log(`${this.source} 选择观看了 ${this.target} 的主将`)
-                await manager.sendHint(this.source, {
+                await manager.sendHint(this.source.player.id, {
                     hintType: HintType.UI_PANEL,
                     hintMsg: `${this.target} 的主将`,
                     customRequest: {
@@ -204,7 +206,7 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
                 break;
             case ZhiJiZhiBi.FU_JIANG:
                 console.log(`${this.source} 选择观看了 ${this.target} 的副将`)
-                await manager.sendHint(this.source, {
+                await manager.sendHint(this.source.player.id, {
                     hintType: HintType.UI_PANEL,
                     hintMsg: `${this.target} 的副将`,
                     customRequest: {
@@ -219,7 +221,7 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
                 break;
             case ZhiJiZhiBi.SHOU_PAI:
                 console.log(`${this.source} 选择观看了 ${this.target} 的手牌`)
-                await manager.sendHint(this.source, {
+                await manager.sendHint(this.source.player.id, {
                     hintType: HintType.UI_PANEL,
                     hintMsg: `${this.target} 的手牌`,
                     customRequest: {
@@ -240,17 +242,17 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
 
 class YuanJiao extends SingleRuse<void> {
 
-    public constructor(public readonly source: string, 
-        public readonly target: string, 
+    public constructor(public readonly source: PlayerInfo, 
+        public readonly target: PlayerInfo, 
         public readonly cards: Card[]) {
         super(source, target, cards, CardType.YUAN_JIAO)
     }
 
     public async doPerform(manager: GameManager): Promise<void> {
         //give target one
-        await new TakeCardOp(manager.context.getPlayer(this.target), 1).perform(manager)
+        await new TakeCardOp(this.target, 1).perform(manager)
         //give self three
-        await new TakeCardOp(manager.context.getPlayer(this.source), 3).perform(manager)
+        await new TakeCardOp(this.source, 3).perform(manager)
     }
     
 }

@@ -1,7 +1,7 @@
 import { PlayerInfo } from "../../common/PlayerInfo";
 import GameManager from "../GameManager";
 import { HintType } from "../../common/ServerHint";
-import { Button, UIPosition, getFromAction, isCancel } from "../../common/PlayerAction";
+import { Button, UIPosition } from "../../common/PlayerAction";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import HealOp from "./HealOp";
 import { CardPos } from "../../common/transit/CardPos";
@@ -35,9 +35,9 @@ export default class AskSavingOp {
                 extraButtons: [Button.CANCEL]
             })
             //todo: put this in resolver
-            if(!isCancel(response)) {
+            if(!response.isCancel()) {
                 //金主爸爸!!
-                let card = manager.getCard(getFromAction(response, UIPosition.MY_HAND)[0]);
+                let card = response.getSingleCardAndPos()[0];
                 //桃, 或者酒
                 manager.broadcast(new TextFlashEffect(this.goodman.player.id, [targetId], card.type.name))
                 await manager.events.publish(new CardBeingPlayedEvent(this.goodman.player.id, [[card, CardPos.HAND]], card.type))

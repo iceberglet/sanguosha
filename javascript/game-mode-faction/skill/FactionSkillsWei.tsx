@@ -5,7 +5,7 @@ import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
 import { gatherCards, findCard, CardBeingTakenEvent, CardObtainedEvent, CardBeingPlayedEvent, CardBeingDroppedEvent, CardBeingUsedEvent } from "../../server/engine/Generic";
 import JudgeOp, {JudgeTimeline} from "../../server/engine/JudgeOp";
-import { UIPosition, Button, isCancel, getFromAction, getCardsFromAction, PlayerAction } from "../../common/PlayerAction";
+import { UIPosition, Button } from "../../common/PlayerAction";
 import { flattenMap, getRandom } from "../../common/util/Util";
 import { StageEndFlow, StageStartFlow } from "../../server/engine/StageFlows";
 import { Stage } from "../../common/Stage";
@@ -22,6 +22,7 @@ import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
 import FactionPlayerInfo from "../FactionPlayerInfo";
 import DeathOp from "../../server/engine/DeathOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
+import PlayerAct from "../../server/context/PlayerAct";
 
 export abstract class SkillForDamageTaken extends Skill<DamageOp> {
 
@@ -124,9 +125,9 @@ export class GuiCai extends Skill<JudgeOp> {
             positions: [UIPosition.MY_HAND],
             extraButtons: [Button.CANCEL],
         })
-        if(!isCancel(resp)) {
+        if(!resp.isCancel()) {
             manager.broadcast(new TextFlashEffect(this.playerId, [event.owner], this.id))
-            let card = manager.getCard(getFromAction(resp, UIPosition.MY_HAND)[0])
+            let card = resp.getCardsAtPos(CardPos.HAND)[0]
             console.log('[鬼才] 改变判定牌 ' + card.id)
             card.description = this.playerId + ' 鬼才改判定'
             this.playSound(manager, 1)
@@ -166,12 +167,11 @@ export class GangLie extends SkillForDamageTaken {
                 extraButtons: [Button.CANCEL],
             })
             
-            if(!isCancel(resp)) {
-                let cards = getCardsFromAction(resp, UIPosition.MY_HAND, UIPosition.MY_EQUIP)
-                for(let kv of flattenMap(cards)) {
+            if(!resp.isCancel()) {
+                let cards = resp.getCardsAndPos(CardPos.HAND, CardPos.EQUIP)
+                for(let kv of cards) {
                     let p = kv[0]
-                    let toDrop = kv[1].map(c => {
-                        let card = manager.getCard(c)
+                    let toDrop = kv[1].map(card => {
                         delete card.as
                         card.description = `[${victim}] 因刚烈弃置`
                         return card
@@ -216,17 +216,17 @@ export class TuXi extends Skill<TakeCardStageOp> {
             extraButtons: [Button.CANCEL]
         })
 
-        if(isCancel(resp)) {
+        if(resp.isCancel()) {
             console.log('[突袭] 玩家最终放弃了突袭')
         } else {
             this.playSound(manager, 2)
-            let victims = getFromAction(resp, UIPosition.PLAYER)
+            let victims = resp.targets
             console.log('[突袭] 玩家选择了突袭, 放弃了摸牌', victims)
-            manager.broadcast(new TextFlashEffect(this.playerId, victims, this.id))
+            manager.broadcast(new TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id))
             for(let v of victims) {
-                let card = getRandom(manager.context.getPlayer(v).getCards(CardPos.HAND))
-                manager.transferCards(v, this.playerId, CardPos.HAND, CardPos.HAND, [card])
-                await manager.events.publish(new CardBeingTakenEvent(v, [[card, CardPos.HAND]]))
+                let card = getRandom(v.getCards(CardPos.HAND))
+                manager.transferCards(v.player.id, this.playerId, CardPos.HAND, CardPos.HAND, [card])
+                await manager.events.publish(new CardBeingTakenEvent(v.player.id, [[card, CardPos.HAND]]))
                 await manager.events.publish(new CardObtainedEvent(this.playerId, [card]))
             }
             event.amount = 0
@@ -321,13 +321,13 @@ export class QinGuo extends Skill<DodgeOp> {
         })
     }
 
-    async onPlayerAction(act: PlayerAction, dodgeOp: DodgeOp, manager: GameManager): Promise<void> {
+    async onPlayerAction(act: PlayerAct, dodgeOp: DodgeOp, manager: GameManager): Promise<void> {
         this.playSound(manager, 2)
-        manager.broadcast(new TextFlashEffect(dodgeOp.target.player.id, [dodgeOp.source], '闪'))
+        manager.broadcast(new TextFlashEffect(dodgeOp.target.player.id, [dodgeOp.source.player.id], '闪'))
         //assume he played it
-        let cards = getFromAction(act, UIPosition.MY_HAND).map(id => manager.getCard(id))
+        let cards = act.getCardsAtPos(CardPos.HAND)
         if(cards.length !== 1) {
-            throw `Player played dodge cards but not one card!!!! ${act.actionSource} ${cards}`
+            throw `Player played dodge cards but not one card!!!! ${act.source.player.id} ${cards}`
         }
         cards[0].as = CardType.DODGE
         cards[0].description = '倾国'
@@ -375,7 +375,7 @@ export class LuoShen extends Skill<StageStartFlow> {
                 hintMsg: '是否继续洛神?',
                 extraButtons: [Button.OK, Button.CANCEL]
             })
-            if(isCancel(resp)) {
+            if(resp.isCancel()) {
                 console.log('[洛神] 玩家放弃洛神, 结束洛神', card)
                 break
             }
@@ -425,16 +425,16 @@ export class ShenSu extends Skill<StageStartFlow> {
                 forbidden: [this.playerId],
                 extraButtons: [Button.CANCEL]
             })
-            if(!isCancel(resp)) {
+            if(!resp.isCancel()) {
                 this.playSound(manager, 1)
-                let target = getFromAction(resp, UIPosition.PLAYER)[0]
+                let target = resp.targets[0]
                 console.log('[神速] 跳过判定和摸牌出杀', this.playerId, target)
                 //跳过判定和摸牌阶段
                 manager.roundStats.skipStages.set(Stage.JUDGE, true)
                 manager.roundStats.skipStages.set(Stage.TAKE_CARD, true)
-                manager.broadcast(new TextFlashEffect(this.playerId, [target], '神速'))
+                manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], '神速'))
                 await new SlashOP(manager.context.getPlayer(this.playerId),
-                                        [manager.context.getPlayer(target)],
+                                        [target],
                                         [], 1, DamageType.NORMAL, 'none').perform(manager)
             }
         } else if (event.stage === Stage.USE_CARD){
@@ -444,33 +444,26 @@ export class ShenSu extends Skill<StageStartFlow> {
                 hintMsg: 'Placeholder, ignored',
                 extraButtons: [Button.CANCEL]
             })
-            if(!isCancel(resp)) {
+            if(!resp.isCancel()) {
                 this.playSound(manager, 1)
-                let target = getFromAction(resp, UIPosition.PLAYER)[0]
-                let equipp = flattenMap(getCardsFromAction(resp, UIPosition.MY_EQUIP, UIPosition.MY_HAND))
+                let target = resp.targets[0]
+                let equipp = resp.getSingleCardAndPos()
 
                 console.log('[神速] 跳过出牌并弃装备牌出杀', this.playerId, target)
                 //弃置装备牌
-                for(let kv of equipp) {
-                    let pos = kv[0]
-                    let c = kv[1][0]
-                    if(!c) {
-                        console.warn('[神速] 忽略空array', CardPos[pos])
-                        continue
-                    }
-                    console.log('[神速] 弃置的为', CardPos[pos], c)
-                    let card = manager.getCard(c)
-                    delete card.as
-                    card.description = '神速弃置'
-                    manager.sendToWorkflow(this.playerId, pos, [card], false)
-                    await manager.events.publish(new CardBeingDroppedEvent(this.playerId, [[card, pos]]))
-                }
+                let pos = equipp[1]
+                let card = equipp[0]
+                console.log('[神速] 弃置的为', CardPos[pos], card.id)
+                delete card.as
+                card.description = '神速弃置'
+                manager.sendToWorkflow(this.playerId, pos, [card], false)
+                await manager.events.publish(new CardBeingDroppedEvent(this.playerId, [[card, pos]]))
                 //跳过出牌阶段
                 manager.roundStats.skipStages.set(Stage.USE_CARD, true)
                 //出杀
-                manager.broadcast(new TextFlashEffect(this.playerId, [target], '神速'))
+                manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], '神速'))
                 await new SlashCompute(manager.context.getPlayer(this.playerId),
-                                        manager.context.getPlayer(target),
+                                        target,
                                         [], 1, 1, DamageType.NORMAL, 'none').perform(manager)
             }
         }
@@ -499,19 +492,19 @@ export class DuanLiang extends Skill<StageStartFlow> {
         })
     }
 
-    async onPlayerAction(act: PlayerAction, ignore: any, manager: GameManager): Promise<void> {
-        let target = getFromAction(act, UIPosition.PLAYER)[0]
+    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        let target = act.targets[0]
         // manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
         //assume he played it
-        let posAndCards = flattenMap(getCardsFromAction(act, UIPosition.MY_HAND, UIPosition.MY_EQUIP))[0]
-        let pos = posAndCards[0]
-        let card = manager.getCard(posAndCards[1][0])
+        let posAndCards = act.getSingleCardAndPos()
+        let pos = posAndCards[1]
+        let card = posAndCards[0]
         card.as = CardType.BING_LIANG
         card.description = '兵粮' 
         this.playSound(manager, 1)
         // manager.sendToWorkflow(this.playerId, pos, [card])
-        await new UseDelayedRuseOp(card, this.playerId, pos, target).perform(manager)
-        await manager.events.publish(new CardBeingUsedEvent(act.actionSource, [[card, pos]], CardType.BING_LIANG, true))
+        await new UseDelayedRuseOp(card, act.source, pos, target).perform(manager)
+        await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.BING_LIANG, true))
     }
 
     public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
@@ -560,17 +553,16 @@ export class JuShou extends Skill<StageStartFlow> {
             positions: [UIPosition.MY_HAND]
         })
 
-        let card = getFromAction(resp, UIPosition.MY_HAND)[0]
+        let card = resp.getCardsAtPos(CardPos.HAND)[0]
         console.log('[据守] 弃置', card)
-        let cardo = manager.getCard(card)
-        if(cardo.type.isEquipment()) {
+        if(card.type.isEquipment()) {
             //装备
-            await new EquipOp(this.playerId, cardo, CardPos.HAND, this.playerId).perform(manager)
+            await new EquipOp(this.playerId, card, CardPos.HAND, this.playerId).perform(manager)
         } else {
-            delete cardo.as
-            cardo.description = '据守弃置'
-            manager.sendToWorkflow(this.playerId, CardPos.HAND, [cardo], false)
-            await manager.events.publish(new CardBeingDroppedEvent(this.playerId, [[cardo, CardPos.HAND]]))
+            delete card.as
+            card.description = '据守弃置'
+            manager.sendToWorkflow(this.playerId, CardPos.HAND, [card], false)
+            await manager.events.publish(new CardBeingDroppedEvent(this.playerId, [[card, CardPos.HAND]]))
         }
         if(x > 2) {
             console.log('[据守] 翻面', x)
@@ -603,23 +595,23 @@ export class QiangXi extends Skill<void> {
         })
     }
 
-    async onPlayerAction(act: PlayerAction, ignore: any, manager: GameManager): Promise<void> {
-        if(isCancel(act)) {
+    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        if(act.isCancel()) {
             console.error('[强袭] 怎么可能cancel??')
             return
         }
         this.playSound(manager, 1)
         manager.roundStats.customData[this.id] = true
-        let target = getFromAction(act, UIPosition.PLAYER)[0]
-        manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
-        let me = manager.context.getPlayer(this.playerId)
-        let posAndCardos = flattenMap(getCardsFromAction(act, UIPosition.MY_HAND, UIPosition.MY_EQUIP))
+        let target = act.targets[0]
+        manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
+        let me = act.source
+        let posAndCardos = act.getCardsAndPos(CardPos.HAND, CardPos.EQUIP)
         if(posAndCardos.length > 0) {
             let posAndCards = posAndCardos[0]
             //assume he played it
             console.log('[强袭] 弃置武器牌', posAndCards)
             let pos = posAndCards[0]
-            let card = manager.getCard(posAndCards[1][0])
+            let card = posAndCards[1][0]
             card.description = '强袭弃置' 
             manager.sendToWorkflow(this.playerId, pos, [card])
             await manager.events.publish(new CardBeingDroppedEvent(this.playerId, [[card, pos]]))
@@ -627,7 +619,7 @@ export class QiangXi extends Skill<void> {
             console.log('[强袭] 自减体力')
             await new DamageOp(me, me, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
         }
-        await new DamageOp(me, manager.context.getPlayer(target), 1, [], DamageSource.SKILL, DamageType.NORMAL).perform(manager)
+        await new DamageOp(me, target, 1, [], DamageSource.SKILL, DamageType.NORMAL).perform(manager)
     }
 
     public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
@@ -701,19 +693,17 @@ export class FangZhu extends SkillForDamageTaken {
             quantity: 1,
             extraButtons: [Button.CANCEL]
         })
-        if(isCancel(resp)) {
+        if(resp.isCancel()) {
             console.log('[放逐] 放弃了')
             return
         }
         this.playSound(manager, 1)
-        let target = getFromAction(resp, UIPosition.PLAYER)[0]
-        console.log('[放逐] 结果', resp, target)
-        manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
-        let targetP = manager.context.getPlayer(target)
-        let me = manager.context.getPlayer(this.playerId)
-        targetP.isTurnedOver = !targetP.isTurnedOver
-        manager.broadcast(targetP, PlayerInfo.sanitize)
-        await new TakeCardOp(targetP, me.maxHp - me.hp).perform(manager)
+        let target = resp.targets[0]
+        console.log('[放逐] 结果', resp, target.player.id)
+        manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
+        target.isTurnedOver = !target.isTurnedOver
+        manager.broadcast(target, PlayerInfo.sanitize)
+        await new TakeCardOp(target, resp.source.maxHp - resp.source.hp).perform(manager)
         return
 
     }

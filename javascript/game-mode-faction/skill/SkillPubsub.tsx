@@ -1,13 +1,14 @@
 import Multimap from "../../common/util/Multimap"
 import { Skill, EventRegistryForSkills } from "./Skill"
 import GameManager from "../../server/GameManager"
-import { Button, PlayerAction, isCancel, getFromAction, UIPosition } from "../../common/PlayerAction"
+import { Button, UIPosition } from "../../common/PlayerAction"
 import { HintType } from "../../common/ServerHint"
 import { takeFromArray } from "../../common/util/Util"
 import { RevealEvent } from "../FactionWarInitializer"
 import { GameEventListener, SequenceAwarePubSub, AckingConsumer } from "../../common/util/PubSub"
 import { StageEndFlow } from "../../server/engine/StageFlows"
 import JudgeOp from "../../server/engine/JudgeOp"
+import PlayerAct from "../../server/context/PlayerAct"
 
 
 /**
@@ -93,15 +94,15 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
             }
             
             choices.push(Button.CANCEL)
-            let resp: PlayerAction
+            let resp: PlayerAct
             while(choices.length > 1) {
                 resp = await this.manager.sendHint(player, {
                     hintType: HintType.MULTI_CHOICE,
                     hintMsg: '请选择发动技能或取消',
                     extraButtons: choices
                 })
-                if(!isCancel(resp)) {
-                    let skillId = getFromAction(resp, UIPosition.BUTTONS)[0]
+                if(!resp.isCancel()) {
+                    let skillId = resp.button
                     console.log('[技能驱动] 收到玩家指示发动: ', skillId)
                     let skill: Skill<any> = takeFromArray(skills, s => s.id === skillId)
                     if(!skill) {

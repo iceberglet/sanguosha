@@ -1,6 +1,6 @@
 import { Operation, UseEventOperation } from "../Operation";
 import GameManager from "../GameManager";
-import { getFromAction, UIPosition, Button, isCancel } from "../../common/PlayerAction";
+import { Button } from "../../common/PlayerAction";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import DodgeOp from "./DodgeOp";
@@ -27,7 +27,7 @@ export default class PlaySlashOp extends Operation<void> {
     public damageType: DamageType = DamageType.NORMAL
     public suit: Suit
     
-    public constructor(public readonly source: string, 
+    public constructor(public readonly source: PlayerInfo, 
                         public targets: PlayerInfo[],
                         public cards: Card[]) {
         super()
@@ -38,7 +38,7 @@ export default class PlaySlashOp extends Operation<void> {
             this.suit = 'none'
             this.damageType = DamageType.NORMAL
         } else {
-            let icards = this.cards.map(c => manager.interpret(this.source, c.id))
+            let icards = this.cards.map(c =>this.source.cardInterpreter(c))
             if(icards.length === 1) {
                 if(icards[0].type === CardType.SLASH_FIRE) {
                     this.damageType = DamageType.FIRE
@@ -57,11 +57,11 @@ export default class PlaySlashOp extends Operation<void> {
         }
         
         if (this.damageType === DamageType.THUNDER) {
-            manager.broadcast(new TextFlashEffect(this.source, this.targets.map(t => t.player.id), '雷杀'))
+            manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), '雷杀'))
         } else if (this.damageType === DamageType.FIRE){
-            manager.broadcast(new TextFlashEffect(this.source, this.targets.map(t => t.player.id), '火杀'))
+            manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), '火杀'))
         } else {
-            manager.broadcast(new TextFlashEffect(this.source, this.targets.map(t => t.player.id), isSuitBlack(this.suit)? '杀' : '红杀'))
+            manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), isSuitBlack(this.suit)? '杀' : '红杀'))
         }
 
         manager.roundStats.slashCount++;
@@ -74,9 +74,8 @@ export default class PlaySlashOp extends Operation<void> {
         // leave to the listeners
         // await manager.events.publish(this)
 
-        let actor = manager.context.getPlayer(this.source)
 
-        await new SlashOP(actor, this.targets, this.cards, 1, this.damageType, this.suit).perform(manager)
+        await new SlashOP(this.source, this.targets, this.cards, 1, this.damageType, this.suit).perform(manager)
     }
 }
 
@@ -128,7 +127,7 @@ export class SlashCompute extends UseEventOperation<void> {
         let dodgeNeeded = this.dodgeRequired
         //开始杀的结算, 要求出闪
         if(dodgeNeeded > 0) {
-            let success = await new DodgeOp(this.target, this.source.player.id, dodgeNeeded, `[${this.source.player.id}] 对你出杀, 请出闪`).perform(manager)
+            let success = await new DodgeOp(this.target, this.source, dodgeNeeded, `[${this.source.player.id}] 对你出杀, 请出闪`).perform(manager)
             if(!success) {
                 await new DamageOp(this.source, this.target, this.damageAmount, this.cards, DamageSource.SLASH, this.damageType).perform(manager)
             } else {
@@ -159,7 +158,7 @@ export class AskForSlashOp extends Operation<boolean> {
             hintMsg: this.hintMsg,
             extraButtons: [new Button(Button.CANCEL.id, '放弃')]
         })
-        if(isCancel(resp)) {
+        if(resp.isCancel()) {
             console.log('玩家放弃出杀')
             return false
         } else {

@@ -16,27 +16,29 @@ export class UseDelayedRuseOp extends Operation<void> {
     public abort = false
 
     constructor(public readonly card: Card,
-                public readonly source: string,
+                public readonly source: PlayerInfo,
                 public readonly sourcePos: CardPos,
-                public readonly target: string) {
+                public readonly target: PlayerInfo) {
         super()
         checkThat((card.as || card.type).isDelayedRuse(), '必须得是延时锦囊!!')
     }
 
     public async perform(manager: GameManager) {
-        console.log(`${this.source} 对 ${this.target} 使用了延时锦囊 ${this.card.id} : ${this.card.as}`)
+        let s = this.source.player.id
+        let t = this.target.player.id
+        console.log(`${s} 对 ${t} 使用了延时锦囊 ${this.card.id} : ${this.card.as}`)
         await manager.events.publish(this)
-        manager.broadcast(new TextFlashEffect(this.source, [this.target], (this.card.as || this.card.type).name))
+        manager.broadcast(new TextFlashEffect(s, [t], (this.card.as || this.card.type).name))
 
         if(!this.abort) {
             //show card in workflow
-            manager.sendToWorkflow(this.source, CardPos.HAND, [this.card], true, true)
+            manager.sendToWorkflow(s, CardPos.HAND, [this.card], true, true)
             //transfer card to judge area
-            manager.transferCards(this.source, this.target, this.sourcePos, CardPos.JUDGE, [this.card])
+            manager.transferCards(s, t, this.sourcePos, CardPos.JUDGE, [this.card])
         } else {
             //谦逊? 帷幕?
             //go into junk
-            manager.sendToWorkflow(this.source, this.sourcePos, [this.card])
+            manager.sendToWorkflow(s, this.sourcePos, [this.card])
         }
     }
 
@@ -71,13 +73,13 @@ export class JudgeDelayedRuseOp extends Operation<void> {
 
         await delay(1000)
 
-        if(await wuxie.doOneRound(p)) {
+        if(await wuxie.doOneRound(this.player)) {
             //被无懈掉了
             console.log(`[延迟锦囊] 被无懈 ${type.name} ${p}`)
             if(type === CardType.SHAN_DIAN) {
                 let candidates = manager.getSortedByCurr(false).filter(p => !p.hasJudgeCard(CardType.SHAN_DIAN))
-                let next = candidates.length > 0? candidates[0].player.id : p
-                await new UseDelayedRuseOp(this.card, p, CardPos.JUDGE, next).perform(manager)
+                let next = candidates.length > 0? candidates[0] : this.player
+                await new UseDelayedRuseOp(this.card, this.player, CardPos.JUDGE, next).perform(manager)
             } else {
                 //drop it
                 delete this.card.description
@@ -112,9 +114,9 @@ export class JudgeDelayedRuseOp extends Operation<void> {
                         await new DamageOp(null, manager.context.getPlayer(p), 3, [card], DamageSource.SHAN_DIAN, DamageType.THUNDER).perform(manager)
                     } else {
                         let candidates = manager.getSortedByCurr(false).filter(p => !p.hasJudgeCard(CardType.SHAN_DIAN))
-                        let next = candidates.length > 0? candidates[0].player.id : p
-                        console.log(`[延迟锦囊] 闪电失效, 移给 ${next}`)
-                        await new UseDelayedRuseOp(this.card, p, CardPos.JUDGE, next).perform(manager)
+                        let next = candidates.length > 0? candidates[0] : this.player
+                        console.log(`[延迟锦囊] 闪电失效, 移给 ${next.player.id}`)
+                        await new UseDelayedRuseOp(this.card, this.player, CardPos.JUDGE, next).perform(manager)
                     }
                     break;
                 default:

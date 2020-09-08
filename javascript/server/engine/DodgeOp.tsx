@@ -1,6 +1,6 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
-import { Button, isCancel } from "../../common/PlayerAction";
+import { Button } from "../../common/PlayerAction";
 import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
 
@@ -9,7 +9,7 @@ export default class DodgeOp extends Operation<boolean> {
     public playedDodgeSomehow = false
 
     public constructor(public readonly target: PlayerInfo, 
-                        public readonly source: string, 
+                        public readonly source: PlayerInfo, 
                         public readonly numberRequired: number,
                         public readonly hintMsg: string){
         super()
@@ -42,7 +42,7 @@ export default class DodgeOp extends Operation<boolean> {
                 extraButtons: [Button.CANCEL] //force cancel button
             })
     
-            if(isCancel(response)) {
+            if(response.isCancel()) {
                 //player gave up on dodging
                 //assume cancel is received?
                 return false

@@ -4,7 +4,7 @@ import { CardPos } from "../../common/transit/CardPos";
 import { CardType } from "../../common/cards/Card";
 import { Timeline } from "../Operation";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
-import { Button, isCancel, UIPosition, getCardsFromAction } from "../../common/PlayerAction";
+import { Button, UIPosition } from "../../common/PlayerAction";
 import DamageOp, { DamageType, DamageTimeline, DamageSource } from "./DamageOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { DropCardRequest, DropOthersCardRequest } from "./DropCardOp";
@@ -94,7 +94,7 @@ export class ZhuQue extends Equipment {
                 hintMsg: '是否发动朱雀羽扇的效果?',
                 extraButtons: [Button.OK, Button.CANCEL]
             })
-            if(!isCancel(resp)) {
+            if(!resp.isCancel()) {
                 //todo: add effect!
                 console.log(`[装备] ${this.player} 发动了朱雀羽扇`)
                 op.damageType = DamageType.FIRE
@@ -117,7 +117,7 @@ export class CiXiong extends Weapon {
                 hintMsg: `是否对 ${op.target.player.id} 发动雌雄双股剑`,
                 extraButtons: [Button.OK, Button.CANCEL]
             })
-            if(!isCancel(resp)) {
+            if(!resp.isCancel()) {
                 //todo: add effect!
                 console.log(`[装备] ${this.player} 发动了雌雄双股剑`)
                 let resp = await new DropCardRequest().perform(op.target.player.id, 1, this.manager, 
@@ -193,15 +193,14 @@ export class GuanShi extends Equipment {
             forbidden: [potential.id], //不能弃置贯石斧本身
             extraButtons: [Button.CANCEL],
         })
-        if(!isCancel(resp)) {
+        if(!resp.isCancel()) {
             //todo: effect
-            let cards = getCardsFromAction(resp, UIPosition.MY_HAND, UIPosition.MY_EQUIP)
+            let cards = resp.getCardsAndPos(CardPos.HAND, CardPos.EQUIP)
             console.log('[装备] 玩家发动贯石斧造成伤害: ', this.player, cards)
     
-            for(let kv of flattenMap(cards)) {
-                let p = kv[0]
-                let toDrop = kv[1].map(c => {
-                    let card = this.manager.getCard(c)
+            for(let kv of cards) {
+                let p: CardPos = kv[0]
+                let toDrop = kv[1].map(card => {
                     delete card.as
                     card.description = `[${this.player}] 使用贯石斧弃置`
                     return card
@@ -247,7 +246,7 @@ export class Qilin extends Equipment {
                 hintMsg: `是否对 ${op.target.player.id} 发动麒麟弓特效`,
                 extraButtons: [Button.OK, Button.CANCEL]
             })
-            if(isCancel(ask)) {
+            if(ask.isCancel()) {
                 console.log('[装备] 玩家放弃发动麒麟弓')
                 return
             }
@@ -341,7 +340,7 @@ export class HanBing extends Equipment {
                     extraButtons: [Button.OK, Button.CANCEL]
                 })
 
-                if(isCancel(ask)) {
+                if(ask.isCancel()) {
                     console.log('[装备] 放弃发动寒冰剑')
                     return
                 }
@@ -350,12 +349,12 @@ export class HanBing extends Equipment {
                 console.log('[装备] 选择发动寒冰剑弃牌')
                 op.amount = -999
 
-                await new DropOthersCardRequest().perform(this.manager, this.player, op.target.player.id, `寒冰剑弃置对方的手牌/装备牌`, 
+                await new DropOthersCardRequest().perform(this.manager, op.source, op.target, `寒冰剑弃置对方的手牌/装备牌`, 
                                                             [CardPos.HAND, CardPos.EQUIP])
                 if(op.target.getAllCards().length > 0) {
                     //再来一次嘿嘿哟
                     console.log('[装备] 发动寒冰剑弃置第二张牌')
-                    await new DropOthersCardRequest().perform(this.manager, this.player, op.target.player.id, `寒冰剑弃置对方的手牌/装备牌`, 
+                    await new DropOthersCardRequest().perform(this.manager, op.source, op.target, `寒冰剑弃置对方的手牌/装备牌`, 
                                                                 [CardPos.HAND, CardPos.EQUIP])
                 }
             }
@@ -487,7 +486,7 @@ export class BaGua extends Equipment {
                 hintMsg: '是否发动八卦阵?',
                 extraButtons: [Button.OK, Button.CANCEL]
             })
-            if(!isCancel(resp)) {
+            if(!resp.isCancel()) {
                 let card = await new JudgeOp(`${this.player} 八卦阵判定牌`, this.player).perform(this.manager)
                 if(isSuitRed(this.manager.interpret(this.player, card.id).suit)){
                     console.log(`[装备] ${this.player} 八卦判定成功`)

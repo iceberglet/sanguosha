@@ -6,7 +6,7 @@ import { CardType } from "../common/cards/Card";
 import DamageOp, { DamageSource, DamageTimeline } from "../server/engine/DamageOp";
 import { CardPos } from "../common/transit/CardPos";
 import { HintType } from "../common/ServerHint";
-import { Button, isCancel, getFromAction, UIPosition } from "../common/PlayerAction";
+import { Button, UIPosition } from "../common/PlayerAction";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
 
@@ -148,7 +148,7 @@ export class SanJian extends Equipment {
             hintMsg: `是否发动三尖两刃刀特效`,
             extraButtons: [Button.OK, Button.CANCEL]
         })
-        if(isCancel(ask)) {
+        if(ask.isCancel()) {
             console.log('[装备] 玩家放弃发动三尖两刃刀')
             return
         }
@@ -159,12 +159,12 @@ export class SanJian extends Equipment {
             sourcePlayer: op.target.player.id,
             extraButtons: [Button.CANCEL]
         })
-        if(isCancel(resp)) {
+        if(resp.isCancel()) {
             console.log('[装备] 玩家放弃发动三尖两刃刀')
             return 
         } else {
-            let card = this.manager.getCard(getFromAction(resp, UIPosition.MY_HAND)[0])
-            let target = this.manager.context.getPlayer(getFromAction(resp, UIPosition.PLAYER)[0])
+            let card = resp.getSingleCardAndPos()[0]
+            let target = resp.targets[0]
             delete card.as
             card.description = this.player + ' 三尖两刃刀弃牌'
             this.manager.sendToWorkflow(this.player, CardPos.HAND, [card], true)

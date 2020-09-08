@@ -157,7 +157,7 @@ export class PlayerRegistry {
             console.error('[Player Registry] Not expecting any player action!', transit)
         } else {
             //clear out failures
-            // console.log('[Player Registry] 服务器收到答复:', transit.action.actionSource)
+            // console.log('[Player Registry] 服务器收到答复:', transit.action.source)
             this._failedHint.delete(transit.action.actionSource)
             exp.callback(transit)
         }

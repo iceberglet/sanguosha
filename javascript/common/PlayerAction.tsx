@@ -74,45 +74,36 @@ export type PlayerAction = {
     customData?: CardSelectionResult | GeneralSelectionResult | string
 }
 
-export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {
-    return action.actionData[pos] || []
-}
+// export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {
+//     return action.actionData[pos] || []
+// }
 
-export function getCardsFromAction(action: PlayerAction, ...pos: UIPosition[]): Map<CardPos, string[]> {
-    let map = new Map<CardPos, string[]>()
-    pos.forEach(p => {
-        if(action.actionData[p] && action.actionData[p].length > 0) {
-            map.set(mapToCardPos(p), action.actionData[p])
-        }
-    })
-    return map
-}
+// export function getCardsFromAction(action: PlayerAction, ...pos: UIPosition[]): Map<CardPos, string[]> {
+//     let map = new Map<CardPos, string[]>()
+//     pos.forEach(p => {
+//         if(action.actionData[p] && action.actionData[p].length > 0) {
+//             map.set(mapToCardPos(p), action.actionData[p])
+//         }
+//     })
+//     return map
+// }
 
-export function getOneCardFromAction(action: PlayerAction, ...pos: UIPosition[]): [CardPos, string] {
-    for(let p of pos) {
-        let d = action.actionData[p]
-        if(d && d.length === 1) {
-            return [mapToCardPos(p), d[0]]
-        }
-    }
-    console.error('Failed to find! ', action, pos)
-    throw 'Failed'
-}
+// export function getOneCardFromAction(action: PlayerAction, ...pos: UIPosition[]): [CardPos, string] {
+//     for(let p of pos) {
+//         let d = action.actionData[p]
+//         if(d && d.length === 1) {
+//             return [mapToCardPos(p), d[0]]
+//         }
+//     }
+//     console.error('Failed to find! ', action, pos)
+//     throw 'Failed'
+// }
 
-export function mapToCardPos(ui: UIPosition): CardPos {
-    switch(ui) {
-        case UIPosition.MY_EQUIP: return CardPos.EQUIP
-        case UIPosition.MY_HAND: return CardPos.HAND
-        case UIPosition.MY_JUDGE: return CardPos.JUDGE
-        default: throw 'Cannot map ' + UIPosition[ui]
-    }
-}
-
-export function isCancel(action: PlayerAction) {
-    let buttons = action.actionData[UIPosition.BUTTONS]
-    if(buttons.length === 1) {
-        return buttons[0] === Button.CANCEL.id
-    } else {
-        throw `Did not find any button or more than one buttons clicked in player action!! is this even allowed? ${action}`
-    }
-}
+// export function mapToCardPos(ui: UIPosition): CardPos {
+//     switch(ui) {
+//         case UIPosition.MY_EQUIP: return CardPos.EQUIP
+//         case UIPosition.MY_HAND: return CardPos.HAND
+//         case UIPosition.MY_JUDGE: return CardPos.JUDGE
+//         default: throw 'Cannot map ' + UIPosition[ui]
+//     }
+// }

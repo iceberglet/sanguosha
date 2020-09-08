@@ -1,6 +1,5 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
-import { PlayerAction, getFromAction, UIPosition } from "../../common/PlayerAction";
 import { WuXieContext } from "./WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import Card, { CardType } from "../../common/cards/Card";
@@ -22,7 +21,7 @@ export abstract class MultiRuse extends Operation<void> {
     public skipThisRound = true
 
     public constructor(public readonly cards: Card[],
-                        public source: string, //祸首可能改变source
+                        public source: PlayerInfo, //祸首可能改变source
                         public readonly ruseType: CardType,
                         public readonly targets: PlayerInfo[]) {
         super()
@@ -34,7 +33,7 @@ export abstract class MultiRuse extends Operation<void> {
         await this.init(manager)
 
         let ts = this.targets.map(t => t.player.id)
-        manager.broadcast(new TextFlashEffect(this.source, ts, this.ruseType.name))
+        manager.broadcast(new TextFlashEffect(this.source.player.id, ts, this.ruseType.name))
         await manager.events.publish(this)
 
         let context = new WuXieContext(manager, this.ruseType)
@@ -51,7 +50,7 @@ export abstract class MultiRuse extends Operation<void> {
                 continue //帷幕, 祸首, 等等
             }
 
-            if(await context.doOneRound(t.player.id)) {
+            if(await context.doOneRound(t)) {
                 console.log(`[MultiRuseOp] 针对${t.player.id}的锦囊牌被无懈掉了了`)
                 continue
             }
@@ -74,17 +73,17 @@ export abstract class MultiRuse extends Operation<void> {
 }
 
 export class TieSuo extends Operation<void> {
-    public constructor(public source: string, public targets: string[], public cards: Card[]) {
+    public constructor(public source: PlayerInfo, public targets: PlayerInfo[], public cards: Card[]) {
         super()
     }
     public async perform(manager: GameManager): Promise<void> {
         if(!this.targets || this.targets.length === 0) {
             //重铸了
             console.log('[MultiRuseOp] 重铸了')
-            await new TakeCardOp(manager.context.getPlayer(this.source), 1).perform(manager)
+            await new TakeCardOp(this.source, 1).perform(manager)
         } else {
             console.log('[MultiRuseOp] 铁索了', this.targets)
-            await new DoTieSuo(this.cards, this.source, CardType.TIE_SUO, this.targets.map(manager.context.getPlayer)).perform(manager)
+            await new DoTieSuo(this.cards, this.source, CardType.TIE_SUO, this.targets).perform(manager)
         }
     }
 }
@@ -101,7 +100,7 @@ export class DoTieSuo extends MultiRuse {
 export class NanMan extends MultiRuse {
 
     public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
-        let issuer = manager.context.getPlayer(this.source)
+        let issuer = this.source
         let slashed = await new AskForSlashOp(target, issuer, `${this.source} 使用南蛮, 请出杀`).perform(manager)
         if(!slashed) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃南蛮出杀, 掉血`)
@@ -119,7 +118,7 @@ export class WanJian extends MultiRuse {
         let dodged = await new DodgeOp(target, this.source, 1, `${this.source} 的万箭齐发, 请出闪`).perform(manager)
         if(!dodged) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃万箭出闪, 掉血`)
-            await new DamageOp(manager.context.getPlayer(this.source), target, 1, this.cards, DamageSource.WAN_JIAN, DamageType.NORMAL).perform(manager)
+            await new DamageOp(this.source, target, 1, this.cards, DamageSource.WAN_JIAN, DamageType.NORMAL).perform(manager)
         } else {
             //过了, 出了杀就成
         }
@@ -131,7 +130,7 @@ export class TaoYuan extends MultiRuse {
 
     public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
         console.log('[MultiRuseOp] ',  target.player.id, '桃园加血~')
-        await new HealOp(manager.context.getPlayer(this.source), target, 1).perform(manager)
+        await new HealOp(this.source, target, 1).perform(manager)
     }
 
 }
