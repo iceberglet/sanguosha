@@ -69,7 +69,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
             
             <Mask isMasked={info.isDrunk} maskClass={'drunk'} />
             <Mask isMasked={info.isTurnedOver} maskClass={'turned-over'} />
-            {info.isTurnedOver && <div className='occupy center'>翻面</div>}
+            {info.isTurnedOver && <div className='occupy center font-big'>翻面</div>}
             <div className='player-hp'>
                 <UIHpCol current={info.hp} total={info.maxHp} />
             </div>

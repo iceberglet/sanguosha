@@ -1,19 +1,24 @@
 import GameManager from "../GameManager";
 import { PlayerAction, UIPosition, getFromAction } from "../../common/PlayerAction";
 import { CardType } from "../../common/cards/Card";
-import PlaySlashOp from "../flows/SlashOp";
+import PlaySlashOp, { AskForSlashOp } from "../flows/SlashOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import HealOp from "../flows/HealOp";
 import { CardPos } from "../../common/transit/CardPos";
-import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import { CardBeingDroppedEvent, CardBeingUsedEvent } from "../flows/Generic";
+import { TextFlashEffect, PlaySound } from "../../common/transit/EffectTransit";
+import { CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingPlayedEvent } from "../flows/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "./EquipOp";
 import { ShunShou, GuoHe, WuZhong, JieDao, HuoGong, JueDou } from "./SingleRuseOp";
 import { WanJian, NanMan, TieSuo, WuGu, TaoYuan } from "./MultiRuseOp";
 import DodgeOp from '../flows/DodgeOp'
 import { UseDelayedRuseOp } from "./DelayedRuseOp";
-import { WINE_TAKEN } from "../../common/RoundStat";
+import WineOp from "./WineOp";
+import PeachOp from "./PeachOp";
+
+export function getTargets(act: PlayerAction, manager: GameManager): PlayerInfo[] {
+    let targets = getFromAction(act, UIPosition.PLAYER)
+    return targets.map(t => manager.context.getPlayer(t))
+}
 
 export abstract class ActionResolver {
     /**
@@ -25,10 +30,7 @@ export abstract class ActionResolver {
 
     abstract async onDodge(act: PlayerAction, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean>
 
-    protected getTargets=(act: PlayerAction, manager: GameManager): PlayerInfo[] =>{
-        let targets = getFromAction(act, UIPosition.PLAYER)
-        return targets.map(t => manager.context.getPlayer(t))
-    }
+    abstract async onAskingForSlash(act: PlayerAction, dodgeOp: AskForSlashOp, manager: GameManager): Promise<boolean>
 
 }
 
@@ -59,7 +61,7 @@ export default class PlayerActionResolver extends ActionResolver {
                     cardo.description = '丈八蛇矛'
                     return cardo
                 })
-                let targetPs = this.getTargets(act, manager)
+                let targetPs = getTargets(act, manager)
                 manager.sendToWorkflow(act.actionSource, CardPos.HAND, hand, true)
                 await manager.events.publish(new CardBeingUsedEvent(act.actionSource, hand.map(h => [h, CardPos.HAND]), CardType.SLASH))
                 await new PlaySlashOp(act.actionSource, targetPs, hand).perform(manager)
@@ -80,7 +82,7 @@ export default class PlayerActionResolver extends ActionResolver {
             let icard = manager.interpret(act.actionSource, card.id)
 
             // can be more than one
-            let targetPs = this.getTargets(act, manager)
+            let targetPs = getTargets(act, manager)
             let targets = targetPs.map(p => p.player.id)
             if(targets.length > 0) {
                 card.description = `${player.player.id} > ${targets.join(', ')}`
@@ -118,17 +120,12 @@ export default class PlayerActionResolver extends ActionResolver {
                 case CardType.PEACH:
                     //make sure target is null
                     checkThat(targets.length === 0, '桃不能直接用在别人身上')
-                    let info = manager.context.getPlayer(act.actionSource)
-                    manager.broadcast(new TextFlashEffect(act.actionSource, [], '桃'))
-                    await new HealOp(info, info, 1).perform(manager)
+                    await new PeachOp(act.actionSource).perform(manager)
                     break;
     
                 //wine
                 case CardType.WINE:
-                    player.isDrunk = true
-                    manager.broadcast(player, PlayerInfo.sanitize)
-                    manager.broadcast(new TextFlashEffect(act.actionSource, [], '酒'))
-                    manager.roundStats.customData[WINE_TAKEN] = true
+                    await new WineOp(act.actionSource).perform(manager)
                     break;
 
                 case CardType.WU_ZHONG:
@@ -194,9 +191,26 @@ export default class PlayerActionResolver extends ActionResolver {
             if(cards.length !== 1) {
                 throw `Player played dodge cards but not one card!!!! ${act.actionSource} ${cards}`
             }
+            await manager.events.publish(new CardBeingPlayedEvent(act.actionSource, cards.map(c => [c, CardPos.HAND]), CardType.DODGE))
             manager.sendToWorkflow(dodgeOp.target.player.id, CardPos.HAND, [cards[0]])
         }
         //张角呢??
+        return true
+    }
+
+    public async onAskingForSlash(resp: PlayerAction, askSlashOp: AskForSlashOp, manager: GameManager): Promise<boolean> {
+        if(!await this.delegate.onAskingForSlash(resp, askSlashOp, manager)) {
+            let cards = getFromAction(resp, UIPosition.MY_HAND).map(c => {
+                let card = manager.getCard(c)
+                card.description = `${askSlashOp.slasher.player.id} 出杀`
+                if(!card.type.isSlash()) {
+                    card.as = CardType.SLASH
+                }
+                return card
+            })
+            await manager.events.publish(new CardBeingPlayedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), CardType.SLASH))
+            manager.sendToWorkflow(askSlashOp.slasher.player.id, CardPos.HAND, cards)
+        }
         return true
     }
 }

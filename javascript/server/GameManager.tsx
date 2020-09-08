@@ -18,7 +18,7 @@ import FactionWarGeneral from "../game-mode-faction/FactionWarGenerals";
 import { StageStartFlow, StageEndFlow } from "./flows/StageFlows";
 import TakeCardOp, { TakeCardStageOp } from "./flows/TakeCardOp";
 import DropCardOp from "./flows/DropCardOp";
-import { CurrentPlayerEffect, CardTransit } from "../common/transit/EffectTransit";
+import { CurrentPlayerEffect, CardTransit, PlaySound } from "../common/transit/EffectTransit";
 import PlayerActionResolver, { ActionResolver } from "./engine/PlayerActionResolver";
 import { ICard } from "../common/cards/ICard";
 import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
@@ -26,6 +26,7 @@ import GameEnding from "./GameEnding";
 import { GameModeEnum } from "../common/GameModeEnum";
 import GameStatsCollector from "./GameStatsCollector";
 import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
+import { CardBeingPlayedEvent, CardBeingUsedEvent } from "./flows/Generic";
 
 
 //Manages the rounds
@@ -67,6 +68,23 @@ export default class GameManager {
         this.events = new CompositeListener([adminRegistry, skillRegistry, equipmentRegistry])
 
         this.statsCollector.subscribeTo(adminRegistry)
+        adminRegistry.onGeneral<CardBeingPlayedEvent>(CardBeingPlayedEvent, this.processCardEvent)
+        adminRegistry.onGeneral<CardBeingUsedEvent>(CardBeingUsedEvent, this.processCardEvent)
+    }
+
+    processCardEvent = async (event: CardBeingPlayedEvent | CardBeingUsedEvent): Promise<void> => {
+        if(!event.as) {
+            return
+        }
+        if(event.isFromSkill) {
+            // console.log('[Game Manager] Not playing sound as this is from a skill', event.as, event.cards)
+            return
+        }
+        let gender = this.context.getPlayer(event.player).getGender()
+        let genderFolder = gender === 'F'? 'female' : 'male'
+        let soundName = event.as.id
+        console.log('[Game Manager] Play Sound ', `audio/card/${genderFolder}/${soundName}.ogg`)
+        this.broadcast(new PlaySound(`audio/card/${genderFolder}/${soundName}.ogg`))
     }
 
     public async startGame(): Promise<string[]> {

@@ -78,8 +78,9 @@ interface Step {
     //can click on this at the current stage
     canClick(action: PlayerUIAction): boolean
     //we are at this stage and clicked on this item
-    //return true if we want to proceed to next step
-    onClick(action: PlayerUIAction): boolean
+    onClick(action: PlayerUIAction): void
+    //if this step is already satisfied
+    isSatisfied(): boolean
     //we have passed this stage and clicked back...
     //return false if we want to keep the subsequent steps, true if we want to restart
     onRetroClick(action: PlayerUIAction): boolean
@@ -99,8 +100,9 @@ abstract class AbstractStep implements Step {
                 public readonly msgObtainer: (context: GameClientContext)=>string) {
         this.chosen = new TogglableMap<string, UIPosition>(size)
     }
-    abstract onClick(action: PlayerUIAction): boolean
+    abstract onClick(action: PlayerUIAction): void
     abstract onRetroClick(action: PlayerUIAction): boolean
+    abstract isSatisfied(): boolean
 
     canClick(action: PlayerUIAction): boolean {
         return (!this.noBacksie && this.chosen.has(action.itemId)) || this.chosen.size() < this.size
@@ -144,12 +146,11 @@ export class StepDataExact extends AbstractStep {
         }
         return true
     }
-    onClick(action: PlayerUIAction): boolean {
+    onClick(action: PlayerUIAction): void {
         this.chosen.toggle(action.itemId, action.actionArea)
-        if(this.chosen.size() === this.size) {
-            return true
-        }
-        return false
+    }
+    isSatisfied() {
+        return this.chosen.size() === this.size
     }
 }
 
@@ -184,13 +185,15 @@ export class StepDataLoose extends AbstractStep {
     }
     //we are at this stage and clicked on this item
     //return true if we want to proceed to next step
-    onClick(action: PlayerUIAction): boolean {
+    onClick(action: PlayerUIAction): void {
         //todo: usage of OK / CANCEL button
         if(this.chosen.has(action.itemId) || this.chosen.size() < this.size) {
             this.chosen.toggle(action.itemId, action.actionArea)
         }
         //as long as it's more than minimum, we proceed to next stage
         //we can always edit this stage safely
+    }
+    isSatisfied() {
         return this.chosen.size() >= this.min
     }
 }
@@ -245,7 +248,8 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         } else {
             console.log('[Player Action] This is the current step')
             //we are at this stage!
-            if(stepData.onClick(action)) {
+            stepData.onClick(action)
+            while(this.currentStep().isSatisfied()) {
                 console.log('[Player Action] Step complete, proceeding to next step')
                 this.curr += 1
                 if(this.curr === this.steps.length) {

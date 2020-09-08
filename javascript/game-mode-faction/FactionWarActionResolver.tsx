@@ -1,6 +1,6 @@
 import { getFromAction, PlayerAction, UIPosition, Button } from "../common/PlayerAction";
 import GameManager from "../server/GameManager";
-import { ActionResolver } from "../server/engine/PlayerActionResolver";
+import { ActionResolver, getTargets } from "../server/engine/PlayerActionResolver";
 import { CardPos } from "../common/transit/CardPos";
 import { CardBeingUsedEvent, CardBeingDroppedEvent } from "../server/flows/Generic";
 import Card, { CardType } from "../common/cards/Card";
@@ -17,6 +17,7 @@ import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import DodgeOp from "../server/flows/DodgeOp";
 import { Skill } from "./skill/Skill";
 import { RevealEvent } from "./FactionWarInitializer";
+import { AskForSlashOp } from "../server/flows/SlashOp";
 
 
 
@@ -35,6 +36,16 @@ export default class FactionWarActionResolver extends ActionResolver {
             await manager.events.publish(new RevealEvent(act.actionSource, skill.isMain, !skill.isMain))
         }
         return skill
+    }
+
+    public async onAskingForSlash(act: PlayerAction, askForSlashOp: AskForSlashOp, manager: GameManager): Promise<boolean> {
+        if(getFromAction(act, UIPosition.MY_SKILL).length > 0) {
+            //武将技能
+            let skill = await this.getSkillAndRevealIfNeeded(act, manager)
+            await skill.onPlayerAction(act, askForSlashOp, manager)
+            return true
+        }
+        return false
     }
 
     public async onDodge(act: PlayerAction, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean> {
@@ -77,7 +88,7 @@ export default class FactionWarActionResolver extends ActionResolver {
             }
 
             // can be more than one
-            let targetPs = this.getTargets(act, manager)
+            let targetPs = getTargets(act, manager)
             let targets = targetPs.map(p => p.player.id)
             if(targets.length > 0) {
                 card.description = `${player.player.id} > ${targets.join(', ')}`

@@ -1,25 +1,20 @@
 import { PlayerActionDriver, CompositePlayerActionDriver } from "./PlayerActionDriver"
 import { ServerHint, HintType } from "../../common/ServerHint"
+import Multimap from "../../common/util/Multimap"
 
 type Provider = (hint: ServerHint)=>PlayerActionDriver
 
 class PlayerActionDriverProvider {
 
     providers = new Map<HintType, Provider[]>()
-    special = new Map<string, Provider>()
+    special = new Multimap<string, Provider>()
 
     registerSpecial(key: string, provider: Provider) {
-        if(this.special.has(key)) {
-            throw 'This key is already registered! ' + key
-        }
         this.special.set(key, provider)
     }
 
-    unregisterSpecial(key: string) {
-        if(!this.special.has(key)) {
-            throw 'This key does not exist! ' + key
-        }
-        this.special.delete(key)
+    unregisterSpecial(key: string, provider: Provider) {
+        this.special.get(key).delete(provider)
     }
 
     registerProvider(hintType: HintType, provider: Provider) {
@@ -42,7 +37,14 @@ class PlayerActionDriverProvider {
 
     getDriver(hint: ServerHint): PlayerActionDriver {
         if(hint.hintType === HintType.SPECIAL) {
-            return this.special.get(hint.specialId)(hint)
+            let set = this.special.getArr(hint.specialId)
+            if(set.length === 1) {
+                return set[0](hint)
+            } else if (set.length === 0) {
+                throw `Cannot find any driver for special hint! ${hint.hintType} ${hint.specialId}`
+            } else {
+                return new CompositePlayerActionDriver(set.map(s => s(hint)))
+            }
         }
         let p = this.providers.get(hint.hintType) || []
         let drivers = p.map((provider)=>provider(hint))

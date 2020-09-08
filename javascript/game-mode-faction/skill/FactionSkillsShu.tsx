@@ -1,6 +1,241 @@
-// 仁德 出牌阶段每名角色限一次，你可以将任意张手牌交给一名其他角色。当你给出第二张"仁德"牌时，你可以视为使用一张基本牌。
-// 武圣 你可以将一张红色牌当【杀】使用或打出。
-// 咆哮 锁定技，你使用【杀】无次数限制。当你于当前回合使用第二张【杀】时，你摸一张牌。
+import { Skill, EventRegistryForSkills } from "./Skill"
+import GameManager from "../../server/GameManager"
+import { DamageType } from "../../server/flows/DamageOp"
+import { StageStartFlow, StageEndFlow } from "../../server/flows/StageFlows"
+import { Stage } from "../../common/Stage"
+import { UIPosition, PlayerAction, getFromAction, Button, isCancel, getCardsFromAction, getOneCardFromAction } from "../../common/PlayerAction"
+import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
+import { HintType } from "../../common/ServerHint"
+import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
+import { TextFlashEffect } from "../../common/transit/EffectTransit"
+import { CardPos } from "../../common/transit/CardPos"
+import { WINE_TAKEN } from "../../common/RoundStat"
+import { CardType } from "../../common/cards/Card"
+import { slashTargetFilter } from "../../client/player-actions/PlayerActionDrivers"
+import WineOp from "../../server/engine/WineOp"
+import PeachOp from "../../server/engine/PeachOp"
+import PlaySlashOp, { SlashOP, AskForSlashOp } from "../../server/flows/SlashOp"
+import { isSuitRed } from "../../common/cards/ICard"
+import { CardBeingPlayedEvent, CardBeingUsedEvent } from "../../server/flows/Generic"
+import { getTargets } from "../../server/engine/PlayerActionResolver"
+import TakeCardOp from "../../server/flows/TakeCardOp"
+
+export class Rende extends Skill<void> {
+
+    id = '仁德'
+    displayName = '仁德'
+    description = '出牌阶段每名角色限一次，你可以将任意张手牌交给一名其他角色。当你给出第二张"仁德"牌时，你可以视为使用一张基本牌。'
+    givenAmount = 0
+    
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('仁德给牌')
+                    .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
+                    .expectChoose([UIPosition.MY_HAND], 1, 999, (id, context)=>true, ()=>'选择任意张手牌交给另一名玩家')
+                    .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
+                        let played = hint.roundStat.customData[this.id] as Set<string>
+                        return id !== this.playerId && (!played || !played.has(id))
+                    }, ()=>'选择一名此回合尚未给过牌的其他玩家')
+                    .expectAnyButton('点击确定使用仁德')
+                    .build(hint)
+        })
+        //酒或桃
+        //杀, 雷杀, 火杀
+        playerActionDriverProvider.registerSpecial(this.id, (hint)=>{
+            return new PlayerActionDriverDefiner('请选择仁德使用基本牌')
+                    .expectChoose([UIPosition.BUTTONS], 1, 1, (id, context)=>id === CardType.WINE.id || id === CardType.PEACH.id)
+                    .build(hint)
+        })
+        playerActionDriverProvider.registerSpecial(this.id, (hint)=>{
+            return new PlayerActionDriverDefiner('请选择仁德使用基本牌')
+                    .expectChoose([UIPosition.BUTTONS], 1, 1, (id, context)=>id === CardType.SLASH.id || 
+                                    id === CardType.SLASH_FIRE.id || id === CardType.SLASH_THUNDER.id)
+                    .expectChoose([UIPosition.PLAYER], 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
+                    .build(hint, [])
+        })
+    }
+
+    async onPlayerAction(act: PlayerAction, ignore: void, manager: GameManager): Promise<void> {
+        let hasGiven = manager.roundStats.customData[this.id] as Set<string>
+        let target = getFromAction(act, UIPosition.PLAYER)[0]
+        let me = manager.context.getPlayer(this.playerId)
+        hasGiven.add(target)
+
+        this.playSound(manager, 1)
+        manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
+        //assume he played it
+        let cards = getFromAction(act, UIPosition.MY_HAND).map(id => manager.getCard(id))
+        if(cards.length === 0) {
+            throw `[仁德] 牌呢?? ${act.actionSource} ${cards}`
+        }
+        manager.transferCards(this.playerId, target, CardPos.HAND, CardPos.HAND, cards)
+        if(this.givenAmount < 2 && this.givenAmount + cards.length >= 2) {
+            //给出了仁德牌
+            console.log('[仁德] 给出了第二张牌, 询问使用何种基本牌')
+            //注意, 只有没喝过酒才能喝酒!
+            let roundStat = manager.roundStats
+            let slashButtons: Button[] = [new Button(CardType.SLASH.id, '普通杀'), new Button(CardType.SLASH_FIRE.id, '火杀'), 
+                                            new Button(CardType.SLASH_THUNDER.id, '雷杀')]
+            let wineButton = new Button(CardType.WINE.id, '酒')
+            let peachButton = new Button(CardType.PEACH.id, '桃')
+            if(roundStat.customData[WINE_TAKEN]) {
+                wineButton.disable()
+            }
+            if(roundStat.slashMax > roundStat.slashCount) {
+                slashButtons.forEach(b => b.disable())
+            }
+            if(me.hp >= me.maxHp) {
+                peachButton.disable()
+            }
+            let resp = await manager.sendHint(this.playerId, {
+                hintType: HintType.MULTI_CHOICE,
+                hintMsg: '请选择仁德要使用的基本牌',
+                extraButtons: [...slashButtons, peachButton, wineButton, Button.CANCEL]
+            })
+            if(isCancel(resp)) {
+                console.log('[仁德] 放弃使用基本牌')
+            } else {
+                let choice = getFromAction(resp, UIPosition.BUTTONS)[0]
+                let targets = getFromAction(resp, UIPosition.PLAYER).map(t => manager.context.getPlayer(t))
+                switch(choice) {
+                    case CardType.WINE.id: await new WineOp(this.playerId).perform(manager); break
+                    case CardType.PEACH.id: await new PeachOp(this.playerId).perform(manager); break
+                    case CardType.SLASH.id:
+                        await new SlashOP(me, targets, [], 1, DamageType.NORMAL, 'none').perform(manager)
+                        break
+                    case CardType.SLASH_FIRE.id:
+                        await new SlashOP(me, targets, [], 1, DamageType.FIRE, 'none').perform(manager)
+                        break
+                    case CardType.SLASH_THUNDER.id:
+                        await new SlashOP(me, targets, [], 1, DamageType.THUNDER, 'none').perform(manager)
+                        break
+                    default:
+                        throw '[仁德] Unknown Choice' + choice
+                }
+            }
+        }
+        this.givenAmount += cards.length
+    }
+
+    public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(stageStart: StageEndFlow)=>{
+            if(stageStart.info.player.id === this.playerId && stageStart.stage === Stage.ROUND_BEGIN) {
+                this.givenAmount = 0
+                manager.roundStats.customData[this.id] = new Set<string>()
+            }
+        })
+    }
+    protected conditionFulfilled(event: void, manager: GameManager): boolean {
+        return false
+    }
+    public async doInvoke(event: void, manager: GameManager): Promise<void> {
+        return
+    }
+}
+
+
+export class WuSheng extends Skill<void> {
+
+    id = '武圣'
+    displayName = '武圣'
+    description = '你可以将一张红色牌当【杀】使用或打出。'
+
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('武圣出杀')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
+                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, (id, context)=>{
+                            let roundStat = context.serverHint.hint.roundStat
+                            return isSuitRed(context.interpret(id).suit) && roundStat.slashMax > roundStat.slashCount
+                        }, ()=>'选择一张红色的手牌/装备牌')
+                        .expectChoose([UIPosition.PLAYER], 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
+                        .expectAnyButton('点击确定出杀')
+                        .build(hint)
+        })
+        playerActionDriverProvider.registerProvider(HintType.SLASH, (hint)=>{
+            return new PlayerActionDriverDefiner('武圣出杀')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id)
+                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, 
+                            (id, context)=>isSuitRed(context.interpret(id).suit), ()=>'选择一张红色的手牌/装备牌当做杀打出')
+                        .expectAnyButton('点击确定使用杀')
+                        .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
+        })
+        playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, (hint)=>{
+            return new PlayerActionDriverDefiner('武圣出杀')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id)
+                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, 
+                            (id, context)=>isSuitRed(context.interpret(id).suit), ()=>'选择一张红色的手牌/装备牌当做杀打出')
+                        .expectAnyButton('点击确定使用杀')
+                        .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
+        })
+    }
+
+    public async onPlayerAction(act: PlayerAction, event: any, manager: GameManager) {
+        if(event && !(event instanceof AskForSlashOp)) {
+            throw '[武圣] 不会对此做出反应: ' + event
+        }
+        this.playSound(manager, 1)
+        let posAndCard = getOneCardFromAction(act, UIPosition.MY_HAND, UIPosition.MY_EQUIP)
+        let card = manager.getCard(posAndCard[1])
+        if(!event) {
+            //玩家直接出杀了
+            let targetPs = getTargets(act, manager)
+            manager.sendToWorkflow(act.actionSource, posAndCard[0], [card], true)
+            await manager.events.publish(new CardBeingUsedEvent(act.actionSource, [[card, posAndCard[0]]], CardType.SLASH, true))
+            await new PlaySlashOp(act.actionSource, targetPs, [card]).perform(manager)
+
+        } else if(event instanceof AskForSlashOp) {
+            //被迫出的杀
+            card.as = CardType.SLASH
+            card.description = this.id
+            await manager.events.publish(new CardBeingPlayedEvent(act.actionSource, [[card, posAndCard[0]]], CardType.SLASH, true))
+            manager.sendToWorkflow(act.actionSource, posAndCard[0], [card])
+        }
+    }
+
+    public hookup(skillRegistry: EventRegistryForSkills): void {
+        //do nothing
+    }
+    protected conditionFulfilled(event: void, manager: GameManager): boolean {
+        return false
+    }
+    public async doInvoke(event: void, manager: GameManager): Promise<void> {
+        //do nothing
+    }
+}
+
+
+export class PaoXiao extends Skill<SlashOP> {
+
+    id = '咆哮'
+    displayName = '咆哮'
+    description = '锁定技，你使用【杀】无次数限制。当你于当前回合使用第二张【杀】时，你摸一张牌。'
+    isLocked = true
+    slashNumber = 0
+
+    public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<SlashOP>(StageStartFlow, this)
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async (stage: StageStartFlow)=>{
+            if(!this.isDisabled && stage.stage === Stage.ROUND_BEGIN) {
+                console.log('[咆哮] 增加 900 出杀次数')
+                manager.roundStats.slashMax += 900
+                this.slashNumber = 0
+            }
+        })
+    }
+    protected conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
+        return event.source.player.id === this.playerId
+    }
+    public async doInvoke(event: SlashOP, manager: GameManager): Promise<void> {
+        this.slashNumber++
+        this.playSound(manager, 2)
+        if(this.slashNumber === 2) {
+            console.log('[咆哮] 玩家出了第二次杀, 摸牌')
+            await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+        }
+    }
+}
+
 
 // 观星 准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。
 // 空城 锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。

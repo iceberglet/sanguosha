@@ -24,12 +24,8 @@ export class SlashDodgedEvent {
  */
 export default class PlaySlashOp extends Operation<void> {
 
-    public dodgeRequired = 1
-    public damage = 1
     public damageType: DamageType = DamageType.NORMAL
     public suit: Suit
-    public currentTarget: PlayerInfo
-    public currentDodged: boolean
     
     public constructor(public readonly source: string, 
                         public targets: PlayerInfo[],
@@ -80,20 +76,36 @@ export default class PlaySlashOp extends Operation<void> {
 
         let actor = manager.context.getPlayer(this.source)
 
+        await new SlashOP(actor, this.targets, this.cards, 1, this.damageType, this.suit).perform(manager)
+    }
+}
+
+export class SlashOP extends Operation<void> {
+    constructor(public readonly source: PlayerInfo,
+                public targets: PlayerInfo[],
+                public readonly cards: Card[],
+                public damageAmount: number,
+                public damageType: DamageType,
+                public suit: Suit
+                ) {
+        super()
+    }
+
+    public async perform(manager: GameManager): Promise<void> {
+        manager.events.publish(this)
         //醒酒
-        if(actor.isDrunk) {
-            this.damage += 1
-            actor.isDrunk = false
-            manager.broadcast(actor, PlayerInfo.sanitize)
+        if(this.source.isDrunk) {
+            this.damageAmount += 1
+            this.source.isDrunk = false
+            manager.broadcast(this.source, PlayerInfo.sanitize)
         }
 
         for(let t of this.targets) {
             if(t.isDead) {
-                console.warn('Player already dead, not doing slash on him', t.player.id)
+                console.warn('[Slash Op] Player already dead, not doing slash on him', t.player.id)
                 return
             }
-
-            await new SlashCompute(actor, t, this.cards, this.dodgeRequired, this.damage, this.damageType, this.suit).perform(manager)
+            await new SlashCompute(this.source, t, this.cards, 1, this.damageAmount, this.damageType, this.suit).perform(manager)
         }
     }
 }
@@ -151,18 +163,7 @@ export class AskForSlashOp extends Operation<boolean> {
             console.log('玩家放弃出杀')
             return false
         } else {
-            //todo: it might not be like this... 武圣?龙胆?
-            let cards = getFromAction(resp, UIPosition.MY_HAND).map(c => {
-                let card = manager.getCard(c)
-                card.description = `${this.slasher.player.id} 出杀`
-                if(!card.type.isSlash()) {
-                    card.as = CardType.SLASH
-                }
-                return card
-            })
-            //todo: not good enough (skills and all?)
-            await manager.events.publish(new CardBeingPlayedEvent(this.slasher.player.id, cards.map(c => [c, CardPos.HAND]), CardType.SLASH))
-            manager.sendToWorkflow(this.slasher.player.id, CardPos.HAND, cards)
+            await manager.resolver.onAskingForSlash(resp, this, manager)
         }
 
         return true

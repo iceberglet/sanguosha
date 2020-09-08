@@ -7,7 +7,7 @@ import { playerActionDriverProvider } from "../../client/player-actions/PlayerAc
 import { HintType } from "../../common/ServerHint";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { UIPosition } from "../../common/PlayerAction";
-import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang } from "./FactionSkillsWei";
+import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou } from "./FactionSkillsWei";
 import { describer } from "../../common/util/Describer";
 
 class DummySkill extends Skill<void> {
@@ -72,7 +72,11 @@ FactionSkillProviders.register('天妒', pid => new TianDu(pid))
 FactionSkillProviders.register('倾国', pid => new QinGuo(pid))
 FactionSkillProviders.register('洛神', pid => new LuoShen(pid))
 FactionSkillProviders.register('神速', pid => new ShenSu(pid))
+FactionSkillProviders.register('据守', pid => new JuShou(pid))
 FactionSkillProviders.register('断粮', pid => new DuanLiang(pid))
+FactionSkillProviders.register('强袭', pid => new QiangXi(pid))
+FactionSkillProviders.register('放逐', pid => new FangZhu(pid))
+FactionSkillProviders.register('行殇', pid => new XingShang(pid))
 
 export default class FactionWarSkillRepo {
     

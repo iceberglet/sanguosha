@@ -10,12 +10,14 @@ export interface CardAwayEvent {
 
 //使用
 export class CardBeingUsedEvent implements CardAwayEvent {
-    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, public readonly as: CardType) {}
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, 
+        public readonly as: CardType, public readonly isFromSkill: boolean = false) {}
 }
 
 //打出
 export class CardBeingPlayedEvent implements CardAwayEvent {
-    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, public readonly as: CardType) {}
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, 
+        public readonly as: CardType, public readonly isFromSkill: boolean = false) {}
 }
 
 //弃置

@@ -88,6 +88,7 @@ export class JudgeDelayedRuseOp extends Operation<void> {
 
             let card = await new JudgeOp(`${p} 的 ${type.name} 判定`, p).perform(manager)
             let icard = manager.interpret(p, card.id)
+            console.log(`[延迟锦囊] 判定牌为 ${p} ${card.id} > ${icard.suit}`)
 
             switch(type) {
                 case CardType.LE_BU: 

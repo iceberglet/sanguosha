@@ -1,5 +1,5 @@
 import GameManager from "../GameManager";
-import { SlashCompute, SlashDodgedEvent } from "../flows/SlashOp";
+import { SlashCompute, SlashDodgedEvent, SlashOP } from "../flows/SlashOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardType } from "../../common/cards/Card";
 import { Timeline } from "../Operation";
@@ -76,14 +76,18 @@ export class QingGang extends Weapon {
     }
 }
 
-export class ZhuQue extends Weapon {
+export class ZhuQue extends Equipment {
     
-    myType(): CardType {
-        return CardType.ZHU_QUE
+    async onEquipped(): Promise<void> {
+        this.manager.equipmentRegistry.on<SlashOP>(DamageOp, this.player, this.performEffect)
     }
 
-    async doEffect(op: SlashCompute) {
-        if(op.timeline === Timeline.USING && op.damageType === DamageType.NORMAL) {
+    async onDropped(): Promise<void> {
+        this.manager.equipmentRegistry.off<SlashOP>(DamageOp, this.player, this.performEffect)
+    }
+
+    async performEffect(op: SlashOP) {
+        if(op.damageType === DamageType.NORMAL) {
             //询问是否发动
             let resp = await this.manager.sendHint(this.player, {
                 hintType: HintType.MULTI_CHOICE,

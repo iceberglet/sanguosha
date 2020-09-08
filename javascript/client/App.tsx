@@ -10,6 +10,8 @@ import { checkNotNull } from '../common/util/Util';
 import GameContext from '../common/GameContext';
 import { Circus } from '../game-mode-faction/FactionWarGameHoster';
 import PregameUI from './pregame/PregameUI';
+import { PlaySound } from '../common/transit/EffectTransit';
+import { audioManager } from './audio-manager/AudioManager';
 
 type AppState = {
     myself?: Player,
@@ -18,7 +20,7 @@ type AppState = {
     socket: WebSocket
 }
 
-// const audio = new Audio('sounds/ren_de.mp3')
+// const audio = new Audio('无双.mp3')
 // setInterval(()=>{
 //     audio.play()
 // }, 2000)
@@ -82,6 +84,10 @@ export default class App extends React.Component<object, AppState> {
                 pregame: circus,
                 context: null
             })
+        })
+        this.pubsub.on(PlaySound, (sound: PlaySound)=>{
+            console.log('[UIBoard] Play Sound ', sound.path)
+            audioManager.play(sound.path)
         })
     }
 

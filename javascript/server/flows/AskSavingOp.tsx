@@ -5,6 +5,7 @@ import { Button, UIPosition, getFromAction, isCancel } from "../../common/Player
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import HealOp from "./HealOp";
 import { CardPos } from "../../common/transit/CardPos";
+import { CardBeingPlayedEvent } from "./Generic";
 
 /**
  * 濒死求桃
@@ -33,11 +34,13 @@ export default class AskSavingOp {
                 sourcePlayer: targetId,
                 extraButtons: [Button.CANCEL]
             })
+            //todo: put this in resolver
             if(!isCancel(response)) {
                 //金主爸爸!!
                 let card = manager.getCard(getFromAction(response, UIPosition.MY_HAND)[0]);
                 //桃, 或者酒
                 manager.broadcast(new TextFlashEffect(this.goodman.player.id, [targetId], card.type.name))
+                await manager.events.publish(new CardBeingPlayedEvent(this.goodman.player.id, [[card, CardPos.HAND]], card.type))
                 //桃牌扔进workflow
                 card.description = `${this.goodman.player.id} 对 ${targetId} 使用 ${card.type.name}`
                 manager.sendToWorkflow(this.goodman.player.id, CardPos.HAND, [card])

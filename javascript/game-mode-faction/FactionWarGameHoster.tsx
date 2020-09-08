@@ -17,7 +17,7 @@ import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import { SkillStatus } from "./skill/Skill";
 
 const myMode = GameModeEnum.FactionWarGame
-const generalsToPickFrom = 4
+const generalsToPickFrom = 5
 
 export default class FactionWarGameHoster implements GameHoster {
 

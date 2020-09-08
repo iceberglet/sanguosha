@@ -30,7 +30,7 @@ export default function UIEquipGrid(prop: EquipGridProp) {
                                 .and(status === ElementStatus.SELECTED, 'selected')
                                 .done()
                     return <CSSTransition key={c.id} timeout={{enter: 300, exit: 600}} classNames='equipment'>
-                        <div className={clazz} onClick={()=>prop.checker?.onClicked(c.id)} style={getStyle(c.type.genre)}>
+                        <div className={clazz} onClick={()=>status.isSelectable && prop.checker?.onClicked(c.id)} style={getStyle(c.type.genre)}>
                             <Equip key={c.id} big={prop.big} card={c} />
                         </div>
                     </CSSTransition>

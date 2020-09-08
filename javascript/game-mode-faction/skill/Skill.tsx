@@ -1,6 +1,7 @@
 import GameManager from "../../server/GameManager";
 import { PlayerAction } from "../../common/PlayerAction";
 import { AckingConsumer } from "../../common/util/PubSub";
+import { PlaySound } from "../../common/transit/EffectTransit";
 
 
 export interface EventRegistryForSkills {
@@ -77,7 +78,7 @@ export abstract class Skill<T> extends SkillStatus {
         //no-op by default
     }
 
-    public async onPlayerAction(act: PlayerAction, event: T, manager: GameManager): Promise<void> {
+    public async onPlayerAction(act: PlayerAction, event: any, manager: GameManager): Promise<void> {
         throw 'Forgot to override me?'
     }
 
@@ -89,6 +90,14 @@ export abstract class Skill<T> extends SkillStatus {
             return true
         }
         return false
+    }
+
+    protected playSound(manager: GameManager, counts: number) {
+        let random = Math.ceil(Math.random() * counts)
+        if(random === 0) {
+            random = 1
+        }
+        manager.broadcast(new PlaySound(`audio/skill/${this.id}${random}.mp3`))
     }
 
 
@@ -111,10 +120,5 @@ export abstract class Skill<T> extends SkillStatus {
      * @param manager GameManager
      */
     public abstract async doInvoke(event: T, manager: GameManager): Promise<void>
-
-}
-
-
-export abstract class FactionWarSkill<T> extends Skill<T> {
 
 }

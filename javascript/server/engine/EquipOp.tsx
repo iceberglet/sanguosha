@@ -3,6 +3,7 @@ import Card from "../../common/cards/Card";
 import { CardPos } from "../../common/transit/CardPos";
 import {PlayerInfo} from '../../common/PlayerInfo'
 import { CardBeingDroppedEvent } from "../flows/Generic";
+import { PlaySound } from "../../common/transit/EffectTransit";
 
 export class EquipOp {
 
@@ -26,6 +27,11 @@ export class EquipOp {
             await new UnequipOp(this.beneficiary, replace, this.source).perform(manager)
         }
 
+        if(this.card.type.isHorse()) {
+            manager.broadcast(new PlaySound('audio/card/common/horse.ogg'))
+        } else {
+            manager.broadcast(new PlaySound('audio/card/common/equipment.ogg'))
+        }
         manager.transferCards(this.source, this.beneficiary, this.sourcePos, CardPos.EQUIP, [this.card])
         // newOwner.addCard(this.card, CardPos.EQUIP)
         // manager.broadcast(newOwner, PlayerInfo.sanitize)

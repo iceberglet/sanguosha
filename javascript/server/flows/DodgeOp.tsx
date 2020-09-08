@@ -1,10 +1,8 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
-import { Button, isCancel, getFromAction, UIPosition } from "../../common/PlayerAction";
+import { Button, isCancel } from "../../common/PlayerAction";
 import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { CardPos } from "../../common/transit/CardPos";
-import { TextFlashEffect } from "../../common/transit/EffectTransit";
 
 export default class DodgeOp extends Operation<boolean> {
 

@@ -7,6 +7,7 @@ import LoginMessage from './server/Login';
 import { PlayerRegistry } from './server/PlayerRegistry';
 import { GameMode } from './common/GameMode';
 import { GameModeEnum } from './common/GameModeEnum';
+import { PlaySound } from './common/transit/EffectTransit';
 
 let app = express()
 

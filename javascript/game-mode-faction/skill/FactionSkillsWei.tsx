@@ -3,26 +3,39 @@ import { Skill, EventRegistryForSkills } from "./Skill";
 import GameManager from "../../server/GameManager";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
-import { gatherCards, findCard, CardBeingTakenEvent, CardObtainedEvent, CardBeingUsedEvent, CardBeingPlayedEvent, CardBeingDroppedEvent } from "../../server/flows/Generic";
+import { gatherCards, findCard, CardBeingTakenEvent, CardObtainedEvent, CardBeingPlayedEvent, CardBeingDroppedEvent, CardBeingUsedEvent } from "../../server/flows/Generic";
 import JudgeOp, {JudgeTimeline} from "../../server/engine/JudgeOp";
 import { UIPosition, Button, isCancel, getFromAction, getCardsFromAction, PlayerAction } from "../../common/PlayerAction";
 import { flattenMap, getRandom } from "../../common/util/Util";
 import { StageEndFlow, StageStartFlow } from "../../server/flows/StageFlows";
 import { Stage } from "../../common/Stage";
-import { TakeCardStageOp } from "../../server/flows/TakeCardOp";
+import TakeCardOp, { TakeCardStageOp } from "../../server/flows/TakeCardOp";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import DodgeOp from "../../server/flows/DodgeOp";
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { isSuitBlack } from "../../common/cards/ICard";
 import Card, { CardType } from "../../common/cards/Card";
-import { SlashCompute } from "../../server/flows/SlashOp";
-import { UnequipOp } from "../../server/engine/EquipOp";
-import { DropCardRequest } from "../../server/flows/DropCardOp";
+import { SlashCompute, SlashOP } from "../../server/flows/SlashOp";
+import { EquipOp } from "../../server/engine/EquipOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
+import FactionPlayerInfo from "../FactionPlayerInfo";
+import DeathOp from "../../server/flows/DeathOp";
+import { PlayerInfo } from "../../common/PlayerInfo";
 
+export abstract class SkillForDamageTaken extends Skill<DamageOp> {
 
-export class JianXiong extends Skill<DamageOp> {
+    protected isMyDamage(event: DamageOp) {
+        return event.target.player.id === this.playerId && event.timeline === DamageTimeline.TAKEN_DAMAGE 
+                 && event.type !== DamageType.ENERGY
+    }
+
+    protected damageHasSource(event: DamageOp) {
+        return event.source && !event.source.isDead
+    }
+}
+
+export class JianXiong extends SkillForDamageTaken {
 
     id = '奸雄'
     displayName = '奸雄'
@@ -34,18 +47,18 @@ export class JianXiong extends Skill<DamageOp> {
         
     }
     protected conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        return event.target.player.id === this.playerId && event.timeline === DamageTimeline.TAKEN_DAMAGE && event.cards && event.cards.length > 0
+        return event.cards && event.cards.length > 0 && this.isMyDamage(event)
     }
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         if(event.cards && event.cards.length > 0) {
+            this.playSound(manager, 1)
             manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
             manager.takeFromWorkflow(this.playerId, CardPos.HAND, event.cards)
         }
     }
-    
 }
 
-export class FanKui extends Skill<DamageOp> {
+export class FanKui extends SkillForDamageTaken {
 
     id = '反馈'
     displayName = '反馈'
@@ -53,12 +66,9 @@ export class FanKui extends Skill<DamageOp> {
 
     public hookup(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
-        
     }
     protected conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        return event.source && event.target.player.id === this.playerId && 
-                event.timeline === DamageTimeline.TAKEN_DAMAGE && 
-                !event.source.isDead &&
+        return this.isMyDamage(event) && this.damageHasSource(event) &&
                 (event.source.getCards(CardPos.HAND).length > 0 || event.source.getCards(CardPos.EQUIP).length > 0)
     }
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
@@ -85,6 +95,7 @@ export class FanKui extends Skill<DamageOp> {
         let card = cardAndPos[0], pos = cardAndPos[1]
         delete card.description
         delete card.as
+        this.playSound(manager, 1)
         manager.transferCards(targetId, this.playerId, pos, CardPos.HAND, [card])
         await manager.events.publish(new CardBeingTakenEvent(targetId, [[card, pos]]))
         await manager.events.publish(new CardObtainedEvent(targetId, [card]))
@@ -118,6 +129,7 @@ export class GuiCai extends Skill<JudgeOp> {
             let card = manager.getCard(getFromAction(resp, UIPosition.MY_HAND)[0])
             console.log('[鬼才] 改变判定牌 ' + card.id)
             card.description = this.playerId + ' 鬼才改判定'
+            this.playSound(manager, 1)
             manager.sendToWorkflow(this.playerId, CardPos.HAND, [card], false)
             await manager.events.publish(new CardBeingPlayedEvent(this.playerId, [[card, CardPos.HAND]], null))
             event.judgeCard = card
@@ -127,7 +139,7 @@ export class GuiCai extends Skill<JudgeOp> {
     }
 }
 
-export class GangLie extends Skill<DamageOp> {
+export class GangLie extends SkillForDamageTaken {
 
     id = '刚烈'
     displayName = '刚烈'
@@ -138,10 +150,10 @@ export class GangLie extends Skill<DamageOp> {
         
     }
     protected conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        return event.timeline === DamageTimeline.TAKEN_DAMAGE && event.target.player.id === this.playerId &&
-                event.source && !event.source.isDead
+        return this.isMyDamage(event) && this.damageHasSource(event)
     }
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        this.playSound(manager, 1)
         let card = await new JudgeOp('刚烈判定', this.playerId).perform(manager)
         if(manager.interpret(this.playerId, card.id).suit !== 'heart') {
             console.log('[刚烈] 判定成功 ' + card.id)
@@ -207,6 +219,7 @@ export class TuXi extends Skill<TakeCardStageOp> {
         if(isCancel(resp)) {
             console.log('[突袭] 玩家最终放弃了突袭')
         } else {
+            this.playSound(manager, 2)
             let victims = getFromAction(resp, UIPosition.PLAYER)
             console.log('[突袭] 玩家选择了突袭, 放弃了摸牌', victims)
             manager.broadcast(new TextFlashEffect(this.playerId, victims, this.id))
@@ -243,6 +256,7 @@ export class LuoYi extends Skill<TakeCardStageOp> {
 
     public async doInvoke(event: TakeCardStageOp, manager: GameManager): Promise<void> {
         console.log('[裸衣] 脱!')
+        this.playSound(manager, 1)
         manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
         this.isTriggered = true
         event.amount -= 1
@@ -284,16 +298,11 @@ export class TianDu extends Skill<JudgeOp> {
         //take the card into hand
         delete event.judgeCard.as
         delete event.judgeCard.description
+        this.playSound(manager, 2)
         manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
         manager.takeFromWorkflow(this.playerId, CardPos.HAND, [event.judgeCard])
     }
 }
-
-// export class YiJi extends Skill<DamageOp> {
-
-//     displayName = '遗计'
-//     description = '当你受到1点伤害后，你可以观看牌堆顶的两张牌，然后将这些牌交给任意角色。'
-// }
 
 
 export class QinGuo extends Skill<DodgeOp> {
@@ -313,6 +322,7 @@ export class QinGuo extends Skill<DodgeOp> {
     }
 
     async onPlayerAction(act: PlayerAction, dodgeOp: DodgeOp, manager: GameManager): Promise<void> {
+        this.playSound(manager, 2)
         manager.broadcast(new TextFlashEffect(dodgeOp.target.player.id, [dodgeOp.source], '闪'))
         //assume he played it
         let cards = getFromAction(act, UIPosition.MY_HAND).map(id => manager.getCard(id))
@@ -351,6 +361,7 @@ export class LuoShen extends Skill<StageStartFlow> {
         let cards: Card[] = []
         //do nothing
         while(true) {
+            this.playSound(manager, 2)
             let card = await new JudgeOp('洛神判定', this.playerId).perform(manager)
             if(isSuitBlack(manager.interpret(this.playerId, card.id).suit)) {
                 cards.push(card)
@@ -370,9 +381,13 @@ export class LuoShen extends Skill<StageStartFlow> {
             }
         }
         cards = cards.filter(c => manager.stillInWorkflow(c))
-        console.log('[洛神] 获得牌', cards.map(c => c.id))
-        //最后才拿回来
-        manager.takeFromWorkflow(this.playerId, CardPos.HAND, cards)
+        if(cards.length > 0) {
+            console.log('[洛神] 获得牌', cards.map(c => c.id))
+            //最后才拿回来
+            manager.takeFromWorkflow(this.playerId, CardPos.HAND, cards)
+        } else {
+            console.log('[洛神] 没有获得牌')
+        }
     }
 }
 
@@ -407,18 +422,20 @@ export class ShenSu extends Skill<StageStartFlow> {
                 hintMsg: '选择一名杀的目标',
                 minQuantity: 1,
                 quantity: 1,
-                forbidden: [this.playerId]
+                forbidden: [this.playerId],
+                extraButtons: [Button.CANCEL]
             })
             if(!isCancel(resp)) {
+                this.playSound(manager, 1)
                 let target = getFromAction(resp, UIPosition.PLAYER)[0]
                 console.log('[神速] 跳过判定和摸牌出杀', this.playerId, target)
                 //跳过判定和摸牌阶段
                 manager.roundStats.skipStages.set(Stage.JUDGE, true)
                 manager.roundStats.skipStages.set(Stage.TAKE_CARD, true)
                 manager.broadcast(new TextFlashEffect(this.playerId, [target], '神速'))
-                await new SlashCompute(manager.context.getPlayer(this.playerId),
-                                        manager.context.getPlayer(target),
-                                        [], 1, 1, DamageType.NORMAL, 'none').perform(manager)
+                await new SlashOP(manager.context.getPlayer(this.playerId),
+                                        [manager.context.getPlayer(target)],
+                                        [], 1, DamageType.NORMAL, 'none').perform(manager)
             }
         } else if (event.stage === Stage.USE_CARD){
             let resp = await manager.sendHint(this.playerId, {
@@ -428,6 +445,7 @@ export class ShenSu extends Skill<StageStartFlow> {
                 extraButtons: [Button.CANCEL]
             })
             if(!isCancel(resp)) {
+                this.playSound(manager, 1)
                 let target = getFromAction(resp, UIPosition.PLAYER)[0]
                 let equipp = flattenMap(getCardsFromAction(resp, UIPosition.MY_EQUIP, UIPosition.MY_HAND))
 
@@ -490,8 +508,10 @@ export class DuanLiang extends Skill<StageStartFlow> {
         let card = manager.getCard(posAndCards[1][0])
         card.as = CardType.BING_LIANG
         card.description = '兵粮' 
+        this.playSound(manager, 1)
         // manager.sendToWorkflow(this.playerId, pos, [card])
         await new UseDelayedRuseOp(card, this.playerId, pos, target).perform(manager)
+        await manager.events.publish(new CardBeingUsedEvent(act.actionSource, [[card, pos]], CardType.BING_LIANG, true))
     }
 
     public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
@@ -510,6 +530,195 @@ export class DuanLiang extends Skill<StageStartFlow> {
     }
 }
 
+export class JuShou extends Skill<StageStartFlow> {
+
+    id = '据守'
+    displayName = '据守'
+    description = '结束阶段开始时，你可以发动此技能。然后你摸X张牌，选择一项：1.弃置一张不为装备牌的手牌；2.使用一张装备牌。若X大于2，则你将武将牌翻面。（X为此时亮明势力数）'
+
+    public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+    }
+
+    protected conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        return event.info.player.id === this.playerId && event.stage === Stage.ROUND_END
+    }
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        this.playSound(manager, 2)
+        let revealed = manager.getSortedByCurr(true).filter(p => (p as FactionPlayerInfo).isRevealed())
+        let facs = new Set<string>()
+        let myself = manager.context.getPlayer(this.playerId)
+        revealed.forEach(r => facs.add(r.getFaction().name))
+        let x = facs.size
+        console.log('[据守] 场上亮明势力数为', x)
+        await new TakeCardOp(myself, x).perform(manager)
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.CHOOSE_CARD,
+            hintMsg: '[据守] 选择一张手牌, 若为装备则使用, 否则弃置',
+            quantity: 1,
+            minQuantity: 1,
+            positions: [UIPosition.MY_HAND]
+        })
+
+        let card = getFromAction(resp, UIPosition.MY_HAND)[0]
+        console.log('[据守] 弃置', card)
+        let cardo = manager.getCard(card)
+        if(cardo.type.isEquipment()) {
+            //装备
+            await new EquipOp(this.playerId, cardo, CardPos.HAND, this.playerId).perform(manager)
+        } else {
+            delete cardo.as
+            cardo.description = '据守弃置'
+            manager.sendToWorkflow(this.playerId, CardPos.HAND, [cardo], false)
+            await manager.events.publish(new CardBeingDroppedEvent(this.playerId, [[cardo, CardPos.HAND]]))
+        }
+        if(x > 2) {
+            console.log('[据守] 翻面', x)
+            myself.isTurnedOver = !myself.isTurnedOver
+            manager.broadcast(myself, PlayerInfo.sanitize)
+        }
+        return
+    }
+
+}
+
+export class QiangXi extends Skill<void> {
+    id = '强袭'
+    displayName = '强袭'
+    description = '出牌阶段限一次，你可以失去1点体力或弃置一张武器牌，并对你攻击范围内的一名其他角色造成1点伤害。'
+
+    public bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('强袭')
+                    .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>!hint.roundStat.customData[this.id] && id === this.id)
+                    .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>id !== this.playerId &&       //不能是自己
+                                    context.getMyDistanceTo(id) <= context.getPlayer(this.playerId).getReach(), 
+                                    ()=>'选择强袭的对象')
+                    .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 0, 1, (id, context)=>{
+                        let card = context.interpret(id)
+                        return card.type.genre === 'weapon'
+                    }, ()=>'选择一张武器牌弃置或直接确定失去一点体力')
+                    .expectAnyButton('点击确定强袭')
+                    .build(hint)
+        })
+    }
+
+    async onPlayerAction(act: PlayerAction, ignore: any, manager: GameManager): Promise<void> {
+        if(isCancel(act)) {
+            console.error('[强袭] 怎么可能cancel??')
+            return
+        }
+        this.playSound(manager, 1)
+        manager.roundStats.customData[this.id] = true
+        let target = getFromAction(act, UIPosition.PLAYER)[0]
+        manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
+        let me = manager.context.getPlayer(this.playerId)
+        let posAndCardos = flattenMap(getCardsFromAction(act, UIPosition.MY_HAND, UIPosition.MY_EQUIP))
+        if(posAndCardos.length > 0) {
+            let posAndCards = posAndCardos[0]
+            //assume he played it
+            console.log('[强袭] 弃置武器牌', posAndCards)
+            let pos = posAndCards[0]
+            let card = manager.getCard(posAndCards[1][0])
+            card.description = '强袭弃置' 
+            manager.sendToWorkflow(this.playerId, pos, [card])
+            await manager.events.publish(new CardBeingDroppedEvent(this.playerId, [[card, pos]]))
+        } else {
+            console.log('[强袭] 自减体力')
+            await new DamageOp(me, me, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+        }
+        await new DamageOp(me, manager.context.getPlayer(target), 1, [], DamageSource.SKILL, DamageType.NORMAL).perform(manager)
+    }
+
+    public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+
+    }
+
+    protected conditionFulfilled(event: void, manager: GameManager): boolean {
+        return false
+    }
+    public async doInvoke(event: void, manager: GameManager): Promise<void> {
+        return
+    }
+}
+
+export class XingShang extends Skill<DeathOp> {
+
+    id = '行殇'
+    displayName = '行殇'
+    description = '当其他角色死亡时，你可以获得其所有牌。'
+
+    public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<DeathOp>(DeathOp, this)
+    }
+
+    protected conditionFulfilled(event: DeathOp, manager: GameManager): boolean {
+        return event.deceased.player.id !== this.id
+    }
+    public async doInvoke(event: DeathOp, manager: GameManager): Promise<void> {
+        this.playSound(manager, 1)
+        manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
+        let hand: Card[] = [], equip: Card[] = []
+        event.toDrop.forEach(d => {
+            if(d[1] === CardPos.HAND){
+                hand.push(d[0])
+            } else if(d[1] === CardPos.EQUIP){
+                equip.push(d[0])
+            }
+        })
+        event.toDrop = event.toDrop.filter(d => d[1] !== CardPos.HAND && d[1] !== CardPos.EQUIP)
+        if(hand.length > 0) {
+            console.log('[行殇] 行殇拿手牌...', hand.length)
+            manager.transferCards(event.deceased.player.id, this.playerId, CardPos.HAND, CardPos.HAND, hand)
+        }
+        if(equip.length > 0) {
+            console.log('[行殇] 行殇拿装备牌...', equip.length)
+            manager.transferCards(event.deceased.player.id, this.playerId, CardPos.EQUIP, CardPos.HAND, equip)
+        }
+        return
+    }
+}
+// this.isMyDamage(event) && this.damageHasSource(event)
+
+export class FangZhu extends SkillForDamageTaken {
+    id = '放逐'
+    displayName = '放逐'
+    description = '当你受到伤害后，你可以令一名其他角色翻面，然后该角色摸X张牌（X为你已损失的体力值）。'
+
+    public hookup(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+        
+    }
+    protected conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        return this.isMyDamage(event)
+    }
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.CHOOSE_PLAYER,
+            hintMsg: '请选择放逐的对象',
+            forbidden: [this.playerId],
+            minQuantity: 1,
+            quantity: 1,
+            extraButtons: [Button.CANCEL]
+        })
+        if(isCancel(resp)) {
+            console.log('[放逐] 放弃了')
+            return
+        }
+        this.playSound(manager, 1)
+        let target = getFromAction(resp, UIPosition.PLAYER)[0]
+        console.log('[放逐] 结果', resp, target)
+        manager.broadcast(new TextFlashEffect(this.playerId, [target], this.id))
+        let targetP = manager.context.getPlayer(target)
+        let me = manager.context.getPlayer(this.playerId)
+        targetP.isTurnedOver = !targetP.isTurnedOver
+        manager.broadcast(targetP, PlayerInfo.sanitize)
+        await new TakeCardOp(targetP, me.maxHp - me.hp).perform(manager)
+        return
+
+    }
+}
+
 /*
 export class QiaoBian extends Skill<DamageOp> {
 
@@ -518,16 +727,10 @@ export class QiaoBian extends Skill<DamageOp> {
 }
 
 
-export class JuShou extends Skill<DamageOp> {
+export class YiJi extends Skill<DamageOp> {
 
-    displayName = '据守'
-    description = '结束阶段开始时，你可以发动此技能。然后你摸X张牌，选择一项：1.弃置一张不为装备牌的手牌；2.使用一张装备牌。若X大于2，则你将武将牌翻面。（X为此时亮明势力数）'
-}
-
-export class QiangXi extends Skill<DamageOp> {
-
-    displayName = '强袭'
-    description = '出牌阶段限一次，你可以失去1点体力或弃置一张武器牌，并对你攻击范围内的一名其他角色造成1点伤害。'
+    displayName = '遗计'
+    description = '当你受到1点伤害后，你可以观看牌堆顶的两张牌，然后将这些牌交给任意角色。'
 }
 
 export class QuHu extends Skill<DamageOp> {
@@ -540,18 +743,6 @@ export class JieMing extends Skill<DamageOp> {
 
     displayName = '节命'
     description = '当你受到1点伤害后，你可以令一名角色将手牌摸至X张（X为其体力上限且最多为5）。'
-}
-
-export class XingShang extends Skill<DamageOp> {
-
-    displayName = '行殇'
-    description = '当其他角色死亡时，你可以获得其所有牌。'
-}
-
-export class FangZhu extends Skill<DamageOp> {
-
-    displayName = '放逐'
-    description = '当你受到伤害后，你可以令一名其他角色翻面，然后该角色摸X张牌（X为你已损失的体力值）。'
 }
 
 export class XiaoGuo extends Skill<DamageOp> {

@@ -164,10 +164,11 @@ export class SanJian extends Equipment {
             return 
         } else {
             let card = this.manager.getCard(getFromAction(resp, UIPosition.MY_HAND)[0])
+            let target = this.manager.context.getPlayer(getFromAction(resp, UIPosition.PLAYER)[0])
             delete card.as
             card.description = this.player + ' 三尖两刃刀弃牌'
             this.manager.sendToWorkflow(this.player, CardPos.HAND, [card], true)
-            await new DamageOp(op.source, op.target, 1, [], DamageSource.SKILL).perform(this.manager)
+            await new DamageOp(op.source, target, 1, [], DamageSource.SKILL).perform(this.manager)
         }
     }
 }

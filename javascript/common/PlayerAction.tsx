@@ -81,9 +81,22 @@ export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {
 export function getCardsFromAction(action: PlayerAction, ...pos: UIPosition[]): Map<CardPos, string[]> {
     let map = new Map<CardPos, string[]>()
     pos.forEach(p => {
-        map.set(mapToCardPos(p), action.actionData[p] || [])
+        if(action.actionData[p] && action.actionData[p].length > 0) {
+            map.set(mapToCardPos(p), action.actionData[p])
+        }
     })
     return map
+}
+
+export function getOneCardFromAction(action: PlayerAction, ...pos: UIPosition[]): [CardPos, string] {
+    for(let p of pos) {
+        let d = action.actionData[p]
+        if(d && d.length === 1) {
+            return [mapToCardPos(p), d[0]]
+        }
+    }
+    console.error('Failed to find! ', action, pos)
+    throw 'Failed'
 }
 
 export function mapToCardPos(ui: UIPosition): CardPos {

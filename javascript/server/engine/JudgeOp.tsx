@@ -39,7 +39,7 @@ export default class JudgeOp extends Operation<Card> {
         manager.broadcast(transit)
         //and send it to workflow for dropping
         manager.context.workflowCards.add(this.judgeCard)
-        await delay(1000)
+        await delay(600)
 
         //改判定??
         this.timeline = JudgeTimeline.CONFIRMING
@@ -52,7 +52,7 @@ export default class JudgeOp extends Operation<Card> {
         this.timeline = JudgeTimeline.CONFIRMED
         await manager.events.publish(this)
 
-        await delay(1000)
+        await delay(600)
         return result
     }
 

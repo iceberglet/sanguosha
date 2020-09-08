@@ -2,6 +2,10 @@ import Card from "../cards/Card"
 import { Stage } from "../Stage"
 import { CardPos, isCardPosHidden } from "./CardPos"
 
+export class PlaySound {
+    public constructor(public path: string){}
+}
+
 export class TextFlashEffect {
     public constructor(public sourcePlayer: string, 
         public targetPlayers: string[], 

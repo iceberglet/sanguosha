@@ -11,7 +11,7 @@ function isInReach(from: string, to: string, context: GameClientContext) {
     return context.computeDistance(from, to) <= context.getPlayer(from).getReach()
 }
 
-let slashTargetFilter = (id: string, context: GameClientContext)=>{
+export const slashTargetFilter = (id: string, context: GameClientContext)=>{
     //1. 不能是自己
     //2. 不能是hint中已经指定的target
     //3. 必须在距离内

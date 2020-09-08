@@ -10,7 +10,7 @@ import IdentityWarPlayerInfo from "../../game-mode-identity/IdentityWarPlayerInf
 import FactionWarGeneral from "../../game-mode-faction/FactionWarGenerals"
 import FactionPlayerInfo from "../../game-mode-faction/FactionPlayerInfo"
 import { Stage } from "../Stage"
-import { TextFlashEffect, DamageEffect, CardTransit, CurrentPlayerEffect } from '../transit/EffectTransit';
+import { TextFlashEffect, DamageEffect, CardTransit, CurrentPlayerEffect, PlaySound } from '../transit/EffectTransit';
 import { FWCard } from "../../game-mode-faction/FactionWarCardSet"
 import RoundStat from "../RoundStat"
 import { CustomUIData } from "../../client/card-panel/CustomUIRegistry"
@@ -220,3 +220,4 @@ Serde.register(GameStats)
 Serde.register(PlayerPrepChoice)
 Serde.register(Circus)
 Serde.register(SkillStatus)
+Serde.register(PlaySound)

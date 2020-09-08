@@ -1,7 +1,7 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { DamageEffect } from "../../common/transit/EffectTransit";
+import { DamageEffect, PlaySound } from "../../common/transit/EffectTransit";
 import DeathOp from "./DeathOp";
 import AskSavingOp from "./AskSavingOp";
 import Card from "../../common/cards/Card";
@@ -73,6 +73,9 @@ export default class DamageOp extends Operation<void> {
             console.log('[伤害结算] 伤害被防止, 停止结算')
             return
         }
+
+        let size = Math.min(3, this.amount)
+        manager.broadcast(new PlaySound(`audio/injure${size}.ogg`))
 
         this.timeline = DamageTimeline.TAKING_DAMAGE
         await manager.events.publish(this)
