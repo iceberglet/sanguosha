@@ -34,7 +34,7 @@ export class UseDelayedRuseOp extends Operation<void> {
             //show card in workflow
             manager.sendToWorkflow(s, CardPos.HAND, [this.card], true, true)
             //transfer card to judge area
-            manager.transferCards(s, t, this.sourcePos, CardPos.JUDGE, [this.card])
+            await manager.transferCards(s, t, this.sourcePos, CardPos.JUDGE, [this.card])
         } else {
             //谦逊? 帷幕?
             //go into junk

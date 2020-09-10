@@ -9,14 +9,12 @@ import Pubsub from '../../common/util/PubSub'
 import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { Stage } from '../../common/Stage'
-import { Skill, SkillStatus } from '../../game-mode-faction/skill/Skill'
-import { ServerHint } from '../../common/ServerHint'
+import { SkillStatus, Skill } from '../../game-mode-faction/skill/Skill'
 
 const damageDuration = 2000
 
 type CardProp = {
     info: PlayerInfo
-    onUseSkill: (s: string)=>void,
     elementStatus: ElementStatus,
     onSelect: (s: string)=>void,
     pubsub: Pubsub,
@@ -97,7 +95,7 @@ export function StageDeclarer(p: Prop) {
 } 
 
 export type SkillButtonProp = {
-    skill: Skill<any>
+    skill: Skill
     skillChecker: Checker
     statusUpdater: (skillEvent: SkillStatus)=>void
 }

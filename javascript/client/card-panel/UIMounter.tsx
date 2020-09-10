@@ -2,11 +2,11 @@ import * as React from 'react'
 import { CardSelectionHint, CustomRequest, DisplayHint } from '../../common/ServerHint'
 import CardSelection from './CardSelection'
 import { CustomUIData, customUIRegistry } from './CustomUIRegistry'
-import { FWCard } from '../../game-mode-faction/FactionWarCardSet'
-import { CardSize, CardType } from '../../common/cards/Card'
 import DisplayPanel from './DisplayPanel'
 import { GameStats } from '../../server/GameStatsCollector'
 import GameResultPanel from './GameResultPanel'
+import { FWCard } from '../../game-mode-faction/FactionWarCardSet'
+import { CardSize, CardType } from '../../common/cards/Card'
 
 
 type Prop = {
@@ -34,6 +34,13 @@ export default class UIMounter extends React.Component<Prop, any> {
     }
 
     // renderTest() {
+    //     return customUIRegistry.get('card-fight', {
+    //         cardLeft: new FWCard('club', CardSize.QUEEN, CardType.JIE_DAO),
+    //         cardRight: new FWCard('club', CardSize.FOUR, CardType.JIE_DAO),
+    //         title: '青青子吟 > 驱虎'
+    //     }, true, what=>{})
+    // }
+    // renderTest() {
     //     return <CardSelection {...{
     //         title: 'Test',
     //         rowsOfCard: {
@@ -58,6 +65,7 @@ export default class UIMounter extends React.Component<Prop, any> {
     // }
 
     render() {
+        // return this.renderTest()
         let {customRequest, commonUI} = this.props
         if(!customRequest && (!commonUI || commonUI.type === CustomUIData.STOP)) {
             return null

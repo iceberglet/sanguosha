@@ -8,11 +8,9 @@ import Card, { Suit, CardType } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import { isSuitBlack } from "../../common/cards/ICard";
 import { HintType } from "../../common/ServerHint";
-import { CardPos } from "../../common/transit/CardPos";
-import { CardBeingPlayedEvent } from "./Generic";
 
 export class SlashDodgedEvent {
-    constructor(public readonly slashOp: SlashCompute) {
+    constructor(public readonly slashOp: SlashCompute, public readonly dodgeOp: DodgeOp) {
     }
 }
 
@@ -127,12 +125,13 @@ export class SlashCompute extends UseEventOperation<void> {
         let dodgeNeeded = this.dodgeRequired
         //开始杀的结算, 要求出闪
         if(dodgeNeeded > 0) {
-            let success = await new DodgeOp(this.target, this.source, dodgeNeeded, `[${this.source.player.id}] 对你出杀, 请出闪`).perform(manager)
+            let dodgeOp = new DodgeOp(this.target, this.source, dodgeNeeded, `[${this.source.player.id}] 对你出杀, 请出闪`)
+            let success = await dodgeOp.perform(manager)
             if(!success) {
                 await new DamageOp(this.source, this.target, this.damageAmount, this.cards, DamageSource.SLASH, this.damageType).perform(manager)
             } else {
                 //闪避成功! 贯石斧?
-                await manager.events.publish(new SlashDodgedEvent(this))
+                await manager.events.publish(new SlashDodgedEvent(this, dodgeOp))
             }
         }
     }

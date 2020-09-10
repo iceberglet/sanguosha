@@ -28,6 +28,10 @@ type CardProp = {
     nodescript?: boolean
 }
 
+export function UICardHolder() {
+    return <div className='ui-card card-placeholder'/>
+}
+
 export default function UICard(prop: CardProp) {
     let onMouseDown = () => prop.onMouseDown && prop.onMouseDown(prop.card)
     let onMouseUp = () => prop.onMouseUp && prop.onMouseUp(prop.card)

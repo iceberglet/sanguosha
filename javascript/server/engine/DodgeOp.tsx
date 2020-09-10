@@ -3,10 +3,12 @@ import GameManager from "../GameManager";
 import { Button } from "../../common/PlayerAction";
 import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
+import PlayerAct from "../context/PlayerAct";
 
 export default class DodgeOp extends Operation<boolean> {
 
     public playedDodgeSomehow = false
+    public dodgeResp: PlayerAct
 
     public constructor(public readonly target: PlayerInfo, 
                         public readonly source: PlayerInfo, 
@@ -36,19 +38,19 @@ export default class DodgeOp extends Operation<boolean> {
                 hintMsg += `(还需要${this.numberRequired}张)`
             }
 
-            let response = await manager.sendHint(this.target.player.id, {
+            this.dodgeResp = await manager.sendHint(this.target.player.id, {
                 hintType: HintType.DODGE,
                 hintMsg: hintMsg,
                 extraButtons: [Button.CANCEL] //force cancel button
             })
     
-            if(response.isCancel()) {
+            if(this.dodgeResp.isCancel()) {
                 //player gave up on dodging
                 //assume cancel is received?
                 return false
             } else {
                 needed--
-                await manager.resolver.onDodge(response, this, manager)
+                await manager.resolver.onDodge(this.dodgeResp, this, manager)
             }
         }
 

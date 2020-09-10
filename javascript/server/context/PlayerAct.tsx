@@ -40,7 +40,11 @@ export default class PlayerAct {
                 let cards: Card[] = action.actionData[uiPos].map(c => manager.getCard(c))
                 let pos = mapToCardPos(uiPos)
                 this.cards.set(pos, cards)
-                cards.forEach(card => this.cardsAndPos.push([card, pos]))
+                cards.forEach(card => {
+                    delete card.as
+                    delete card.description
+                    this.cardsAndPos.push([card, pos])
+                })
             }
         })
         

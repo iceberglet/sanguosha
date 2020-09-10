@@ -199,7 +199,8 @@ export default class PlayerActionResolver extends ActionResolver {
                 }
                 return card
             })
-            await manager.events.publish(new CardBeingPlayedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), CardType.SLASH))
+            let type: CardType = cards.length === 1? cards[0].type : CardType.SLASH
+            await manager.events.publish(new CardBeingPlayedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type))
             manager.sendToWorkflow(askSlashOp.slasher.player.id, CardPos.HAND, cards)
         }
         return true

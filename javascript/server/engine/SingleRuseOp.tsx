@@ -8,7 +8,7 @@ import Card, { CardType } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import TakeCardOp from "./TakeCardOp";
 import { AskForSlashOp } from "./SlashOp";
-import { CardObtainedEvent, CardBeingDroppedEvent, findCard, gatherCards, CardBeingTakenEvent } from "./Generic";
+import { CardBeingDroppedEvent, findCard, gatherCards } from "./Generic";
 import { Suits } from "../../common/util/Util";
 import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import { DropOthersCardRequest } from "./DropCardOp";
@@ -129,9 +129,7 @@ export class ShunShou extends SingleRuse<void> {
         let card = cardAndPos[0], pos = cardAndPos[1]
         delete card.description
         delete card.as
-        manager.transferCards(this.target.player.id, this.source.player.id, pos, CardPos.HAND, [card])
-        await manager.events.publish(new CardBeingTakenEvent(this.target.player.id, [[card, pos]]))
-        await manager.events.publish(new CardObtainedEvent(this.source.player.id, [card]))
+        await manager.transferCards(this.target.player.id, this.source.player.id, pos, CardPos.HAND, [card])
     }
 }
 
@@ -197,11 +195,7 @@ export class JieDao extends SingleRuse<void> {
 
         if(resp.isCancel()) {
             console.log('玩家放弃出杀, 失去武器', this.source, from.player.id, to)
-            manager.transferCards(from.player.id, to.player.id, CardPos.EQUIP, CardPos.HAND, [weapon])
-            //event
-            await manager.events.publish(new CardBeingDroppedEvent(from.player.id, [[weapon, CardPos.EQUIP]]))
-            //event
-            await manager.events.publish(new CardObtainedEvent(from.player.id, [weapon]))
+            await manager.transferCards(from.player.id, to.player.id, CardPos.EQUIP, CardPos.HAND, [weapon])
         } else {
             console.log('玩家出杀, 开始结算吧')
             resp.targets.push(to)

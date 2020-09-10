@@ -18,6 +18,7 @@ import { isSuitBlack, isSuitRed } from "../../common/cards/ICard";
 import DodgeOp from "./DodgeOp";
 import JudgeOp from "./JudgeOp";
 import HealOp from "./HealOp";
+import { TextFlashEffect, PlaySound } from "../../common/transit/EffectTransit";
 
 export const BlockedEquipment = new Set<string>()
 
@@ -25,6 +26,11 @@ export abstract class Equipment {
     constructor(protected player: string, protected cardId: string, protected manager: GameManager) {}
     abstract async onEquipped(): Promise<void>
     abstract async onDropped(): Promise<void>
+    protected show() {
+        let type = this.manager.getCard(this.cardId).type
+        this.manager.broadcast(new PlaySound(`audio/equip/${type.id}.ogg`))
+        this.manager.broadcast(new TextFlashEffect(this.player, [], type.name))
+    }
 }
 
 export abstract class Weapon extends Equipment {
@@ -65,7 +71,7 @@ export class QingGang extends Weapon {
                 .find(c => c.type.genre === 'shield')
         if(shield) {
             if(op.timeline === Timeline.AFTER_CONFIRMING_TARGET) {
-                //todo: add effect!
+                this.show()
                 console.log('[装备] 青釭技能发动, 无视防具:', shield.id)
                 BlockedEquipment.add(shield.id)
             } else if(op.timeline === Timeline.COMPUTE_FINISH){
@@ -95,7 +101,7 @@ export class ZhuQue extends Equipment {
                 extraButtons: [Button.OK, Button.CANCEL]
             })
             if(!resp.isCancel()) {
-                //todo: add effect!
+                this.show()
                 console.log(`[装备] ${this.player} 发动了朱雀羽扇`)
                 op.damageType = DamageType.FIRE
             }
@@ -118,7 +124,7 @@ export class CiXiong extends Weapon {
                 extraButtons: [Button.OK, Button.CANCEL]
             })
             if(!resp.isCancel()) {
-                //todo: add effect!
+                this.show()
                 console.log(`[装备] ${this.player} 发动了雌雄双股剑`)
                 let resp = await new DropCardRequest().perform(op.target.player.id, 1, this.manager, 
                     `${this.player} 对你发动了雌雄双股剑, 请弃置一张手牌或点击取消令其摸一张牌`, [UIPosition.MY_HAND], true)
@@ -159,6 +165,7 @@ export class GuDing extends Equipment {
             throw `不可能! 我登记过的就应该有这个武器! 古锭刀 ${this.player}`
         }
         if(op.timeline === DamageTimeline.DOING_DAMAGE && op.target.getCards(CardPos.HAND).length === 0) {
+            this.show()
             console.log('[装备] 古锭刀伤害加1')
             op.amount += 1
         }
@@ -194,7 +201,7 @@ export class GuanShi extends Equipment {
             extraButtons: [Button.CANCEL],
         })
         if(!resp.isCancel()) {
-            //todo: effect
+            this.show()
             let cards = resp.getCardsAndPos(CardPos.HAND, CardPos.EQUIP)
             console.log('[装备] 玩家发动贯石斧造成伤害: ', this.player, cards)
     
@@ -264,7 +271,7 @@ export class Qilin extends Equipment {
                     mode: 'choose'
                 }
             })
-            //todo: effect
+            this.show()
             let res = resp.customData as CardSelectionResult
             let horseCard = horses[res[0].idx]
             console.log(`[装备] 玩家发动麒麟弓射下了 ${horseCard.id}`)
@@ -284,6 +291,11 @@ export class LianNu extends Equipment {
             console.log(`[装备] ${this.player} 装备了连弩, 立即获得 +900 出杀上限 变成: ${this.manager.roundStats.slashMax}`)
         }
         this.manager.equipmentRegistry.on<StageStartFlow>(StageStartFlow, this.player, this.performEffect)
+        this.manager.equipmentRegistry.on<SlashOP>(SlashOP, this.player, async (op) => {
+            if(op.source.player.id === this.player && this.manager.roundStats.slashCount > 1) {
+                this.show()
+            }
+        })
     }
 
     async onDropped(): Promise<void> {
@@ -347,6 +359,7 @@ export class HanBing extends Equipment {
 
                 //取消本次伤害
                 console.log('[装备] 选择发动寒冰剑弃牌')
+                this.show()
                 op.amount = -999
 
                 await new DropOthersCardRequest().perform(this.manager, op.source, op.target, `寒冰剑弃置对方的手牌/装备牌`, 
@@ -405,6 +418,8 @@ export class TengJia extends Equipment {
             }
             //目标已经确定, 开始结算
             console.log(`[装备] 藤甲令 ${slashOp.source.player.id} 的杀无效`)
+            this.manager.broadcast(new PlaySound(`audio/equip/teng_jia_good.ogg`))
+            this.manager.broadcast(new TextFlashEffect(this.player, [], '藤甲_好'))
             slashOp.abort = true
             //todo: show effect
         }
@@ -418,6 +433,8 @@ export class TengJia extends Equipment {
         let idx = aoe.targets.findIndex(t => t.player.id === this.player)
         if(idx > -1) {
             console.log(`[装备] 藤甲将 ${this.player} 移出万箭/南蛮的影响对象`)
+            this.manager.broadcast(new PlaySound(`audio/equip/teng_jia_good.ogg`))
+            this.manager.broadcast(new TextFlashEffect(this.player, [], '藤甲_好'))
             let curr = aoe.targets.length
             aoe.targets.splice(idx, 1)
             checkThat(curr === aoe.targets.length + 1, 'WHAAAT?')
@@ -434,6 +451,8 @@ export class TengJia extends Equipment {
             return
         }
         if(op.type === DamageType.FIRE) {
+            this.manager.broadcast(new PlaySound(`audio/equip/teng_jia_bad.ogg`))
+            this.manager.broadcast(new TextFlashEffect(this.player, [], '藤甲_坏'))
             console.log('[装备] 藤甲令火伤害+1')
             op.amount += 1
         }
@@ -458,6 +477,7 @@ export class RenWang extends Equipment {
                 console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
                 return
             }
+            this.show()
             console.log(`[装备] 仁王盾令 ${slashOp.source.player.id} 的杀无效`)
             slashOp.abort = true
         }
@@ -487,6 +507,7 @@ export class BaGua extends Equipment {
                 extraButtons: [Button.OK, Button.CANCEL]
             })
             if(!resp.isCancel()) {
+                this.show()
                 let card = await new JudgeOp(`${this.player} 八卦阵判定牌`, this.player).perform(this.manager)
                 if(isSuitRed(this.manager.interpret(this.player, card.id).suit)){
                     console.log(`[装备] ${this.player} 八卦判定成功`)
@@ -510,6 +531,7 @@ export class BaiYin extends Equipment {
         this.manager.equipmentRegistry.off<DamageOp>(DamageOp, this.player, this.reduceDamage)
         let owner = this.manager.context.getPlayer(this.player)
         if(owner.hp < owner.maxHp) {
+            this.show()
             await new HealOp(owner, owner, 1).perform(this.manager)
         }
     }
@@ -524,6 +546,7 @@ export class BaiYin extends Equipment {
                 return
             }
 
+            this.show()
             console.log(`[装备] 白银狮子将伤害 ${damageOp.amount} 降低为1`)
             damageOp.amount = 1
         }

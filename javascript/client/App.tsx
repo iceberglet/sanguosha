@@ -12,6 +12,7 @@ import { Circus } from '../game-mode-faction/FactionWarGameHoster';
 import PregameUI from './pregame/PregameUI';
 import { PlaySound } from '../common/transit/EffectTransit';
 import { audioManager } from './audio-manager/AudioManager';
+import './Util'
 
 type AppState = {
     myself?: Player,

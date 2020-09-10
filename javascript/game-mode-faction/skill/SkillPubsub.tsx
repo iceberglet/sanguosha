@@ -1,5 +1,5 @@
 import Multimap from "../../common/util/Multimap"
-import { Skill, EventRegistryForSkills } from "./Skill"
+import { SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger } from "./Skill"
 import GameManager from "../../server/GameManager"
 import { Button, UIPosition } from "../../common/PlayerAction"
 import { HintType } from "../../common/ServerHint"
@@ -7,7 +7,6 @@ import { takeFromArray } from "../../common/util/Util"
 import { RevealEvent } from "../FactionWarInitializer"
 import { GameEventListener, SequenceAwarePubSub, AckingConsumer } from "../../common/util/PubSub"
 import { StageEndFlow } from "../../server/engine/StageFlows"
-import JudgeOp from "../../server/engine/JudgeOp"
 import PlayerAct from "../../server/context/PlayerAct"
 
 
@@ -16,15 +15,15 @@ import PlayerAct from "../../server/context/PlayerAct"
  */
 export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEventListener {
     
-    _map = new Map<Function, Multimap<string, Skill<any>>>()
+    _map = new Map<Function, Multimap<string, SkillTrigger<any>>>()
     _pubsub: SequenceAwarePubSub
 
     constructor(private manager: GameManager, private sorter: (ids: string[]) => string[]) {
         this._pubsub = new SequenceAwarePubSub(sorter)
     }
 
-    on<T>(type: Function, skill: Skill<T>) {
-        let subMap = this._map.get(type) || new Multimap<string, Skill<any>>()
+    on<T>(type: Function, skill: SimpleConditionalSkill<T>) {
+        let subMap = this._map.get(type) || new Multimap<string, SimpleConditionalSkill<any>>()
         if(subMap.contains(skill.playerId, skill)) {
             throw `Already has this skill!! ${skill.playerId} ${skill.id}`
         }
@@ -39,7 +38,7 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
         this._pubsub.on(type, player, consumer)
     }
 
-    off<T>(type: Function, skill: Skill<T>) {
+    off<T>(type: Function, skill: SimpleConditionalSkill<T>) {
         let subMap = this._map.get(type)
         if(!subMap) {
             return
@@ -78,18 +77,23 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                 continue
             }
             
-            console.log('[技能驱动] 找到可发动的技能: ', skills.map(s => s.id))
+            console.log('[技能驱动] 找到可发动的技能: ', skills.map(s => s.getSkill().id))
             let choices: Button[] = []
             for(let s of skills) {
+                let skill = s.getSkill()
                 //将明置 & 锁定技 -> 直接触发
                 //将明置 & 非锁定技 -> 询问
                 //将暗置 & 锁定/非锁定 -> 询问
-                if(s.isRevealed && s.isLocked) {
-                    console.log('[技能驱动] 直接发动锁定技: ', s.id)
+                if(skill.isRevealed && skill.isLocked) {
+                    console.log('[技能驱动] 直接发动锁定技: ', skill.id)
                     await s.doInvoke(obj, this.manager)
                 } else {
-                    console.log('[技能驱动] 可能可以发动: ', s.id)
-                    choices.push(new Button(s.id, s.isRevealed? `发动${s.id}` : `发动${s.id}并明置${s.isMain?'主将':'副将'}`))
+                    console.log('[技能驱动] 可能可以发动: ', skill.id)
+                    let invokeMsg = s.invokeMsg(obj, this.manager)
+                    if(!skill.isRevealed) {
+                        invokeMsg += `并明置${skill.isMain?'主将':'副将'}`
+                    }
+                    choices.push(new Button(skill.id, invokeMsg))
                 }
             }
             
@@ -104,12 +108,12 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                 if(!resp.isCancel()) {
                     let skillId = resp.button
                     console.log('[技能驱动] 收到玩家指示发动: ', skillId)
-                    let skill: Skill<any> = takeFromArray(skills, s => s.id === skillId)
+                    let skill: SkillTrigger<any> = takeFromArray(skills, s => s.getSkill().id === skillId)
                     if(!skill) {
                         throw 'Failed to find skill! ' + skillId
                     }
-                    if(!skill.isRevealed) {
-                        await this.manager.events.publish(new RevealEvent(player, skill.isMain, !skill.isMain))
+                    if(!skill.getSkill().isRevealed) {
+                        await this.manager.events.publish(new RevealEvent(player, skill.getSkill().isMain, !skill.getSkill().isMain))
                     }
                     await skill.doInvoke(obj, this.manager)
                     count++

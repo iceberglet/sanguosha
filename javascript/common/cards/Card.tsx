@@ -1,4 +1,4 @@
-import { shuffle } from "../util/Util"
+import { shuffle, Suits } from "../util/Util"
 import { ICard } from "./ICard"
 
 export type CardGenre = 'basic' | 'single-immediate-ruse' | 'single-delay-ruse' | 'group-ruse' | 'horse+1' | 'horse-1' | 'weapon' | 'shield' | 'none'
@@ -160,6 +160,10 @@ export default class Card implements ICard {
     }
     public isDummy() {
         return this.id === Card.DUMMY.id
+    }
+
+    public toString() {
+        return `[${Suits[this.suit]} ${this.size.size} ${this.type.name}]`
     }
 }
 

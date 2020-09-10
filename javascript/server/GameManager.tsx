@@ -26,7 +26,7 @@ import GameEnding from "./GameEnding";
 import { GameModeEnum } from "../common/GameModeEnum";
 import GameStatsCollector from "./GameStatsCollector";
 import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
-import { CardBeingPlayedEvent, CardBeingUsedEvent } from "./engine/Generic";
+import { CardBeingPlayedEvent, CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
 import PlayerAct from "./context/PlayerAct";
 
 
@@ -74,7 +74,7 @@ export default class GameManager {
     }
 
     processCardEvent = async (event: CardBeingPlayedEvent | CardBeingUsedEvent): Promise<void> => {
-        if(!event.as) {
+        if(!event.as || event.as.isEquipment()) {
             return
         }
         if(event.isFromSkill) {
@@ -270,9 +270,11 @@ export default class GameManager {
      * @param to to position. 
      * @param cards cards. Sequence depends on this position
      */
-    public transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: Card[]) {
+    public async transferCards(fromPlayer: string, toPlayer: string, from: CardPos, to: CardPos, cards: Card[]) {
         this.context.transferCards(fromPlayer, toPlayer, from, to, cards)
         this.broadcast(new CardTransit(fromPlayer, from, toPlayer, to, cards, 1000), CardTransit.defaultSanitize)
+        await this.events.publish(new CardBeingTakenEvent(fromPlayer, cards.map(c => [c, from])))
+        await this.events.publish(new CardObtainedEvent(toPlayer, cards.map(c => [c, to])))
     }
 
     public interpret(forPlayer: string, cardId: string): ICard {

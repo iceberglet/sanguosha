@@ -39,7 +39,7 @@ export class GameMode {
                         public readonly cardManager: CardManager,
                         public readonly resolver: ActionResolver,
                         public readonly gameHosterProvider: (registry: PlayerRegistry, no: number)=>GameHoster,
-                        public readonly skillProvider: (skillId: string, playerId: string)=>Skill<any>,
+                        public readonly skillProvider: (skillId: string, playerId: string)=>Skill,
                         public readonly initClient: ()=>void) {
         GameMode.rules.set(id, this)
     }

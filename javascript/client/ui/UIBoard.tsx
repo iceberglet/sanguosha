@@ -211,7 +211,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             </div>
             <div className='btm' ref={this.dom}>
                 {/* 状态 */}
-                <UIMyPlayerCard info={playerInfo} onUseSkill={(s)=>{}} elementStatus={playerChecker.getStatus(myId)} 
+                <UIMyPlayerCard info={playerInfo} elementStatus={playerChecker.getStatus(myId)} 
                                 onSelect={(s)=>playerChecker.onClicked(s)} pubsub={pubsub} skillButtons={skillButtons}/>
                 <UIMyCards info={playerInfo} equipChecker={equipChecker} cardsChecker={cardsChecker} 
                             hideCards={hideCards} cardTransitManager={cardTransitManager}/>

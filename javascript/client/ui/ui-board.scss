@@ -1,6 +1,6 @@
 .board::before {
     background-image: url('ui/bg.jpg');
-    background-size: cover;
+    background-size: contain;
     filter: grayscale(80%);
     content: "";
     position: absolute;

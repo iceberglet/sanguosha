@@ -32,7 +32,7 @@ export class CardBeingTakenEvent implements CardAwayEvent {
 
 //获得
 export class CardObtainedEvent {
-    constructor(public readonly player: string, public readonly obtained: Card[]) {}
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
 }
 
 

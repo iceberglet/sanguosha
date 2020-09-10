@@ -136,3 +136,49 @@
     }
 
 }
+
+.cf-container {
+    width: 300px;
+    padding: 10px;
+    background: linear-gradient(45deg, #191b35, #423535);
+    border: 1px solid #161a38;
+
+    .cf-title {
+        height: 30px;
+    }
+
+    .cf-cards {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .left {
+        position: relative;
+
+        .win-lose {
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            animation: symbol-enter 0.5s forwards;
+
+        }
+        .win {
+            background-image: url('icons/win.png');
+        }
+        .lose {
+            background-image: url('icons/lose.png');
+        }
+    }
+}
+
+@keyframes symbol-enter {
+    0%{
+        transform: scale(3);
+        filter: opacity(0);
+    }
+    100% {
+        transform: scale(1);
+        filter: opacity(1);
+    }
+}

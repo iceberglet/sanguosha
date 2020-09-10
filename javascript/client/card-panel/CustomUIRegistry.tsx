@@ -1,6 +1,6 @@
 import * as React from 'react'
 import Card from '../../common/cards/Card'
-import UICard from '../ui/UICard'
+import UICard, { UICardHolder } from '../ui/UICard'
 import { ElementStatus } from '../ui/UIBoard'
 
 /**
@@ -44,7 +44,7 @@ export const customUIRegistry = new CustomUIRegistry()
 
 /////////////////////////////////////////////////////////////////////
 
-type WuguUIData = {
+export type WuguUIData = {
     cards: Array<Card>,
     title: string
 }
@@ -74,4 +74,50 @@ class Wugu extends React.Component<MountableProp<WuguUIData, boolean>, object> {
 
 customUIRegistry.register('wugu', (ui: WuguUIData, hint: boolean, con: (res: any) => void)=>{
     return <Wugu commonUI={ui} requestData={hint} consumer={con} />
+})
+
+/**
+ * 左边永远是拼点的发起人
+ * 一定要点大才能赢
+ * 没赢就会写没赢
+ */
+export type CardFightData = {
+    cardLeft: Card,
+    cardRight: Card,
+    title: string
+}
+
+class CardFight extends React.Component<MountableProp<CardFightData, boolean>, object> {
+    
+    renderCard(c: Card) {
+        if(!c) {
+            return <UICardHolder />
+        } else {
+            return <UICard card={c} isShown={true} elementStatus={ElementStatus.NORMAL} />
+        }
+    }
+
+    render() {
+        let {commonUI, requestData, consumer} = this.props
+        let left = commonUI.cardLeft, right = commonUI.cardRight
+        let result: string
+        if(left && right && !left.isDummy() && !right.isDummy()) {
+            result = left.size.size > right.size.size? 'win' : 'lose'
+        }
+        return <div className='cf-container'>
+            <div className='cf-title center'>{commonUI.title}</div>
+            <div className='cf-cards'>
+                <div className='left'>
+                    {this.renderCard(left)}
+                    {result && <div className={'occupy win-lose ' + result}/>}
+                </div>
+                <div>v.s.</div>
+                {this.renderCard(right)}
+            </div>
+        </div>
+    }
+}
+
+customUIRegistry.register('card-fight', (ui: CardFightData, hint: boolean, con: (res: any) => void)=>{
+    return <CardFight commonUI={ui} requestData={hint} consumer={con} />
 })

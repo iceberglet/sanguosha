@@ -4,6 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardTransit } from "../../common/transit/EffectTransit";
 import { CardObtainedEvent } from "./Generic";
+import Card from "../../common/cards/Card";
 
 export class TakeCardStageOp extends Operation<void> {
     
@@ -26,21 +27,23 @@ export class TakeCardStageOp extends Operation<void> {
 }
 
 //摸牌阶段
-export default class TakeCardOp extends Operation<void> {
+export default class TakeCardOp extends Operation<Card[]> {
 
     public constructor(public player: PlayerInfo, 
                         public amount: number) {
         super()
     }
 
-    public async perform(manager: GameManager): Promise<void> {
+    public async perform(manager: GameManager): Promise<Card[]> {
         let cards = manager.context.deck.getCardsFromTop(this.amount)
         //add cards from deck to player
         cards.forEach(c => this.player.addCard(c, CardPos.HAND))
         //animation of card transfer. need to sanitize
         manager.broadcast(CardTransit.fromDeck(this.player.player.id, cards), CardTransit.defaultSanitize)
         //event
-        await manager.events.publish(new CardObtainedEvent(this.player.player.id, cards))
+        await manager.events.publish(new CardObtainedEvent(this.player.player.id, cards.map(c => [c, CardPos.HAND])))
+
+        return cards
     }
     
 }

@@ -1,5 +1,5 @@
 import Multimap from "../../common/util/Multimap";
-import { Skill, EventRegistryForSkills, SkillStatus } from "./Skill";
+import { SimpleConditionalSkill, EventRegistryForSkills, SkillStatus, Skill } from "./Skill";
 import { RevealEvent } from "../FactionWarInitializer";
 import GameManager from "../../server/GameManager";
 import FactionPlayerInfo from "../FactionPlayerInfo";
@@ -7,17 +7,17 @@ import { playerActionDriverProvider } from "../../client/player-actions/PlayerAc
 import { HintType } from "../../common/ServerHint";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { UIPosition } from "../../common/PlayerAction";
-import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou } from "./FactionSkillsWei";
+import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, JieMing, QuHu, YiJi } from "./FactionSkillsWei";
 import { describer } from "../../common/util/Describer";
 
-class DummySkill extends Skill<void> {
+class DummySkill extends SimpleConditionalSkill<void> {
 
     isLocked = false
 
     public hookup(skillRegistry: EventRegistryForSkills): void {
         //do-nothing
     }
-    protected conditionFulfilled(event: void, manager: GameManager): boolean {
+    public conditionFulfilled(event: void, manager: GameManager): boolean {
         return false
     }
     public async doInvoke(event: void, manager: GameManager): Promise<void> {
@@ -40,14 +40,14 @@ class DummySkill extends Skill<void> {
 
 class FactionSkillProvider {
 
-    _map = new Map<string, (pid: string)=>Skill<any>>()
+    _map = new Map<string, (pid: string)=>Skill>()
 
-    public register(skillId: string, provider: (pid: string)=>Skill<any>) {
+    public register(skillId: string, provider: (pid: string)=>Skill) {
         this._map.set(skillId, provider)
         describer.register(skillId, provider('dummy').description)
     }
 
-    public get(skillId: string, playerId: string): Skill<any> {
+    public get(skillId: string, playerId: string): Skill {
         // let dummy = new DummySkill(playerId)
         // dummy.displayName = skillId
         // dummy.id = skillId
@@ -68,7 +68,7 @@ FactionSkillProviders.register('突袭', pid => new TuXi(pid))
 FactionSkillProviders.register('刚烈', pid => new GangLie(pid))
 FactionSkillProviders.register('裸衣', pid => new LuoYi(pid))
 FactionSkillProviders.register('天妒', pid => new TianDu(pid))
-// FactionSkillProviders.register('遗计', pid => new TianDu(pid))
+FactionSkillProviders.register('遗计', pid => new YiJi(pid))
 FactionSkillProviders.register('倾国', pid => new QinGuo(pid))
 FactionSkillProviders.register('洛神', pid => new LuoShen(pid))
 FactionSkillProviders.register('神速', pid => new ShenSu(pid))
@@ -77,11 +77,13 @@ FactionSkillProviders.register('断粮', pid => new DuanLiang(pid))
 FactionSkillProviders.register('强袭', pid => new QiangXi(pid))
 FactionSkillProviders.register('放逐', pid => new FangZhu(pid))
 FactionSkillProviders.register('行殇', pid => new XingShang(pid))
+FactionSkillProviders.register('节命', pid => new JieMing(pid))
+FactionSkillProviders.register('驱虎', pid => new QuHu(pid))
 
 export default class FactionWarSkillRepo {
     
     //player id => skills
-    private allSkills = new Multimap<string, Skill<any>>()
+    private allSkills = new Multimap<string, Skill>()
 
     constructor(private readonly manager: GameManager, private readonly skillRegistry: EventRegistryForSkills) {
         manager.context.playerInfos.forEach(info => {
@@ -105,12 +107,12 @@ export default class FactionWarSkillRepo {
         })
     }
 
-    public getSkills(pid: string): Set<Skill<any>> {
+    public getSkills(pid: string): Set<Skill> {
         return this.allSkills.get(pid)
     }
 
     public getSkill(pid: string, skillId: string) {
-        let skill: Skill<any>
+        let skill: Skill
         this.allSkills.get(pid).forEach(s => {
             if(s.id === skillId) {
                 skill = s

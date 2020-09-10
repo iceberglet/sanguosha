@@ -17,7 +17,7 @@ import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import { SkillStatus } from "./skill/Skill";
 
 const myMode = GameModeEnum.FactionWarGame
-const generalsToPickFrom = 5
+const generalsToPickFrom = 7
 
 export default class FactionWarGameHoster implements GameHoster {
 
@@ -155,11 +155,13 @@ export default class FactionWarGameHoster implements GameHoster {
 
         let gs = flattenMap(allGenerals).map(g => g[1])
         shuffle(gs)
+        let equalSize = Math.min(Math.floor(gs.length / playerNo), generalsToPickFrom)
+        if(equalSize < 5) {
+            throw 'Not enough generals! ' + gs.length + ' ' + playerNo
+        }
+        console.log('[牌局] 每人选将', equalSize)
         for(let i = 0; i < playerNo; ++i) {
-            if(gs.length < generalsToPickFrom) {
-                throw 'Not enough generals left! ' + gs.length
-            }
-            choices.push(gs.splice(0, generalsToPickFrom))
+            choices.push(gs.splice(0, equalSize))
         }
         return choices
     }

@@ -15,7 +15,7 @@ import { Faction } from "../common/General";
 import { EquipOp } from "../server/engine/EquipOp";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import DodgeOp from "../server/engine/DodgeOp";
-import { Skill } from "./skill/Skill";
+import { SimpleConditionalSkill, Skill } from "./skill/Skill";
 import { RevealEvent } from "./FactionWarInitializer";
 import { AskForSlashOp } from "../server/engine/SlashOp";
 import PlayerAct from "../server/context/PlayerAct";
@@ -30,7 +30,7 @@ export default class FactionWarActionResolver extends ActionResolver {
         this.skillRepo = skillRepo
     }
 
-    private async getSkillAndRevealIfNeeded(act: PlayerAct, manager: GameManager): Promise<Skill<any>> {
+    private async getSkillAndRevealIfNeeded(act: PlayerAct, manager: GameManager): Promise<Skill> {
         let skillId = act.skill
         let skill = this.skillRepo.getSkill(act.source.player.id, skillId)
         if(!skill.isRevealed) {

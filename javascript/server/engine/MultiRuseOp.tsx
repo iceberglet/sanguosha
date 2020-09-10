@@ -8,7 +8,7 @@ import TakeCardOp from "./TakeCardOp";
 import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import { AskForSlashOp } from "./SlashOp";
 import DodgeOp from "./DodgeOp";
-import { CustomUIData } from "../../client/card-panel/CustomUIRegistry";
+import { CustomUIData, WuguUIData } from "../../client/card-panel/CustomUIRegistry";
 import { flattenMap } from "../../common/util/Util";
 import { HintType } from "../../common/ServerHint";
 import { CardPos } from "../../common/transit/CardPos";
@@ -101,7 +101,7 @@ export class NanMan extends MultiRuse {
 
     public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
         let issuer = this.source
-        let slashed = await new AskForSlashOp(target, issuer, `${this.source} 使用南蛮, 请出杀`).perform(manager)
+        let slashed = await new AskForSlashOp(target, issuer, `${this.source.player.id} 使用南蛮, 请出杀`).perform(manager)
         if(!slashed) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃南蛮出杀, 掉血`)
             await new DamageOp(issuer, target, 1, this.cards, DamageSource.NAN_MAN, DamageType.NORMAL).perform(manager)
@@ -115,7 +115,7 @@ export class NanMan extends MultiRuse {
 export class WanJian extends MultiRuse {
 
     public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
-        let dodged = await new DodgeOp(target, this.source, 1, `${this.source} 的万箭齐发, 请出闪`).perform(manager)
+        let dodged = await new DodgeOp(target, this.source, 1, `${this.source.player.id} 的万箭齐发, 请出闪`).perform(manager)
         if(!dodged) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃万箭出闪, 掉血`)
             await new DamageOp(this.source, target, 1, this.cards, DamageSource.WAN_JIAN, DamageType.NORMAL).perform(manager)
@@ -180,7 +180,7 @@ export class WuGu extends MultiRuse {
         //animation of card transfer. need to sanitize
         manager.broadcast(CardTransit.fromDeck(targetId, [card]))
         //event
-        await manager.events.publish(new CardObtainedEvent(targetId, [card]))
+        await manager.events.publish(new CardObtainedEvent(targetId, [[card, CardPos.HAND]]))
 
         this.wuguCards.get(card.id).description = target.player.id + ' 选走'
         this.broadCastCurrent(`${targetId} 选牌完毕`, manager)
@@ -188,7 +188,7 @@ export class WuGu extends MultiRuse {
 
     private broadCastCurrent(title: string, manager: GameManager) {
         manager.onReconnect = () => {
-            manager.broadcast(new CustomUIData('wugu', {
+            manager.broadcast(new CustomUIData<WuguUIData>('wugu', {
                 title,
                 cards: flattenMap(this.wuguCards).map(kv => kv[1])
             }))

@@ -5,7 +5,7 @@ import PlayerAct from "../../server/context/PlayerAct";
 
 
 export interface EventRegistryForSkills {
-    on<T>(type: Function, skill: Skill<T>): void
+    on<T>(type: Function, skill: SimpleConditionalSkill<T>): void
     onEvent<T>(type: Function, player: string, consumer: AckingConsumer<T>): void
 }
 
@@ -40,17 +40,42 @@ export class SkillStatus {
 }
 
 /**
- * 一个技能的触发需要以下条件:
- * 1. 给定event + manager满足某种条件
- * 2. 技能不是disabled的
- * 3. 技能已经显示, 或者开启了预亮然后玩家同意显示
- * 4. 非锁定技需要提示玩家是否发动
+ * Sent for subscription
+ * 需要能知道主体Skill的状态
+ * 适宜分别响应多种事件
  */
-export abstract class Skill<T> extends SkillStatus {
+export interface SkillTrigger<T> {
 
-    public constructor(public readonly playerId: string) {
-        super(playerId)
-    }
+    getSkill(): Skill
+
+    invocable(event: T, manager: GameManager): boolean
+
+    invokeMsg(event: T, manager: GameManager): string
+
+    /**
+     * Is this event condition met?
+     * @param event 
+     * @param manager 
+     */
+    conditionFulfilled(event: T, manager: GameManager): boolean
+
+    /**
+     * 技能发动
+     * @param event 事件 
+     * @param manager GameManager
+     */
+    doInvoke(event: T, manager: GameManager): Promise<void>
+}
+
+export abstract class Skill extends SkillStatus {
+    
+    isMain: boolean
+    /**
+     * 是否是锁定技
+     */
+    isLocked: boolean = false
+
+    description: string = '暂无 (Please override this field)'
 
     public toStatus(): SkillStatus {
         let s = new SkillStatus(this.playerId)
@@ -61,14 +86,6 @@ export abstract class Skill<T> extends SkillStatus {
         s.displayName = this.displayName
         return s
     }
-
-    isMain: boolean
-    /**
-     * 是否是锁定技
-     */
-    isLocked: boolean = false
-
-    description: string = '暂无 (Please override this field)'
 
     /**
      * load player action driver on client
@@ -82,6 +99,36 @@ export abstract class Skill<T> extends SkillStatus {
         throw 'Forgot to override me?'
     }
 
+    /**
+     * 进行必要的事件登记
+     * @param manager 
+     */
+    public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager) {
+
+    }
+
+    protected playSound(manager: GameManager, counts: number) {
+        let random = Math.ceil(Math.random() * counts)
+        if(random === 0) {
+            random = 1
+        }
+        manager.broadcast(new PlaySound(`audio/skill/${this.id}${random}.mp3`))
+    }
+}
+
+/**
+ * 一个技能的触发需要以下条件:
+ * 1. 给定event + manager满足某种条件
+ * 2. 技能不是disabled的
+ * 3. 技能已经显示, 或者开启了预亮然后玩家同意显示
+ * 4. 非锁定技需要提示玩家是否发动
+ */
+export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTrigger<T> {
+
+    public getSkill() {
+        return this
+    }
+
     public invocable(event: T, manager: GameManager): boolean {
         if(this.isDisabled) {
             return false
@@ -92,33 +139,25 @@ export abstract class Skill<T> extends SkillStatus {
         return false
     }
 
-    protected playSound(manager: GameManager, counts: number) {
-        let random = Math.ceil(Math.random() * counts)
-        if(random === 0) {
-            random = 1
-        }
-        manager.broadcast(new PlaySound(`audio/skill/${this.id}${random}.mp3`))
+    public invokeMsg(event: T, manager: GameManager) {
+        return '发动' + this.id
     }
-
-
-    /**
-     * 进行必要的事件登记
-     * @param manager 
-     */
-    public abstract hookup(skillRegistry: EventRegistryForSkills, manager: GameManager): void
 
     /**
      * Is this event condition met?
      * @param event 
      * @param manager 
      */
-    protected abstract conditionFulfilled(event: T, manager: GameManager):boolean
+    public conditionFulfilled(event: T, manager: GameManager): boolean {
+        return false
+    }
 
     /**
      * 技能发动
      * @param event 事件 
      * @param manager GameManager
      */
-    public abstract async doInvoke(event: T, manager: GameManager): Promise<void>
-
+    public async doInvoke(event: T, manager: GameManager): Promise<void> {
+        return
+    }
 }

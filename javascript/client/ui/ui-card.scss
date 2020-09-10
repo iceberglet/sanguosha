@@ -61,6 +61,13 @@
     animation: flip 0.8s linear forwards;
 }
 
+.card-placeholder {
+    border: 1px solid black;
+    border-radius: 5px;
+    background-image: url('ui/bak.png');
+    background-repeat: repeat;
+}
+
 .ui-card {
     min-width: 115px;
     max-width: 115px;

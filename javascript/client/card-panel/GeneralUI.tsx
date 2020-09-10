@@ -9,13 +9,13 @@ type Prop = {
 export default function GeneralUI(p: Prop) {
 
     if(!p.general) {
-        return <div className='faction-general'></div>
+        return <div className='general-ui'></div>
     }
 
     let yy = Math.floor(p.general.hp)
     let hasHalf = Math.round((p.general.hp - yy)*2) === 1
     
-    return <div className='faction-general noselect'>
+    return <div className='general-ui noselect'>
         <div className='avatar'>
             <div style={toGeneralCardStyle(p.general.id)} />
         </div>

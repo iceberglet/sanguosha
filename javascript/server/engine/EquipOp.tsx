@@ -32,7 +32,7 @@ export class EquipOp {
         } else {
             manager.broadcast(new PlaySound('audio/card/common/equipment.ogg'))
         }
-        manager.transferCards(this.source, this.beneficiary, this.sourcePos, CardPos.EQUIP, [this.card])
+        await manager.transferCards(this.source, this.beneficiary, this.sourcePos, CardPos.EQUIP, [this.card])
         // newOwner.addCard(this.card, CardPos.EQUIP)
         // manager.broadcast(newOwner, PlayerInfo.sanitize)
 

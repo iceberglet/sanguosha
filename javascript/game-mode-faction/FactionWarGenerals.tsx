@@ -24,14 +24,14 @@ export default class FactionWarGeneral extends General {
     public static xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', Faction.WEI, 2, '刚烈')
     public static zhang_liao = new FactionWarGeneral('standard_zhang_liao', '张辽', Faction.WEI, 2, '突袭')
     public static xu_chu = new FactionWarGeneral('standard_xu_chu', '许褚', Faction.WEI, 2, '裸衣')
-    // public static guo_jia = new FactionWarGeneral('standard_guo_jia', '郭嘉', Faction.WEI, 1.5, '天妒', '遗计')
+    public static guo_jia = new FactionWarGeneral('standard_guo_jia', '郭嘉', Faction.WEI, 1.5, '天妒', '遗计')
     public static zhen_ji = new FactionWarGeneral('standard_zhen_ji', '甄姬', Faction.WEI, 1.5, '洛神', '倾国').asFemale() as FactionWarGeneral
     public static xia_hou_yuan = new FactionWarGeneral('wind_xia_hou_yuan', '夏侯渊', Faction.WEI, 2, '神速')
     // public static zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', Faction.WEI, 2, '巧变')
     public static xu_huang = new FactionWarGeneral('forest_xu_huang', '徐晃', Faction.WEI, 2, '断粮')
     public static cao_ren = new FactionWarGeneral('wind_cao_ren', '曹仁', Faction.WEI, 2, '据守')
     public static dian_wei = new FactionWarGeneral('fire_dian_wei', '典韦', Faction.WEI, 2, '强袭')
-    // public static xun_yu = new FactionWarGeneral('fire_xun_yu', '荀彧', Faction.WEI, 1.5, '驱虎', '节命')
+    public static xun_yu = new FactionWarGeneral('fire_xun_yu', '荀彧', Faction.WEI, 1.5, '驱虎', '节命')
     public static cao_pi = new FactionWarGeneral('forest_cao_pi', '曹丕', Faction.WEI, 1.5, '行殇', '放逐')
     // public static yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', Faction.WEI, 2, '骁果')
 
