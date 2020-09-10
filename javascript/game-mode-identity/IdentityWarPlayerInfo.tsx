@@ -3,6 +3,8 @@ import { General } from "../common/General";
 import { Player } from "../common/Player";
 import * as React from "react";
 import './identity-war.scss'
+import { GameMode } from "../common/GameMode";
+import { Skill } from "../game-mode-faction/skill/Skill";
 
 export default class IdentityWarPlayerInfo extends PlayerInfo {
 
@@ -13,8 +15,8 @@ export default class IdentityWarPlayerInfo extends PlayerInfo {
     }
     
     
-    getSkillIds(): Array<[string, boolean]> {
-        return this.general.abilities.map(a => [a, true])
+    getSkills(mode: GameMode): Array<Skill> {
+        return this.general.abilities.map(a => mode.skillProvider(a, this.player.id))
     }
 
     init(): IdentityWarPlayerInfo {

@@ -23,7 +23,7 @@ export default class CardFightOp extends Operation<boolean> {
 
     constructor(private initiater: PlayerInfo, private target: PlayerInfo, msg: string){
         super()
-        this.title = `${this.initiater.player.id} 拼点 ${this.target.player.id}(${msg})`
+        this.title = `${this.initiater.player.id} 拼点 ${this.target}(${msg})`
     }
 
     public async perform(manager: GameManager): Promise<boolean> {

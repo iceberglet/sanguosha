@@ -117,7 +117,7 @@ export class ShunShou extends SingleRuse<void> {
             customRequest: {
                 data: {
                     rowsOfCard: candidates,
-                    title: `顺手牵羊 > ${this.target.player.id}`,
+                    title: `顺手牵羊 > ${this.target}`,
                     chooseSize: 1
                 },
                 mode: 'choose'
@@ -188,7 +188,7 @@ export class JieDao extends SingleRuse<void> {
 
         let resp = await manager.sendHint(from.player.id, {
             hintType: HintType.PLAY_SLASH,
-            hintMsg: `${this.source.player.id} 令你对 ${to.player.id} 出杀, 取消则放弃你的武器`,
+            hintMsg: `${this.source} 令你对 ${to.player.id} 出杀, 取消则放弃你的武器`,
             targetPlayers: [to.player.id],
             extraButtons: [new Button(Button.CANCEL.id, '放弃')]
         })
@@ -230,9 +230,9 @@ export class HuoGong extends SingleRuse<void> {
 
         let card = resp.getSingleCardAndPos()[0]
         let suit = this.target.cardInterpreter(card).suit
-        card.description = `${this.target.player.id} 火攻展示牌`
+        card.description = `${this.target} 火攻展示牌`
 
-        console.log(`${this.target.player.id} 为火攻展示手牌 ${card.id}`)
+        console.log(`${this.target} 为火攻展示手牌 ${card.id}`)
         manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [card], false, true)
 
         //火攻出牌
@@ -247,8 +247,8 @@ export class HuoGong extends SingleRuse<void> {
 
         if(!resp2.isCancel()) {
             let fireCard = resp2.getSingleCardAndPos()[0]
-            console.log(`${this.source.player.id} 为火攻出了 ${fireCard.id}`)
-            fireCard.description = `${this.source.player.id} 火攻使用牌`
+            console.log(`${this.source} 为火攻出了 ${fireCard.id}`)
+            fireCard.description = `${this.source} 火攻使用牌`
             manager.sendToWorkflow(this.source.player.id, CardPos.HAND, [fireCard])
 
             await manager.events.publish(new CardBeingDroppedEvent(this.source.player.id, [[fireCard, CardPos.HAND]]))

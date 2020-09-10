@@ -63,7 +63,7 @@ export class Rende extends Skill {
         let me = manager.context.getPlayer(this.playerId)
         hasGiven.add(target.player.id)
 
-        this.playSound(manager, 1)
+        this.playSound(manager, 3)
         manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
         //assume he played it
         let cards = act.getCardsAtPos(CardPos.HAND)
@@ -170,7 +170,7 @@ export class WuSheng extends Skill {
         if(event && !(event instanceof AskForSlashOp)) {
             throw '[武圣] 不会对此做出反应: ' + event
         }
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         let posAndCard = act.getSingleCardAndPos()
         let card = posAndCard[0]
         card.description = this.id
@@ -268,7 +268,7 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         let posAndCard = act.getSingleCardAndPos()
         let card = posAndCard[0]
         let pos = posAndCard[1]
@@ -381,3 +381,18 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
 // 淑慎 当你回复1点体力后，你可以令一名其他角色摸一张牌。
 // 神智 准备阶段，你可以弃置所有手牌，若你以此法弃置的手牌数不小于你的体力值，你回复1点体力。
 
+// 生息 弃牌阶段开始时，若你此回合内没有造成过伤害，你可以摸两张牌。
+// 守成 当与你势力相同的一名角色于其回合外失去最后手牌时，你可以令其摸一张牌。
+
+// 挑衅 出牌阶段限一次，你可以选择一名攻击范围内含有你的角色，然后除非该角色对你使用一张【杀】，否则你弃置其一张牌。
+// 遗志 副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。
+// 天覆 主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。
+
+// 潜袭 准备阶段，你可以进行判定，然后你选择距离为1的一名角色，直到回合结束，该角色不能使用或打出与结果颜色相同的手牌。
+// 闺秀 当你明置此武将牌时，你可以摸两张牌；当你移除此武将牌时，你可以回复1点体力。
+// 存嗣 出牌阶段，你可以移除此武将牌并选择一名角色，然后其获得技能“勇决”（若与你势力相同的一名角色于其回合内使用的第一张牌为【杀】，则该角色可以在此【杀】结算完成后获得之），若你没有获得“勇决”，则获得“勇决”的角色摸两张牌。
+// 勇决 若与你势力相同的一名角色于其回合内使用的第一张牌为【杀】，则该角色可以在此【杀】结算完成后获得之
+// 蒺藜 当你于一回合内使用或打出第X张牌时，你可以摸X张牌（X为你的攻击范围）
+
+// 眩惑 与你势力相同的其他角色的出牌阶段限一次，该角色可以交给你一张手牌并弃置一张牌，然后其选择并获得以下技能之一直到回合结束：“武圣”、“咆哮”、“龙胆”、“铁骑”、“烈弓”、“狂骨”（场上已有的技能无法选择）。
+// 恩怨 锁定技，当其他角色对你使用【桃】时，该角色摸一张牌；当你受到伤害后，伤害来源需交给你一张手牌，否则失去1点体力。

@@ -6,6 +6,8 @@ import { ICard } from "./cards/ICard"
 import { CardPos, isSharedPosition } from "./transit/CardPos"
 import { ReactElement } from "react"
 import { SkillButtonProp } from "../client/ui/UIMyPlayerCard"
+import { Skill } from "../game-mode-faction/skill/Skill"
+import { GameMode } from "./GameMode"
 
 export class Identity {
 
@@ -69,7 +71,7 @@ export abstract class PlayerInfo {
     /**
      * skillid & isMain
      */
-    abstract getSkillIds(): Array<[string, boolean]>
+    abstract getSkills(mode: GameMode): Array<Skill>
     /**
      * Called once at game start only, by server
      */
@@ -217,6 +219,10 @@ export abstract class PlayerInfo {
             v.forEach(cc => cards.push([cc, k]))
         })
         return cards
+    }
+
+    toString(): string {
+        return this.player.id
     }
 
     //------------------- Serde -----------------

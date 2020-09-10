@@ -101,7 +101,7 @@ export class NanMan extends MultiRuse {
 
     public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
         let issuer = this.source
-        let slashed = await new AskForSlashOp(target, issuer, `${this.source.player.id} 使用南蛮, 请出杀`).perform(manager)
+        let slashed = await new AskForSlashOp(target, issuer, `${this.source} 使用南蛮, 请出杀`).perform(manager)
         if(!slashed) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃南蛮出杀, 掉血`)
             await new DamageOp(issuer, target, 1, this.cards, DamageSource.NAN_MAN, DamageType.NORMAL).perform(manager)
@@ -115,7 +115,7 @@ export class NanMan extends MultiRuse {
 export class WanJian extends MultiRuse {
 
     public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
-        let dodged = await new DodgeOp(target, this.source, 1, `${this.source.player.id} 的万箭齐发, 请出闪`).perform(manager)
+        let dodged = await new DodgeOp(target, this.source, 1, `${this.source} 的万箭齐发, 请出闪`).perform(manager)
         if(!dodged) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃万箭出闪, 掉血`)
             await new DamageOp(this.source, target, 1, this.cards, DamageSource.WAN_JIAN, DamageType.NORMAL).perform(manager)

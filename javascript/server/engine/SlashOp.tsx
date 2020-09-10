@@ -125,7 +125,7 @@ export class SlashCompute extends UseEventOperation<void> {
         let dodgeNeeded = this.dodgeRequired
         //开始杀的结算, 要求出闪
         if(dodgeNeeded > 0) {
-            let dodgeOp = new DodgeOp(this.target, this.source, dodgeNeeded, `[${this.source.player.id}] 对你出杀, 请出闪`)
+            let dodgeOp = new DodgeOp(this.target, this.source, dodgeNeeded, `[${this.source}] 对你出杀, 请出闪`)
             let success = await dodgeOp.perform(manager)
             if(!success) {
                 await new DamageOp(this.source, this.target, this.damageAmount, this.cards, DamageSource.SLASH, this.damageType).perform(manager)

@@ -75,6 +75,12 @@ export abstract class Skill extends SkillStatus {
      */
     isLocked: boolean = false
 
+    /**
+     * 主将技/副将技override
+     */
+    disabledForMain: boolean = false
+    disabledForSub: boolean = false
+
     description: string = '暂无 (Please override this field)'
 
     public toStatus(): SkillStatus {
@@ -161,3 +167,21 @@ export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTr
         return
     }
 }
+
+
+/**
+ * 技能事件:
+ * 1. 主将技,副将技的选择
+ * 
+ * 2. 增加技能
+ *      a. 姜维观星
+ *      b. 游戏进行时, (暴凌)
+ * 
+ * 3. 改变其他技能: (姜维观星override主将技能)
+ * 
+ * 4. 失去技能 (断肠)
+ * 
+ * 5. 移除武将牌
+ * 
+ * 6. 减少阴阳鱼 (重新计算血量)
+ */

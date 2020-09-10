@@ -3,40 +3,10 @@ import { SimpleConditionalSkill, EventRegistryForSkills, SkillStatus, Skill } fr
 import { RevealEvent } from "../FactionWarInitializer";
 import GameManager from "../../server/GameManager";
 import FactionPlayerInfo from "../FactionPlayerInfo";
-import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
-import { HintType } from "../../common/ServerHint";
-import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
-import { UIPosition } from "../../common/PlayerAction";
 import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, JieMing, QuHu, YiJi } from "./FactionSkillsWei";
 import { describer } from "../../common/util/Describer";
+import { GameMode } from "../../common/GameMode";
 
-class DummySkill extends SimpleConditionalSkill<void> {
-
-    isLocked = false
-
-    public hookup(skillRegistry: EventRegistryForSkills): void {
-        //do-nothing
-    }
-    public conditionFulfilled(event: void, manager: GameManager): boolean {
-        return false
-    }
-    public async doInvoke(event: void, manager: GameManager): Promise<void> {
-        //do-nothing
-        return
-    }
-    public bootstrapClient(): void {
-        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
-            return new PlayerActionDriverDefiner('出牌阶段装备东西')
-                    .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
-                    .expectAnyButton('点击确定使用Dummy技能')
-                    .build(hint)
-        })
-    }
-    // public async onPlayerAction(act: PlayerAction): Promise<void> {
-    //     throw 'Forgot to override me?'
-    // }
-    
-}
 
 class FactionSkillProvider {
 
@@ -88,11 +58,9 @@ export default class FactionWarSkillRepo {
     constructor(private readonly manager: GameManager, private readonly skillRegistry: EventRegistryForSkills) {
         manager.context.playerInfos.forEach(info => {
             let facInfo = info as FactionPlayerInfo
-            facInfo.general.abilities.forEach(skillId => {
-                this.addSkill(info.player.id, true, skillId, manager)
-            })
-            facInfo.subGeneral.abilities.forEach(skillId => {
-                this.addSkill(info.player.id, false, skillId, manager)
+            facInfo.getSkills(GameMode.get(manager.context.gameMode)).forEach(skill => {
+                this.allSkills.set(facInfo.player.id, skill)
+                skill.hookup(this.skillRegistry, manager)
             })
         })
         manager.adminRegistry.onGeneral<RevealEvent>(RevealEvent, this.onRevealEvent)
@@ -122,13 +90,6 @@ export default class FactionWarSkillRepo {
             throw '[技能] 未找到技能: ' + pid + ' > ' + skillId
         }
         return skill
-    }
-
-    private addSkill(pid: string, isMain: boolean, skillId: string, manager: GameManager) {
-        let skill = FactionSkillProviders.get(skillId, pid)
-        skill.isMain = isMain
-        this.allSkills.set(pid, skill)
-        skill.hookup(this.skillRegistry, manager)
     }
 
     private onRevealEvent= async (e: RevealEvent): Promise<void> => {

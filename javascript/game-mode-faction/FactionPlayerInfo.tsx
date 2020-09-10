@@ -8,6 +8,8 @@ import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
 import { ClassFormatter } from "../common/util/Togglable"
 import { SkillButtonProp, SkillButton } from "../client/ui/UIMyPlayerCard"
 import { wrapGeneral } from "../client/ui/UIPlayerCard"
+import { GameMode } from "../common/GameMode"
+import { Skill } from "./skill/Skill"
 
 
 export default class FactionPlayerInfo extends PlayerInfo {
@@ -25,13 +27,21 @@ export default class FactionPlayerInfo extends PlayerInfo {
     }
 
     
-    getSkillIds(): Array<[string, boolean]> {
-        let res: Array<[string, boolean]> = []
+    getSkills(mode: GameMode): Array<Skill> {
+        let res: Array<Skill> = []
         this.general.abilities.forEach(a => {
-            res.push([a, true])
+            let skill = mode.skillProvider(a, this.player.id)
+            if(!skill.disabledForMain) {
+                skill.isMain = true
+                res.push(skill)
+            }
         })
         this.subGeneral.abilities.forEach(a => {
-            res.push([a, false])
+            let skill = mode.skillProvider(a, this.player.id)
+            if(!skill.disabledForSub) {
+                skill.isMain = false
+                res.push(skill)
+            }
         })
         return res
     }

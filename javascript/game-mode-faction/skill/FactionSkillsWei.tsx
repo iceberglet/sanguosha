@@ -53,7 +53,7 @@ export class JianXiong extends SkillForDamageTaken {
     }
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         if(event.cards && event.cards.length > 0) {
-            this.playSound(manager, 1)
+            this.playSound(manager, 2)
             manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
             manager.takeFromWorkflow(this.playerId, CardPos.HAND, event.cards)
         }
@@ -97,7 +97,7 @@ export class FanKui extends SkillForDamageTaken {
         let card = cardAndPos[0], pos = cardAndPos[1]
         delete card.description
         delete card.as
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         await manager.transferCards(targetId, this.playerId, pos, CardPos.HAND, [card])
     }
 }
@@ -129,7 +129,7 @@ export class GuiCai extends SimpleConditionalSkill<JudgeOp> {
             let card = resp.getCardsAtPos(CardPos.HAND)[0]
             console.log('[鬼才] 改变判定牌 ' + card.id)
             card.description = this.playerId + ' 鬼才改判定'
-            this.playSound(manager, 1)
+            this.playSound(manager, 2)
             manager.sendToWorkflow(this.playerId, CardPos.HAND, [card], false)
             await manager.events.publish(new CardBeingPlayedEvent(this.playerId, [[card, CardPos.HAND]], null))
             event.judgeCard = card
@@ -153,7 +153,7 @@ export class GangLie extends SkillForDamageTaken {
         return this.isMyDamage(event) && this.damageHasSource(event)
     }
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         let card = await new JudgeOp('刚烈判定', this.playerId).perform(manager)
         if(manager.interpret(this.playerId, card.id).suit !== 'heart') {
             console.log('[刚烈] 判定成功 ' + card.id)
@@ -253,7 +253,7 @@ export class LuoYi extends SimpleConditionalSkill<TakeCardStageOp> {
 
     public async doInvoke(event: TakeCardStageOp, manager: GameManager): Promise<void> {
         console.log('[裸衣] 脱!')
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
         this.isTriggered = true
         event.amount -= 1
@@ -434,7 +434,7 @@ export class ShenSu extends SimpleConditionalSkill<StageStartFlow> {
                 extraButtons: [Button.CANCEL]
             })
             if(!resp.isCancel()) {
-                this.playSound(manager, 1)
+                this.playSound(manager, 2)
                 let target = resp.targets[0]
                 console.log('[神速] 跳过判定和摸牌出杀', this.playerId, target)
                 //跳过判定和摸牌阶段
@@ -453,7 +453,7 @@ export class ShenSu extends SimpleConditionalSkill<StageStartFlow> {
                 extraButtons: [Button.CANCEL]
             })
             if(!resp.isCancel()) {
-                this.playSound(manager, 1)
+                this.playSound(manager, 2)
                 let target = resp.targets[0]
                 let equipp = resp.getSingleCardAndPos()
 
@@ -509,7 +509,7 @@ export class DuanLiang extends SimpleConditionalSkill<StageStartFlow> {
         let card = posAndCards[0]
         card.as = CardType.BING_LIANG
         card.description = '兵粮' 
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         // manager.sendToWorkflow(this.playerId, pos, [card])
         await new UseDelayedRuseOp(card, act.source, pos, target).perform(manager)
         await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.BING_LIANG, true))
@@ -601,7 +601,7 @@ export class QiangXi extends SimpleConditionalSkill<void> {
             console.error('[强袭] 怎么可能cancel??')
             return
         }
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         manager.roundStats.customData[this.id] = true
         let target = act.targets[0]
         manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
@@ -638,7 +638,7 @@ export class XingShang extends SimpleConditionalSkill<DeathOp> {
         return event.deceased.player.id !== this.id
     }
     public async doInvoke(event: DeathOp, manager: GameManager): Promise<void> {
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
         let hand: Card[] = [], equip: Card[] = []
         event.toDrop.forEach(d => {
@@ -687,7 +687,7 @@ export class FangZhu extends SkillForDamageTaken {
             console.log('[放逐] 放弃了')
             return
         }
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         let target = resp.targets[0]
         console.log('[放逐] 结果', resp, target.player.id)
         manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
@@ -729,7 +729,7 @@ export class QuHu extends SimpleConditionalSkill<void> {
     async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
         manager.roundStats.customData[this.id] = true
         let target = act.targets[0]
-        this.playSound(manager, 1)
+        this.playSound(manager, 2)
         manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
         console.log('[驱虎] 发动')
         let success = await new CardFightOp(act.source, target, '驱虎').perform(manager)
@@ -788,7 +788,7 @@ export class JieMing extends SkillForDamageTaken {
                 quantity: 1,
                 extraButtons: [Button.CANCEL]
             })
-            this.playSound(manager, 1)
+            this.playSound(manager, 2)
             let target = resp.targets[0]
             manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
             let curr = target.getCards(CardPos.HAND).length
@@ -831,7 +831,7 @@ export class YiJi extends SkillForDamageTaken {
         while(amount !== 0) {
             amount--
             let cards = (await new TakeCardOp(event.target, 2).perform(manager))
-            this.playSound(manager, 1)
+            this.playSound(manager, 2)
             manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
             let resp = await manager.sendHint(this.playerId, {
                 hintType: HintType.SPECIAL,
@@ -882,4 +882,65 @@ export class XiaoGuo extends Skill<DamageOp> {
     displayName = '骁果'
     description = '其他角色的结束阶段，你可以弃置一张基本牌，然后除非该角色弃置一张装备牌，否则受到你造成的1点伤害。'
 }
-*/
+
+
+export class TunTian extends Skill<DamageOp> {
+
+    displayName = '屯田'
+    description = '当你于回合外失去牌后，你可以进行判定，若结果不为红桃，你可将此牌置于武将牌上，称为“田”；你计算与其他角色的距离-X（X为“田”的数量）。）'
+}
+
+export class ZiLiang extends Skill<DamageOp> {
+
+    displayName = '资粮'
+    description = '副将技，当与你势力相同的一名角色受到伤害后，你可以将一张“田”交给该角色。'
+}
+
+export class JiXi extends Skill<DamageOp> {
+
+    displayName = '急袭'
+    description = '主将技，此武将牌减少半个阴阳鱼；你可以将一张“田”当【顺手牵羊】使用。'
+}
+
+export class HuYuan extends Skill<DamageOp> {
+
+    displayName = '护援'
+    description = '结束阶段，你可以将一张装备牌置入一名角色的装备区，然后你可以弃置该角色距离为1的一名角色的一张牌。'
+}
+
+export class HeYi extends Skill<DamageOp> {
+
+    displayName = '鹤翼'
+    description = '阵法技，与你处于同一队列的其他角色拥有“飞影”。 [飞影] 锁定技，其他角色计算与你的距离+1。'
+}
+
+export class XunXun extends Skill<DamageOp> {
+
+    displayName = '恂恂'
+    description = '摸牌阶段开始时，你可以观看牌堆顶的四张牌，然后将其中的两张牌置于牌堆顶，将其余的牌置于牌堆底。'
+}
+
+export class WangXi extends Skill<DamageOp> {
+
+    displayName = '忘隙'
+    description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。'
+}
+
+export class HengJiang extends Skill<DamageOp> {
+
+    displayName = '横江'
+    description = '当你受到1点伤害后，你可以令当前回合角色本回合的手牌上限-1。然后若其弃牌阶段内没有弃牌，则你摸一张牌。'
+}
+
+export class XunYou extends Skill<DamageOp> {
+
+    displayName = '奇策'
+    description = '出牌阶段限一次，你可以将所有手牌当任意一张普通锦囊牌使用，你不能以此法使用目标数超过X的牌（X为你的手牌数），然后你可以变更一次副将。'
+}
+
+export class ZhiYu extends Skill<DamageOp> {
+
+    displayName = '智愚'
+    description = '当你受到伤害后，你可以摸一张牌，然后展示所有手牌，若颜色均相同，伤害来源弃置一张手牌。'
+}
+ */

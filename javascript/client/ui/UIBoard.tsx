@@ -95,17 +95,17 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         let {myId, context} = p
         let screenPosObtainer = new ScreenPosObtainer()
         let skillChecker = new CheckerImpl(UIPosition.MY_SKILL, context, this.refresh)
-        let skillButtons: SkillButtonProp[] = context.getPlayer(myId).getSkillIds().map(s => {
-            let skill = GameMode.get(context.gameMode).skillProvider(s[0], myId)
-            skill.isMain = s[1]
-            skill.bootstrapClient()
-            return {
-                skill,
-                skillChecker, statusUpdater:(s)=>{
-                    context.sendSkillStatus(s)
-                }
-            }
-        })
+        let skillButtons: SkillButtonProp[] = context.getPlayer(myId)
+                        .getSkills(GameMode.get(context.gameMode))
+                        .map(skill => {
+                            skill.bootstrapClient()
+                            return {
+                                skill,
+                                skillChecker, statusUpdater:(s)=>{
+                                    context.sendSkillStatus(s)
+                                }
+                            }
+                        })
         this.state = {
             hideCards: false,
             showDistance: false,
