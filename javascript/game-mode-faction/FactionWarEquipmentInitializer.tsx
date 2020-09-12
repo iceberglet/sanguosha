@@ -1,12 +1,12 @@
 import GameManager from "../server/GameManager";
 import { EquipOp } from "../server/engine/EquipOp";
-import { CardBeingDroppedEvent, CardBeingPlayedEvent, CardBeingTakenEvent, CardBeingUsedEvent, CardAwayEvent } from "../server/engine/Generic";
+import { CardBeingDroppedEvent, CardBeingTakenEvent, CardBeingUsedEvent, CardAwayEvent } from "../server/engine/Generic";
 import { Equipment, CiXiong, QingGang, GuanShi, GuDing, ZhuQue, HanBing, Qilin, LianNu, RenWang, TengJia, BaGua, BaiYin } from "../server/engine/Equipments";
 import { CardType } from "../common/cards/Card";
 import DamageOp, { DamageSource, DamageTimeline } from "../server/engine/DamageOp";
 import { CardPos } from "../common/transit/CardPos";
 import { HintType } from "../common/ServerHint";
-import { Button, UIPosition } from "../common/PlayerAction";
+import { Button } from "../common/PlayerAction";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
 
@@ -24,44 +24,44 @@ export default function initializeEquipments(manager: GameManager) {
         let type = equipOp.card.type.name
         let equip: Equipment
         switch(type) {
-            case CardType.CI_XIONG.name: equip = new CiXiong(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.CI_XIONG.name: equip = new CiXiong(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.QING_GANG.name: equip = new QingGang(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.QING_GANG.name: equip = new QingGang(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.ZHU_QUE.name: equip = new ZhuQue(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.ZHU_QUE.name: equip = new ZhuQue(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.GU_DING.name: equip = new GuDing(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.GU_DING.name: equip = new GuDing(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.GUAN_SHI.name: equip = new GuanShi(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.GUAN_SHI.name: equip = new GuanShi(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.LIAN_NU.name: equip = new LianNu(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.LIAN_NU.name: equip = new LianNu(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.HAN_BING.name: equip = new HanBing(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.HAN_BING.name: equip = new HanBing(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.QI_LIN.name: equip = new Qilin(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.QI_LIN.name: equip = new Qilin(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.WU_LIU.name: equip = new WuLiu(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.WU_LIU.name: equip = new WuLiu(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.SAN_JIAN.name: equip = new SanJian(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.SAN_JIAN.name: equip = new SanJian(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
             case CardType.ZHANG_BA.name: 
                 //丈八的效果仅限于玩家主动施放
                 return
 
 
-            case CardType.SILVER_LION.name: equip = new BaiYin(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.SILVER_LION.name: equip = new BaiYin(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.REN_WANG.name: equip = new RenWang(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.REN_WANG.name: equip = new RenWang(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.TENG_JIA.name: equip = new TengJia(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.TENG_JIA.name: equip = new TengJia(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
-            case CardType.BA_GUA.name: equip = new BaGua(equipOp.beneficiary, equipOp.card.id, manager)
+            case CardType.BA_GUA.name: equip = new BaGua(equipOp.beneficiary.player.id, equipOp.card.type, manager)
                 break
             default:
                 throw 'Unknown equipment!!! ' + type
         }
 
-        console.log(`[装备] ${equipOp.beneficiary} 装备了 ${equipOp.card.id}`)
+        console.log(`[装备] ${equipOp.beneficiary.player.id} 装备了 ${equipOp.card.id}`)
         playerAndEquipments.set(equipOp.card.id, equip)
         await equip.onEquipped()
     })
@@ -82,7 +82,6 @@ export default function initializeEquipments(manager: GameManager) {
     }
 
     manager.equipmentRegistry.onGeneral<CardBeingDroppedEvent>(CardBeingDroppedEvent, checkEquipmentDrop)
-    manager.equipmentRegistry.onGeneral<CardBeingPlayedEvent>(CardBeingPlayedEvent, checkEquipmentDrop)
     manager.equipmentRegistry.onGeneral<CardBeingTakenEvent>(CardBeingTakenEvent, checkEquipmentDrop)
     manager.equipmentRegistry.onGeneral<CardBeingUsedEvent>(CardBeingUsedEvent, checkEquipmentDrop)
 

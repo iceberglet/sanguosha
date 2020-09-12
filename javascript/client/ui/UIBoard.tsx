@@ -98,7 +98,8 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         let skillButtons: SkillButtonProp[] = context.getPlayer(myId)
                         .getSkills(GameMode.get(context.gameMode))
                         .map(skill => {
-                            skill.bootstrapClient()
+                            console.log('Boostrapping Skill', skill.playerId, skill.id)
+                            skill.bootstrapClient(context.getPlayer(myId))
                             return {
                                 skill,
                                 skillChecker, statusUpdater:(s)=>{
@@ -126,8 +127,13 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 let match = state.skillButtons.find(prop => {
                     return prop.skill.id === s.id && prop.skill.playerId === s.playerId
                 })
+                if(!match) {
+                    console.error('Cannot find skill. Unable to process status update', s, state.skillButtons)
+                    throw 'Cannot find skill. Unable to process status update'
+                }
                 Object.assign(match.skill, s)
-                console.log('Updated skill', match.skill.isRevealed, match.skill)
+                console.log('Updated skill', match.skill.isRevealed, s, match.skill)
+                // match.skill.onStatusUpdated(context)
                 return state
             })
         })

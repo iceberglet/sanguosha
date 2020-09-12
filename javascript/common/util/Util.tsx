@@ -91,6 +91,24 @@ export function filterMap<K, V>(map: Map<K, V>, filter: (k: K, v: V)=>boolean): 
     return flattenMap(map).filter(kv => filter(kv[0], kv[1]))
 }
 
+export function all<T>(arr: Iterable<T>, predicate: (t: T)=>boolean) {
+    for(let t of arr) {
+      if(!predicate(t)) {
+        return false
+      }
+    }
+    return true
+}
+
+export function any<T>(arr: Iterable<T>, predicate: (t: T)=>boolean) {
+  for(let t of arr) {
+    if(predicate(t)) {
+      return true
+    }
+  }
+  return false
+}
+
 export function promiseAny<T>(iterable: Iterable<T | PromiseLike<T>>): Promise<T> {
   return Promise.all(
     [...iterable].map(promise => {

@@ -1,11 +1,14 @@
 import Multimap from "../../common/util/Multimap";
-import { SimpleConditionalSkill, EventRegistryForSkills, SkillStatus, Skill } from "./Skill";
+import { SimpleConditionalSkill, EventRegistryForSkills, SkillStatus, Skill, GeneralSkillStatusUpdate, HiddenType } from "./Skill";
 import { RevealEvent } from "../FactionWarInitializer";
 import GameManager from "../../server/GameManager";
 import FactionPlayerInfo from "../FactionPlayerInfo";
-import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, JieMing, QuHu, YiJi } from "./FactionSkillsWei";
+import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, JieMing, QuHu, YiJi, QiaoBian, XiaoGuo } from "./FactionSkillsWei";
 import { describer } from "../../common/util/Describer";
 import { GameMode } from "../../common/GameMode";
+import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi } from "./FactionSkillsShu";
+import { Stage } from "../../common/Stage";
+import { PlayerInfo } from "../../common/PlayerInfo";
 
 
 class FactionSkillProvider {
@@ -49,30 +52,69 @@ FactionSkillProviders.register('放逐', pid => new FangZhu(pid))
 FactionSkillProviders.register('行殇', pid => new XingShang(pid))
 FactionSkillProviders.register('节命', pid => new JieMing(pid))
 FactionSkillProviders.register('驱虎', pid => new QuHu(pid))
+FactionSkillProviders.register('巧变', pid => new QiaoBian(pid))
+FactionSkillProviders.register('骁果', pid => new XiaoGuo(pid))
+
+
+FactionSkillProviders.register('龙胆', pid => new LongDan(pid))
+FactionSkillProviders.register('仁德', pid => new Rende(pid))
+FactionSkillProviders.register('武圣', pid => new WuSheng(pid))
+FactionSkillProviders.register('咆哮', pid => new PaoXiao(pid))
+FactionSkillProviders.register('马术', pid => new MaShu(pid))
+FactionSkillProviders.register('铁骑', pid => new TieQi(pid))
+FactionSkillProviders.register('火计', pid => new HuoJi(pid))
+FactionSkillProviders.register('八阵', pid => new BaZhen(pid))
+FactionSkillProviders.register('看破', pid => new KanPo(pid))
+FactionSkillProviders.register('狂骨', pid => new KuangGu(pid))
+FactionSkillProviders.register('烈弓', pid => new LieGong(pid))
+FactionSkillProviders.register('蒺藜', pid => new JiLi(pid))
 
 export default class FactionWarSkillRepo {
     
     //player id => skills
     private allSkills = new Multimap<string, Skill>()
 
+    //player id => skillid => disablers
+    private disablers: Disabler[] = []
+
     constructor(private readonly manager: GameManager, private readonly skillRegistry: EventRegistryForSkills) {
         manager.context.playerInfos.forEach(info => {
             let facInfo = info as FactionPlayerInfo
             facInfo.getSkills(GameMode.get(manager.context.gameMode)).forEach(skill => {
-                this.allSkills.set(facInfo.player.id, skill)
-                skill.hookup(this.skillRegistry, manager)
+                this.addSkill(facInfo.player.id, skill)
+                skill.bootstrapServer(this.skillRegistry, manager)
             })
         })
         manager.adminRegistry.onGeneral<RevealEvent>(RevealEvent, this.onRevealEvent)
+        manager.adminRegistry.onGeneral<GeneralSkillStatusUpdate>(GeneralSkillStatusUpdate, this.onGeneralSkillUpdate)
     }
 
-    public onClientUpdateSkill(ss: SkillStatus) {
-        this.allSkills.get(ss.playerId).forEach(s => {
-            if(s.id === ss.id) {
-                console.log('[技能] 改变技能预亮', s.id, s.playerId, ss.isForewarned)
-                s.isForewarned = ss.isForewarned
+    public addSkill(p: string, skill: Skill) {
+        console.log('[技能] 添加技能', p, skill.id)
+        this.allSkills.set(p, skill)
+    }
+
+    public async onClientUpdateSkill(ss: SkillStatus): Promise<void> {
+        let skill = this.allSkills.getArr(ss.playerId).find(s => s.id === ss.id)
+        console.log(skill.isForewarned, ss.isForewarned, skill.isRevealed, ss.isRevealed)
+        if(skill.isForewarned !== ss.isForewarned) {
+            console.log('[技能] 改变技能预亮', skill.id, skill.playerId, ss.isForewarned)
+            skill.isForewarned = ss.isForewarned
+            await skill.onStatusUpdated(this.manager)
+        }
+        if(skill.isRevealed !== ss.isRevealed && ss.isRevealed) {
+            if(skill.hiddenType === HiddenType.REVEAL_IN_MY_USE_CARD && 
+                this.manager.currPlayer().player.id === skill.playerId &&
+                this.manager.currEffect.stage === Stage.USE_CARD) {
+                console.log('[技能] 想要reveal??', skill.id, skill.playerId, ss.isRevealed)
+                await this.manager.events.publish(new RevealEvent(skill.playerId, skill.isMain, !skill.isMain))
+                await skill.onStatusUpdated(this.manager)
+            } else {
+                console.warn('[技能] 只能在你自己的出牌阶段里reveal!', skill.id, skill.playerId, ss.isRevealed)
             }
-        })
+        }
+        //update this player's skill status
+        this.manager.send(ss.playerId, skill.toStatus())
     }
 
     public getSkills(pid: string): Set<Skill> {
@@ -92,6 +134,53 @@ export default class FactionWarSkillRepo {
         return skill
     }
 
+    private onGeneralSkillUpdate = async (update: GeneralSkillStatusUpdate): Promise<void> => {
+        let abilities = (update.isMain? update.target.general : update.target.subGeneral).abilities
+        let marks = update.isMain? update.target.mainMark : update.target.subMark
+        //只有武将牌上的受到影响
+        let skills = this.allSkills.getArr(update.target.player.id).filter(s => abilities.find(a => a === s.id))
+        console.log('[技能] 收到对武将牌封禁的修改', update.reason, update.target.player.id, skills.map(s => s.id))
+
+        for(let s of skills) {
+            let disabler = this.disablers.find(d => d.playerId === s.playerId && d.skillId === s.id)
+            console.log('[技能] 已有的封禁理由: ', s.id, disabler? disabler.reasons : [])
+            if(update.enable) {
+                //除掉之前的disabler, 
+                if(!disabler || !disabler.reasons.has(update.reason)) {
+                    throw 'Impossible!, How can we enable if we did NOT disable?'
+                }
+                disabler.reasons.delete(update.reason)
+                delete marks[update.reason]
+                
+                //如果干净了, 我们才恢复
+                if(disabler.reasons.size === 0) {
+                    console.log('[技能] 恢复技能', s.playerId, s.id)
+                    s.isDisabled = false
+                    s.onStatusUpdated(this.manager)
+                    this.manager.send(s.playerId, s.toStatus())
+                }
+            } else {
+                //如果已经disable了, 不要再来一次
+                if(!disabler) {
+                    disabler = new Disabler(s.playerId, s.id)
+                    this.disablers.push(disabler)
+                }
+                if(disabler.reasons.size === 0) {
+                    console.log('[技能] 禁止技能', s.playerId, s.id)
+                    //进行disable作业
+                    s.isDisabled = true
+                    s.onStatusUpdated(this.manager)
+                    this.manager.send(s.playerId, s.toStatus())
+                }
+
+                marks[update.reason] = update.reason
+                //加我们一个disabler
+                disabler.reasons.add(update.reason)
+            }
+            this.manager.broadcast(update.target as PlayerInfo, PlayerInfo.sanitize)
+        }
+    }
+
     private onRevealEvent= async (e: RevealEvent): Promise<void> => {
         this.allSkills.get(e.playerId).forEach(skill => {
             if(skill.isMain && e.mainReveal) {
@@ -107,4 +196,10 @@ export default class FactionWarSkillRepo {
 
 }
 
-//todo: 加入所有的skill providers
+class Disabler {
+
+    reasons = new Set<string>()
+
+    constructor(public playerId: string,
+                public skillId: string) {}
+}

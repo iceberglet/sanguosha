@@ -35,6 +35,11 @@ export type CardInterpreter =(card: ICard) => ICard
 
 export const NoopInterpreter: CardInterpreter = (c)=>c
 
+//id to actual display
+export type Mark = {
+    [key: string] : string
+}
+
 export abstract class PlayerInfo {
     //一号位二号位?
     idx: number
@@ -53,7 +58,9 @@ export abstract class PlayerInfo {
     //当你有 +1 马的时候别人计算与你的距离+1
     //当你有 -1 马的时候你与别人计算距离-1
     //当你有 马术 神曹操技能的时候也会计算这个
-    distanceModifier: number = 0
+    distanceModTargetingOthers: number = 0
+
+    distanceModTargetingMe: number = 0
 
     //当你计算你的攻击距离的时候用到. 吴六剑?
     reachModifier: number = 0

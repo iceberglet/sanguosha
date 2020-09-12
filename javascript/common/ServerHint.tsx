@@ -47,7 +47,7 @@ export class ServerHintTransit {
 export function isDirectButton(hint: ServerHint, buttonId: string): Button {
     let extra = hint.extraButtons?.find(b => b.id === buttonId)
     if(extra) {
-        return extra
+        return extra.isDirect? extra: null
     }
     if(buttonId !== Button.OK.id && buttonId !== Button.CANCEL.id) {
         return new Button(buttonId, 'hackish')
@@ -63,6 +63,15 @@ export type CardSelectionHint = {
     chooseSize: number
 }
 
+export type DuoCardSelectionHint = {
+    title: string,
+    titleLeft: string,
+    titleRight: string,
+    rowsOfCard: {[key: string]: [Array<Card>, Array<Card>]},
+    chooseSize: number,
+    canCancel: boolean
+}
+
 export type GeneralSelectionHint = {
     generals: General[]
 }
@@ -76,6 +85,12 @@ export type DisplayHint = {
 export type CardSelectionResult = Array<{
     rowName: string,
     idx: number
+}>
+
+export type DuoCardSelectionResult = Array<{
+    rowName: string,
+    idx: number,
+    isLeft: boolean
 }>
     
 //just the ids
@@ -157,11 +172,11 @@ export type ServerHint = {
 }
 
 export type CustomRequest = {
-    mode: 'choose' | 'display' | 'game-end'
+    mode: 'choose' | 'duo-choose' | 'display' | 'game-end'
     //过拆 
     //展示手牌
     //选将
     //牌局结束数据
     //单纯给个true允许你操作
-    data: CardSelectionHint | DisplayHint | GeneralSelectionHint | GameStats | boolean
+    data: CardSelectionHint | DuoCardSelectionHint | DisplayHint | GeneralSelectionHint | GameStats | boolean
 }

@@ -52,7 +52,7 @@ export default class CardFightOp extends Operation<boolean> {
             }).then(resp => {
                 this.targetCard = resp.getSingleCardAndPos()[0]
                 this.broadcast(manager)
-                console.log('[拼点] 应战方的牌为 ', this.initiatorCard.id)
+                console.log('[拼点] 应战方的牌为 ', this.targetCard.id)
             }),
         ])
 

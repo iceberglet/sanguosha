@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { CardSelectionHint, CustomRequest, DisplayHint } from '../../common/ServerHint'
-import CardSelection from './CardSelection'
+import { CardSelectionHint, CustomRequest, DisplayHint, DuoCardSelectionHint } from '../../common/ServerHint'
+import CardSelection, { DuoCardSelection } from './CardSelection'
 import { CustomUIData, customUIRegistry } from './CustomUIRegistry'
 import DisplayPanel from './DisplayPanel'
 import { GameStats } from '../../server/GameStatsCollector'
@@ -21,6 +21,7 @@ export default class UIMounter extends React.Component<Prop, any> {
         let hint = this.props.customRequest
         switch(hint.mode) {
             case 'choose': return <CardSelection {...hint.data as CardSelectionHint} onSelectionDone={this.props.consumer} />
+            case 'duo-choose': return <DuoCardSelection {...hint.data as DuoCardSelectionHint} onSelectionDone={this.props.consumer} />
             case 'display': return <DisplayPanel {...hint.data as DisplayHint} onSelectionDone={this.props.consumer} />
             case 'game-end': return <GameResultPanel {...hint.data as GameStats} onSelectionDone={this.props.consumer} />
             default: throw 'Unknown...' + hint.mode
@@ -41,28 +42,31 @@ export default class UIMounter extends React.Component<Prop, any> {
     //     }, true, what=>{})
     // }
     // renderTest() {
-    //     return <CardSelection {...{
+    //     return <DuoCardSelection {...{
     //         title: 'Test',
+    //         titleLeft: '青青子吟',
+    //         titleRight: '欧阳挠挠',
     //         rowsOfCard: {
-    //             '试试看': [
+    //             '试试看': [[
     //                 new FWCard('club', CardSize.THREE, CardType.JIE_DAO),
     //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO),
     //                 new FWCard('heart', CardSize.THREE, CardType.JIE_DAO),
     //                 new FWCard('club', CardSize.FOUR, CardType.JIE_DAO),
-    //                 new FWCard('diamond', CardSize.FOUR, CardType.JIE_DAO),
-    //                 new FWCard('heart', CardSize.FOUR, CardType.JIE_DAO),
-    //                 new FWCard('club', CardSize.THREE, CardType.WU_ZHONG),
-    //                 new FWCard('diamond', CardSize.THREE, CardType.WU_ZHONG),
-    //                 new FWCard('heart', CardSize.THREE, CardType.WU_ZHONG),
-    //                 new FWCard('club', CardSize.FOUR, CardType.WU_ZHONG),
-    //                 new FWCard('diamond', CardSize.FOUR, CardType.WU_ZHONG),
-    //                 new FWCard('heart', CardSize.FOUR, CardType.WU_ZHONG),
-    //             ]
+    //             ],[
+    //                 new FWCard('club', CardSize.THREE, CardType.JIE_DAO),
+    //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO),
+    //             ]],
+    //             '去你的': [[
+    //             ],[
+    //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO)
+    //             ]],
     //         },
     //         mode: 'choose',
-    //         chooseSize: 1
+    //         chooseSize: 1,
+    //         canCancel: true
     //     }} onSelectionDone={this.props.consumer} />
     // }
+
 
     render() {
         // return this.renderTest()

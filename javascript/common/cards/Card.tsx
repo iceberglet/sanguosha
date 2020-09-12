@@ -5,6 +5,8 @@ export type CardGenre = 'basic' | 'single-immediate-ruse' | 'single-delay-ruse' 
 
 export type Suit = 'club' | 'spade' | 'heart' | 'diamond' | 'none'
 
+export type Color = 'red' | 'black' | 'n.a.'
+
 export class CardSize {
     public static ACE = new CardSize('A', 1)
     public static TWO = new CardSize('2', 2)
@@ -137,6 +139,9 @@ export class CardType {
     }
 }
 
+export function cleanDescription(...cards: Card[]) {
+    cards.forEach(c => delete c.description)
+}
 
 export default class Card implements ICard {
     static DUMMY = new Card('none', null, CardType.BACK)

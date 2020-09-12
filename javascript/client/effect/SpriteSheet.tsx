@@ -17,6 +17,7 @@ export function getEffect(name: string, onLoopComplete: ()=>void) {
         case '桃': return getSheet('peach', 330, 324, 17, onLoopComplete)
         case '闪': return getSheet('dodge', 138, 138, 13, onLoopComplete)
         case '杀': return getSheet('slash', 330, 268, 15, onLoopComplete)
+        case '黑杀': return getSheet('slash', 330, 268, 15, onLoopComplete)
         case '红杀': return getSheet('slash_red', 330, 330, 17, onLoopComplete)
         case '火杀': return getSheet('slash_fire', 330, 330, 16, onLoopComplete)
         case '雷杀': return getSheet('slash_thunder', 650, 416, 16, onLoopComplete)

@@ -51,7 +51,7 @@ export class DropOthersCardRequest {
         }
         console.log('[弃牌] 请求弃牌', hint)
         let resp = await manager.sendHint(source.player.id, hint)
-        console.log('[弃牌] 弃置成功!', resp)
+        console.log('[弃牌] 弃置成功!')
         let res = resp.customData as CardSelectionResult
         let cardAndPos = findCard(targetPlayer, res)[0]
         let card = cardAndPos[0], pos = cardAndPos[1]

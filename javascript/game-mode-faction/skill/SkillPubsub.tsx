@@ -1,7 +1,7 @@
 import Multimap from "../../common/util/Multimap"
 import { SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger } from "./Skill"
 import GameManager from "../../server/GameManager"
-import { Button, UIPosition } from "../../common/PlayerAction"
+import { Button } from "../../common/PlayerAction"
 import { HintType } from "../../common/ServerHint"
 import { takeFromArray } from "../../common/util/Util"
 import { RevealEvent } from "../FactionWarInitializer"
@@ -77,7 +77,7 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                 continue
             }
             
-            console.log('[技能驱动] 找到可发动的技能: ', skills.map(s => s.getSkill().id))
+            console.log('[技能驱动] 找到可发动的技能: ', player, skills.map(s => s.getSkill().id))
             let choices: Button[] = []
             for(let s of skills) {
                 let skill = s.getSkill()

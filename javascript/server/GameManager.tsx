@@ -1,20 +1,15 @@
 import GameContext from "../common/GameContext";
-import Card, { CardSize, CardType } from "../common/cards/Card"
-import { PlayerInfo, Identity } from "../common/PlayerInfo"
+import Card from "../common/cards/Card"
+import { PlayerInfo } from "../common/PlayerInfo"
 import { PlayerDeadInHisRound } from "./Operation";
 import RoundStat from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
 import { ServerHint, HintType, Rescind } from "../common/ServerHint";
 import { SequenceAwarePubSub, EventRegistry, GameEventListener, CompositeListener } from "../common/util/PubSub";
-import { PlayerAction, Button, UIPosition } from "../common/PlayerAction";
+import { Button } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
-import IdentityWarGeneral from "../game-mode-identity/IdentityWarGenerals";
-import { GameMode } from "../common/GameMode";
 import GameServerContext from "./context/GameServerContext";
-import IdentityWarPlayerInfo from "../game-mode-identity/IdentityWarPlayerInfo";
-import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
-import FactionWarGeneral from "../game-mode-faction/FactionWarGenerals";
 import { StageStartFlow, StageEndFlow } from "./engine/StageFlows";
 import TakeCardOp, { TakeCardStageOp } from "./engine/TakeCardOp";
 import DropCardOp from "./engine/DropCardOp";
@@ -23,11 +18,11 @@ import PlayerActionResolver, { ActionResolver } from "./context/PlayerActionReso
 import { ICard } from "../common/cards/ICard";
 import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
 import GameEnding from "./GameEnding";
-import { GameModeEnum } from "../common/GameModeEnum";
 import GameStatsCollector from "./GameStatsCollector";
 import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
-import { CardBeingPlayedEvent, CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
+import { CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
 import PlayerAct from "./context/PlayerAct";
+import { Gender } from "../common/General";
 
 
 //Manages the rounds
@@ -46,7 +41,7 @@ export default class GameManager {
     //for custom ui components
     public onReconnect: ()=>void
 
-    private currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
+    public readonly currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
     public resolver: PlayerActionResolver
 
     public constructor(public context: GameServerContext, 
@@ -69,11 +64,10 @@ export default class GameManager {
         this.events = new CompositeListener([adminRegistry, skillRegistry, equipmentRegistry])
 
         this.statsCollector.subscribeTo(adminRegistry)
-        adminRegistry.onGeneral<CardBeingPlayedEvent>(CardBeingPlayedEvent, this.processCardEvent)
         adminRegistry.onGeneral<CardBeingUsedEvent>(CardBeingUsedEvent, this.processCardEvent)
     }
 
-    processCardEvent = async (event: CardBeingPlayedEvent | CardBeingUsedEvent): Promise<void> => {
+    processCardEvent = async (event: CardBeingUsedEvent): Promise<void> => {
         if(!event.as || event.as.isEquipment()) {
             return
         }
@@ -82,8 +76,12 @@ export default class GameManager {
             return
         }
         let gender = this.context.getPlayer(event.player).getGender()
-        let genderFolder = gender === 'F'? 'female' : 'male'
         let soundName = event.as.id
+        this.playSound(gender, soundName)
+    }
+
+    playSound(gender: Gender, soundName: string) {
+        let genderFolder = gender === 'F'? 'female' : 'male'
         console.log('[Game Manager] Play Sound ', `audio/card/${genderFolder}/${soundName}.ogg`)
         this.broadcast(new PlaySound(`audio/card/${genderFolder}/${soundName}.ogg`))
     }
@@ -155,6 +153,10 @@ export default class GameManager {
         return new PlayerAct(await this.registry.sendServerAsk(player, hint), this)
     }
 
+    public reissue() {
+        this.registry.reissue()
+    }
+
     public send(anyone: string, anything: any) {
         this.registry.send(anyone, anything)
     }
@@ -180,8 +182,6 @@ export default class GameManager {
      * Rescind all server hints. ignore their responses, if any
      */
     public async rescindAll() {
-        //send such request to all players
-        this.broadcast(new Rescind())
         this.setPending([])
         //clear our cache
         this.registry.rescindAll()

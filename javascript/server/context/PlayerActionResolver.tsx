@@ -3,7 +3,7 @@ import { CardType } from "../../common/cards/Card";
 import PlaySlashOp, { AskForSlashOp } from "../engine/SlashOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { TextFlashEffect, PlaySound } from "../../common/transit/EffectTransit";
-import { CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingPlayedEvent } from "../engine/Generic";
+import { CardBeingDroppedEvent, CardBeingUsedEvent } from "../engine/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "../engine/EquipOp";
 import { ShunShou, GuoHe, WuZhong, JieDao, HuoGong, JueDou } from "../engine/SingleRuseOp";
@@ -92,9 +92,9 @@ export default class PlayerActionResolver extends ActionResolver {
 
             //装备牌
             if(icard.type.isEquipment()) {
-                card.description = `${act.source.player.id} 装备`
+                card.description = `${act.source} 装备`
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true, true)
-                await new EquipOp(act.source.player.id, card).perform(manager)
+                await new EquipOp(act.source, card).perform(manager)
                 return
             } else if (!icard.type.isDelayedRuse()) {
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true)
@@ -183,7 +183,7 @@ export default class PlayerActionResolver extends ActionResolver {
             if(cards.length !== 1) {
                 throw `Player played dodge cards but not one card!!!! ${act.source.player.id} ${cards}`
             }
-            await manager.events.publish(new CardBeingPlayedEvent(act.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE))
+            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE, false, false))
             manager.sendToWorkflow(dodgeOp.target.player.id, CardPos.HAND, [cards[0]])
         }
         //张角呢??
@@ -200,7 +200,7 @@ export default class PlayerActionResolver extends ActionResolver {
                 return card
             })
             let type: CardType = cards.length === 1? cards[0].type : CardType.SLASH
-            await manager.events.publish(new CardBeingPlayedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type))
+            await manager.events.publish(new CardBeingUsedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type, false, false))
             manager.sendToWorkflow(askSlashOp.slasher.player.id, CardPos.HAND, cards)
         }
         return true

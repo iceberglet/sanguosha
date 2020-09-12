@@ -2,11 +2,20 @@ import GameManager from "../../server/GameManager";
 import { AckingConsumer } from "../../common/util/PubSub";
 import { PlaySound } from "../../common/transit/EffectTransit";
 import PlayerAct from "../../server/context/PlayerAct";
+import { PlayerInfo } from "../../common/PlayerInfo";
+import FactionPlayerInfo from "../FactionPlayerInfo";
 
 
 export interface EventRegistryForSkills {
     on<T>(type: Function, skill: SimpleConditionalSkill<T>): void
     onEvent<T>(type: Function, player: string, consumer: AckingConsumer<T>): void
+}
+
+//what action to do when clicked on while being hidden?
+export enum HiddenType {
+    FOREWARNABLE,
+    REVEAL_IN_MY_USE_CARD,
+    NONE
 }
 
 export class SkillStatus {
@@ -35,6 +44,11 @@ export class SkillStatus {
      * 没有示将的话,是否开启了预亮?
      */
     isForewarned: boolean = false
+
+    /**
+     * 没有明置武将时,点击按钮的效果为何?
+     */
+    hiddenType: HiddenType = HiddenType.FOREWARNABLE
     
     public constructor(public readonly playerId: string) {}
 }
@@ -69,6 +83,7 @@ export interface SkillTrigger<T> {
 
 export abstract class Skill extends SkillStatus {
     
+    hiddenType: HiddenType = HiddenType.FOREWARNABLE
     isMain: boolean
     /**
      * 是否是锁定技
@@ -90,6 +105,7 @@ export abstract class Skill extends SkillStatus {
         s.isForewarned = this.isForewarned
         s.id = this.id
         s.displayName = this.displayName
+        s.hiddenType = this.hiddenType
         return s
     }
 
@@ -97,21 +113,31 @@ export abstract class Skill extends SkillStatus {
      * load player action driver on client
      * e.g. 红牌当杀之类的
      */
-    public bootstrapClient(): void {
+    public bootstrapClient(player: PlayerInfo): void {
         //no-op by default
-    }
-
-    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager): Promise<void> {
-        throw 'Forgot to override me?'
     }
 
     /**
      * 进行必要的事件登记
      * @param manager 
      */
-    public hookup(skillRegistry: EventRegistryForSkills, manager: GameManager) {
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager) {
 
     }
+
+    public async onStatusUpdated(manager: GameManager): Promise<void> {
+        //no-op by default
+    }
+
+    public onRemoval(skillRegistry: EventRegistryForSkills, manager: GameManager) {
+        //还原马术?
+
+    }
+
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager): Promise<void> {
+        throw 'Forgot to override me?'
+    }
+
 
     protected playSound(manager: GameManager, counts: number) {
         let random = Math.ceil(Math.random() * counts)
@@ -168,10 +194,9 @@ export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTr
     }
 }
 
-
 /**
  * 技能事件:
- * 1. 主将技,副将技的选择
+ * 1. 主将技,副将技的选择 (done)
  * 
  * 2. 增加技能
  *      a. 姜维观星
@@ -185,3 +210,15 @@ export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTr
  * 
  * 6. 减少阴阳鱼 (重新计算血量)
  */
+
+ export class GeneralSkillStatusUpdate {
+
+    public constructor(public reason: string,  //缘由: (断肠/铁骑)
+                        public target: FactionPlayerInfo,  //对象
+                        public isMain: boolean, //主将还是副将?
+                        public enable: boolean, //是失效还是有效(恢复有效?)
+                        public includeLocked: boolean = false //包含此武将的锁定技否?
+                        ){}
+
+    
+ }

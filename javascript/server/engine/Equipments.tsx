@@ -9,25 +9,47 @@ import DamageOp, { DamageType, DamageTimeline, DamageSource } from "./DamageOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { DropCardRequest, DropOthersCardRequest } from "./DropCardOp";
 import TakeCardOp from "./TakeCardOp";
-import { flattenMap, checkThat } from "../../common/util/Util";
+import { checkThat } from "../../common/util/Util";
 import { CardBeingDroppedEvent } from "./Generic";
 import { StageStartFlow } from "./StageFlows";
 import { Stage } from "../../common/Stage";
 import { WanJian, NanMan } from "./MultiRuseOp";
-import { isSuitBlack, isSuitRed } from "../../common/cards/ICard";
+import { isSuitRed } from "../../common/cards/ICard";
 import DodgeOp from "./DodgeOp";
 import JudgeOp from "./JudgeOp";
 import HealOp from "./HealOp";
 import { TextFlashEffect, PlaySound } from "../../common/transit/EffectTransit";
+import Multimap from "../../common/util/Multimap";
 
-export const BlockedEquipment = new Set<string>()
+class EquipBlockedPlayers {
+    _data = new Multimap<string, string>()
+
+    reinit() {
+        this._data = new Multimap<string, string>()
+    }
+    block(player: string, reason: string) {
+        console.log('[装备] 无视了防具', player, reason)
+        this._data.set(player, reason)
+    }
+    
+    release(player: string, reason: string) {
+        console.log('[装备] 撤销了无视防具', player, reason)
+        this._data.remove(player, reason)
+    }
+
+    isBlocked(player: string) {
+        return this._data.get(player).size > 0
+    }
+}
+
+export const BlockedEquipment = new EquipBlockedPlayers()
 
 export abstract class Equipment {
-    constructor(protected player: string, protected cardId: string, protected manager: GameManager) {}
+    constructor(protected player: string, protected cardType: CardType, protected manager: GameManager) {}
     abstract async onEquipped(): Promise<void>
     abstract async onDropped(): Promise<void>
     protected show() {
-        let type = this.manager.getCard(this.cardId).type
+        let type = this.cardType
         this.manager.broadcast(new PlaySound(`audio/equip/${type.id}.ogg`))
         this.manager.broadcast(new TextFlashEffect(this.player, [], type.name))
     }
@@ -66,18 +88,14 @@ export class QingGang extends Weapon {
         return CardType.QING_GANG
     }
 
-    async doEffect(op: SlashCompute) {  
-        let shield = op.target.getCards(CardPos.EQUIP)
-                .find(c => c.type.genre === 'shield')
-        if(shield) {
-            if(op.timeline === Timeline.AFTER_CONFIRMING_TARGET) {
-                this.show()
-                console.log('[装备] 青釭技能发动, 无视防具:', shield.id)
-                BlockedEquipment.add(shield.id)
-            } else if(op.timeline === Timeline.COMPUTE_FINISH){
-                console.log('[装备] 青釭技能结算完毕, 恢复防具:', shield.id)
-                BlockedEquipment.delete(shield.id)
-            }
+    async doEffect(op: SlashCompute) {
+        if(op.timeline === Timeline.AFTER_CONFIRMING_TARGET) {
+            this.show()
+            // console.log('[装备] 青釭技能发动, 无视防具:', shield.id)
+            BlockedEquipment.block(op.target.player.id, this.cardType.name)
+        } else if(op.timeline === Timeline.COMPUTE_FINISH){
+            // console.log('[装备] 青釭技能结算完毕, 恢复防具:', shield.id)
+            BlockedEquipment.release(op.target.player.id, this.cardType.name)
         }
     }
 }
@@ -94,6 +112,10 @@ export class ZhuQue extends Equipment {
 
     async performEffect(op: SlashOP) {
         if(op.damageType === DamageType.NORMAL) {
+            if(op.cards.length > 1 || (op.cards.length === 1 && op.cards[0].as)) {
+                console.log('[装备] 此牌已经被转化, 无法再来一次朱雀羽扇')
+                return
+            }
             //询问是否发动
             let resp = await this.manager.sendHint(this.player, {
                 hintType: HintType.MULTI_CHOICE,
@@ -412,8 +434,8 @@ export class TengJia extends Equipment {
         if(slashOp.target.player.id === this.player && 
             slashOp.timeline === Timeline.AFTER_CONFIRMING_TARGET &&
             slashOp.damageType === DamageType.NORMAL) {
-            if(BlockedEquipment.has(this.cardId)) {
-                console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
+            if(BlockedEquipment.isBlocked(this.player)) {
+                console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name)
                 return
             }
             //目标已经确定, 开始结算
@@ -426,8 +448,8 @@ export class TengJia extends Equipment {
     }
 
     abortAOE = async (aoe: WanJian | NanMan): Promise<void> => {
-        if(BlockedEquipment.has(this.cardId)) {
-            console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
+        if(BlockedEquipment.isBlocked(this.player)) {
+            console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name)
             return
         }
         let idx = aoe.targets.findIndex(t => t.player.id === this.player)
@@ -446,8 +468,8 @@ export class TengJia extends Equipment {
         if(op.target.player.id !== this.player || op.timeline !== DamageTimeline.TAKING_DAMAGE) {
             return
         }
-        if(BlockedEquipment.has(this.cardId)) {
-            console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
+        if(BlockedEquipment.isBlocked(this.player)) {
+            console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name)
             return
         }
         if(op.type === DamageType.FIRE) {
@@ -471,10 +493,10 @@ export class RenWang extends Equipment {
 
     abortSlash = async (slashOp: SlashCompute) => {
         if(slashOp.target.player.id === this.player && 
-            slashOp.timeline === Timeline.AFTER_CONFIRMING_TARGET &&
-            isSuitBlack(slashOp.suit)) {
-            if(BlockedEquipment.has(this.cardId)) {
-                console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
+            slashOp.timeline === Timeline.AFTER_CONFIRMING_TARGET && 
+            slashOp.color === 'black') {
+            if(BlockedEquipment.isBlocked(this.player)) {
+                console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name)
                 return
             }
             this.show()
@@ -497,8 +519,8 @@ export class BaGua extends Equipment {
 
     pretendDodge = async (dodgeOp: DodgeOp): Promise<void> => {
         if(dodgeOp.target.player.id === this.player && !dodgeOp.playedDodgeSomehow) {
-            if(BlockedEquipment.has(this.cardId)) {
-                console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
+            if(BlockedEquipment.isBlocked(this.player)) {
+                console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name)
                 return
             }
             let resp = await this.manager.sendHint(this.player, {
@@ -507,15 +529,19 @@ export class BaGua extends Equipment {
                 extraButtons: [Button.OK, Button.CANCEL]
             })
             if(!resp.isCancel()) {
-                this.show()
-                let card = await new JudgeOp(`${this.player} 八卦阵判定牌`, this.player).perform(this.manager)
-                if(isSuitRed(this.manager.interpret(this.player, card.id).suit)){
-                    console.log(`[装备] ${this.player} 八卦判定成功`)
-                    dodgeOp.playedDodgeSomehow = true
-                } else {
-                    console.log(`[装备] ${this.player} 八卦判定失败`)
-                }
+                this.doEffect(dodgeOp)
             }
+        }
+    }
+    
+    async doEffect(dodgeOp: DodgeOp) {
+        this.show()
+        let card = await new JudgeOp(`${this.player} 八卦阵判定牌`, this.player).perform(this.manager)
+        if(isSuitRed(this.manager.interpret(this.player, card.id).suit)){
+            console.log(`[装备] ${this.player} 八卦判定成功`)
+            dodgeOp.playedDodgeSomehow = true
+        } else {
+            console.log(`[装备] ${this.player} 八卦判定失败`)
         }
     }
 }
@@ -541,8 +567,8 @@ export class BaiYin extends Equipment {
             damageOp.timeline === DamageTimeline.TAKING_DAMAGE &&
             damageOp.amount > 1) {
             
-            if(BlockedEquipment.has(this.cardId)) {
-                console.warn('[装备] 被无视, 无法发动 ' + this.cardId)
+            if(BlockedEquipment.isBlocked(this.player)) {
+                console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name)
                 return
             }
 

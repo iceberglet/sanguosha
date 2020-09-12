@@ -90,7 +90,6 @@ export default class FactionWarGameHoster implements GameHoster {
 
     onSkillStatusUpate = (s: SkillStatus) => {
         this.skillRepo.onClientUpdateSkill(s)
-        this.manager.send(s.playerId, s)
     }
 
     tryStartTheGame(): void {
@@ -117,7 +116,7 @@ export default class FactionWarGameHoster implements GameHoster {
             return info
         }), myMode)
         this.initializer = new FactionWarInitializer()
-        BlockedEquipment.clear()
+        BlockedEquipment.reinit()
 
         let resolver = new FactionWarActionResolver()
         this.manager = new GameManager(context, this.registry, resolver, this.statsCollector);
@@ -156,7 +155,7 @@ export default class FactionWarGameHoster implements GameHoster {
         let gs = flattenMap(allGenerals).map(g => g[1])
         shuffle(gs)
         let equalSize = Math.min(Math.floor(gs.length / playerNo), generalsToPickFrom)
-        if(equalSize < 5) {
+        if(equalSize < 3) {
             throw 'Not enough generals! ' + gs.length + ' ' + playerNo
         }
         console.log('[牌局] 每人选将', equalSize)

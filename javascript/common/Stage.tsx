@@ -18,3 +18,5 @@ export class Stage {
 
     }
 }
+
+export const USEFUL_STAGES = [Stage.JUDGE, Stage.TAKE_CARD, Stage.USE_CARD, Stage.DROP_CARD]

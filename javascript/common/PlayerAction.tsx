@@ -37,6 +37,10 @@ export class Button {
 
     public static OK = new Button('ok', '确定')
     public static CANCEL = new Button('cancel', '取消')
+    /**
+     * Direct buttons always ends player action and submits data
+     */
+    public isDirect = true
 
     public constructor(public readonly id: string, public readonly display: string, public enabled: boolean = true) {
 
@@ -73,37 +77,3 @@ export type PlayerAction = {
     //五谷丰登会返回卡牌名
     customData?: CardSelectionResult | GeneralSelectionResult | string
 }
-
-// export function getFromAction(action: PlayerAction, pos: UIPosition): string[] {
-//     return action.actionData[pos] || []
-// }
-
-// export function getCardsFromAction(action: PlayerAction, ...pos: UIPosition[]): Map<CardPos, string[]> {
-//     let map = new Map<CardPos, string[]>()
-//     pos.forEach(p => {
-//         if(action.actionData[p] && action.actionData[p].length > 0) {
-//             map.set(mapToCardPos(p), action.actionData[p])
-//         }
-//     })
-//     return map
-// }
-
-// export function getOneCardFromAction(action: PlayerAction, ...pos: UIPosition[]): [CardPos, string] {
-//     for(let p of pos) {
-//         let d = action.actionData[p]
-//         if(d && d.length === 1) {
-//             return [mapToCardPos(p), d[0]]
-//         }
-//     }
-//     console.error('Failed to find! ', action, pos)
-//     throw 'Failed'
-// }
-
-// export function mapToCardPos(ui: UIPosition): CardPos {
-//     switch(ui) {
-//         case UIPosition.MY_EQUIP: return CardPos.EQUIP
-//         case UIPosition.MY_HAND: return CardPos.HAND
-//         case UIPosition.MY_JUDGE: return CardPos.JUDGE
-//         default: throw 'Cannot map ' + UIPosition[ui]
-//     }
-// }

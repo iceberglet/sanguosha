@@ -106,9 +106,9 @@ export default class FactionWarActionResolver extends ActionResolver {
             }
 
             if(icard.type.isEquipment()) {
-                card.description = `${player.player.id} 装备`
+                card.description = `${player} 装备`
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true, true)
-                await new EquipOp(act.source.player.id, card).perform(manager)
+                await new EquipOp(act.source, card).perform(manager)
             } else {
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true)
                 switch(icard.type) {

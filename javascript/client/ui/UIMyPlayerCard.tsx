@@ -9,7 +9,7 @@ import Pubsub from '../../common/util/PubSub'
 import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { Stage } from '../../common/Stage'
-import { SkillStatus, Skill } from '../../game-mode-faction/skill/Skill'
+import { SkillStatus, Skill, HiddenType } from '../../game-mode-faction/skill/Skill'
 
 const damageDuration = 2000
 
@@ -125,8 +125,14 @@ export function SkillButton(p: ButtonProp) {
                 p.skillChecker.onClicked(p.skill.id)
             } else {
                 let status = p.skill.toStatus()
-                status.isForewarned = !status.isForewarned
-                console.log('Player Changing Forewarnning ', p.skill.id, status)
+                console.log(status.hiddenType)
+                if(status.hiddenType === HiddenType.FOREWARNABLE) {
+                    status.isForewarned = !status.isForewarned
+                }
+                if(status.hiddenType === HiddenType.REVEAL_IN_MY_USE_CARD) {
+                    status.isRevealed = true
+                }
+                console.log('Player Changing Skill Status ', status)
                 p.statusUpdater(status)
             }
         }

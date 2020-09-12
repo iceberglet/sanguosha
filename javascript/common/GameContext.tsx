@@ -28,7 +28,7 @@ export default class GameContext {
         }
         let pFrom = living[from]
         let pTo = living[to]
-        let delta = 0
+        let delta = pFrom.distanceModTargetingOthers + pTo.distanceModTargetingMe
         if(pFrom.findCardAt(CardPos.EQUIP, 'horse-1')) {
             delta -= 1
         }
@@ -38,9 +38,9 @@ export default class GameContext {
 
         if(from <= to) {
             //we can go by left or go by right
-            return Math.min(to - from, this.playerInfos.length - to + from) + delta
+            return Math.max(1, Math.min(to - from, this.playerInfos.length - to + from) + delta)
         } else {
-            return Math.min(from - to, this.playerInfos.length - from + to) + delta
+            return Math.max(1, Math.min(from - to, this.playerInfos.length - from + to) + delta)
         }
     }
 

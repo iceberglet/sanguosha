@@ -27,6 +27,7 @@ export default class DodgeOp extends Operation<boolean> {
             await manager.events.publish(this)
 
             if(this.playedDodgeSomehow) {
+                console.log('[Dodge OP] 被八卦啥的闪掉了?')
                 needed--
                 continue
             }
@@ -47,9 +48,11 @@ export default class DodgeOp extends Operation<boolean> {
             if(this.dodgeResp.isCancel()) {
                 //player gave up on dodging
                 //assume cancel is received?
+                console.log('[Dodge OP] 闪避失败')
                 return false
             } else {
                 needed--
+                console.log('[Dodge OP] 闪避成功')
                 await manager.resolver.onDodge(this.dodgeResp, this, manager)
             }
         }

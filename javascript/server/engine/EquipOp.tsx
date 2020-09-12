@@ -8,18 +8,17 @@ import { PlaySound } from "../../common/transit/EffectTransit";
 export class EquipOp {
 
     //todo: there are many other ways to equip??
-    public constructor(public readonly beneficiary: string, 
+    public constructor(public readonly beneficiary: PlayerInfo, 
         public readonly card: Card, 
         public readonly sourcePos: CardPos = CardPos.HAND,
-        public readonly source: string = beneficiary) {
+        public readonly source: PlayerInfo = beneficiary) {
     }
 
     public async perform(manager: GameManager) {
 
         await manager.events.publish(this)
 
-        let newOwner = manager.context.getPlayer(this.beneficiary)
-        let currEquips = newOwner.getCards(CardPos.EQUIP)
+        let currEquips = this.beneficiary.getCards(CardPos.EQUIP)
         let replace = currEquips.find(c => c.type.genre === this.card.type.genre)
 
         if(replace) {
@@ -32,7 +31,7 @@ export class EquipOp {
         } else {
             manager.broadcast(new PlaySound('audio/card/common/equipment.ogg'))
         }
-        await manager.transferCards(this.source, this.beneficiary, this.sourcePos, CardPos.EQUIP, [this.card])
+        await manager.transferCards(this.source.player.id, this.beneficiary.player.id, this.sourcePos, CardPos.EQUIP, [this.card])
         // newOwner.addCard(this.card, CardPos.EQUIP)
         // manager.broadcast(newOwner, PlayerInfo.sanitize)
 
@@ -42,9 +41,9 @@ export class EquipOp {
 
 export class UnequipOp {
 
-    public constructor(public readonly loser: string,
+    public constructor(public readonly loser: PlayerInfo,
                         public readonly card: Card,
-                        public readonly remover: string = null) {
+                        public readonly remover: PlayerInfo = null) {
         if(!remover) {
             this.remover = loser
         }
@@ -55,8 +54,8 @@ export class UnequipOp {
         await manager.events.publish(this)
 
         this.card.description = `${this.loser} 装备区弃置`
-        manager.sendToWorkflow(this.loser, CardPos.EQUIP, [this.card])
-        await manager.events.publish(new CardBeingDroppedEvent(this.loser, [[this.card, CardPos.EQUIP]]))
+        manager.sendToWorkflow(this.loser.player.id, CardPos.EQUIP, [this.card])
+        await manager.events.publish(new CardBeingDroppedEvent(this.loser.player.id, [[this.card, CardPos.EQUIP]]))
 
     } 
 }

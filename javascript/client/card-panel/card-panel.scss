@@ -2,6 +2,57 @@
     z-index: 99;
 }
 
+.duo-card-selection-container {
+    // width: 60%;
+    background: linear-gradient(45deg, #191b35, #423535);
+    border: 1px solid #161a38;
+    padding: 5px;
+
+    .duo-card-selection-hint {
+        height: 30px;
+    }
+
+    // .subtitles {
+    //     height: 20px;
+    //     display: flex;
+    //     .title {
+    //         flex-grow: 1;
+    //     }
+    // }
+
+    .row-name {
+        width: 40px;
+        writing-mode: vertical-rl;
+        text-orientation: upright;
+        letter-spacing: 2px;
+        text-align: center;
+    }
+
+    .title {
+        text-align: center;
+    }
+
+    .row-of-cards {
+        display: flex;
+        flex: 1 1 0;
+        background-image: url(ui/bak.png);
+        background-repeat: repeat;
+        padding: 8px;
+        margin: 5px;
+        border: 1px solid white;
+        border-radius: 6px;
+        min-height: 160px;
+        min-width: 150px;
+    }
+    
+    .button-container {
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
 .card-selection-container {
     // align-self: center;
     // justify-self: center;

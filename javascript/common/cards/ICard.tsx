@@ -1,4 +1,5 @@
-import { Suit, CardSize, CardType } from "./Card";
+import { Suit, CardSize, CardType, Color } from "./Card";
+import { all } from "../util/Util";
 
 
 export interface ICard {
@@ -14,6 +15,16 @@ export class CardDummy implements ICard {
 
 export function mimicCard(card: ICard): CardDummy {
     return new CardDummy(card.suit, card.size, card.type)
+}
+
+export function deriveColor(suits: Suit[]): Color {
+    if(all(suits, s=>isSuitRed(s))) {
+        return 'red'
+    }
+    if(all(suits, s=>isSuitBlack(s))) {
+        return 'black'
+    }
+    return 'n.a.'
 }
 
 export function isSuitRed(suit: Suit) {

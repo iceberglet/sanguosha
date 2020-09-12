@@ -1,6 +1,5 @@
 import { flattenMap } from "./Util"
 
-
 export default class Multimap<K, V> {
 
     private _map = new Map<K, Set<V>>()

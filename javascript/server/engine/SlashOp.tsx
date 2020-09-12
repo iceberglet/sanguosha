@@ -4,13 +4,29 @@ import { Button } from "../../common/PlayerAction";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import DodgeOp from "./DodgeOp";
-import Card, { Suit, CardType } from "../../common/cards/Card";
+import Card, { Suit, CardType, Color } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import { isSuitBlack } from "../../common/cards/ICard";
+import { isSuitBlack, deriveColor, ICard } from "../../common/cards/ICard";
 import { HintType } from "../../common/ServerHint";
 
 export class SlashDodgedEvent {
     constructor(public readonly slashOp: SlashCompute, public readonly dodgeOp: DodgeOp) {
+    }
+}
+
+export class SlashType {
+
+    static RED = new SlashType(CardType.SLASH, DamageType.NORMAL, '红杀', 'red')
+    static BLACK = new SlashType(CardType.SLASH, DamageType.NORMAL, '杀', 'black')
+    static NO_COLOR = new SlashType(CardType.SLASH, DamageType.NORMAL, '杀', 'n.a.')
+    static FIRE = new SlashType(CardType.SLASH_FIRE, DamageType.FIRE, '火杀', 'red')
+    static THUNDER = new SlashType(CardType.SLASH_THUNDER, DamageType.THUNDER, '雷杀', 'black')
+    
+    private constructor(public readonly cardType: CardType, 
+                        public readonly damageType: DamageType,
+                        public readonly text: string,
+                        public readonly color: Color) {
+
     }
 }
 
@@ -22,46 +38,37 @@ export class SlashDodgedEvent {
  */
 export default class PlaySlashOp extends Operation<void> {
 
-    public damageType: DamageType = DamageType.NORMAL
-    public suit: Suit
+    public slashType: SlashType
     
     public constructor(public readonly source: PlayerInfo, 
                         public targets: PlayerInfo[],
+                        //non-empty
                         public cards: Card[]) {
         super()
     }
 
     public async perform(manager: GameManager): Promise<void> {
-        if(!this.cards || this.cards.length === 0) {
-            this.suit = 'none'
-            this.damageType = DamageType.NORMAL
-        } else {
-            let icards = this.cards.map(c =>this.source.cardInterpreter(c))
-            if(icards.length === 1) {
-                if(icards[0].type === CardType.SLASH_FIRE) {
-                    this.damageType = DamageType.FIRE
-                } else if(icards[0].type === CardType.SLASH_THUNDER){
-                    this.damageType = DamageType.THUNDER
-                }
-                this.suit = icards[0].suit
-            } else if (icards.length > 1) {
-                this.suit = icards[0].suit
-                for(let icard of icards) {
-                    if(icard.suit !== this.suit) {
-                        this.suit = 'none'
-                    }
-                }
+        let icards = this.cards.map(c =>this.source.cardInterpreter(c))
+        if(icards.length === 1) {
+            let type = icards[0].as || icards[0].type
+            if(type === CardType.SLASH_FIRE) {
+                this.slashType = SlashType.FIRE
+            } else if(type === CardType.SLASH_THUNDER){
+                this.slashType = SlashType.THUNDER
+            }
+        }
+        if(!this.slashType) {
+            let color = deriveColor(icards.map(c => c.suit))
+            if(color === 'red') {
+                this.slashType = SlashType.RED
+            } else if(color === 'black') {
+                this.slashType = SlashType.BLACK
+            } else {
+                this.slashType = SlashType.NO_COLOR
             }
         }
         
-        if (this.damageType === DamageType.THUNDER) {
-            manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), '雷杀'))
-        } else if (this.damageType === DamageType.FIRE){
-            manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), '火杀'))
-        } else {
-            manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), isSuitBlack(this.suit)? '杀' : '红杀'))
-        }
-
+        manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), this.slashType.text))
         manager.roundStats.slashCount++;
 
         //todo: 
@@ -73,8 +80,18 @@ export default class PlaySlashOp extends Operation<void> {
         // await manager.events.publish(this)
 
 
-        await new SlashOP(this.source, this.targets, this.cards, 1, this.damageType, this.suit).perform(manager)
+        await new SlashOP(this.source, this.targets, this.cards, 1, this.slashType.damageType, this.slashType.color).perform(manager)
     }
+}
+
+/**
+ * 计入出杀限制
+ */
+export async function PlaySlashOpNoCards(manager: GameManager, source: PlayerInfo, targets: PlayerInfo[], slashType: SlashType) {
+    manager.broadcast(new TextFlashEffect(source.player.id, targets.map(t => t.player.id), slashType.text))
+    manager.playSound(source.getGender(), CardType.SLASH_FIRE.id)
+    manager.roundStats.slashCount++;
+    await new SlashOP(source, targets, [], 1, slashType.damageType, slashType.color).perform(manager)
 }
 
 export class SlashOP extends Operation<void> {
@@ -83,7 +100,7 @@ export class SlashOP extends Operation<void> {
                 public readonly cards: Card[],
                 public damageAmount: number,
                 public damageType: DamageType,
-                public suit: Suit
+                public color: Color
                 ) {
         super()
     }
@@ -102,26 +119,32 @@ export class SlashOP extends Operation<void> {
                 console.warn('[Slash Op] Player already dead, not doing slash on him', t.player.id)
                 return
             }
-            await new SlashCompute(this.source, t, this.cards, 1, this.damageAmount, this.damageType, this.suit).perform(manager)
+            await new SlashCompute(this.source, t, this.cards, 1, this.damageAmount, this.damageType, this.color).perform(manager)
         }
     }
 }
 
 export class SlashCompute extends UseEventOperation<void> {
 
-    //todo: 不可被闪避?
+    //不可被闪避?
+    public undodgeable = false
+
     constructor(public readonly source: PlayerInfo,
                 public target: PlayerInfo,
                 public readonly cards: Card[],
                 public readonly dodgeRequired: number,
                 public readonly damageAmount: number,
                 public damageType: DamageType,
-                public suit: Suit
+                public color: Color
                 ) {
         super()
     }
     
     public async doPerform(manager: GameManager): Promise<void> {
+        if(this.undodgeable) {
+            await new DamageOp(this.source, this.target, this.damageAmount, this.cards, DamageSource.SLASH, this.damageType).perform(manager)
+            return
+        }
         let dodgeNeeded = this.dodgeRequired
         //开始杀的结算, 要求出闪
         if(dodgeNeeded > 0) {

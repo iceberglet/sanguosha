@@ -99,10 +99,10 @@ export class SequenceAwarePubSub implements GameEventListener, EventRegistry {
         try {
             let success = this._map.get(type).get(player).remove(consumer)
             if(!success) {
-                throw `Did not find such consumer!! ${type} ${player}`
+                throw `Did not find such consumer!! ${type.name} ${player}`
             }
         } catch (err) {
-            console.error('Failed to find ', type.name, player, consumer, err)
+            console.error('Failed to find ', type.name, player, err)
         }
     }
 

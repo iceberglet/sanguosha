@@ -1,11 +1,12 @@
 import {Player} from "../common/Player"
-import {ServerHint, ServerHintTransit, HintType} from "../common/ServerHint"
+import {ServerHint, ServerHintTransit, HintType, Rescind} from "../common/ServerHint"
 
 import * as WebSocket from 'ws';
 import { Serde } from "../common/util/Serializer";
 import { PlayerAction, PlayerActionTransit } from "../common/PlayerAction";
 import Pubsub from "../common/util/PubSub";
 import { SkillStatus } from "../game-mode-faction/skill/Skill";
+import { flattenMap } from "../common/util/Util";
 
 export class ServerPlayer {
     player: Player
@@ -63,10 +64,20 @@ export class PlayerRegistry {
         //remove current expectations if it's on this player
         let exp = this._currentExpectors.get(p.player.id)
         if(exp) {
-            console.warn('[Player Registry] 掉线的玩家尚有未完成的操作.加入replay list', exp)
+            console.warn('[Player Registry] 掉线的玩家尚有未完成的操作.加入replay list', p.player.id)
             this._failedHint.set(p.player.id, exp.hint)
             // this.stopExpecting(exp)
         }
+    }
+
+    /**
+     * Resend the server hint currently in place so as to pick up the latest roundhint
+     */
+    public reissue() {
+        flattenMap(this._currentExpectors).forEach((kv)=>{
+            this.send(kv[0], new Rescind())
+            this.send(kv[0], kv[1].hint)
+        })
     }
 
     public async sendServerAsk(player: string, hint: ServerHint): Promise<PlayerAction> {
@@ -94,7 +105,6 @@ export class PlayerRegistry {
                     }
                 }
             }
-            
 
             this.startExpecting(expector)
 
@@ -108,6 +118,8 @@ export class PlayerRegistry {
     }
 
     public rescindAll() {
+        //send such request to all players
+        this.broadcast(new Rescind())
         this._currentExpectors.forEach(cb => this.stopExpecting(cb))
     }
 
