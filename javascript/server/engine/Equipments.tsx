@@ -529,7 +529,7 @@ export class BaGua extends Equipment {
                 extraButtons: [Button.OK, Button.CANCEL]
             })
             if(!resp.isCancel()) {
-                this.doEffect(dodgeOp)
+                await this.doEffect(dodgeOp)
             }
         }
     }
