@@ -224,7 +224,7 @@ export class GuanShi extends Equipment {
         })
         if(!resp.isCancel()) {
             this.show()
-            let cards = resp.getCardsAndPos(CardPos.HAND, CardPos.EQUIP)
+            let cards = resp.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
             console.log('[装备] 玩家发动贯石斧造成伤害: ', this.player, cards)
     
             for(let kv of cards) {

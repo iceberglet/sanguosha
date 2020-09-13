@@ -168,7 +168,7 @@ export class GangLie extends SkillForDamageTaken {
             })
             
             if(!resp.isCancel()) {
-                let cards = resp.getCardsAndPos(CardPos.HAND, CardPos.EQUIP)
+                let cards = resp.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
                 for(let kv of cards) {
                     let p = kv[0]
                     let toDrop = kv[1].map(card => {
@@ -605,7 +605,7 @@ export class QiangXi extends SimpleConditionalSkill<void> {
         let target = act.targets[0]
         manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
         let me = act.source
-        let posAndCardos = act.getCardsAndPos(CardPos.HAND, CardPos.EQUIP)
+        let posAndCardos = act.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
         if(posAndCardos.length > 0) {
             let posAndCards = posAndCardos[0]
             //assume he played it
@@ -930,6 +930,7 @@ export class QiaoBian extends SimpleConditionalSkill<StageStartFlow> {
             let left = resp.targets[0]
             let right = resp.targets[1]
             console.log('[巧变] 挪动者', left.player.id, right.player.id)
+            manager.broadcast(new TextFlashEffect(this.playerId, [left.player.id, right.player.id], this.id))
             let leftEquip = left.getCards(CardPos.EQUIP)
             let rightEquip = right.getCards(CardPos.EQUIP)
             let leftJudge = left.getCards(CardPos.JUDGE)
@@ -1054,11 +1055,12 @@ export class XiaoGuo extends SimpleConditionalSkill<StageStartFlow> {
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
         // let resp = await new DropCardRequest().perform(this.playerId, 1, manager, '弃置一张基本牌', )
         let me = manager.context.getPlayer(this.playerId)
-        let meAbandoned = await askAbandonBasicCard(manager, me, true)
+        let meAbandoned = await askAbandonBasicCard(manager, me, '请弃置一张基本牌发动骁果', true)
         if(meAbandoned) {
             console.log('[骁果] 弃置了基本牌, 对方需要弃置装备牌', event.info)
             this.playSound(manager, 2)
-            let res = await askAbandonEquip(manager, event.info, true)
+            manager.broadcast(new TextFlashEffect(this.playerId, [event.info.player.id], this.id))
+            let res = await askAbandonEquip(manager, event.info, '请弃置一张装备牌, 否则受到骁果的伤害', true)
             if(res) {
                 console.log('[骁果] 对方弃置了装备牌, ok lor')
             } else {

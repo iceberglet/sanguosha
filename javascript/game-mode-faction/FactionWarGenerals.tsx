@@ -44,11 +44,11 @@ export default class FactionWarGeneral extends General {
     public static wei_yan = new FactionWarGeneral('wind_wei_yan', '魏延', Faction.SHU, 2, '狂骨')
     public static wo_long = new FactionWarGeneral('fire_zhu_ge_liang', '诸葛亮', Faction.SHU, 1.5, '八阵', '火计', '看破')
     public static sha_mo_ke = new FactionWarGeneral('guo_sha_mo_ke', '沙摩柯', Faction.SHU, 2, '蒺藜')
+    public static liu_shan = new FactionWarGeneral('mountain_liu_shan', '刘禅', Faction.SHU, 1.5, '享乐', '放权')
+    public static huang_yue_ying = new FactionWarGeneral('standard_huang_yue_ying', '黄月英', Faction.SHU, 1.5, '集智', '奇才').asFemale() as FactionWarGeneral
 
-    // public static huang_yue_ying = new FactionWarGeneral('standard_huang_yue_ying', '黄月英', Faction.SHU, 3, '急智', '奇才').asFemale() as FactionWarGeneral
     // public static pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', Faction.SHU, 1.5, '连环', '涅槃')
     // public static zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', Faction.SHU, 1.5, '观星', '空城')
-    // public static liu_shan = new FactionWarGeneral('mountain_liu_shan', '刘禅', Faction.SHU, 1.5, '享乐', '放权')
     // public static meng_huo = new FactionWarGeneral('forest_meng_huo', '孟获', Faction.SHU, 2, '祸首', '再起')
     // public static zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', Faction.SHU, 2, '巨象', '烈刃').asFemale() as FactionWarGeneral
     // public static gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', Faction.SHU, 1.5, '淑慎', '神智').asFemale() as FactionWarGeneral

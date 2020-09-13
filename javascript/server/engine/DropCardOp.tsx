@@ -91,7 +91,7 @@ export class DropCardRequest {
         }
 
         //remove these cards
-        let cardsAndPos = resp.getCardsAndPos(CardPos.HAND, CardPos.EQUIP)
+        let cardsAndPos = resp.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
         console.log('玩家弃牌: ', targetId, cardsAndPos)
 
         for(let cp of cardsAndPos) {

@@ -2,10 +2,10 @@ import GameManager from "../../server/GameManager";
 import FactionPlayerInfo from "../FactionPlayerInfo";
 import { Faction } from "../../common/General";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import PlayerAct from "../../server/context/PlayerAct";
 import { HintType } from "../../common/ServerHint";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
+import { CardBeingDroppedEvent } from "../../server/engine/Generic";
 
 export function getNumberOfFactions(manager: GameManager): number {
     let revealed = manager.getSortedByCurr(true).filter(p => (p as FactionPlayerInfo).isRevealed())
@@ -29,11 +29,11 @@ export function getNumberOfFactions(manager: GameManager): number {
  * @param target 
  * @param canCancel 
  */
-export async function askAbandonBasicCard(manager: GameManager, target: PlayerInfo, canCancel: boolean): Promise<boolean> {
+export async function askAbandonBasicCard(manager: GameManager, target: PlayerInfo, msg: string, canCancel: boolean): Promise<boolean> {
     let notBasic = target.getCards(CardPos.HAND).filter(c => !c.type.isBasic()).map(c => c.id)
     let resp = await manager.sendHint(target.player.id, {
         hintType: HintType.CHOOSE_CARD,
-        hintMsg: '请弃置一张基本牌',
+        hintMsg: msg,
         positions: [UIPosition.MY_HAND],
         minQuantity: 1,
         quantity: 1,
@@ -43,17 +43,16 @@ export async function askAbandonBasicCard(manager: GameManager, target: PlayerIn
     if(resp.isCancel()) {
         return false
     }
-    manager.sendToWorkflow(target.player.id, CardPos.HAND, resp.getCardsAtPos(CardPos.HAND)
-                                                            .map(c => {c.description = target.player.id + ' 弃置'; return c}))
+    await resp.dropCardsFromSource(this.playerId + ' 弃置')
     return true
 }
 
 
-export async function askAbandonEquip(manager: GameManager, target: PlayerInfo, canCancel: boolean): Promise<boolean> {
+export async function askAbandonEquip(manager: GameManager, target: PlayerInfo, msg: string, canCancel: boolean): Promise<boolean> {
     let nonEquip = target.getCards(CardPos.HAND).filter(c => !c.type.isEquipment()).map(c => c.id)
     let resp = await manager.sendHint(target.player.id, {
         hintType: HintType.CHOOSE_CARD,
-        hintMsg: '请弃置一张装备牌',
+        hintMsg: msg,
         positions: [UIPosition.MY_EQUIP, UIPosition.MY_HAND],
         minQuantity: 1,
         quantity: 1,
@@ -63,8 +62,6 @@ export async function askAbandonEquip(manager: GameManager, target: PlayerInfo, 
     if(resp.isCancel()) {
         return false
     }
-    let result = resp.getSingleCardAndPos()
-    result[0].description = target.player.id + ' 弃置'
-    manager.sendToWorkflow(target.player.id, result[1], [result[0]])
+    await resp.dropCardsFromSource(this.playerId + ' 弃置')
     return true
 }

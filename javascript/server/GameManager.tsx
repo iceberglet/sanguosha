@@ -92,48 +92,69 @@ export default class GameManager {
         await Promise.all(this.context.playerInfos.map(async p => await new TakeCardOp(p, 4).perform(this)))
         
         while(true) {
-            //go to next round
-            let player = this.currPlayer()
-            if(player.isTurnedOver) {
-                player.isTurnedOver = false
-                console.log(`Player is turned back ${player.player.id}`)
-                this.broadcast(player, PlayerInfo.sanitize)
-                this.goToNextPlayer()
-                continue;
-            } else {
-                try {
-                    this.roundStats = new RoundStat()
-                    await this.processStage(player, Stage.ROUND_BEGIN)
-                    await this.processStage(player, Stage.JUDGE, async ()=>await this.processJudgingStage())
-                    await this.processStage(player, Stage.TAKE_CARD, async ()=>await this.processTakeCardStage())
-                    await this.processStage(player, Stage.USE_CARD, async ()=>await this.processUseCardStage())
-                    await this.processStage(player, Stage.DROP_CARD, async ()=>await this.processDropCardStage())
-                    await this.processStage(player, Stage.ROUND_END)
-                    this.goToNextPlayer()
-                } catch (err) {
-                    if(err instanceof PlayerDeadInHisRound) {
-                        console.log('Player died in his round. Proceeding to next player...')
-                        this.goToNextPlayer()
-                        continue;
-                    }
-                    if(err instanceof GameEnding) {
-                        console.log('The Game has ended', err.winners)
-                        let stats = this.statsCollector.declareWinner(err.winners)
-                        await Promise.all(this.context.playerInfos.map(info => {
-                            return this.sendHint(info.player.id, {
-                                hintType: HintType.UI_PANEL,
-                                hintMsg: '牌局结束',
-                                customRequest: {
-                                    mode: 'game-end',
-                                    data: stats
-                                }
-                            })
-                        }))
-                        return this.context.playerInfos.map(p => p.player.id)
-                    }
-                    console.error(err)
-                    throw err
+            await this.doOneRound()
+            if(this.queue.length > 0) {
+                console.log('[Game Manager] 存在插队者...')
+                let onHold = this.currentPlayer
+                while(this.queue.length > 0) {
+                    let p = this.queue.shift()
+                    let idx = this.context.playerInfos.findIndex(i => i === p)
+                    console.log('[Game Manager] 插队者回合', p.player.id)
+                    this.currentPlayer = idx
+                    await this.doOneRound()
                 }
+                this.currentPlayer = onHold
+            }
+            this.goToNextPlayer()
+        }
+    }
+
+    public queue: PlayerInfo[] = []
+
+    public cutQueue(p: PlayerInfo) {
+        console.log('[Game Manager] 插入一个玩家的回合', p.player.id)
+        this.queue.push(p)
+    }
+
+    private async doOneRound() {
+        //go to next round
+        let player = this.currPlayer()
+        if(player.isTurnedOver) {
+            player.isTurnedOver = false
+            console.log(`Player is turned back ${player.player.id}`)
+            this.broadcast(player, PlayerInfo.sanitize)
+            return
+        } else {
+            try {
+                this.roundStats = new RoundStat()
+                await this.processStage(player, Stage.ROUND_BEGIN)
+                await this.processStage(player, Stage.JUDGE, async ()=>await this.processJudgingStage())
+                await this.processStage(player, Stage.TAKE_CARD, async ()=>await this.processTakeCardStage())
+                await this.processStage(player, Stage.USE_CARD, async ()=>await this.processUseCardStage())
+                await this.processStage(player, Stage.DROP_CARD, async ()=>await this.processDropCardStage())
+                await this.processStage(player, Stage.ROUND_END)
+            } catch (err) {
+                if(err instanceof PlayerDeadInHisRound) {
+                    console.log('Player died in his round. Proceeding to next player...')
+                    return;
+                }
+                if(err instanceof GameEnding) {
+                    console.log('The Game has ended', err.winners)
+                    let stats = this.statsCollector.declareWinner(err.winners)
+                    await Promise.all(this.context.playerInfos.map(info => {
+                        return this.sendHint(info.player.id, {
+                            hintType: HintType.UI_PANEL,
+                            hintMsg: '牌局结束',
+                            customRequest: {
+                                mode: 'game-end',
+                                data: stats
+                            }
+                        })
+                    }))
+                    return this.context.playerInfos.map(p => p.player.id)
+                }
+                console.error(err)
+                throw err
             }
         }
     }

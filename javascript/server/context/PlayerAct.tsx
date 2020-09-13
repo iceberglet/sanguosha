@@ -4,6 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import Card from "../../common/cards/Card";
 import { ServerHint } from "../../common/ServerHint";
+import { CardBeingDroppedEvent } from "../engine/Generic";
 
 export default class PlayerAct {
 
@@ -16,7 +17,7 @@ export default class PlayerAct {
     public readonly serverHint: ServerHint
     public readonly customData: any
 
-    public constructor(action: PlayerAction, manager: GameManager) {
+    public constructor(action: PlayerAction, private manager: GameManager) {
         this.serverHint = action.serverHint
         this.customData = action.customData
         this.source = manager.context.getPlayer(action.actionSource)
@@ -54,7 +55,10 @@ export default class PlayerAct {
         return this.button === Button.CANCEL.id
     }
 
-    public getCardsAndPos(...pos: CardPos[]): Array<[CardPos, Card[]]> {
+    public getPosAndCards(...pos: CardPos[]): Array<[CardPos, Card[]]> {
+        if(pos.length === 0) {
+            throw 'Pos Empty!'
+        }
         let res: Array<[CardPos, Card[]]> = []
         pos.forEach(p => {
             let arr = this.getCardsAtPos(p)
@@ -74,6 +78,15 @@ export default class PlayerAct {
             throw 'Player Action is not a single card! ' + this.cardsAndPos
         }
         return this.cardsAndPos[0]
+    }
+
+    public async dropCardsFromSource(desc: string) {
+        this.getPosAndCards(CardPos.HAND, CardPos.EQUIP).forEach(posAndCards => {
+            posAndCards[1].forEach(c => c.description = desc)
+            this.manager.sendToWorkflow(this.source.player.id, posAndCards[0], posAndCards[1])
+        })
+        await this.manager.events.publish(new CardBeingDroppedEvent(this.source.player.id, this.cardsAndPos))
+
     }
 
     public toString(): string {

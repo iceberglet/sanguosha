@@ -13,6 +13,10 @@ export class StageStartFlow extends Operation<void> {
         //若要跳过任何阶段, 只需改变manager.roundStat
         await manager.events.publish(this)
     }
+
+    public isFor(p: string, stage: Stage) {
+        return p === this.info.player.id && this.stage === stage
+    }
 }
 
 
@@ -25,5 +29,9 @@ export class StageEndFlow extends Operation<void> {
     public async perform(manager: GameManager) {
         //若要跳过任何阶段, 只需改变manager.roundStat
         await manager.events.publish(this)
+    }
+    
+    public isFor(p: string, stage: Stage) {
+        return p === this.info.player.id && this.stage === stage
     }
 }

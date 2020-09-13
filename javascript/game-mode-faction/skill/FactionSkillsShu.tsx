@@ -29,6 +29,7 @@ import { PlayerInfo } from "../../common/PlayerInfo"
 import { BlockedEquipment, BaGua } from "../../server/engine/Equipments"
 import { HuoGong } from "../../server/engine/SingleRuseOp"
 import { WuXieContext } from "../../server/engine/WuXieOp"
+import { askAbandonBasicCard } from "./FactionWarUtil";
 
 const REN_DE_SLASH = [SlashType.RED, SlashType.BLACK, SlashType.FIRE, SlashType.THUNDER]
 
@@ -665,17 +666,144 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
     }
 }
 
+export class XiangLe extends SimpleConditionalSkill<SlashCompute> {
+    id = '享乐'
+    displayName = '享乐'
+    description = '锁定技，当你成为一名角色使用【杀】的目标后，除非该角色弃置一张基本牌，否则此【杀】对你无效。'
+    isLocked = true
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<SlashCompute>(SlashCompute, this)
+    }
+    public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
+        return event.target.player.id === this.playerId && event.timeline === Timeline.AFTER_BECOMING_TARGET
+    }
+    public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+        console.log('[享乐] 发动')
+        this.playSound(manager, 2)
+        manager.broadcast(new TextFlashEffect(this.playerId, [event.source.player.id], this.id))
+        let abandonned = await askAbandonBasicCard(manager, event.source, '请弃置一张基本牌否则你的杀无效', true)
+        if(abandonned) {
+            console.log('[享乐] 弃置了基本牌, 杀继续生效')
+        } else {
+            console.log('[享乐] 使杀无效化')
+            event.abort = true
+        }
+    }
+}
+
+export class FangQuan extends SimpleConditionalSkill<StageStartFlow> {
+    id = '放权'
+    displayName = '放权'
+    description = '你可以跳过出牌阶段，然后此回合结束时，你可以弃置一张手牌并令一名其他角色获得一个额外的回合。'
+    invoked: boolean = false
+
+    bootstrapClient() {
+        playerActionDriverProvider.registerSpecial(this.id, (hint)=>{
+            return new PlayerActionDriverDefiner('放权')
+                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>true,()=>'请弃置一张手牌')
+                        .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>id !== context.myself.player.id, ()=>'请选择一名其他玩家放权')
+                        .expectAnyButton('点击确定对其发动放权')
+                        .build(hint)
+        })
+    }
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+        skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async (event) => {
+            if(event.isFor(this.playerId, Stage.ROUND_END) && this.invoked) {
+                this.invoked = false
+                console.log('[放权] 多出一回合')
+                let resp = await manager.sendHint(this.playerId, {
+                    hintType: HintType.SPECIAL,
+                    specialId: this.id,
+                    hintMsg: '放权'
+                })
+                if(!resp.isCancel()) {
+                    let target = resp.targets[0]
+                    console.log('[放权] 给了', target.player.id)
+                    await resp.dropCardsFromSource(this.playerId + ' 放权')
+
+                    manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
+                    this.playSound(manager, 2)
+                    manager.cutQueue(target)
+                }
+            }
+        })
+    }
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        return event.info.player.id === this.playerId && event.stage === Stage.USE_CARD
+    }
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        console.log('[放权] 发动, 跳过出牌阶段')
+        this.invoked = true
+        manager.roundStats.skipStages.set(Stage.USE_CARD, true)
+    }
+}
+
+export class JiZhi extends SimpleConditionalSkill<CardBeingUsedEvent> {
+    id = '集智'
+    displayName = '集智'
+    description = '当你使用一张非转化的普通锦囊牌时，你可以摸一张牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<CardBeingUsedEvent>(CardBeingUsedEvent, this)
+    }
+    public conditionFulfilled(event: CardBeingUsedEvent, manager: GameManager): boolean {
+        return event.player === this.playerId && event.cards.length === 1 && 
+                !event.cards[0][0].as && !event.isFromSkill && event.cards[0][0].type.isRuse()
+    }
+    public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
+        console.log('[集智] 发动, 摸一张牌')
+        this.playSound(manager, 1)
+        await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+    }
+}
+
+export class QiCai extends Skill {
+    id = '奇才'
+    displayName = '奇才'
+    description = '出牌阶段，你可以明置此武将牌；你使用锦囊牌无距离限制。'
+    isWorking = false
+    hiddenType = HiddenType.REVEAL_IN_MY_USE_CARD
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async (event)=>{
+            if(event.isFor(this.playerId, Stage.ROUND_BEGIN) && this.isWorking) {
+                manager.roundStats.binLiangReach = 99
+                manager.roundStats.shunshouReach = 99
+            }
+        })
+    }
+
+    public async onStatusUpdated(manager: GameManager): Promise<void> {
+        if(!this.isDisabled && this.isRevealed) {
+            this.isWorking = true
+            if(manager.currPlayer().player.id === this.id) {
+                manager.roundStats.binLiangReach = 99
+                manager.roundStats.shunshouReach = 99
+                manager.reissue()
+            }
+        }
+        if(this.isDisabled) {
+            this.isWorking = false
+            if(manager.currPlayer().player.id === this.id) {
+                manager.roundStats.binLiangReach = 1
+                manager.roundStats.shunshouReach = 1
+                manager.reissue()
+            }
+        }
+    }
+}
+
+// 放权 你可以跳过出牌阶段，然后此回合结束时，你可以弃置一张手牌并令一名其他角色获得一个额外的回合。
+
 // 观星 准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。
 // 空城 锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。
 
-// 集智 当你使用一张非转化的普通锦囊牌时，你可以摸一张牌。
-// 奇才 出牌阶段，你可以明置此武将牌；你使用锦囊牌无距离限制。
 
 // 连环 你可以将一张梅花手牌当【铁索连环】使用或重铸。
 // 涅槃 限定技，当你处于濒死状态时，你可以弃置所有牌，然后复原你的武将牌，摸三张牌，将体力回复至3点。
 
-// 享乐 锁定技，当你成为一名角色使用【杀】的目标后，除非该角色弃置一张基本牌，否则此【杀】对你无效。
-// 放权 你可以跳过出牌阶段，然后此回合结束时，你可以弃置一张手牌并令一名其他角色获得一个额外的回合。
 
 // 祸首 锁定技，【南蛮入侵】对你无效；当其他角色使用【南蛮入侵】指定目标后，你代替其成为此牌造成的伤害的来源。
 // 再起 摸牌阶段，你可以改为亮出牌堆顶的X张牌（X为你已损失的体力值），然后回复等同于其中红桃牌数量的体力，并获得其余的牌。

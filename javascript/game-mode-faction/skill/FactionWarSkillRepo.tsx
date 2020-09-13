@@ -6,7 +6,7 @@ import FactionPlayerInfo from "../FactionPlayerInfo";
 import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, JieMing, QuHu, YiJi, QiaoBian, XiaoGuo } from "./FactionSkillsWei";
 import { describer } from "../../common/util/Describer";
 import { GameMode } from "../../common/GameMode";
-import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi } from "./FactionSkillsShu";
+import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi } from "./FactionSkillsShu";
 import { Stage } from "../../common/Stage";
 import { PlayerInfo } from "../../common/PlayerInfo";
 
@@ -68,6 +68,10 @@ FactionSkillProviders.register('看破', pid => new KanPo(pid))
 FactionSkillProviders.register('狂骨', pid => new KuangGu(pid))
 FactionSkillProviders.register('烈弓', pid => new LieGong(pid))
 FactionSkillProviders.register('蒺藜', pid => new JiLi(pid))
+FactionSkillProviders.register('放权', pid => new FangQuan(pid))
+FactionSkillProviders.register('享乐', pid => new XiangLe(pid))
+FactionSkillProviders.register('集智', pid => new JiZhi(pid))
+FactionSkillProviders.register('奇才', pid => new QiCai(pid))
 
 export default class FactionWarSkillRepo {
     
@@ -139,6 +143,9 @@ export default class FactionWarSkillRepo {
         let marks = update.isMain? update.target.mainMark : update.target.subMark
         //只有武将牌上的受到影响
         let skills = this.allSkills.getArr(update.target.player.id).filter(s => abilities.find(a => a === s.id))
+        if(!update.includeLocked) {
+            skills = skills.filter(s => !s.isLocked)
+        }
         console.log('[技能] 收到对武将牌封禁的修改', update.reason, update.target.player.id, skills.map(s => s.id))
 
         for(let s of skills) {
