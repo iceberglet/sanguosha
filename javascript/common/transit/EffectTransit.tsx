@@ -9,7 +9,9 @@ export class PlaySound {
 export class TextFlashEffect {
     public constructor(public sourcePlayer: string, 
         public targetPlayers: string[], 
-        public sourceText: string) {
+        public sourceText: string,
+        //第二发线
+        public secondary: string = null) {
 
     }
 }

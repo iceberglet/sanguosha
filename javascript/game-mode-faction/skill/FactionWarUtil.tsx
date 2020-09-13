@@ -62,6 +62,6 @@ export async function askAbandonEquip(manager: GameManager, target: PlayerInfo, 
     if(resp.isCancel()) {
         return false
     }
-    await resp.dropCardsFromSource(this.playerId + ' 弃置')
+    await resp.dropCardsFromSource(target.player.id + ' 弃置')
     return true
 }

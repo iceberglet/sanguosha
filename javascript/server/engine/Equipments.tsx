@@ -103,11 +103,11 @@ export class QingGang extends Weapon {
 export class ZhuQue extends Equipment {
     
     async onEquipped(): Promise<void> {
-        this.manager.equipmentRegistry.on<SlashOP>(DamageOp, this.player, this.performEffect)
+        this.manager.equipmentRegistry.on<SlashOP>(SlashOP, this.player, this.performEffect)
     }
 
     async onDropped(): Promise<void> {
-        this.manager.equipmentRegistry.off<SlashOP>(DamageOp, this.player, this.performEffect)
+        this.manager.equipmentRegistry.off<SlashOP>(SlashOP, this.player, this.performEffect)
     }
 
     async performEffect(op: SlashOP) {

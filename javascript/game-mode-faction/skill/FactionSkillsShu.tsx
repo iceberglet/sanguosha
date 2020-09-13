@@ -74,6 +74,7 @@ export class Rende extends Skill {
     }
 
     async onPlayerAction(act: PlayerAct, ignore: void, manager: GameManager): Promise<void> {
+        await this.revealMySelfIfNeeded(manager)
         let hasGiven = manager.roundStats.customData[this.id] as Set<string>
         let target = act.targets[0]
         let me = manager.context.getPlayer(this.playerId)
@@ -196,6 +197,7 @@ export class WuSheng extends Skill {
         if(event && !(event instanceof AskForSlashOp)) {
             throw '[武圣] 不会对此做出反应: ' + event
         }
+        await this.revealMySelfIfNeeded(manager)
         this.playSound(manager, 2)
         let posAndCard = act.getSingleCardAndPos()
         let card = posAndCard[0]
@@ -310,6 +312,7 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        await this.revealMySelfIfNeeded(manager)
         this.playSound(manager, 2)
         let posAndCard = act.getSingleCardAndPos()
         let card = posAndCard[0]
@@ -380,12 +383,26 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
             }
         }
     }
+
+    //我出的杀, 杀用的是龙胆
     private isLongDanSlash(event: SlashDodgedEvent) {
+        if(event.slashOp.source.player.id !== this.playerId) {
+            return false
+        }
         let {source, cards} = event.slashOp
         return source.player.id === this.playerId && cards && cards.length === 1 && cards[0].description === this.id
     }
+    
+    //我出的闪, 闪用的是龙胆
     private isLongDanDodge(event: SlashDodgedEvent) {
+        if(event.slashOp.target.player.id !== this.playerId) {
+            return false
+        }
         let {target, dodgeResp} = event.dodgeOp
+        //如果八卦之类的发动了, 是不会有dodge resp的
+        if(!dodgeResp) {
+            return false
+        }
         let cards = dodgeResp.getCardsAtPos(CardPos.HAND)
         return target.player.id === this.playerId && cards && cards.length === 1 && cards[0].description === this.id
     }
@@ -470,16 +487,17 @@ export class MaShu extends Skill {
     hiddenType = HiddenType.REVEAL_IN_MY_USE_CARD
 
     async onStatusUpdated(manager: GameManager) {
+        let me = manager.context.getPlayer(this.playerId)
         if(!this.isApplied && !this.isDisabled && this.isRevealed) {
             console.log('[马术] 生效, 计算与他人距离时减1', this.playerId)
-            manager.context.getPlayer(this.playerId).distanceModTargetingOthers -= 1
-            manager.broadcast(manager.context.getPlayer(this.playerId), PlayerInfo.sanitize)
+            me.distanceModTargetingOthers -= 1
+            manager.broadcast(me, PlayerInfo.sanitize)
             this.isApplied = true
         }
         if(this.isApplied && this.isDisabled) {
             console.log('[马术] 失效, 计算与他人距离时不再减1', this.playerId)
-            manager.context.getPlayer(this.playerId).distanceModTargetingOthers += 1
-            manager.broadcast(manager.context.getPlayer(this.playerId), PlayerInfo.sanitize)
+            me.distanceModTargetingOthers += 1
+            manager.broadcast(me, PlayerInfo.sanitize)
             this.isApplied = false
         }
     }
@@ -533,6 +551,7 @@ export class HuoJi extends Skill {
         this.playSound(manager, 2)
         cardAndPos[0].as = CardType.HUO_GONG
         
+        await this.revealMySelfIfNeeded(manager)
         manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [cardAndPos[0]], true)
         await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [cardAndPos], cardAndPos[0].type, true))
         await new HuoGong(act.source, act.targets[0], [cardAndPos[0]]).perform(manager)
@@ -555,6 +574,7 @@ export class KanPo extends Skill {
     }
 
     public respondToSkill = async (resp: PlayerAct, manager: GameManager) => {
+        await this.revealMySelfIfNeeded(manager)
         let card = resp.getSingleCardAndPos()[0]
         console.log(`[无懈的结算] (看破) 打出了${card.id}作为无懈`)
         card.description = `${resp.source.player.id} 看破`
@@ -650,12 +670,10 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
         })
     }
     public conditionFulfilled(event: CardBeingUsedEvent, manager: GameManager): boolean {
-        if(event.player === this.playerId) {
-            this.playedInThisRound++
-            console.log('[蒺藜] 使用牌数为', this.playedInThisRound)
-            if(this.playedInThisRound === manager.context.getPlayer(this.playerId).getReach()) {
-                return true
-            }
+        this.playedInThisRound++
+        console.log('[蒺藜] 使用牌数为', this.playedInThisRound)
+        if(this.playedInThisRound === manager.context.getPlayer(this.playerId).getReach()) {
+            return true
         }
         return false 
     }
@@ -779,6 +797,7 @@ export class QiCai extends Skill {
 
     public async onStatusUpdated(manager: GameManager): Promise<void> {
         if(!this.isDisabled && this.isRevealed) {
+            console.log('[奇才] 生效', this.playerId)
             this.isWorking = true
             if(manager.currPlayer().player.id === this.id) {
                 manager.roundStats.binLiangReach = 99
@@ -787,6 +806,7 @@ export class QiCai extends Skill {
             }
         }
         if(this.isDisabled) {
+            console.log('[奇才] 失效', this.playerId)
             this.isWorking = false
             if(manager.currPlayer().player.id === this.id) {
                 manager.roundStats.binLiangReach = 1

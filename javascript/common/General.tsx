@@ -20,7 +20,10 @@ export class Faction {
 }
 
 export function factionDiffers(a: Faction, b: Faction) {
-    if(a.name === Faction.YE.name || a.name === Faction.UNKNOWN.name || b.name === Faction.YE.name || b.name === Faction.UNKNOWN.name) {
+    if(a.name === Faction.UNKNOWN.name || b.name === Faction.YE.name) {
+        return false
+    }
+    if(a.name === Faction.YE.name || b.name === Faction.YE.name) {
         return true
     }
     return a.name !== b.name

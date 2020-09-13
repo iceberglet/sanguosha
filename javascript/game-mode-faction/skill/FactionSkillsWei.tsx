@@ -221,7 +221,7 @@ export class TuXi extends SimpleConditionalSkill<TakeCardStageOp> {
         } else {
             this.playSound(manager, 2)
             let victims = resp.targets
-            console.log('[突袭] 玩家选择了突袭, 放弃了摸牌', victims)
+            console.log('[突袭] 玩家选择了突袭, 放弃了摸牌', victims.map(v => v.player.id))
             manager.broadcast(new TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id))
             for(let v of victims) {
                 let card = getRandom(v.getCards(CardPos.HAND))

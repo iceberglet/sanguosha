@@ -1,19 +1,22 @@
 
-import { Skill, HiddenType, SimpleConditionalSkill } from "./Skill"
+import { Skill, HiddenType, SimpleConditionalSkill, EventRegistryForSkills } from "./Skill"
 import { HintType } from "../../common/ServerHint"
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
-import { UIPosition } from "../../common/PlayerAction"
+import { UIPosition, Button } from "../../common/PlayerAction"
 import PlayerAct from "../../server/context/PlayerAct"
 import GameManager from "../../server/GameManager"
 import { TextFlashEffect } from "../../common/transit/EffectTransit"
 import { CardPos } from "../../common/transit/CardPos"
 import { CardBeingDroppedEvent, CardBeingUsedEvent } from "../../server/engine/Generic"
-import Card, { CardType } from "../../common/cards/Card"
-import TakeCardOp from "../../server/engine/TakeCardOp"
+import Card, { CardType, Suit } from "../../common/cards/Card"
+import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp"
 import { isSuitBlack } from "../../common/cards/ICard"
 import { GuoHe } from "../../server/engine/SingleRuseOp"
 import DamageOp, { DamageSource, DamageType } from "../../server/engine/DamageOp"
+import { StageStartFlow } from "../../server/engine/StageFlows"
+import DropCardOp from "../../server/engine/DropCardOp"
+import { Suits } from "../../common/util/Util"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -33,6 +36,7 @@ export class ZhiHeng extends Skill {
     }
 
     async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        await this.revealMySelfIfNeeded(manager)
         if(act.isCancel()) {
             console.error('[制衡] 怎么可能cancel??')
             return
@@ -73,6 +77,7 @@ export class QiXi extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        await this.revealMySelfIfNeeded(manager)
         let cardAndPos = act.getSingleCardAndPos()
         this.playSound(manager, 2)
         cardAndPos[0].as = CardType.GUO_HE
@@ -101,6 +106,7 @@ export class KuRou extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        await this.revealMySelfIfNeeded(manager)
         this.playSound(manager, 2)
         await act.dropCardsFromSource('苦肉弃牌')
         let me = manager.context.getPlayer(this.playerId)
@@ -112,34 +118,110 @@ export class KuRou extends Skill {
     }
 }
 
+export class LieGong extends SimpleConditionalSkill<TakeCardStageOp> {
+    id = '英姿'
+    displayName = '英姿'
+    description = '锁定技，摸牌阶段，你多摸一张牌；你的手牌上限等于X（X为你的体力上限）。'
+    isLocked = true
 
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<TakeCardStageOp>(TakeCardStageOp, this)
+        skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async (dropOp)=>{
+            if(!this.isDisabled && this.isRevealed) {
+                let me = manager.context.getPlayer(this.playerId)
+                console.log('[英姿] 改变手牌上限为', me.maxHp)
+                dropOp.amount = Math.max(me.getCards(CardPos.HAND).length - me.maxHp, 0)
+            }
+        })
+    }
 
-// export class LieGong extends SimpleConditionalSkill<SlashCompute> {
-//     id = '英姿'
-//     displayName = '英姿'
-//     description = '锁定技，摸牌阶段，你多摸一张牌；你的手牌上限等于X（X为你的体力上限）。'
-//     isLocked = true
+    public conditionFulfilled(event: TakeCardStageOp, manager: GameManager): boolean {
+        return event.player.player.id === this.playerId
+    }
 
-//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-//         skillRegistry.on<SlashCompute>(SlashCompute, this)
-//     }
-//     public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
-//         return event.source.player.id === this.playerId && event.timeline === Timeline.AFTER_CONFIRMING_TARGET &&
-//             (event.target.getCards(CardPos.HAND).length >= event.source.hp || event.target.getCards(CardPos.HAND).length <= event.source.getReach())
-//     }
-//     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
-//         console.log('[烈弓] 发动, 不能闪')
-//         this.playSound(manager, 2)
-//         manager.broadcast(new TextFlashEffect(this.playerId, [event.target.player.id], this.id))
-//         event.undodgeable = true
-//     }
-// }
+    public async doInvoke(event: TakeCardStageOp, manager: GameManager): Promise<void> {
+        console.log('[英姿] 发动')
+        this.playSound(manager, 2)
+        manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
+        event.amount += 1
+    }
+}
+
+export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
+    id = '反间'
+    displayName = '反间'
+    description = '出牌阶段限一次，你可以展示一张手牌并交给一名其他角色，其选择一项：1.展示所有手牌，弃置与此牌同花色的牌；2.失去1点体力。'
+
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('反间')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
+                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>true, ()=>'(反间)选择一张要展示的手牌')
+                        .expectChoose([UIPosition.PLAYER], 1, 1, 
+                            (id, context)=>{
+                                return id !== context.myself.player.id   // 不能是自己
+                            }, 
+                            ()=>`选择‘反间’的对象给与此牌`)
+                        .expectAnyButton('点击确定使用反间')
+                        .build(hint)
+        })
+    }
+
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        await this.revealMySelfIfNeeded(manager)
+        this.playSound(manager, 2)
+        let cardAndPos = act.getSingleCardAndPos()
+        let targetP = act.targets[0]
+        let target = targetP.player.id
+        let card = cardAndPos[0]
+        card.description = this.playerId + ' 反间 ' + target + ' 使用的牌'
+        
+        //展示并交给此角色
+        manager.sendToWorkflow(this.playerId, CardPos.HAND, [card], true, true)
+        await manager.transferCards(this.playerId, target, CardPos.HAND, CardPos.HAND, [card])
+        
+        //令其选择一项: 
+        let suit: Suit = manager.interpret(target, card.id).suit
+        let resp = await manager.sendHint(target, {
+            hintType: HintType.MULTI_CHOICE,
+            hintMsg: '请选择对反间的反应',
+            extraButtons: [new Button('cards', `展示所有手牌，弃置所有${Suits[suit]}花色牌`), new Button('hp', '失去一点体力')]
+        })
+        let button = resp.button
+        console.log('[反间] 对方选择了', button)
+        if(button === 'cards') {
+            let allCards = targetP.getCards(CardPos.HAND)
+            let toKeep: Card[] = []
+            //allCards.filter(c => manager.interpret(target, c.id).suit === suit)
+            let toDrop: Card[] = []
+            //allCards.filter(c => manager.interpret(target, c.id).suit !== suit)
+            allCards.forEach(c => {
+                if(manager.interpret(target, c.id).suit === suit) {
+                    c.description = '反间弃置手牌'
+                    toDrop.push(c)
+                } else {
+                    c.description = '反间展示手牌'
+                    toKeep.push(c)
+                }
+            })
+            if(toDrop.length > 0) {
+                manager.sendToWorkflow(this.playerId, CardPos.HAND, toDrop, false)
+                await manager.events.publish(new CardBeingDroppedEvent(target, toDrop.map(t => [t, CardPos.HAND])))
+            }
+            if(toKeep.length > 0) {
+                manager.sendToWorkflow(this.playerId, CardPos.HAND, toKeep, false, true)
+            }
+        } else if (button === 'hp') {
+            await new DamageOp(targetP, targetP, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+        } else {
+            throw 'WHAT??? ' + button
+        }
+    }
+}
+
 
 // 克己 锁定技，弃牌阶段开始时，若你未于出牌阶段内使用过颜色不同的牌或出牌阶段被跳过，你的手牌上限于此回合内+4。
 // 谋断 结束阶段开始时，若你于出牌阶段内使用过四种花色或三种类别的牌，则你可以移动场上的一张牌。	
-
-// 英姿 锁定技，摸牌阶段，你多摸一张牌；你的手牌上限等于X（X为你的体力上限）。
-// 反间 出牌阶段限一次，你可以展示一张手牌并交给一名其他角色，其选择一项：1.展示所有手牌，弃置与此牌同花色的牌；2.失去1点体力。
 
 // 国色 你可以将一张方块牌当【乐不思蜀】使用。
 // 流离 当你成为【杀】的目标时，你可以弃置一张牌并将此【杀】转移给你攻击范围内的一名其他角色。

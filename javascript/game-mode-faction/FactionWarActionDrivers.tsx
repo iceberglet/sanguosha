@@ -43,7 +43,15 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             })
             .expectChoose([UIPosition.PLAYER], 1, 1, 
                 (id, context)=>{
-                    return FactionPlayerInfo.factionDifferent(context.myself as FactionPlayerInfo, context.getPlayer(id) as FactionPlayerInfo) && 
+                    let me = context.myself as FactionPlayerInfo
+                    if(!me.isRevealed()) {
+                        return false
+                    }
+                    let target = context.getPlayer(id) as FactionPlayerInfo
+                    if(!target.isRevealed()) {
+                        return false
+                    }
+                    return FactionPlayerInfo.factionDifferent(me, target) && 
                             id !== context.myself.player.id
                 },  // 不能是自己, 对象也不能是同势力
                 ()=>`选择一个不同阵营的玩家作为‘远交近攻’的对象`)

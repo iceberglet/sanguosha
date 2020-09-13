@@ -34,7 +34,7 @@ export abstract class SingleRuse<T> extends Operation<T> {
             return
         }
 
-        manager.broadcast(new TextFlashEffect(this.source.player.id, [this.target.player.id], this.ruseType.name))
+        this.doTextEffect(manager)
 
         let con = new WuXieContext(manager, this.ruseType)
         await con.init()
@@ -44,7 +44,10 @@ export abstract class SingleRuse<T> extends Operation<T> {
         }
 
         await this.doPerform(manager)
+    }
 
+    protected doTextEffect(manager: GameManager) {
+        manager.broadcast(new TextFlashEffect(this.source.player.id, [this.target.player.id], this.ruseType.name))
     }
 
     public abstract async doPerform(manager: GameManager): Promise<T>
@@ -123,7 +126,7 @@ export class ShunShou extends SingleRuse<void> {
                 mode: 'choose'
             }
         })
-        console.log('[顺手] 顺手牵羊成功!', resp)
+        console.log('[顺手] 顺手牵羊成功!', this.source.player.id)
         let res = resp.customData as CardSelectionResult
         let cardAndPos = findCard(targetPlayer, res)[0]
         let card = cardAndPos[0], pos = cardAndPos[1]
@@ -170,6 +173,10 @@ export class JieDao extends SingleRuse<void> {
         super(source, actors[0], cards, CardType.JIE_DAO)
     }
 
+    protected doTextEffect(manager: GameManager) {
+        manager.broadcast(new TextFlashEffect(this.source.player.id, [this.actors[0].player.id], this.ruseType.name, this.actors[1].player.id))
+    }
+
     public async doPerform(manager: GameManager) {
         console.log('借刀杀人开始结算!')
 
@@ -194,7 +201,7 @@ export class JieDao extends SingleRuse<void> {
         })
 
         if(resp.isCancel()) {
-            console.log('玩家放弃出杀, 失去武器', this.source, from.player.id, to)
+            console.log('玩家放弃出杀, 失去武器', this.source.player.id, from.player.id, to)
             await manager.transferCards(from.player.id, this.source.player.id, CardPos.EQUIP, CardPos.HAND, [weapon])
         } else {
             console.log('玩家出杀, 开始结算吧')

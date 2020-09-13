@@ -163,7 +163,7 @@ export default class FactionWarSkillRepo {
                 if(disabler.reasons.size === 0) {
                     console.log('[技能] 恢复技能', s.playerId, s.id)
                     s.isDisabled = false
-                    s.onStatusUpdated(this.manager)
+                    await s.onStatusUpdated(this.manager)
                     this.manager.send(s.playerId, s.toStatus())
                 }
             } else {
@@ -176,7 +176,7 @@ export default class FactionWarSkillRepo {
                     console.log('[技能] 禁止技能', s.playerId, s.id)
                     //进行disable作业
                     s.isDisabled = true
-                    s.onStatusUpdated(this.manager)
+                    await s.onStatusUpdated(this.manager)
                     this.manager.send(s.playerId, s.toStatus())
                 }
 

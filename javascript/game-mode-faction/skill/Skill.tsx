@@ -4,6 +4,7 @@ import { PlaySound } from "../../common/transit/EffectTransit";
 import PlayerAct from "../../server/context/PlayerAct";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import FactionPlayerInfo from "../FactionPlayerInfo";
+import { RevealEvent } from "../FactionWarInitializer";
 
 
 export interface EventRegistryForSkills {
@@ -145,6 +146,13 @@ export abstract class Skill extends SkillStatus {
             random = 1
         }
         manager.broadcast(new PlaySound(`audio/skill/${this.id}${random}.mp3`))
+    }
+
+    protected async revealMySelfIfNeeded(manager: GameManager) {
+        if(!this.isRevealed) {
+            console.log(`[${this.id}] 明置 ${this.playerId}`)
+            await manager.events.publish(new RevealEvent(this.playerId, this.isMain, !this.isMain))
+        }
     }
 }
 

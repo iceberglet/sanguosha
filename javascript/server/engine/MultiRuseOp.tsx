@@ -43,12 +43,13 @@ export abstract class MultiRuse extends Operation<void> {
                 continue
             }
 
-            this.skipThisRound = false
-            await manager.events.publish(this)
-            if(this.skipThisRound) {
-                console.log(`[MultiRuseOp] ${this.ruseType.name} 跳过对 ${t.player.id} 的结算`)
-                continue //帷幕, 祸首, 等等
-            }
+            await this.beforeWuXie(manager, t)
+            // this.skipThisRound = false
+            // await manager.events.publish(this)
+            // if(this.skipThisRound) {
+            //     console.log(`[MultiRuseOp] ${this.ruseType.name} 跳过对 ${t.player.id} 的结算`)
+            //     continue //帷幕, 祸首, 等等
+            // }
 
             if(await context.doOneRound(t)) {
                 console.log(`[MultiRuseOp] 针对${t.player.id}的锦囊牌被无懈掉了了`)
@@ -65,7 +66,11 @@ export abstract class MultiRuse extends Operation<void> {
     }
 
     public async onDone(manager: GameManager) {
+        //no-op by default
+    }
 
+    public async beforeWuXie(manager: GameManager, effectBearer: PlayerInfo) {
+        //no-op by default
     }
 
     public abstract async doPerform(target: PlayerInfo, manager: GameManager): Promise<void>;
@@ -82,7 +87,7 @@ export class TieSuo extends Operation<void> {
             console.log('[MultiRuseOp] 重铸了')
             await new TakeCardOp(this.source, 1).perform(manager)
         } else {
-            console.log('[MultiRuseOp] 铁索了', this.targets)
+            console.log('[MultiRuseOp] 铁索了', this.targets.map(t => t.player.id))
             await new DoTieSuo(this.cards, this.source, CardType.TIE_SUO, this.targets).perform(manager)
         }
     }
@@ -183,7 +188,10 @@ export class WuGu extends MultiRuse {
         await manager.events.publish(new CardObtainedEvent(targetId, [[card, CardPos.HAND]]))
 
         this.wuguCards.get(card.id).description = target.player.id + ' 选走'
-        this.broadCastCurrent(`${targetId} 选牌完毕`, manager)
+    }
+
+    async beforeWuXie(manager: GameManager, info: PlayerInfo) {
+        this.broadCastCurrent(`${info.player.id} 即将选牌`, manager)
     }
 
     private broadCastCurrent(title: string, manager: GameManager) {

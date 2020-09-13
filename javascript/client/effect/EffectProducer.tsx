@@ -2,9 +2,6 @@ import * as React from 'react'
 import {v4 as uuidv4} from 'uuid'
 import { TextFlashEffect } from '../../common/transit/EffectTransit'
 import './effect-producer.scss'
-import Card, { CardManager } from '../../common/cards/Card'
-import UICard from '../ui/UICard'
-import { ElementStatus } from '../ui/UIBoard'
 import { CENTER } from '../ui/UIWorkflowRow'
 import { getEffect } from './SpriteSheet'
 import { Coor, ScreenPosObtainer } from '../ui/ScreenPosObtainer'
@@ -12,7 +9,6 @@ import { Coor, ScreenPosObtainer } from '../ui/ScreenPosObtainer'
 const rayDuration = 2500
 const textDuration = 3000
 const animDuration = 16 / 60 * 1000
-const cardFloatDuration = 1750
 
 
 export type Ray = {
@@ -75,6 +71,11 @@ export default class EffectProducer extends React.Component<Prop, State> {
         effect.targetPlayers?.forEach(t => {
             this.drawRay(o.getPos(effect.sourcePlayer), o.getPos(t))
         })
+        if(effect.secondary && effect.targetPlayers && effect.targetPlayers.length > 0) {
+            setTimeout(()=>{
+                this.drawRay(o.getPos(effect.secondary), o.getPos(effect.targetPlayers[0]))
+            }, rayDuration)
+        }
     }
 
     drawRay(from: Coor, to: Coor)  {
