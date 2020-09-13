@@ -13,6 +13,7 @@ import PregameUI from './pregame/PregameUI';
 import { PlaySound } from '../common/transit/EffectTransit';
 import { audioManager } from './audio-manager/AudioManager';
 import './Util'
+import './pregame/Preloader'
 
 type AppState = {
     myself?: Player,
@@ -135,10 +136,3 @@ export default class App extends React.Component<object, AppState> {
         </div>
     }
 }
-
-
-{/* <UICard card={cardManager.getShuffledDeck()[0]} isShown={false} 
-        onMouseClick={c=>console.log('click')}
-        onMouseDown={c=>console.log('down')}
-        onMouseUp={c=>console.log('up')}
-    /> */}
