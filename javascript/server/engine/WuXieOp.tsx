@@ -98,7 +98,7 @@ export class WuXieContext {
                     }
                     this.processors.get(resp.source.player.id)(resp, this.manager)
                 } else {
-                    this.processNormal(resp, this.manager)
+                    await this.processNormal(resp, this.manager)
                 }
 
                 // 开启新的一轮寻求无懈

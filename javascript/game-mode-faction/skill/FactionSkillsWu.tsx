@@ -13,6 +13,7 @@ import Card, { CardType } from "../../common/cards/Card"
 import TakeCardOp from "../../server/engine/TakeCardOp"
 import { isSuitBlack } from "../../common/cards/ICard"
 import { GuoHe } from "../../server/engine/SingleRuseOp"
+import DamageOp, { DamageSource, DamageType } from "../../server/engine/DamageOp"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -59,7 +60,7 @@ export class QiXi extends Skill {
         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             return new PlayerActionDriverDefiner('奇袭')
                         .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
-                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, (id, context)=>isSuitBlack(context.interpret(id).suit), ()=>'选择一张黑色牌')
+                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, (id, context)=>isSuitBlack(context.interpret(id).suit), ()=>'(奇袭)选择一张黑色牌')
                         .expectChoose([UIPosition.PLAYER], 1, 1, 
                             (id, context)=>{
                                 return id !== context.myself.player.id &&   // 不能是自己
@@ -82,10 +83,41 @@ export class QiXi extends Skill {
     }
 }
 
+
+export class KuRou extends Skill {
+    id = '苦肉'
+    displayName = '苦肉'
+    description = '出牌阶段限一次，你可以弃一张牌。若如此做，你失去1点体力，然后摸三张牌，此阶段你使用【杀】的次数上限+1'
+    hiddenType = HiddenType.NONE
+    
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('苦肉')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
+                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, (id, context)=>true, ()=>'(苦肉)请弃置一张牌')
+                        .expectAnyButton('点击确定发动苦肉')
+                        .build(hint)
+        })
+    }
+
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        this.playSound(manager, 2)
+        await act.dropCardsFromSource('苦肉弃牌')
+        let me = manager.context.getPlayer(this.playerId)
+        await new DamageOp(me, me, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+        if(!me.isDead) {
+            manager.roundStats.slashMax += 1
+            await new TakeCardOp(me, 3).perform(manager)
+        }
+    }
+}
+
+
+
+
 // 克己 锁定技，弃牌阶段开始时，若你未于出牌阶段内使用过颜色不同的牌或出牌阶段被跳过，你的手牌上限于此回合内+4。
 // 谋断 结束阶段开始时，若你于出牌阶段内使用过四种花色或三种类别的牌，则你可以移动场上的一张牌。	
 
-// 苦肉 出牌阶段限一次，你可以弃一张牌。若如此做，你失去1点体力，然后摸三张牌，此阶段你使用【杀】的次数上限+1。
 // 英姿 锁定技，摸牌阶段，你多摸一张牌；你的手牌上限等于X（X为你的体力上限）。
 // 反间 出牌阶段限一次，你可以展示一张手牌并交给一名其他角色，其选择一项：1.展示所有手牌，弃置与此牌同花色的牌；2.失去1点体力。
 

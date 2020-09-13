@@ -629,6 +629,7 @@ export class LieGong extends SimpleConditionalSkill<SlashCompute> {
     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
         console.log('[烈弓] 发动, 不能闪')
         this.playSound(manager, 2)
+        manager.broadcast(new TextFlashEffect(this.playerId, [event.target.player.id], this.id))
         event.undodgeable = true
     }
 }
