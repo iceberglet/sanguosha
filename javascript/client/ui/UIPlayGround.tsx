@@ -51,12 +51,12 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
 
         this.state = {
             damageAnimation: new Set<string>(),
-            currentPlayerEffect: new CurrentPlayerEffect(null, null, new Set<string>())
+            currentPlayerEffect: new CurrentPlayerEffect(null, null, new Set<string>(), 0)
         }
     }
 
     render() {
-        let {players, screenPosObtainer, showDist, distanceComputer, checker, cardManager, pubsub, cardTransitManager} = this.props
+        let {players, screenPosObtainer, showDist, distanceComputer, checker, cardManager, cardTransitManager} = this.props
         let {damageAnimation, currentPlayerEffect} = this.state
         let number = players.length
         let rows = 3
@@ -75,6 +75,9 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
         }
 
         return <div className='occupy'>
+            <div className='deck-info'>
+                牌堆卡牌数: {currentPlayerEffect.deckRemain}
+            </div>
             {/* render top row, row-reverse */}
             <div className='top-row'>
             {

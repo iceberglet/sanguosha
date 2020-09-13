@@ -10,6 +10,7 @@ import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTr
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { Stage } from '../../common/Stage'
 import { SkillStatus, Skill, HiddenType } from '../../game-mode-faction/skill/Skill'
+import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 const damageDuration = 2000
 
@@ -40,7 +41,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
         p.pubsub.on(CurrentPlayerEffect, (e: CurrentPlayerEffect)=>this.setState({effect: e}))
         this.state = {
             damaged: false,
-            effect: new CurrentPlayerEffect(null, null, new Set<string>())
+            effect: new CurrentPlayerEffect(null, null, new Set<string>(), 0)
         }
     }
 
@@ -128,9 +129,10 @@ export function SkillButton(p: ButtonProp) {
                 console.log(status.hiddenType)
                 if(status.hiddenType === HiddenType.FOREWARNABLE) {
                     status.isForewarned = !status.isForewarned
-                }
-                if(status.hiddenType === HiddenType.REVEAL_IN_MY_USE_CARD) {
+                } else if(status.hiddenType === HiddenType.REVEAL_IN_MY_USE_CARD) {
                     status.isRevealed = true
+                } else {
+                    return
                 }
                 console.log('Player Changing Skill Status ', status)
                 p.statusUpdater(status)
@@ -138,21 +140,25 @@ export function SkillButton(p: ButtonProp) {
         }
     }
 
-    let clazz: string
+    let clazz: string, tip: string = ''
+    let status = (p.skillChecker?.getStatus(p.skill.id)) || ElementStatus.NORMAL
     if(isRevealed) {
-        let status = (p.skillChecker?.getStatus(p.skill.id)) || ElementStatus.NORMAL
         clazz = new ClassFormatter('skill-button center ' + p.className)
-                    .and(status.isSelectable && !p.skill.isDisabled, 'selectable')
+                    .and(status.isSelectable && !p.skill.isDisabled, 'selectable', 'disabled')
                     .and(status === ElementStatus.SELECTED, 'selected')
                     .done()
+        tip = status.isSelectable? (status === ElementStatus.SELECTED? '取消发动技能' : '发动技能') : ''
     } else {
         clazz = new ClassFormatter('skill-button center selectable ' + p.className)
-                    .and(isForewarned, 'selected')
-                    // .and(!isDisabled, 'enabled') //即使暗置也可以使用
+                    .and(status.isSelectable || p.skill.hiddenType !== HiddenType.NONE, 'selectable', 'disabled')
+                    .and(isForewarned || status === ElementStatus.SELECTED, 'selected')
                     .done()
+        tip = status.isSelectable? (status === ElementStatus.SELECTED? '取消发动技能' : '发动技能') : '点击触发/取消预亮'
     }
 
-    return <div className={clazz} onClick={cb} >
-        {p.skill.displayName}
-    </div>
+    return <OverlayTrigger placement='top' overlay={<Tooltip>{tip}</Tooltip>}>
+            <div className={clazz} onClick={cb} >
+                {p.skill.displayName}
+            </div>
+        </OverlayTrigger>
 }

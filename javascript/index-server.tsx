@@ -7,7 +7,7 @@ import LoginMessage from './server/Login';
 import { PlayerRegistry } from './server/PlayerRegistry';
 import { GameMode } from './common/GameMode';
 import { GameModeEnum } from './common/GameModeEnum';
-import { PlaySound } from './common/transit/EffectTransit';
+import { serverConfig } from './server/ServerConfig';
 
 let app = express()
 
@@ -21,7 +21,7 @@ const wss = new WebSocket.Server({ server });
 const pubsub = new Pubsub()
 const playerRegistry = new PlayerRegistry(pubsub)
 //todo: make game mode from config
-const gameHost = GameMode.get(GameModeEnum.FactionWarGame).gameHosterProvider(playerRegistry, 2)
+const gameHost = GameMode.get(GameModeEnum.FactionWarGame).gameHosterProvider(playerRegistry, serverConfig.players)
 
 try {
     //todo: make this come from config

@@ -12,7 +12,10 @@ let client = {
     rules: [
       {
         test: /\.ts(x?)$/,
-        use: ['ts-loader']
+        use: ['ts-loader'],
+        // exclude: [
+        //   path.resolve(__dirname, './javascript/server/')
+        // ]
       },
       {
         test: /\.ttf$/,

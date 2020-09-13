@@ -14,13 +14,13 @@ export default class GameServerContext extends GameContext {
     workflowCards = new ArrayList<Card>()
     public readonly cardManager: CardManager
 
-    constructor(playerInfos: PlayerInfo[], gamemode: GameModeEnum) {
+    constructor(playerInfos: PlayerInfo[], gamemode: GameModeEnum, updateCb: (size: number)=>void) {
         super(playerInfos, gamemode)
         this.cardManager = GameMode.get(gamemode).cardManager
         for(let i = 0; i < playerInfos.length; ++i) {
             playerInfos[i].idx = i
         }
-        this.deck = new Deck(this.cardManager)
+        this.deck = new Deck(this.cardManager, updateCb)
     }
 
     //将牌从玩家身上扔进workflow堆中(打出或者弃置的牌)

@@ -87,7 +87,12 @@
             filter: grayscale(50%);
             overflow: hidden;
 
-    
+            &.disabled {
+                filter: opacity(0.6);
+                cursor: initial;
+                pointer-events: none;
+            }
+
             &.selectable {
                 // background: rgb(20, 141, 20);
                 cursor: pointer;

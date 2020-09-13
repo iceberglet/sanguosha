@@ -33,6 +33,18 @@
             flex-direction: column;
             justify-content: space-between;
 
+            .deck-info {
+                position: absolute;
+                background: rgba(27, 27, 27, 0.712);
+                color: white;
+                font-family: initial;
+                border-radius: 6px;
+                padding: 5px;
+                font-size: 15px;
+                top: 4px;
+                right: 4px;
+            }
+
             .top-row {
                 display: flex;
                 flex-direction: row-reverse;

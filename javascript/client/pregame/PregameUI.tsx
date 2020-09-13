@@ -52,6 +52,7 @@ export default function PregameUI(p: Prop) {
 
     return <div className='general-selection-container'>
         <div className='player-statuses'>
+            <div className='overall center'>玩家数: {p.circus.statuses.length + '/' + p.circus.playerNo}</div>
             <div className='player-status heading' key={'title'}>
                 <div className='player-name'>玩家名</div>
                 <div className={'status'}>状态</div>

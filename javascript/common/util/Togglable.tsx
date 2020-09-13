@@ -5,10 +5,8 @@ export class ClassFormatter {
 
     }
 
-    public and(cond: boolean, clazz: string): ClassFormatter {
-        if(cond) {
-            this.clazz += ' ' + clazz
-        }
+    public and(cond: boolean, clazz: string, otherwise: string = ''): ClassFormatter {
+        this.clazz += ' ' + (cond? clazz : otherwise)
         return this
     }
 

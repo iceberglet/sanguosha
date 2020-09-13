@@ -24,7 +24,8 @@ export class CurrentPlayerEffect {
     public constructor(
         public player: string,
         public stage: Stage,
-        public pendingUser: Set<string>
+        public pendingUser: Set<string>,
+        public deckRemain: number
     ) {}
 }
 

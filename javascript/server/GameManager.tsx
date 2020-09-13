@@ -41,7 +41,7 @@ export default class GameManager {
     //for custom ui components
     public onReconnect: ()=>void
 
-    public readonly currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>())
+    public readonly currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>(), 0)
     public resolver: PlayerActionResolver
 
     public constructor(public context: GameServerContext, 
@@ -174,6 +174,11 @@ export default class GameManager {
         this.currEffect.player = player
         this.currEffect.stage = stage
         this.currEffect.pendingUser = new Set<string>([player])
+        this.broadcast(this.currEffect)
+    }
+
+    public setDeckRemain(size: number) {
+        this.currEffect.deckRemain = size
         this.broadcast(this.currEffect)
     }
 
@@ -351,69 +356,3 @@ export default class GameManager {
         return count 
     }
 }
-
-
-// export function sampleFactionWarContext() {
-//     let p = {id: '青青子吟'}
-//     let player = new FactionPlayerInfo(p, FactionWarGeneral.jia_xu, FactionWarGeneral.li_jue_guo_si).init()
-//     // player.hp = 1
-//     let player2 = new FactionPlayerInfo({id: '欧阳挠挠'}, FactionWarGeneral.diao_chan, FactionWarGeneral.dong_zhuo).init()
-//     // player2.hp = 1
-//     let context = new GameServerContext([player, player2], GameModeEnum.FactionWarGame)
-
-//     return context
-// }
-
-
-// export function sampleIdentityWarContext() {
-//     let cardManager = GameMode.get(GameModeEnum.IdentityWarGame).cardManager
-//     let p = {id: '青青子吟'}
-//     let cards = cardManager.getShuffledDeck()
-//     let player = new IdentityWarPlayerInfo(p, Identity.ZHU_GONG, IdentityWarGeneral.standard_zhang_liao).init()
-//     player.addCard(cards.find(c => c.type === CardType.SLASH), CardPos.HAND)
-//     player.addCard(cards.find(c => c.type === CardType.WAN_JIAN), CardPos.HAND)
-//     player.addCard(cards.find(c => c.type === CardType.DODGE), CardPos.HAND)
-//     player.addCard(cards.find(c => c.type === CardType.PEACH), CardPos.HAND)
-//     player.addCard(cards.find(c => c.type === CardType.HUO_GONG), CardPos.HAND)
-//     // player.addCard(cards.find(c => c.type === CardType.SHUN_SHOU), CardPos.HAND)
-//     // player.addCard(cards.find(c => c.type === CardType.GUO_HE), CardPos.HAND)
-//     // player.addCard(cards.find(c => c.type === CardType.JUE_DOU), CardPos.HAND)
-//     // player.addCard(cards.find(c => c.type === CardType.TIE_SUO), CardPos.HAND)
-//     // player.addCard(cards.find(c => c.type === CardType.BING_LIANG), CardPos.HAND)
-//     // player.addCard(cards.find(c => c.type === CardType.LE_BU), CardPos.HAND)
-//     // player.addCard(cards.find(c => c.type === CardType.SHAN_DIAN), CardPos.HAND)
-//     player.addCard(new Card('diamond', CardSize.FIVE, CardType.GUAN_SHI), CardPos.EQUIP)
-//     player.addCard(new Card('spade', CardSize.SIX, CardType.LE_BU), CardPos.JUDGE)
-//     player.addCard(new Card('heart', CardSize.QUEEN, CardType.SHAN_DIAN), CardPos.JUDGE)
-//     player.hp = 2;
-    
-//     let player2 = new IdentityWarPlayerInfo({id: '欧阳挠挠'}, Identity.ZHONG_CHEN, IdentityWarGeneral.forest_dong_zhuo).init()
-//     player2.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
-//     player2.addCard(new Card('spade', CardSize.QUEEN, CardType.ZHANG_BA), CardPos.EQUIP)
-//     player2.addCard(new Card('spade', CardSize.KING, CardType.DA_YUAN), CardPos.EQUIP)
-//     player2.addCard(new Card('diamond', CardSize.KING, CardType.HUA_LIU), CardPos.EQUIP)
-//     player2.addCard(new Card('diamond', CardSize.ACE, CardType.LE_BU), CardPos.JUDGE)
-//     player2.hp = 2;
-
-//     let player3 = new IdentityWarPlayerInfo({id: '东郭旭銮'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_cao_cao).init()
-//     player3.addCard(cardManager.getShuffledDeck()[0], CardPos.HAND)
-//     player3.addCard(new Card('heart', CardSize.KING, CardType.ZHUA_HUANG), CardPos.EQUIP)
-
-//     let player4 = new IdentityWarPlayerInfo({id: '新荷'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_huang_gai).init()
-//     player4.addCard(new Card('club', CardSize.JACK, CardType.BING_LIANG), CardPos.JUDGE)
-//     player4.hp = 1
-
-//     let player5 = new IdentityWarPlayerInfo({id: 'Iceberglet'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_guan_yu).init()
-    
-//     let player6 = new IdentityWarPlayerInfo({id: '广东吴彦祖'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_ma_chao).init()
-//     player6.addCard(new Card('club', CardSize.TWO, CardType.BA_GUA), CardPos.EQUIP)
-    
-//     let player7 = new IdentityWarPlayerInfo({id: '豫章铁锅'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_zhang_fei).init()
-//     player7.hp = 3
-
-//     let player8 = new IdentityWarPlayerInfo({id: 'tester-8'}, Identity.FAN_ZEI, IdentityWarGeneral.standard_xu_chu).init()
-
-//     let context = new GameServerContext([player, player2, player3, player4, player5, player6, player7, player8], GameModeEnum.IdentityWarGame)
-
-//     return context
-// }

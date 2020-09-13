@@ -36,6 +36,7 @@ export default class FactionWarGameHoster implements GameHoster {
         console.log('[选将] 进入准备工作, 分发将牌, 等待玩家选将')
         this.choices = this.generateGeneralChoices(this.numberOfPlayer)
         this.circus = new Circus()
+        this.circus.playerNo = this.numberOfPlayer
         this.manager = null
     }
 
@@ -114,7 +115,9 @@ export default class FactionWarGameHoster implements GameHoster {
             let info = new FactionPlayerInfo(s.player, s.chosenGeneral, s.chosenSubGeneral)
             info.init()
             return info
-        }), myMode)
+        }), myMode, (size)=>{
+            this.manager.setDeckRemain(size)
+        })
         this.initializer = new FactionWarInitializer()
         BlockedEquipment.reinit()
 
@@ -169,9 +172,11 @@ export default class FactionWarGameHoster implements GameHoster {
 export class Circus {
     statuses: PlayerPrepChoice[] = []
     gameMode: GameModeEnum = myMode
+    playerNo: number
 
     static sanitize(circus: Circus, id: string) {
         let cir = new Circus()
+        cir.playerNo = circus.playerNo
         cir.statuses = circus.statuses.map(s => PlayerPrepChoice.sanitize(s, id))
         cir.gameMode = circus.gameMode
         return cir
