@@ -1,5 +1,5 @@
 import DamageOp, { DamageTimeline, DamageSource, DamageType } from "../../server/engine/DamageOp";
-import { SimpleConditionalSkill, EventRegistryForSkills, HiddenType } from "./Skill";
+import { SimpleConditionalSkill, EventRegistryForSkills, HiddenType, Skill } from "./Skill";
 import GameManager from "../../server/GameManager";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, DuoCardSelectionHint, DuoCardSelectionResult } from "../../common/ServerHint";
@@ -303,7 +303,7 @@ export class TianDu extends SimpleConditionalSkill<JudgeOp> {
 }
 
 
-export class QinGuo extends SimpleConditionalSkill<DodgeOp> {
+export class QinGuo extends Skill {
 
     id = '倾国'
     displayName = '倾国'
@@ -479,7 +479,7 @@ export class ShenSu extends SimpleConditionalSkill<StageStartFlow> {
     }
 }
 
-export class DuanLiang extends SimpleConditionalSkill<StageStartFlow> {
+export class DuanLiang extends Skill {
     id = '断粮'
     displayName = '断粮'
     description = '出牌阶段，你可以明置此武将牌；你可以将一张黑色基本牌或黑色装备牌当【兵粮寸断】使用；你可以对距离为2的角色使用【兵粮寸断】。'
@@ -574,7 +574,7 @@ export class JuShou extends SimpleConditionalSkill<StageStartFlow> {
 
 }
 
-export class QiangXi extends SimpleConditionalSkill<void> {
+export class QiangXi extends Skill {
     id = '强袭'
     displayName = '强袭'
     description = '出牌阶段限一次，你可以失去1点体力或弃置一张武器牌，并对你攻击范围内的一名其他角色造成1点伤害。'

@@ -1,8 +1,9 @@
 import { PlayerActionDriver, CompositePlayerActionDriver } from "./PlayerActionDriver"
 import { ServerHint, HintType } from "../../common/ServerHint"
 import Multimap from "../../common/util/Multimap"
+import GameClientContext from "../GameClientContext"
 
-type Provider = (hint: ServerHint)=>PlayerActionDriver
+type Provider = (hint: ServerHint, context: GameClientContext)=>PlayerActionDriver
 
 class PlayerActionDriverProvider {
 
@@ -35,19 +36,19 @@ class PlayerActionDriverProvider {
         // console.log(`Unregistering PlayerActionDriverProvider ${hintType} > ${provider.constructor.name}`)
     }
 
-    getDriver(hint: ServerHint): PlayerActionDriver {
+    getDriver(hint: ServerHint, context: GameClientContext): PlayerActionDriver {
         if(hint.hintType === HintType.SPECIAL) {
             let set = this.special.getArr(hint.specialId)
             if(set.length === 1) {
-                return set[0](hint)
+                return set[0](hint, context)
             } else if (set.length === 0) {
                 throw `Cannot find any driver for special hint! ${hint.hintType} ${hint.specialId}`
             } else {
-                return new CompositePlayerActionDriver(set.map(s => s(hint)))
+                return new CompositePlayerActionDriver(set.map(s => s(hint, context)))
             }
         }
         let p = this.providers.get(hint.hintType) || []
-        let drivers = p.map((provider)=>provider(hint))
+        let drivers = p.map((provider)=>provider(hint, context))
             .filter(p => p)
         if(drivers.length > 1) {
             return new CompositePlayerActionDriver(drivers)

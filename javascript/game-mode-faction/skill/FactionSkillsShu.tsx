@@ -231,7 +231,7 @@ export class PaoXiao extends SimpleConditionalSkill<SlashOP> {
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<SlashOP>(SlashOP, this)
         skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async (stage: StageStartFlow)=>{
-            if(!this.isDisabled && this.isRevealed && stage.stage === Stage.ROUND_BEGIN) {
+            if(!this.isDisabled && this.isRevealed && stage.stage === Stage.ROUND_BEGIN && this.playerId === stage.info.player.id) {
                 console.log('[咆哮] 增加 900 出杀次数')
                 manager.roundStats.slashMax += 900
                 //回合开始的时候重置我们出杀的次数
@@ -249,7 +249,7 @@ export class PaoXiao extends SimpleConditionalSkill<SlashOP> {
         return false
     }
     public async onStatusUpdated(manager: GameManager) {
-        if(!this.isDisabled && this.isRevealed) {
+        if(!this.isDisabled && this.isRevealed && manager.currPlayer().player.id === this.playerId) {
             console.log('[咆哮] 增加 900 出杀次数')
             manager.roundStats.slashMax += 900
             //重置才能让效果发生
@@ -795,8 +795,6 @@ export class QiCai extends Skill {
     }
 }
 
-// 放权 你可以跳过出牌阶段，然后此回合结束时，你可以弃置一张手牌并令一名其他角色获得一个额外的回合。
-
 // 观星 准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。
 // 空城 锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。
 
@@ -825,7 +823,6 @@ export class QiCai extends Skill {
 // 闺秀 当你明置此武将牌时，你可以摸两张牌；当你移除此武将牌时，你可以回复1点体力。
 // 存嗣 出牌阶段，你可以移除此武将牌并选择一名角色，然后其获得技能“勇决”（若与你势力相同的一名角色于其回合内使用的第一张牌为【杀】，则该角色可以在此【杀】结算完成后获得之），若你没有获得“勇决”，则获得“勇决”的角色摸两张牌。
 // 勇决 若与你势力相同的一名角色于其回合内使用的第一张牌为【杀】，则该角色可以在此【杀】结算完成后获得之
-// 蒺藜 当你于一回合内使用或打出第X张牌时，你可以摸X张牌（X为你的攻击范围）
 
 // 眩惑 与你势力相同的其他角色的出牌阶段限一次，该角色可以交给你一张手牌并弃置一张牌，然后其选择并获得以下技能之一直到回合结束：“武圣”、“咆哮”、“龙胆”、“铁骑”、“烈弓”、“狂骨”（场上已有的技能无法选择）。
 // 恩怨 锁定技，当其他角色对你使用【桃】时，该角色摸一张牌；当你受到伤害后，伤害来源需交给你一张手牌，否则失去1点体力。

@@ -46,7 +46,7 @@ export default class GameClientContext extends GameContext {
                 //don't process this
                 return
             }
-            this.currentDriver = playerActionDriverProvider.getDriver(hint.hint)
+            this.currentDriver = playerActionDriverProvider.getDriver(hint.hint, this)
         }
     }
 

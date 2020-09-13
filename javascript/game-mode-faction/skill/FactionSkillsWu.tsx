@@ -1,6 +1,86 @@
-// 制衡 出牌阶段限一次，你可以弃置至多X张牌（X为你的体力上限），然后摸等量的牌。
 
-// 奇袭 你可以将一张黑色牌当【过河拆桥】使用。
+import { Skill, HiddenType } from "./Skill"
+import { HintType } from "../../common/ServerHint"
+import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
+import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
+import { UIPosition } from "../../common/PlayerAction"
+import PlayerAct from "../../server/context/PlayerAct"
+import GameManager from "../../server/GameManager"
+import { TextFlashEffect } from "../../common/transit/EffectTransit"
+import { CardPos } from "../../common/transit/CardPos"
+import { CardBeingDroppedEvent, CardBeingUsedEvent } from "../../server/engine/Generic"
+import Card, { CardType } from "../../common/cards/Card"
+import TakeCardOp from "../../server/engine/TakeCardOp"
+import { isSuitBlack } from "../../common/cards/ICard"
+import { GuoHe } from "../../server/engine/SingleRuseOp"
+
+export class ZhiHeng extends Skill {
+    id = '制衡'
+    displayName = '制衡'
+    description = '出牌阶段限一次，你可以弃置至多X张牌（X为你的体力上限），然后摸等量的牌。'
+    hiddenType = HiddenType.NONE
+
+    public bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint, context)=>{
+            let max = context.getPlayer(this.playerId).maxHp
+            return new PlayerActionDriverDefiner('制衡')
+                    .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>!hint.roundStat.customData[this.id] && id === this.id)
+                    .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, max, (id, context)=>true, ()=>`请弃置至多${max}张牌`)
+                    .expectAnyButton('点击确定发动制衡')
+                    .build(hint)
+        })
+    }
+
+    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        if(act.isCancel()) {
+            console.error('[制衡] 怎么可能cancel??')
+            return
+        }
+        this.playSound(manager, 2)
+        manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
+        manager.roundStats.customData[this.id] = true
+        
+        let me = act.source
+        let amount = act.cardsAndPos.length
+        await act.dropCardsFromSource('制衡')
+        console.log('[制衡] 一共弃置牌数', amount)
+        await new TakeCardOp(me, amount).perform(manager)
+    }
+}
+
+
+export class QiXi extends Skill {
+    id = '奇袭'
+    displayName = '奇袭'
+    description = '你可以将一张黑色牌当【过河拆桥】使用。'
+    hiddenType = HiddenType.NONE
+    
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('奇袭')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
+                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, (id, context)=>isSuitBlack(context.interpret(id).suit), ()=>'选择一张黑色牌')
+                        .expectChoose([UIPosition.PLAYER], 1, 1, 
+                            (id, context)=>{
+                                return id !== context.myself.player.id &&   // 不能是自己
+                                context.getPlayer(id).hasCards()            // 必须有牌能拿
+                            }, 
+                            ()=>`选择‘奇袭’的对象`)
+                        .expectAnyButton('点击确定发动奇袭(过河拆桥)')
+                        .build(hint)
+        })
+    }
+
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        let cardAndPos = act.getSingleCardAndPos()
+        this.playSound(manager, 2)
+        cardAndPos[0].as = CardType.GUO_HE
+        
+        manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [cardAndPos[0]], true)
+        await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [cardAndPos], cardAndPos[0].type, true))
+        await new GuoHe(act.source, act.targets[0], [cardAndPos[0]]).perform(manager)
+    }
+}
 
 // 克己 锁定技，弃牌阶段开始时，若你未于出牌阶段内使用过颜色不同的牌或出牌阶段被跳过，你的手牌上限于此回合内+4。
 // 谋断 结束阶段开始时，若你于出牌阶段内使用过四种花色或三种类别的牌，则你可以移动场上的一张牌。	
