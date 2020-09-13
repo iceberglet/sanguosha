@@ -96,7 +96,7 @@ export class WuXieContext {
                     if(!this.processors.has(resp.source.player.id)) {
                         throw `Missing Custom Handler For Player ${resp.source.player.id} with skill ${resp.skill}`
                     }
-                    this.processors.get(resp.source.player.id)(resp, this.manager)
+                    await this.processors.get(resp.source.player.id)(resp, this.manager)
                 } else {
                     await this.processNormal(resp, this.manager)
                 }

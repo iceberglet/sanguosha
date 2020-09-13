@@ -1,5 +1,5 @@
 
-import { Skill, HiddenType } from "./Skill"
+import { Skill, HiddenType, SimpleConditionalSkill } from "./Skill"
 import { HintType } from "../../common/ServerHint"
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
@@ -114,6 +114,26 @@ export class KuRou extends Skill {
 
 
 
+// export class LieGong extends SimpleConditionalSkill<SlashCompute> {
+//     id = '英姿'
+//     displayName = '英姿'
+//     description = '锁定技，摸牌阶段，你多摸一张牌；你的手牌上限等于X（X为你的体力上限）。'
+//     isLocked = true
+
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+//         skillRegistry.on<SlashCompute>(SlashCompute, this)
+//     }
+//     public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
+//         return event.source.player.id === this.playerId && event.timeline === Timeline.AFTER_CONFIRMING_TARGET &&
+//             (event.target.getCards(CardPos.HAND).length >= event.source.hp || event.target.getCards(CardPos.HAND).length <= event.source.getReach())
+//     }
+//     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+//         console.log('[烈弓] 发动, 不能闪')
+//         this.playSound(manager, 2)
+//         manager.broadcast(new TextFlashEffect(this.playerId, [event.target.player.id], this.id))
+//         event.undodgeable = true
+//     }
+// }
 
 // 克己 锁定技，弃牌阶段开始时，若你未于出牌阶段内使用过颜色不同的牌或出牌阶段被跳过，你的手牌上限于此回合内+4。
 // 谋断 结束阶段开始时，若你于出牌阶段内使用过四种花色或三种类别的牌，则你可以移动场上的一张牌。	

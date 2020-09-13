@@ -770,6 +770,7 @@ export class QiCai extends Skill {
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async (event)=>{
             if(event.isFor(this.playerId, Stage.ROUND_BEGIN) && this.isWorking) {
+                console.log('[奇才] 改变锦囊距离限制', this.playerId)
                 manager.roundStats.binLiangReach = 99
                 manager.roundStats.shunshouReach = 99
             }

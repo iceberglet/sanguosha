@@ -195,7 +195,7 @@ export class JieDao extends SingleRuse<void> {
 
         if(resp.isCancel()) {
             console.log('玩家放弃出杀, 失去武器', this.source, from.player.id, to)
-            await manager.transferCards(from.player.id, to.player.id, CardPos.EQUIP, CardPos.HAND, [weapon])
+            await manager.transferCards(from.player.id, this.source.player.id, CardPos.EQUIP, CardPos.HAND, [weapon])
         } else {
             console.log('玩家出杀, 开始结算吧')
             resp.targets.push(to)
