@@ -2,7 +2,7 @@ import GameManager from "../GameManager";
 import { CardType } from "../../common/cards/Card";
 import PlaySlashOp, { AskForSlashOp } from "../engine/SlashOp";
 import { CardPos } from "../../common/transit/CardPos";
-import { TextFlashEffect, PlaySound } from "../../common/transit/EffectTransit";
+import { TextFlashEffect, PlaySound, LogTransit } from "../../common/transit/EffectTransit";
 import { CardBeingDroppedEvent, CardBeingUsedEvent } from "../engine/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "../engine/EquipOp";
@@ -76,20 +76,17 @@ export default class PlayerActionResolver extends ActionResolver {
             // can be more than one
             let targetPs = act.targets
             let targets = targetPs.map(p => p.player.id)
+            //LOG
+            let log = act.source + ''
             if(targets.length > 0) {
+                log += ' 对 ' + targets.join(', ')
                 card.description = `${act.source.player.id} > ${targets.join(', ')}`
             } else {
                 card.description = `${act.source.player.id} 使用`
             }
+            log += ' 使用了 ' + card
+            manager.broadcast(new LogTransit(log))
             
-
-            if(icard.type === CardType.TIE_SUO && targets.length === 0) {
-                //铁索重铸算作弃置
-                await manager.events.publish(new CardBeingDroppedEvent(act.source.player.id, [[card, CardPos.HAND]]))
-            } else {
-                await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, CardPos.HAND]], card.type))
-            }
-
             //装备牌
             if(icard.type.isEquipment()) {
                 card.description = `${act.source} 装备`
@@ -98,6 +95,14 @@ export default class PlayerActionResolver extends ActionResolver {
                 return
             } else if (!icard.type.isDelayedRuse()) {
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true)
+            }
+
+
+            if(icard.type === CardType.TIE_SUO && targets.length === 0) {
+                //铁索重铸算作弃置
+                await manager.events.publish(new CardBeingDroppedEvent(act.source.player.id, [[card, CardPos.HAND]]))
+            } else {
+                await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, CardPos.HAND]], card.type))
             }
 
             switch(icard.type) {
@@ -183,6 +188,7 @@ export default class PlayerActionResolver extends ActionResolver {
             if(cards.length !== 1) {
                 throw `Player played dodge cards but not one card!!!! ${act.source.player.id} ${cards}`
             }
+            manager.log(`${act.source} 打出了 ${cards}`)
             await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE, false, false))
             manager.sendToWorkflow(dodgeOp.target.player.id, CardPos.HAND, [cards[0]])
         }
@@ -199,6 +205,7 @@ export default class PlayerActionResolver extends ActionResolver {
                 }
                 return card
             })
+            manager.log(`${resp.source} 打出了 ${cards}`)
             let type: CardType = cards.length === 1? cards[0].type : CardType.SLASH
             await manager.events.publish(new CardBeingUsedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type, false, false))
             manager.sendToWorkflow(askSlashOp.slasher.player.id, CardPos.HAND, cards)

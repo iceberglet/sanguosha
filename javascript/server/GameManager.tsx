@@ -13,7 +13,7 @@ import GameServerContext from "./context/GameServerContext";
 import { StageStartFlow, StageEndFlow } from "./engine/StageFlows";
 import TakeCardOp, { TakeCardStageOp } from "./engine/TakeCardOp";
 import DropCardOp from "./engine/DropCardOp";
-import { CurrentPlayerEffect, CardTransit, PlaySound } from "../common/transit/EffectTransit";
+import { CurrentPlayerEffect, CardTransit, PlaySound, LogTransit } from "../common/transit/EffectTransit";
 import PlayerActionResolver, { ActionResolver } from "./context/PlayerActionResolver";
 import { ICard } from "../common/cards/ICard";
 import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
@@ -215,6 +215,10 @@ export default class GameManager {
 
     public broadcast<F extends object>(obj: F, sanitizer: Sanitizer<F> = null) {
         this.registry.broadcast(obj, sanitizer)
+    }
+
+    public log(str: string) {
+        this.broadcast(new LogTransit(str))
     }
 
     public onPlayerReconnected(player: string) {

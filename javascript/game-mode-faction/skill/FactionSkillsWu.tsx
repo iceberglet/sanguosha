@@ -42,6 +42,7 @@ export class ZhiHeng extends Skill {
             return
         }
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
         manager.roundStats.customData[this.id] = true
         
@@ -80,6 +81,7 @@ export class QiXi extends Skill {
         await this.revealMySelfIfNeeded(manager)
         let cardAndPos = act.getSingleCardAndPos()
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 使用${this.displayName}将${cardAndPos[0]}作为过河拆桥打出`)
         cardAndPos[0].as = CardType.GUO_HE
         
         manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [cardAndPos[0]], true)
@@ -108,6 +110,7 @@ export class KuRou extends Skill {
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
         await this.revealMySelfIfNeeded(manager)
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         await act.dropCardsFromSource('苦肉弃牌')
         let me = manager.context.getPlayer(this.playerId)
         await new DamageOp(me, me, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
@@ -170,6 +173,7 @@ export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
         await this.revealMySelfIfNeeded(manager)
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let cardAndPos = act.getSingleCardAndPos()
         let targetP = act.targets[0]
         let target = targetP.player.id

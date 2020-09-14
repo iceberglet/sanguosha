@@ -98,19 +98,20 @@ export default class FactionWarActionResolver extends ActionResolver {
                 card.description = `${player.player.id} 使用`
             }
             
-            if(icard.type === CardType.ZHI_JI && targets.length === 0) {
-                //知己知彼重铸算作弃置
-                await manager.events.publish(new CardBeingDroppedEvent(act.source.player.id, [[card, CardPos.HAND]]))
-            } else {
-                await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, CardPos.HAND]], card.type))
-            }
 
             if(icard.type.isEquipment()) {
                 card.description = `${player} 装备`
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true, true)
+                await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, CardPos.HAND]], card.type))
                 await new EquipOp(act.source, card).perform(manager)
             } else {
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true)
+                if(icard.type === CardType.ZHI_JI && targets.length === 0) {
+                    //知己知彼重铸算作弃置
+                    await manager.events.publish(new CardBeingDroppedEvent(act.source.player.id, [[card, CardPos.HAND]]))
+                } else {
+                    await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, CardPos.HAND]], card.type))
+                }
                 switch(icard.type) {
     
                     case CardType.YI_YI:

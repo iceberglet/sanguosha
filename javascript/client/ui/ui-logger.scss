@@ -1,0 +1,39 @@
+.logger-container {
+    display: flex;
+    flex-direction: column-reverse;
+    font-size: 12px;
+    font-family: initial;
+    color: #cccccc;
+    overflow-y: scroll;
+
+    .log-row {
+        padding-bottom: 2px;
+        padding-left: 2px;
+        padding-right: 2px;
+    }
+}
+
+
+.logger-roller {
+    position: absolute;
+    width: 100%;
+    top: 220px; //below the top player card
+    // font-size: 20px;
+    // font-family: initial;
+
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .log-row:nth-child(1) {
+        opacity: 60%;
+    }
+    .log-row:nth-child(2) {
+        opacity: 80%;
+    }
+    .log-row:nth-child(3) {
+        opacity: 100%;
+    }
+}

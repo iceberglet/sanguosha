@@ -82,3 +82,7 @@ export class CardTransit {
         public doNotRemove: boolean = false
     ) {}
 }
+
+export class LogTransit {
+    constructor(public readonly log: string){}
+}

@@ -69,6 +69,7 @@ export class JudgeDelayedRuseOp extends Operation<void> {
         await wuxie.init()
         //闪电则只是 show 一下
         this.card.description = `即将判定 ${p} 的 ${type.name}`
+        manager.log(`即将判定 ${p} 的 ${type.name}`)
         manager.sendToWorkflow(p, CardPos.JUDGE, [this.card], true, isShanDian)
 
         await delay(1000)
@@ -96,18 +97,21 @@ export class JudgeDelayedRuseOp extends Operation<void> {
                 case CardType.LE_BU: 
                     if(icard.suit !== 'heart') {
                         console.log(`[延迟锦囊] 乐不思蜀生效 ${p} ${card.id} > ${icard.suit}`)
+                        manager.log(`${p} 的乐不思蜀生效`)
                         manager.roundStats.skipStages.set(Stage.USE_CARD, true)
                     }
                     break;
                 case CardType.BING_LIANG: 
                     if(icard.suit !== 'club') {
                         console.log(`[延迟锦囊] 兵粮寸断生效 ${p} ${card.id} > ${icard.suit}`)
+                        manager.log(`${p} 的兵粮寸断生效`)
                         manager.roundStats.skipStages.set(Stage.TAKE_CARD, true)
                     }
                     break;
                 case CardType.SHAN_DIAN: 
                     if(icard.suit === 'spade' && icard.size.size >= 2 && icard.size.size <= 9) {
                         console.log(`[延迟锦囊] 闪电生效 ${p} ${card.id} > ${icard.suit} ${icard.size.size}`)
+                        manager.log(`${p} 的闪电生效`)
                         //闪电需要被真正拿下来一下
                         this.card.description = `${p} 的闪电生效!`
                         manager.sendToWorkflow(p, CardPos.JUDGE, [this.card])

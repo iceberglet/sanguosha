@@ -21,6 +21,7 @@ import UIMyCards from './UIMyCards'
 import { CustomUIData } from '../card-panel/CustomUIRegistry'
 import { GameMode } from '../../common/GameMode'
 import { SkillStatus } from '../../game-mode-faction/skill/Skill'
+import { UIRollingLogger, UILogger } from './UILogger'
 
 type UIBoardProp = {
     myId: string
@@ -210,9 +211,11 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                         })
                         this.setState({uiRequest: null})
                     }}/>
+
+                    <UIRollingLogger pubsub={pubsub} />
                 </div>
                 <div className='chat-logger'>
-                    {/* <img className='occupy' src={'ui/container-horizontal.png'}/> */}
+                    <UILogger pubsub={pubsub} />
                 </div>
             </div>
             <div className='btm' ref={this.dom}>

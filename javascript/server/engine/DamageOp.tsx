@@ -90,6 +90,18 @@ export default class DamageOp extends Operation<void> {
         this.target.damage(this.amount)
         
         //what's done is done
+        if(this.type === DamageType.ENERGY) {
+            manager.log(`${this.target} 流失了 ${this.amount} 点体力`)
+        } else {
+            let msg = `${this.target} 受到了${this.source? `来自 ${this.source} 的 ` : ''} ${this.amount} 点伤害`
+            if(this.type === DamageType.FIRE) {
+                msg += '(火属性)'
+            }
+            if(this.type === DamageType.THUNDER) {
+                msg += '(雷属性)'
+            }
+            manager.log(msg)
+        }
         manager.broadcast(new DamageEffect(targetId))
         manager.broadcast(this.target, PlayerInfo.sanitize)
 

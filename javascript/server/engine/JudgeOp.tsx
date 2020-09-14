@@ -39,6 +39,7 @@ export default class JudgeOp extends Operation<Card> {
         manager.broadcast(transit)
         //and send it to workflow for dropping
         manager.context.workflowCards.add(this.judgeCard)
+        manager.log(`${this.owner} 的判定牌为 ${this.judgeCard}`)
         await delay(600)
 
         //改判定??

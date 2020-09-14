@@ -7,12 +7,16 @@ import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import PlayerAct from "../context/PlayerAct";
 import { CardBeingUsedEvent } from "./Generic";
+import { LogTransit } from "../../common/transit/EffectTransit";
 
 const REFUSE = 'refuse'
 const REFUSE_ALL = 'refuse_all'
 
 
-type WuXieProcessor = (resp: PlayerAct, manager: GameManager) => Promise<void>
+type WuXieProcessor = {
+    canStillProcess: (manager: GameManager) => boolean
+    doProcess: (resp: PlayerAct, manager: GameManager) => Promise<void>
+}
 
 export class WuXieContext {
 
@@ -48,8 +52,11 @@ export class WuXieContext {
         while(true) {
 
             this.candidates = this.candidates.filter(p=>{
-                //有无懈牌并且没有放弃无懈的权利
-                return !pplNotInterestedInThisPlayer.has(p)
+                //要么有无懈牌, 要么有特殊功能
+                //并且没有放弃无懈的权利
+                let meHasCard = this.manager.context.getPlayer(p).getCards(CardPos.HAND).filter(c => c.type.isWuxie()).length > 0
+                let meGotSpecial = this.processors.has(p) && this.processors.get(p).canStillProcess(this.manager)
+                return (meHasCard || meGotSpecial) && !pplNotInterestedInThisPlayer.has(p)
             })
 
             // 若无人possible, 直接完结, 撒花~
@@ -83,6 +90,7 @@ export class WuXieContext {
                             // 任何回复了 refuse_all 的人本次及以后将不再被询问
                             pplNotInterestedInThisPlayer.add(candidate)
                             this.processors.delete(candidate)
+                            this.candidates.splice(this.candidates.findIndex(c => c === candidate), 1)
                         }
                         throw `${candidate}拒绝了无懈`
                     })
@@ -96,7 +104,7 @@ export class WuXieContext {
                     if(!this.processors.has(resp.source.player.id)) {
                         throw `Missing Custom Handler For Player ${resp.source.player.id} with skill ${resp.skill}`
                     }
-                    await this.processors.get(resp.source.player.id)(resp, this.manager)
+                    await this.processors.get(resp.source.player.id).doProcess(resp, this.manager)
                 } else {
                     await this.processNormal(resp, this.manager)
                 }
@@ -119,6 +127,7 @@ export class WuXieContext {
     private processNormal = async (action: PlayerAct, manager: GameManager): Promise<void> => {
         let card = action.getSingleCardAndPos()[0]
         console.log(`[无懈的结算] 打出了${card.id}作为无懈`)
+        manager.broadcast(new LogTransit(`${action.source} 打出了 ${card}`))
         card.description = `${action.source.player.id} 打出`
         manager.sendToWorkflow(action.source.player.id, CardPos.HAND, [card])
         await manager.events.publish(new CardBeingUsedEvent(action.source.player.id, [[card, CardPos.HAND]], card.type, false, false))

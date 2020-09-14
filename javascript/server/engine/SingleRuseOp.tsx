@@ -130,6 +130,7 @@ export class ShunShou extends SingleRuse<void> {
         let res = resp.customData as CardSelectionResult
         let cardAndPos = findCard(targetPlayer, res)[0]
         let card = cardAndPos[0], pos = cardAndPos[1]
+        manager.log(`${this.source} 获得了 ${this.target} 的 ${pos === CardPos.HAND? '一张手牌' : card}`)
         delete card.description
         delete card.as
         await manager.transferCards(this.target.player.id, this.source.player.id, pos, CardPos.HAND, [card])

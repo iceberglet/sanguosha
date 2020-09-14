@@ -33,6 +33,7 @@ export default class DeathOp extends Operation<void> {
         //show player death. no need to sanitize anymore
         this.deceased.declareDeath()
         manager.broadcast(this.deceased)
+        manager.log(this.killer? `${this.killer} 击杀了 ${this.deceased}` : `${this.deceased} 阵亡`)
 
         if(manager.currPlayer().player.id === this.deceased.player.id) {
             throw new PlayerDeadInHisRound()

@@ -91,6 +91,7 @@ export class QingGang extends Weapon {
     async doEffect(op: SlashCompute) {
         if(op.timeline === Timeline.AFTER_CONFIRMING_TARGET) {
             this.show()
+            this.manager.log(`${this.player} 的青釭剑效果触发`)
             // console.log('[装备] 青釭技能发动, 无视防具:', shield.id)
             BlockedEquipment.block(op.target.player.id, this.cardType.name)
         } else if(op.timeline === Timeline.COMPUTE_FINISH){
@@ -124,6 +125,7 @@ export class ZhuQue extends Equipment {
             })
             if(!resp.isCancel()) {
                 this.show()
+                this.manager.log(`${this.player} 发动了朱雀羽扇的效果`)
                 console.log(`[装备] ${this.player} 发动了朱雀羽扇`)
                 op.damageType = DamageType.FIRE
             }
@@ -148,15 +150,16 @@ export class CiXiong extends Weapon {
             if(!resp.isCancel()) {
                 this.show()
                 console.log(`[装备] ${this.player} 发动了雌雄双股剑`)
+                this.manager.log(`${this.player} 发动了雌雄双股剑的效果`)
                 let resp = await new DropCardRequest().perform(op.target.player.id, 1, this.manager, 
                     `${this.player} 对你发动了雌雄双股剑, 请弃置一张手牌或点击取消令其摸一张牌`, [UIPosition.MY_HAND], true)
                 
                 //若按了取消
                 if(!resp) {
-                    console.log(`[装备] ${op.target.player.id} 选择让 ${this.player} 摸一张牌`)
+                    console.log(`[装备] ${op.target} 选择让 ${this.player} 摸一张牌`)
                     await new TakeCardOp(op.source, 1).perform(this.manager)
                 } else {
-                    console.log(`[装备] ${op.target.player.id} 选择弃置了牌`)
+                    console.log(`[装备] ${op.target} 选择弃置了牌`)
                 }
             }
         }
@@ -188,6 +191,7 @@ export class GuDing extends Equipment {
         }
         if(op.timeline === DamageTimeline.DOING_DAMAGE && op.target.getCards(CardPos.HAND).length === 0) {
             this.show()
+            this.manager.log(`${this.player} 的古锭刀效果触发`)
             console.log('[装备] 古锭刀伤害加1')
             op.amount += 1
         }
@@ -225,6 +229,7 @@ export class GuanShi extends Equipment {
         if(!resp.isCancel()) {
             this.show()
             let cards = resp.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
+            this.manager.log(`${this.player} 发动贯石斧`)
             console.log('[装备] 玩家发动贯石斧造成伤害: ', this.player, cards)
     
             for(let kv of cards) {
@@ -297,6 +302,7 @@ export class Qilin extends Equipment {
             let res = resp.customData as CardSelectionResult
             let horseCard = horses[res[0].idx]
             console.log(`[装备] 玩家发动麒麟弓射下了 ${horseCard.id}`)
+            this.manager.log(`${this.player} 发动麒麟弓效果`)
             horseCard.description = `${op.target.player.id} 被弃置`
             this.manager.sendToWorkflow(op.target.player.id, CardPos.EQUIP, [horseCard])
             await this.manager.events.publish(new CardBeingDroppedEvent(op.target.player.id, [[horseCard, CardPos.EQUIP]]))
@@ -381,6 +387,7 @@ export class HanBing extends Equipment {
 
                 //取消本次伤害
                 console.log('[装备] 选择发动寒冰剑弃牌')
+                this.manager.log(`${this.player} 发动寒冰剑效果`)
                 this.show()
                 op.amount = -999
 
@@ -440,6 +447,7 @@ export class TengJia extends Equipment {
             }
             //目标已经确定, 开始结算
             console.log(`[装备] 藤甲令 ${slashOp.source.player.id} 的杀无效`)
+            this.manager.log(`${this.player} 的藤甲触发`)
             this.manager.broadcast(new PlaySound(`audio/equip/teng_jia_good.ogg`))
             this.manager.broadcast(new TextFlashEffect(this.player, [], '藤甲_好'))
             slashOp.abort = true
@@ -455,6 +463,7 @@ export class TengJia extends Equipment {
         let idx = aoe.targets.findIndex(t => t.player.id === this.player)
         if(idx > -1) {
             console.log(`[装备] 藤甲将 ${this.player} 移出万箭/南蛮的影响对象`)
+            this.manager.log(`${this.player} 的藤甲触发`)
             this.manager.broadcast(new PlaySound(`audio/equip/teng_jia_good.ogg`))
             this.manager.broadcast(new TextFlashEffect(this.player, [], '藤甲_好'))
             let curr = aoe.targets.length
@@ -476,6 +485,7 @@ export class TengJia extends Equipment {
             this.manager.broadcast(new PlaySound(`audio/equip/teng_jia_bad.ogg`))
             this.manager.broadcast(new TextFlashEffect(this.player, [], '藤甲_坏'))
             console.log('[装备] 藤甲令火伤害+1')
+            this.manager.log(`${this.player} 的藤甲使火焰伤害+1`)
             op.amount += 1
         }
     }
@@ -500,6 +510,7 @@ export class RenWang extends Equipment {
                 return
             }
             this.show()
+            this.manager.log(`${this.player} 的仁王盾令此杀无效`)
             console.log(`[装备] 仁王盾令 ${slashOp.source.player.id} 的杀无效`)
             slashOp.abort = true
         }
@@ -529,6 +540,7 @@ export class BaGua extends Equipment {
                 extraButtons: [Button.OK, Button.CANCEL]
             })
             if(!resp.isCancel()) {
+                this.manager.log(`${this.player} 发动了八卦阵`)
                 await this.doEffect(dodgeOp)
             }
         }
@@ -539,8 +551,10 @@ export class BaGua extends Equipment {
         let card = await new JudgeOp(`${this.player} 八卦阵判定牌`, this.player).perform(this.manager)
         if(isSuitRed(this.manager.interpret(this.player, card.id).suit)){
             console.log(`[装备] ${this.player} 八卦判定成功`)
+            this.manager.log(`${this.player} 的八卦阵判定成功`)
             dodgeOp.playedDodgeSomehow = true
         } else {
+            this.manager.log(`${this.player} 的八卦阵判定失败`)
             console.log(`[装备] ${this.player} 八卦判定失败`)
         }
     }
@@ -573,6 +587,7 @@ export class BaiYin extends Equipment {
             }
 
             this.show()
+            this.manager.log(`${this.player} 的白银狮子触发`)
             console.log(`[装备] 白银狮子将伤害 ${damageOp.amount} 降低为1`)
             damageOp.amount = 1
         }

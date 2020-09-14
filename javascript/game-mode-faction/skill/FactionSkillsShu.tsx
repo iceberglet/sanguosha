@@ -81,6 +81,7 @@ export class Rende extends Skill {
         hasGiven.add(target.player.id)
 
         this.playSound(manager, 3)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
         //assume he played it
         let cards = act.getCardsAtPos(CardPos.HAND)
@@ -121,21 +122,27 @@ export class Rende extends Skill {
                 switch(choice) {
                     case CardType.WINE.id: await new WineOp(resp.source).perform(manager); 
                         manager.playSound(me.getGender(), CardType.WINE.id)
+                        manager.log(`${this.playerId} ${this.displayName}视为使用酒`)
                         break
                     case CardType.PEACH.id: await new PeachOp(resp.source).perform(manager); 
                         manager.playSound(me.getGender(), CardType.PEACH.id)
+                        manager.log(`${this.playerId} ${this.displayName}视为使用桃`)
                         break
                     case SlashType.RED.text:
                         await PlaySlashOpNoCards(manager, me, targets, SlashType.RED);
+                        manager.log(`${this.playerId} ${this.displayName}视为对 ${targets} 使用红杀`)
                         break
                     case SlashType.BLACK.text:
                         await PlaySlashOpNoCards(manager, me, targets, SlashType.BLACK);
+                        manager.log(`${this.playerId} ${this.displayName}视为对 ${targets} 使用黑杀`)
                         break
                     case SlashType.THUNDER.text:
                         await PlaySlashOpNoCards(manager, me, targets, SlashType.THUNDER);
+                        manager.log(`${this.playerId} ${this.displayName}视为对 ${targets} 使用雷杀`)
                         break
                     case SlashType.FIRE.text:
                         await PlaySlashOpNoCards(manager, me, targets, SlashType.FIRE);
+                        manager.log(`${this.playerId} ${this.displayName}视为对 ${targets} 使用火杀`)
                         break
                     default:
                         throw '[仁德] Unknown Choice' + choice
@@ -199,6 +206,7 @@ export class WuSheng extends Skill {
         }
         await this.revealMySelfIfNeeded(manager)
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let posAndCard = act.getSingleCardAndPos()
         let card = posAndCard[0]
         card.description = this.id
@@ -206,6 +214,7 @@ export class WuSheng extends Skill {
         if(!event) {
             //玩家直接出杀了
             card.as = CardType.SLASH
+            card.description = this.displayName
             let targetPs = act.targets
             manager.sendToWorkflow(act.source.player.id, pos, [card], true)
             await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true))
@@ -214,6 +223,7 @@ export class WuSheng extends Skill {
         } else if(event instanceof AskForSlashOp) {
             //被迫出的杀
             card.as = CardType.SLASH
+            card.description = this.displayName
             await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true, false))
             manager.sendToWorkflow(act.source.player.id, pos, [card])
         }
@@ -314,6 +324,7 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
         await this.revealMySelfIfNeeded(manager)
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let posAndCard = act.getSingleCardAndPos()
         let card = posAndCard[0]
         let pos = posAndCard[1]
@@ -434,6 +445,7 @@ export class TieQi extends SimpleConditionalSkill<SlashCompute> {
     }
     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let judgeCard = await new JudgeOp('铁骑判定', this.playerId).perform(manager)
         console.log('[铁骑] 判定牌为', judgeCard.id)
         let target = event.target as FactionPlayerInfo
@@ -453,6 +465,7 @@ export class TieQi extends SimpleConditionalSkill<SlashCompute> {
             })
             //封禁技能??
             console.log('[铁骑] 封禁', target.player.id, resp.button)
+            manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === target.general.id? '主将' : '副将'} 的非锁定技`)
             let u = new GeneralSkillStatusUpdate(this.id, target, target.general.id === resp.button, false)
             this.cache.add(u)
             await manager.events.publish(u)
@@ -523,6 +536,7 @@ export class BaZhen extends SimpleConditionalSkill<DodgeOp> {
 
     public async doInvoke(event: DodgeOp, manager: GameManager): Promise<void> {
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         await this.myBaGua.doEffect(event)
     }
 }
@@ -549,6 +563,7 @@ export class HuoJi extends Skill {
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
         let cardAndPos = act.getSingleCardAndPos()
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         cardAndPos[0].as = CardType.HUO_GONG
         
         await this.revealMySelfIfNeeded(manager)
@@ -573,7 +588,14 @@ export class KanPo extends Skill {
         })
     }
 
-    public respondToSkill = async (resp: PlayerAct, manager: GameManager) => {
+    public canStillProcess = (manager: GameManager): boolean => {
+        return manager.context.getPlayer(this.playerId)
+                            .getCards(CardPos.HAND)
+                            .filter(c => isSuitBlack(manager.interpret(this.playerId, c.id).suit))
+                            .length > 0
+    }
+
+    public doProcess = async (resp: PlayerAct, manager: GameManager) => {
         await this.revealMySelfIfNeeded(manager)
         let card = resp.getSingleCardAndPos()[0]
         console.log(`[无懈的结算] (看破) 打出了${card.id}作为无懈`)
@@ -581,6 +603,7 @@ export class KanPo extends Skill {
         card.as = CardType.WU_XIE
         manager.sendToWorkflow(resp.source.player.id, CardPos.HAND, [card])
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         await manager.events.publish(new CardBeingUsedEvent(resp.source.player.id, [[card, CardPos.HAND]], card.type, true))
     }
 
@@ -597,7 +620,7 @@ export class KanPo extends Skill {
                             .length > 0) {
                 console.log('[看破] 添加技能处理')
                 context.candidates.push(this.playerId)
-                context.processors.set(this.playerId, this.respondToSkill)
+                context.processors.set(this.playerId, this)
             }
         })
     }
@@ -608,7 +631,7 @@ export class KanPo extends Skill {
         }
         console.log('[看破] 添加技能处理')
         context.candidates.push(this.playerId)
-        context.processors.set(this.playerId, this.respondToSkill)
+        context.processors.set(this.playerId, this)
     }
 }
 
@@ -629,6 +652,7 @@ export class KuangGu extends SimpleConditionalSkill<DamageOp> {
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         let me = event.source
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         console.log('[狂骨] 发动, 回血', event.amount)
         await new HealOp(me, me, event.amount).perform(manager)
     }
@@ -649,6 +673,7 @@ export class LieGong extends SimpleConditionalSkill<SlashCompute> {
     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
         console.log('[烈弓] 发动, 不能闪')
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         manager.broadcast(new TextFlashEffect(this.playerId, [event.target.player.id], this.id))
         event.undodgeable = true
     }
@@ -679,6 +704,7 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
     }
     public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let me = manager.context.getPlayer(this.playerId)
         console.log('[蒺藜] 发动蒺藜拿牌', me.getReach())
         await new TakeCardOp(me, me.getReach()).perform(manager)
@@ -700,6 +726,7 @@ export class XiangLe extends SimpleConditionalSkill<SlashCompute> {
     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
         console.log('[享乐] 发动')
         this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         manager.broadcast(new TextFlashEffect(this.playerId, [event.source.player.id], this.id))
         let abandonned = await askAbandonBasicCard(manager, event.source, '请弃置一张基本牌否则你的杀无效', true)
         if(abandonned) {
@@ -744,6 +771,7 @@ export class FangQuan extends SimpleConditionalSkill<StageStartFlow> {
 
                     manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
                     this.playSound(manager, 2)
+                    manager.log(`${this.playerId} 发动了 ${this.displayName}`)
                     manager.cutQueue(target)
                 }
             }
@@ -774,6 +802,7 @@ export class JiZhi extends SimpleConditionalSkill<CardBeingUsedEvent> {
     public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
         console.log('[集智] 发动, 摸一张牌')
         this.playSound(manager, 1)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
     }
 }
@@ -799,7 +828,7 @@ export class QiCai extends Skill {
         if(!this.isDisabled && this.isRevealed) {
             console.log('[奇才] 生效', this.playerId)
             this.isWorking = true
-            if(manager.currPlayer().player.id === this.id) {
+            if(manager.currPlayer().player.id === this.playerId) {
                 manager.roundStats.binLiangReach = 99
                 manager.roundStats.shunshouReach = 99
                 manager.reissue()
@@ -808,7 +837,7 @@ export class QiCai extends Skill {
         if(this.isDisabled) {
             console.log('[奇才] 失效', this.playerId)
             this.isWorking = false
-            if(manager.currPlayer().player.id === this.id) {
+            if(manager.currPlayer().player.id === this.playerId) {
                 manager.roundStats.binLiangReach = 1
                 manager.roundStats.shunshouReach = 1
                 manager.reissue()

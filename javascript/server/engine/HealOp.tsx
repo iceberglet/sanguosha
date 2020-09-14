@@ -23,6 +23,7 @@ export default class HealOp extends Operation<void> {
 
         //Heal可以被防止么?
         if(this.amount > 0) {
+            manager.log(`${this.target} 回复了 ${this.amount} 点体力`)
             this.target.heal(this.amount)
             manager.broadcast(this.target, PlayerInfo.sanitize)
 

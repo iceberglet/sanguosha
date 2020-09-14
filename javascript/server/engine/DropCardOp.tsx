@@ -55,6 +55,7 @@ export class DropOthersCardRequest {
         let res = resp.customData as CardSelectionResult
         let cardAndPos = findCard(targetPlayer, res)[0]
         let card = cardAndPos[0], pos = cardAndPos[1]
+        manager.log(`${source} 弃置了 ${target} 的 ${card}`)
         card.description = `${target.player.id} 被弃置`
         manager.sendToWorkflow(target.player.id, pos, [card])
         await manager.events.publish(new CardBeingDroppedEvent(target.player.id, [[card, pos]]))

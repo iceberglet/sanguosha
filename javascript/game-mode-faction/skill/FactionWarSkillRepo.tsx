@@ -112,7 +112,8 @@ export default class FactionWarSkillRepo {
                 this.manager.currEffect.stage === Stage.USE_CARD) {
                 console.log('[技能] 想要reveal??', skill.id, skill.playerId, ss.isRevealed)
                 await this.manager.events.publish(new RevealEvent(skill.playerId, skill.isMain, !skill.isMain))
-                await skill.onStatusUpdated(this.manager)
+                //会通过Reveal Event 来 update skill
+                // await skill.onStatusUpdated(this.manager)
             } else {
                 console.warn('[技能] 只能在你自己的出牌阶段里reveal!', skill.id, skill.playerId, ss.isRevealed)
             }
@@ -189,7 +190,8 @@ export default class FactionWarSkillRepo {
     }
 
     private onRevealEvent= async (e: RevealEvent): Promise<void> => {
-        this.allSkills.get(e.playerId).forEach(skill => {
+        let skills = this.allSkills.getArr(e.playerId)
+        for(let skill of skills) {
             if(skill.isMain && e.mainReveal) {
                 skill.isRevealed = true
             }
@@ -197,8 +199,9 @@ export default class FactionWarSkillRepo {
                 skill.isRevealed = true
             }
             console.log('[技能] 有武将明置, 技能展示', e.playerId, skill.id, skill.isRevealed)
+            await skill.onStatusUpdated(this.manager)
             this.manager.send(e.playerId, skill.toStatus())
-        })
+        }
     }
 
 }
