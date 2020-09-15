@@ -1,4 +1,4 @@
-import { Operation } from "../Operation";
+import { Operation, UseEventOperation, RuseOp } from "../Operation";
 import GameManager from "../GameManager";
 import { WuXieContext } from "./WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
@@ -8,38 +8,35 @@ import { checkThat, delay } from "../../common/util/Util";
 import { CardPos } from "../../common/transit/CardPos";
 import JudgeOp from "./JudgeOp";
 import { Stage } from "../../common/Stage";
-import { TextFlashEffect } from "../../common/transit/EffectTransit";
 
 
-export class UseDelayedRuseOp extends Operation<void> {
+export class UseDelayedRuseOp extends RuseOp<void> {
 
-    public abort = false
 
     constructor(public readonly card: Card,
                 public readonly source: PlayerInfo,
                 public readonly sourcePos: CardPos,
                 public readonly target: PlayerInfo) {
-        super()
-        checkThat((card.as || card.type).isDelayedRuse(), '必须得是延时锦囊!!')
+        super(target, card.as || card.type)
+        checkThat(this.ruseType.isDelayedRuse(), '必须得是延时锦囊!!')
     }
 
-    public async perform(manager: GameManager) {
+    public async doPerform(manager: GameManager) {
         let s = this.source.player.id
         let t = this.target.player.id
         console.log(`${s} 对 ${t} 使用了延时锦囊 ${this.card.id} : ${this.card.as}`)
-        await manager.events.publish(this)
-        manager.broadcast(new TextFlashEffect(s, [t], (this.card.as || this.card.type).name))
 
-        if(!this.abort) {
-            //show card in workflow
-            manager.sendToWorkflow(s, CardPos.HAND, [this.card], true, true)
-            //transfer card to judge area
-            await manager.transferCards(s, t, this.sourcePos, CardPos.JUDGE, [this.card])
-        } else {
-            //谦逊? 帷幕?
-            //go into junk
-            manager.sendToWorkflow(s, this.sourcePos, [this.card])
-        }
+        //show card in workflow
+        manager.sendToWorkflow(s, this.sourcePos, [this.card], true, true)
+        //transfer card to judge area
+        await manager.transferCards(s, t, this.sourcePos, CardPos.JUDGE, [this.card])
+    }
+    
+    public async onAborted(manager: GameManager): Promise<void> {
+        //谦逊? 帷幕?
+        //go into junk
+        this.card.description = '失效弃置'
+        manager.sendToWorkflow(this.source.player.id, this.sourcePos, [this.card])
     }
 
 }

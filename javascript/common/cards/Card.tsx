@@ -137,6 +137,10 @@ export class CardType {
     public isBasic(): boolean {
         return this.genre === 'basic'
     }
+
+    public toString(): string {
+        return this.name
+    }
 }
 
 export function cleanDescription(...cards: Card[]) {

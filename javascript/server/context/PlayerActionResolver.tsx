@@ -161,9 +161,11 @@ export default class PlayerActionResolver extends ActionResolver {
 
                 case CardType.LE_BU:
                 case CardType.BING_LIANG:
+                    manager.broadcast(new TextFlashEffect(act.source.player.id, [targetPs[0].player.id], icard.type.name))
                     await new UseDelayedRuseOp(card, act.source, CardPos.HAND, targetPs[0]).perform(manager)
                     break
                 case CardType.SHAN_DIAN:
+                    manager.broadcast(new TextFlashEffect(act.source.player.id, [], CardType.SHAN_DIAN.name))
                     await new UseDelayedRuseOp(card, act.source, CardPos.HAND, act.source).perform(manager)
                     break
                 
@@ -188,9 +190,9 @@ export default class PlayerActionResolver extends ActionResolver {
             if(cards.length !== 1) {
                 throw `Player played dodge cards but not one card!!!! ${act.source.player.id} ${cards}`
             }
-            manager.log(`${act.source} 打出了 ${cards}`)
-            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE, false, false))
+            manager.log(`${act.source} 打出了 ${cards}`)            
             manager.sendToWorkflow(dodgeOp.target.player.id, CardPos.HAND, [cards[0]])
+            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE, false, false))
         }
         //张角呢??
         return true
@@ -207,8 +209,8 @@ export default class PlayerActionResolver extends ActionResolver {
             })
             manager.log(`${resp.source} 打出了 ${cards}`)
             let type: CardType = cards.length === 1? cards[0].type : CardType.SLASH
-            await manager.events.publish(new CardBeingUsedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type, false, false))
             manager.sendToWorkflow(askSlashOp.slasher.player.id, CardPos.HAND, cards)
+            await manager.events.publish(new CardBeingUsedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type, false, false))
         }
         return true
     }

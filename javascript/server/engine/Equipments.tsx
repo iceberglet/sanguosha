@@ -456,6 +456,9 @@ export class TengJia extends Equipment {
     }
 
     abortAOE = async (aoe: WanJian | NanMan): Promise<void> => {
+        if(aoe.timeline !== Timeline.BECOME_TARGET) {
+            return
+        }
         if(BlockedEquipment.isBlocked(this.player)) {
             console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name)
             return

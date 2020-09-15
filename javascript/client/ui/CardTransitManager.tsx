@@ -130,7 +130,7 @@ export class DefaultCardEndpoint extends React.Component<Prop, State> implements
             cards.forEach(cp => {
                 //cards to player
                 //will never have description / head properties
-                delete cp.card.description
+                // delete cp.card.description
                 s.transit.set(cp.uuid, {...cp, coor: this.offsetMyCoor(cp.coor)})
                 this.props.info.addCard(cp.card, transfer.toPos)
                 this.props.callback()

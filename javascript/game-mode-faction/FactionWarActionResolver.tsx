@@ -16,7 +16,7 @@ import { EquipOp } from "../server/engine/EquipOp";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import DodgeOp from "../server/engine/DodgeOp";
 import { SimpleConditionalSkill, Skill } from "./skill/Skill";
-import { RevealEvent } from "./FactionWarInitializer";
+import { RevealGeneralEvent } from "./FactionWarInitializer";
 import { AskForSlashOp } from "../server/engine/SlashOp";
 import PlayerAct from "../server/context/PlayerAct";
 
@@ -34,7 +34,7 @@ export default class FactionWarActionResolver extends ActionResolver {
         let skillId = act.skill
         let skill = this.skillRepo.getSkill(act.source.player.id, skillId)
         if(!skill.isRevealed) {
-            await manager.events.publish(new RevealEvent(act.source.player.id, skill.isMain, !skill.isMain))
+            await manager.events.publish(new RevealGeneralEvent(act.source.player.id, skill.isMain, !skill.isMain))
         }
         return skill
     }
@@ -116,15 +116,7 @@ export default class FactionWarActionResolver extends ActionResolver {
     
                     case CardType.YI_YI:
                         //find out the targets
-                        if(player.getFaction() === Faction.UNKNOWN || player.getFaction() === Faction.YE) {
-                            //just yourself
-                            await new YiYiDaiLao([card], act.source, CardType.YI_YI, [player]).perform(manager)
-                        } else {
-                            let impact = manager.getSortedByCurr(false).filter(p => {
-                                player.getFaction().name === p.getFaction().name
-                            })
-                            await new YiYiDaiLao([card], act.source, CardType.YI_YI, [player, ...impact]).perform(manager)
-                        }
+                        await YiYiDaiLao.do([card], player, manager)
                         break
                     case CardType.ZHI_JI:
                         if(targets.length > 0) {
@@ -150,9 +142,22 @@ export default class FactionWarActionResolver extends ActionResolver {
 }
 
 
-class YiYiDaiLao extends MultiRuse {
+export class YiYiDaiLao extends MultiRuse {
 
-    public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
+
+    public static async do(cards: Card[], player: PlayerInfo, manager: GameManager) {
+        if(player.getFaction() === Faction.UNKNOWN || player.getFaction() === Faction.YE) {
+            //just yourself
+            await new YiYiDaiLao(cards, player, CardType.YI_YI, [player]).perform(manager)
+        } else {
+            let impact = manager.getSortedByCurr(false).filter(p => {
+                player.getFaction().name === p.getFaction().name
+            })
+            await new YiYiDaiLao(cards, player, CardType.YI_YI, [player, ...impact]).perform(manager)
+        }
+    }
+
+    public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         await new TakeCardOp(target, 2).perform(manager)
         await new DropCardRequest().perform(target.player.id, 2, manager, '(以逸待劳) 请弃置2张牌', [UIPosition.MY_HAND, UIPosition.MY_EQUIP])
     }
@@ -171,7 +176,7 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
         super(source, target, cards, CardType.ZHI_JI)
     }
 
-    public async doPerform(manager: GameManager): Promise<void> {
+    public async doEffect(manager: GameManager): Promise<void> {
 
         //ask what to get...
         let targetP = this.target as FactionPlayerInfo
@@ -249,7 +254,7 @@ class YuanJiao extends SingleRuse<void> {
         super(source, target, cards, CardType.YUAN_JIAO)
     }
 
-    public async doPerform(manager: GameManager): Promise<void> {
+    public async doEffect(manager: GameManager): Promise<void> {
         //give target one
         await new TakeCardOp(this.target, 1).perform(manager)
         //give self three

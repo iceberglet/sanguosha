@@ -251,7 +251,7 @@ export class LuoYi extends SimpleConditionalSkill<TakeCardStageOp> {
     }
 
     changeDamage = async (damageOp: DamageOp): Promise<void> => {
-        if(this.isTriggered && damageOp.source && damageOp.source.player.id === this.playerId &&
+        if(this.isTriggered && damageOp.isFrom(this.playerId) &&
             damageOp.timeline === DamageTimeline.DOING_DAMAGE &&
             (damageOp.damageSource === DamageSource.DUEL || damageOp.damageSource === DamageSource.SLASH)) {
             console.log('[裸衣] 伤害加深')
@@ -505,8 +505,7 @@ export class DuanLiang extends Skill {
         let card = posAndCards[0]
         card.as = CardType.BING_LIANG
         card.description = '兵粮' 
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动${this.displayName} 将${card} 作为兵粮寸断使用`)
+        this.invokeEffects(manager, [target.player.id])
         // manager.sendToWorkflow(this.playerId, pos, [card])
         await new UseDelayedRuseOp(card, act.source, pos, target).perform(manager)
         await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.BING_LIANG, true))

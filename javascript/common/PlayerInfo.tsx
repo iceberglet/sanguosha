@@ -36,8 +36,19 @@ export type CardInterpreter =(card: ICard) => ICard
 export const NoopInterpreter: CardInterpreter = (c)=>c
 
 //id to actual display
+//玩家的特殊标记 (潜袭, 铁骑之类的)
 export type Mark = {
     [key: string] : string
+}
+
+//记号, 比如限定技, 珠联璧合, 阴阳鱼, 先驱啥的
+//必须是单独一个字
+//value是boolean, true -> 能够发动, false -> 发动过了
+export type Sign = {
+    [key: string] : {
+        enabled: boolean
+        owner: 'player' | 'main' | 'sub'
+    }
 }
 
 export abstract class PlayerInfo {
@@ -68,7 +79,7 @@ export abstract class PlayerInfo {
     cards = new Map<CardPos, Card[]>()
 
     //阴阳鱼,珠联璧合,先驱,限定技
-    attributes: {[key: string]: any}
+    signs: Sign = {}
     
     cardInterpreter: CardInterpreter = NoopInterpreter
 
@@ -229,7 +240,7 @@ export abstract class PlayerInfo {
     }
 
     toString(): string {
-        return this.player.id
+        return '[' + this.player.id + ']'
     }
 
     //------------------- Serde -----------------

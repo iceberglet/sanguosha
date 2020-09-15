@@ -1,12 +1,15 @@
 import Multimap from "../../common/util/Multimap";
 import { SimpleConditionalSkill, EventRegistryForSkills, SkillStatus, Skill, GeneralSkillStatusUpdate, HiddenType } from "./Skill";
-import { RevealEvent } from "../FactionWarInitializer";
+import { RevealGeneralEvent } from "../FactionWarInitializer";
 import GameManager from "../../server/GameManager";
 import FactionPlayerInfo from "../FactionPlayerInfo";
-import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, JieMing, QuHu, YiJi, QiaoBian, XiaoGuo } from "./FactionSkillsWei";
 import { describer } from "../../common/util/Describer";
 import { GameMode } from "../../common/GameMode";
-import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi } from "./FactionSkillsShu";
+import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, 
+        JieMing, QuHu, YiJi, QiaoBian, XiaoGuo } from "./FactionSkillsWei";
+import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi, 
+        HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng } from "./FactionSkillsShu";
+import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian } from "./FactionSkillsWu";
 import { Stage } from "../../common/Stage";
 import { PlayerInfo } from "../../common/PlayerInfo";
 
@@ -72,6 +75,33 @@ FactionSkillProviders.register('放权', pid => new FangQuan(pid))
 FactionSkillProviders.register('享乐', pid => new XiangLe(pid))
 FactionSkillProviders.register('集智', pid => new JiZhi(pid))
 FactionSkillProviders.register('奇才', pid => new QiCai(pid))
+FactionSkillProviders.register('连环', pid => new LianHuan(pid))
+FactionSkillProviders.register('涅槃', pid => new NiePan(pid))
+FactionSkillProviders.register('巨象', pid => new JuXiang(pid))
+FactionSkillProviders.register('烈刃', pid => new LieRen(pid))
+FactionSkillProviders.register('再起', pid => new ZaiQi(pid))
+FactionSkillProviders.register('祸首', pid => new HuoShou(pid))
+FactionSkillProviders.register('淑慎', pid => new ShuShen(pid))
+FactionSkillProviders.register('神智', pid => new ShenZhi(pid))
+FactionSkillProviders.register('生息', pid => new ShengXi(pid))
+FactionSkillProviders.register('守成', pid => new ShouCheng(pid))
+
+FactionSkillProviders.register('制衡', pid => new ZhiHeng(pid))
+FactionSkillProviders.register('奇袭', pid => new QiXi(pid))
+FactionSkillProviders.register('苦肉', pid => new KuRou(pid))
+FactionSkillProviders.register('反间', pid => new FanJian(pid))
+FactionSkillProviders.register('英姿', pid => new YingZi(pid))
+FactionSkillProviders.register('国色', pid => new GuoSe(pid))
+FactionSkillProviders.register('流离', pid => new LiuLi(pid))
+FactionSkillProviders.register('谦逊', pid => new QianXun(pid))
+FactionSkillProviders.register('度势', pid => new DuoShi(pid))
+FactionSkillProviders.register('结姻', pid => new JieYin(pid))
+FactionSkillProviders.register('枭姬', pid => new XiaoJi(pid))
+FactionSkillProviders.register('英魂', pid => new YingHun(pid))
+FactionSkillProviders.register('天义', pid => new TianYi(pid))
+FactionSkillProviders.register('固政', pid => new GuZheng(pid))
+FactionSkillProviders.register('直谏', pid => new ZhiJian(pid))
+
 
 export default class FactionWarSkillRepo {
     
@@ -89,7 +119,7 @@ export default class FactionWarSkillRepo {
                 skill.bootstrapServer(this.skillRegistry, manager)
             })
         })
-        manager.adminRegistry.onGeneral<RevealEvent>(RevealEvent, this.onRevealEvent)
+        manager.adminRegistry.onGeneral<RevealGeneralEvent>(RevealGeneralEvent, this.onRevealEvent)
         manager.adminRegistry.onGeneral<GeneralSkillStatusUpdate>(GeneralSkillStatusUpdate, this.onGeneralSkillUpdate)
     }
 
@@ -111,7 +141,7 @@ export default class FactionWarSkillRepo {
                 this.manager.currPlayer().player.id === skill.playerId &&
                 this.manager.currEffect.stage === Stage.USE_CARD) {
                 console.log('[技能] 想要reveal??', skill.id, skill.playerId, ss.isRevealed)
-                await this.manager.events.publish(new RevealEvent(skill.playerId, skill.isMain, !skill.isMain))
+                await this.manager.events.publish(new RevealGeneralEvent(skill.playerId, skill.isMain, !skill.isMain))
                 //会通过Reveal Event 来 update skill
                 // await skill.onStatusUpdated(this.manager)
             } else {
@@ -189,7 +219,7 @@ export default class FactionWarSkillRepo {
         }
     }
 
-    private onRevealEvent= async (e: RevealEvent): Promise<void> => {
+    private onRevealEvent= async (e: RevealGeneralEvent): Promise<void> => {
         let skills = this.allSkills.getArr(e.playerId)
         for(let skill of skills) {
             if(skill.isMain && e.mainReveal) {

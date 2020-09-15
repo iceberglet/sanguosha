@@ -1,35 +1,39 @@
 import { SimpleConditionalSkill, EventRegistryForSkills, Skill, GeneralSkillStatusUpdate, HiddenType, SkillStatus } from "./Skill"
 import GameManager from "../../server/GameManager"
-import DamageOp, { DamageSource, DamageTimeline } from "../../server/engine/DamageOp"
+import DamageOp, { DamageSource, DamageTimeline, DamageType } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
 import { Stage } from "../../common/Stage"
 import { UIPosition, Button } from "../../common/PlayerAction"
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
 import { HintType } from "../../common/ServerHint"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
-import { TextFlashEffect, PlaySound } from "../../common/transit/EffectTransit"
+import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit"
 import { CardPos } from "../../common/transit/CardPos"
 import { WINE_TAKEN } from "../../common/RoundStat"
-import { CardType } from "../../common/cards/Card"
+import Card, { CardType } from "../../common/cards/Card"
 import { slashTargetFilter } from "../../client/player-actions/PlayerActionDrivers"
 import WineOp from "../../server/engine/WineOp"
 import PeachOp from "../../server/engine/PeachOp"
 import PlaySlashOp, { SlashOP, AskForSlashOp, SlashDodgedEvent, SlashCompute, PlaySlashOpNoCards, SlashType } from "../../server/engine/SlashOp"
 import { isSuitRed, isSuitBlack } from "../../common/cards/ICard"
-import { CardBeingUsedEvent, CardBeingDroppedEvent } from "../../server/engine/Generic"
-import TakeCardOp from "../../server/engine/TakeCardOp"
+import { CardBeingUsedEvent, CardBeingDroppedEvent, CardAwayEvent, CardBeingTakenEvent } from "../../server/engine/Generic"
+import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp"
 import PlayerAct from "../../server/context/PlayerAct"
 import DodgeOp from "../../server/engine/DodgeOp"
-import HealOp from "../../server/engine/HealOp"
+import HealOp, { HealTimeline } from "../../server/engine/HealOp"
 import { Timeline } from "../../server/Operation"
 import JudgeOp from "../../server/engine/JudgeOp"
 import FactionPlayerInfo from "../FactionPlayerInfo"
-import { Suits } from "../../common/util/Util"
+import { Suits, all } from "../../common/util/Util"
 import { PlayerInfo } from "../../common/PlayerInfo"
 import { BlockedEquipment, BaGua } from "../../server/engine/Equipments"
-import { HuoGong } from "../../server/engine/SingleRuseOp"
+import { HuoGong, GrabCard } from "../../server/engine/SingleRuseOp"
 import { WuXieContext } from "../../server/engine/WuXieOp"
 import { askAbandonBasicCard } from "./FactionWarUtil";
+import { TieSuo, NanMan } from "../../server/engine/MultiRuseOp"
+import AskSavingOp from "../../server/engine/AskSavingOp"
+import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp"
+import { factionsSame } from "../../common/General"
 
 const REN_DE_SLASH = [SlashType.RED, SlashType.BLACK, SlashType.FIRE, SlashType.THUNDER]
 
@@ -224,8 +228,8 @@ export class WuSheng extends Skill {
             //被迫出的杀
             card.as = CardType.SLASH
             card.description = this.displayName
-            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true, false))
             manager.sendToWorkflow(act.source.player.id, pos, [card])
+            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true, false))
         }
     }
 }
@@ -253,8 +257,10 @@ export class PaoXiao extends SimpleConditionalSkill<SlashOP> {
     }
     public conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
         if(event.source.player.id === this.playerId) {
-            //出杀就咆哮
-            this.playSound(manager, 2)
+            if(manager.roundStats.slashCount > 1) {
+                //出多次杀就咆哮
+                this.playSound(manager, 2)
+            }
             this.slashNumber++
             return this.slashNumber === 2
         }
@@ -323,8 +329,6 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
         await this.revealMySelfIfNeeded(manager)
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let posAndCard = act.getSingleCardAndPos()
         let card = posAndCard[0]
         let pos = posAndCard[1]
@@ -333,6 +337,7 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
             card.as = CardType.SLASH
             card.description = this.id
             let targetPs = act.targets
+            this.invokeEffects(manager, act.targets.map(t => t.player.id))
             manager.sendToWorkflow(act.source.player.id, pos, [card], true)
             await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true))
             await new PlaySlashOp(act.source, targetPs, [card]).perform(manager)
@@ -340,14 +345,16 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
             //被迫出的杀
             card.as = CardType.SLASH
             card.description = this.id
-            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true, false))
+            this.invokeEffects(manager, act.targets.map(t => t.player.id))
             manager.sendToWorkflow(act.source.player.id, pos, [card])
+            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.SLASH, true, false))
         } else if(event instanceof DodgeOp) {
             //玩家出闪
             card.as = CardType.DODGE
             card.description = this.id
-            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.DODGE, true, false))
+            this.invokeEffects(manager, act.targets.map(t => t.player.id))
             manager.sendToWorkflow(act.source.player.id, pos, [card])
+            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, pos]], CardType.DODGE, true, false))
         }
     }
 
@@ -444,8 +451,7 @@ export class TieQi extends SimpleConditionalSkill<SlashCompute> {
         return event.source.player.id === this.playerId && event.timeline === Timeline.AFTER_CONFIRMING_TARGET
     }
     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        this.invokeEffects(manager, [event.target.player.id])
         let judgeCard = await new JudgeOp('铁骑判定', this.playerId).perform(manager)
         console.log('[铁骑] 判定牌为', judgeCard.id)
         let target = event.target as FactionPlayerInfo
@@ -535,8 +541,7 @@ export class BaZhen extends SimpleConditionalSkill<DodgeOp> {
     }
 
     public async doInvoke(event: DodgeOp, manager: GameManager): Promise<void> {
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        this.invokeEffects(manager)
         await this.myBaGua.doEffect(event)
     }
 }
@@ -562,8 +567,7 @@ export class HuoJi extends Skill {
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
         let cardAndPos = act.getSingleCardAndPos()
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        this.invokeEffects(manager)
         cardAndPos[0].as = CardType.HUO_GONG
         
         await this.revealMySelfIfNeeded(manager)
@@ -602,8 +606,7 @@ export class KanPo extends Skill {
         card.description = `${resp.source.player.id} 看破`
         card.as = CardType.WU_XIE
         manager.sendToWorkflow(resp.source.player.id, CardPos.HAND, [card])
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        this.invokeEffects(manager)
         await manager.events.publish(new CardBeingUsedEvent(resp.source.player.id, [[card, CardPos.HAND]], card.type, true))
     }
 
@@ -646,13 +649,12 @@ export class KuangGu extends SimpleConditionalSkill<DamageOp> {
         skillRegistry.on<DamageOp>(DamageOp, this)
     }
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        return event.source && event.source.player.id === this.playerId && event.timeline === DamageTimeline.DID_DAMAGE && 
+        return event.isFrom(this.playerId) && event.timeline === DamageTimeline.DID_DAMAGE && 
                 manager.context.computeDistance(this.playerId, event.target.player.id) <= 1
     }
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         let me = event.source
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        this.invokeEffects(manager, [event.target.player.id])
         console.log('[狂骨] 发动, 回血', event.amount)
         await new HealOp(me, me, event.amount).perform(manager)
     }
@@ -672,9 +674,7 @@ export class LieGong extends SimpleConditionalSkill<SlashCompute> {
     }
     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
         console.log('[烈弓] 发动, 不能闪')
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
-        manager.broadcast(new TextFlashEffect(this.playerId, [event.target.player.id], this.id))
+        this.invokeEffects(manager, [event.target.player.id])
         event.undodgeable = true
     }
 }
@@ -703,10 +703,9 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
         return false 
     }
     public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let me = manager.context.getPlayer(this.playerId)
         console.log('[蒺藜] 发动蒺藜拿牌', me.getReach())
+        this.invokeEffects(manager)
         await new TakeCardOp(me, me.getReach()).perform(manager)
     }
 }
@@ -725,9 +724,7 @@ export class XiangLe extends SimpleConditionalSkill<SlashCompute> {
     }
     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
         console.log('[享乐] 发动')
-        this.playSound(manager, 2)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
-        manager.broadcast(new TextFlashEffect(this.playerId, [event.source.player.id], this.id))
+        this.invokeEffects(manager, [event.source.player.id])
         let abandonned = await askAbandonBasicCard(manager, event.source, '请弃置一张基本牌否则你的杀无效', true)
         if(abandonned) {
             console.log('[享乐] 弃置了基本牌, 杀继续生效')
@@ -769,9 +766,7 @@ export class FangQuan extends SimpleConditionalSkill<StageStartFlow> {
                     console.log('[放权] 给了', target.player.id)
                     await resp.dropCardsFromSource(this.playerId + ' 放权')
 
-                    manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
-                    this.playSound(manager, 2)
-                    manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+                    this.invokeEffects(manager, [target.player.id])
                     manager.cutQueue(target)
                 }
             }
@@ -801,8 +796,7 @@ export class JiZhi extends SimpleConditionalSkill<CardBeingUsedEvent> {
     }
     public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
         console.log('[集智] 发动, 摸一张牌')
-        this.playSound(manager, 1)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        this.invokeEffects(manager)
         await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
     }
 }
@@ -846,25 +840,339 @@ export class QiCai extends Skill {
     }
 }
 
+export class LianHuan extends Skill {
+    id = '连环'
+    displayName = '连环'
+    description = '你可以将一张梅花手牌当【铁索连环】使用或重铸。'
+    hiddenType = HiddenType.NONE
+    
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('连环')
+                    .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
+                    .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).suit === 'club', ()=>'选择一张梅花手牌')
+                    .expectChoose([UIPosition.PLAYER], 1, 2, 
+                        (id, context)=>true,
+                        ()=>`选择1到2个‘铁索连环’的对象, 或者直接重铸`)
+                    .expectAnyButton('点击确定使用铁索连环 或重铸')
+                    .build(hint, [Button.OK, Button.CANCEL, new Button('chong_zhu', '重铸')])
+        })
+    }
+
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        this.playSound(manager, 2)
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        let cardAndPos = act.getSingleCardAndPos()
+        cardAndPos[0].as = CardType.TIE_SUO
+        cardAndPos[0].description = '连环'
+        if(act.targets.length === 0) {
+            //铁索重铸算作弃置
+            await act.dropCardsFromSource('重铸')
+        } else {
+            manager.sendToWorkflow(act.source.player.id, cardAndPos[1], [cardAndPos[0]], true, true)
+            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [cardAndPos], CardType.TIE_SUO, true, true))
+        }
+        await new TieSuo(act.source, act.targets, [cardAndPos[0]]).perform(manager)
+    }
+}
+
+export class NiePan extends SimpleConditionalSkill<AskSavingOp> {
+    id = '涅槃'
+    displayName = '涅槃'
+    description = '限定技，当你处于濒死状态时，你可以弃置所有牌，然后复原你的武将牌，摸三张牌，将体力回复至3点。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        manager.context.getPlayer(this.playerId).signs['涅'] = {
+            enabled: true,
+            owner: this.isMain? 'main' : 'sub'
+        }
+        skillRegistry.on<AskSavingOp>(AskSavingOp, this)
+    }
+    public conditionFulfilled(event: AskSavingOp, manager: GameManager): boolean {
+        return event.deadman.player.id === this.playerId && event.goodman.player.id === this.playerId
+    }
+    public async doInvoke(event: AskSavingOp, manager: GameManager): Promise<void> {
+        let me = manager.context.getPlayer(this.playerId)
+
+        let cardsAndPos = me.getAllCards()
+        for(let cardAndPos of cardsAndPos) {
+            cardAndPos[0].description = `${me} 涅槃弃牌`
+            manager.sendToWorkflow(me.player.id, cardAndPos[1], [cardAndPos[0]])
+        }
+        await manager.events.publish(new CardBeingDroppedEvent(me.player.id, cardsAndPos))
+        me.signs['涅'] = {
+            enabled: false,
+            owner: this.isMain? 'main' : 'sub'
+        }
+        me.isDrunk = false
+        me.isChained = false
+        me.isTurnedOver = false
+        me.hp = 3
+        manager.broadcast(me, PlayerInfo.sanitize)
+        this.invokeEffects(manager)
+        
+        await new TakeCardOp(manager.context.getPlayer(this.playerId), 3).perform(manager)
+    }
+}
+
+export class HuoShou extends SimpleConditionalSkill<NanMan> {
+    id = '祸首'
+    displayName = '祸首'
+    description = '锁定技，【南蛮入侵】对你无效；当其他角色使用【南蛮入侵】指定目标后，你代替其成为此牌造成的伤害的来源。'
+    isLocked = true
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<NanMan>(NanMan, this)
+    }
+    public conditionFulfilled(event: NanMan, manager: GameManager): boolean {
+        return !!event.targets.find(t => t.player.id === this.playerId) && event.timeline === Timeline.BECOME_TARGET
+    }
+    public async doInvoke(event: NanMan, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+
+        //remove myself from target
+        event.targets.splice(event.targets.findIndex(t => t.player.id === this.playerId), 1)
+        //add to source
+        event.damageDealer = manager.context.getPlayer(this.playerId)
+    }
+}
+
+export class ZaiQi extends SimpleConditionalSkill<TakeCardStageOp> {
+    id = '再起'
+    displayName = '再起'
+    description = '摸牌阶段，你可以改为亮出牌堆顶的X张牌（X为你已损失的体力值），然后回复等同于其中红桃牌数量的体力，并获得其余的牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<TakeCardStageOp>(TakeCardStageOp, this)
+    }
+    public conditionFulfilled(event: TakeCardStageOp, manager: GameManager): boolean {
+        let me = manager.context.getPlayer(this.playerId)
+        return event.player === me && me.hp < me.maxHp
+    }
+    public async doInvoke(event: TakeCardStageOp, manager: GameManager): Promise<void> {
+        this.playSound(manager, 2)
+        manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
+        event.amount = 0
+
+        // 亮出X张
+        let me = manager.context.getPlayer(this.playerId)
+        let x = me.maxHp - me.hp
+        let zaiQiCards = manager.context.deck.getCardsFromTop(x).map(c => {
+            c.description = this.displayName
+            return c
+        })
+        let transit = CardTransit.deckToWorkflow(zaiQiCards)
+        transit.specialEffect = 'flip'
+        manager.broadcast(transit)
+
+        let collect: Card[] = []
+        zaiQiCards.forEach(c => {
+            manager.context.workflowCards.add(c)
+            if(manager.interpret(this.playerId, c.id).suit !== 'heart') {
+                collect.push(c)
+            }
+        })
+
+        let recover = zaiQiCards.length - collect.length
+        let msg = `${this.playerId} 发动了 ${this.displayName}`
+        if(recover > 0) {
+            msg += ` 回复了${recover}点体力`
+        }
+        if(collect.length > 0) {
+            msg += ` 并获得了${collect}`
+        }
+        manager.log(msg)
+        await new HealOp(me, me, recover).perform(manager)
+        manager.takeFromWorkflow(this.playerId, CardPos.HAND, collect)
+    }
+}
+
+export class JuXiang extends SimpleConditionalSkill<NanMan> {
+    id = '巨象'
+    displayName = '巨象'
+    description = '锁定技，【南蛮入侵】对你无效；当其他角色使用的【南蛮入侵】结算结束后，你获得之。'
+    isLocked = true
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<NanMan>(NanMan, this)
+    }
+    public conditionFulfilled(event: NanMan, manager: GameManager): boolean {
+        //目标中有我的南蛮入侵， 并且在确认目标阶段
+        //或者南蛮已经结算完毕，且是其他角色使用的
+        return (!!event.targets.find(t => t.player.id === this.playerId) && event.timeline === Timeline.BECOME_TARGET) || 
+                (event.source.player.id !== this.playerId && event.timeline === Timeline.COMPUTE_FINISH)
+    }
+    public async doInvoke(event: NanMan, manager: GameManager): Promise<void> {
+        if(event.timeline === Timeline.BECOME_TARGET) {
+            this.invokeEffects(manager)
+            //remove myself from target
+            event.targets.splice(event.targets.findIndex(t => t.player.id === this.playerId), 1)
+        }
+        if(event.timeline === Timeline.COMPUTE_FINISH) {
+            console.log('[巨象] 南蛮结算完毕', event.cards.map(c => c.id), all(event.cards, c => manager.stillInWorkflow(c)))
+            if(event.cards.length > 0 && all(event.cards, c => manager.stillInWorkflow(c))) {
+                this.playSound(manager, 2)
+                manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
+                manager.log(`${this.playerId} 获得南蛮入侵牌 ${event.cards}`)
+                manager.takeFromWorkflow(this.playerId, CardPos.HAND, event.cards)
+            }
+        }
+    }
+}
+
+export class LieRen extends SimpleConditionalSkill<DamageOp> {
+    id = '烈刃'
+    displayName = '烈刃'
+    description = '当你使用【杀】对目标角色造成伤害后，你可以与其拼点，若你赢，你获得其一张牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+    }
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        if(event.isFrom(this.playerId) && event.timeline === DamageTimeline.DID_DAMAGE 
+            && event.damageSource === DamageSource.SLASH && event.target.player.id !== this.playerId) {
+            return canCardFight(this.playerId, event.target.player.id, manager)
+        }
+        return false
+    }
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager, [event.target.player.id])
+
+        let success = await new CardFightOp(event.source, event.target, this.displayName).perform(manager)
+        if(success) {
+            await GrabCard(event.source, event.target, '烈刃拼点成功获得对方一张牌', manager, [CardPos.HAND, CardPos.EQUIP])
+        }
+    }
+}
+
+
+export class ShuShen extends SimpleConditionalSkill<HealOp> {
+    id = '淑慎'
+    displayName = '淑慎'
+    description = '当你回复1点体力后，你可以令一名其他角色摸一张牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<HealOp>(HealOp, this)
+    }
+    public conditionFulfilled(event: HealOp, manager: GameManager): boolean {
+        return event.target.player.id === this.playerId && event.amount > 0 && event.timeline === HealTimeline.AFTER
+    }
+    public async doInvoke(event: HealOp, manager: GameManager): Promise<void> {
+        let amount = event.amount
+        while(amount > 0) {
+            amount--
+            let resp = await manager.sendHint(this.playerId, {
+                hintType: HintType.CHOOSE_PLAYER,
+                hintMsg: '选择一名其他角色摸牌',
+                forbidden: [this.playerId],
+                minQuantity: 1,
+                quantity: 1,
+                extraButtons: [Button.CANCEL]
+            })
+
+            if(resp.isCancel()) {
+                return
+            } else {
+                let lucky = resp.targets[0]
+                this.invokeEffects(manager, [lucky.player.id])
+                await new TakeCardOp(lucky, 1).perform(manager)
+            }
+        }
+    }
+}
+
+export class ShenZhi extends SimpleConditionalSkill<StageStartFlow> {
+    id = '神智'
+    displayName = '神智'
+    description = '准备阶段，你可以弃置所有手牌，若你以此法弃置的手牌数不小于你的体力值，你回复1点体力。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+    }
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        let me = manager.context.getPlayer(this.playerId)
+        return event.info.player.id === this.playerId && event.stage === Stage.ROUND_BEGIN && me.getCards(CardPos.HAND).length > 0
+    }
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let me = manager.context.getPlayer(this.playerId)
+        let cards = me.getCards(CardPos.HAND)
+        this.invokeEffects(manager)
+
+        let toDrop = cards.map(card => {
+            delete card.as
+            card.description = `${this.displayName} 弃置`
+            return card
+        })
+        manager.sendToWorkflow(this.playerId, CardPos.HAND, toDrop, true)
+        await manager.events.publish(new CardBeingDroppedEvent(this.playerId, toDrop.map(d => [d, CardPos.HAND])))
+        if(toDrop.length >= me.hp) {
+            await new HealOp(me, me, 1).perform(manager)
+        }
+    }
+}
+
+
+export class ShengXi extends SimpleConditionalSkill<StageStartFlow> {
+    id = '生息'
+    displayName = '生息'
+    description = '弃牌阶段开始时，若你此回合内没有造成过伤害，你可以摸两张牌。'
+    hasDealtDamage = false
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+        skillRegistry.onEvent<DamageOp>(DamageOp, this.playerId, async(op)=>{
+            if(op.isFrom(this.playerId) && op.type !== DamageType.ENERGY) {
+                this.hasDealtDamage = true
+            }
+        })
+    }
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        //piggy back
+        if(event.info.player.id === this.playerId) {
+            if(event.stage === Stage.ROUND_BEGIN) {
+                this.hasDealtDamage = false
+            }
+            if(event.stage === Stage.DROP_CARD && !this.hasDealtDamage) {
+                return true
+            }
+        }
+        return false
+    }
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        await new TakeCardOp(manager.context.getPlayer(this.playerId), 2).perform(manager)
+    }
+}
+
+export class ShouCheng extends SimpleConditionalSkill<CardAwayEvent> {
+    id = '守成'
+    displayName = '守成'
+    description = '当与你势力相同的一名角色于其回合外失去最后手牌时，你可以令其摸一张牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<CardBeingDroppedEvent>(CardBeingDroppedEvent, this)
+        skillRegistry.on<CardBeingTakenEvent>(CardBeingTakenEvent, this)
+        skillRegistry.on<CardBeingUsedEvent>(CardBeingUsedEvent, this)
+    }
+    public conditionFulfilled(event: CardAwayEvent, manager: GameManager): boolean {
+        let me = manager.context.getPlayer(this.playerId) as FactionPlayerInfo
+        let theGuy = manager.context.getPlayer(event.player) as FactionPlayerInfo
+        if(manager.currPlayer() === theGuy) {
+            return false
+        }
+        if(FactionPlayerInfo.factionSame(me, theGuy) && theGuy.getCards(CardPos.HAND).length === 0) {
+            return true
+        }
+        return false
+    }
+    public async doInvoke(event: CardAwayEvent, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        await new TakeCardOp(manager.context.getPlayer(event.player), 1).perform(manager)
+    }
+}
+
 // 观星 准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。
 // 空城 锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。
-
-
-// 连环 你可以将一张梅花手牌当【铁索连环】使用或重铸。
-// 涅槃 限定技，当你处于濒死状态时，你可以弃置所有牌，然后复原你的武将牌，摸三张牌，将体力回复至3点。
-
-
-// 祸首 锁定技，【南蛮入侵】对你无效；当其他角色使用【南蛮入侵】指定目标后，你代替其成为此牌造成的伤害的来源。
-// 再起 摸牌阶段，你可以改为亮出牌堆顶的X张牌（X为你已损失的体力值），然后回复等同于其中红桃牌数量的体力，并获得其余的牌。
-
-// 巨象 锁定技，【南蛮入侵】对你无效；当其他角色使用的【南蛮入侵】结算结束后，你获得之。
-// 烈刃 当你使用【杀】对目标角色造成伤害后，你可以与其拼点，若你赢，你获得其一张牌。
-
-// 淑慎 当你回复1点体力后，你可以令一名其他角色摸一张牌。
-// 神智 准备阶段，你可以弃置所有手牌，若你以此法弃置的手牌数不小于你的体力值，你回复1点体力。
-
-// 生息 弃牌阶段开始时，若你此回合内没有造成过伤害，你可以摸两张牌。
-// 守成 当与你势力相同的一名角色于其回合外失去最后手牌时，你可以令其摸一张牌。
 
 // 挑衅 出牌阶段限一次，你可以选择一名攻击范围内含有你的角色，然后除非该角色对你使用一张【杀】，否则你弃置其一张牌。
 // 遗志 副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。

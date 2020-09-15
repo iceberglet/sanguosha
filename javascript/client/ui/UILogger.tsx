@@ -13,9 +13,10 @@ export function UILogger(p: LoggerProp) {
 
     React.useEffect(()=>{
         p.pubsub.on<LogTransit>(LogTransit, (log)=>{
-            logs.push(log.log)
+            //add to front, first item at bottom
+            logs.unshift(log.log)
             if(logs.length > 500) {
-                logs.shift()
+                logs.pop()
             }
             setLogs([...logs])
         })

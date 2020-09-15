@@ -9,7 +9,9 @@ import { delay } from "../../common/util/Util";
 import { CustomUIData, CardFightData } from "../../client/card-panel/CustomUIRegistry";
 
 //必须有手牌
-export function canCardFight(me: PlayerInfo, target: PlayerInfo) {
+export function canCardFight(a: string, b: string, manager: GameManager) {
+    let me = manager.context.getPlayer(a)
+    let target = manager.context.getPlayer(b)
     return me.getCards(CardPos.HAND).length > 0 && target.getCards(CardPos.HAND).length > 0
 }
 /**
@@ -24,6 +26,9 @@ export default class CardFightOp extends Operation<boolean> {
     constructor(private initiater: PlayerInfo, private target: PlayerInfo, msg: string){
         super()
         this.title = `${this.initiater.player.id} 拼点 ${this.target}(${msg})`
+        if(initiater === target) {
+            throw '拼点的对象不能是自己!!' + initiater + ' ' + target
+        }
     }
 
     public async perform(manager: GameManager): Promise<boolean> {

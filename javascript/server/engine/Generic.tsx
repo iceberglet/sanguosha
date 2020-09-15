@@ -9,6 +9,7 @@ export interface CardAwayEvent {
 }
 
 //使用 / 打出
+//必须是在牌出到了workflow之后publish
 export class CardBeingUsedEvent implements CardAwayEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, 
                 public readonly as: CardType, public readonly isFromSkill: boolean = false,
@@ -16,11 +17,13 @@ export class CardBeingUsedEvent implements CardAwayEvent {
 }
 
 //弃置
+//必须是在牌出到了workflow之后publish
 export class CardBeingDroppedEvent implements CardAwayEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
 }
 
 //拿走
+//必须是在牌出到了workflow之后publish
 export class CardBeingTakenEvent implements CardAwayEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
 }

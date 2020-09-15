@@ -1,4 +1,6 @@
 import GameManager from "./GameManager";
+import { PlayerInfo } from "../common/PlayerInfo";
+import { CardType } from "../common/cards/Card";
 
 
 export abstract class Operation<T> {
@@ -31,6 +33,7 @@ export abstract class UseEventOperation<T> extends Operation<T> {
             this.timeline = t
             await manager.events.publish(this)
             if(this.abort) {
+                await this.onAborted(manager)
                 return
             }
         }
@@ -40,7 +43,19 @@ export abstract class UseEventOperation<T> extends Operation<T> {
         return res
     }
 
+    public async onAborted(manager: GameManager): Promise<void> {
+        //no-op by default
+    }
+
     public abstract async doPerform(manager: GameManager): Promise<T>;
+}
+
+export abstract class RuseOp<T> extends UseEventOperation<T> {
+
+    constructor(public readonly target: PlayerInfo,
+                public readonly ruseType: CardType) {
+        super()
+    }
 }
 
 //https://gltjk.com/sanguosha/rules/flow/use.html

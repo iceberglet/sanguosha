@@ -1,14 +1,14 @@
 import GameManager from "../../server/GameManager";
 import { AckingConsumer } from "../../common/util/PubSub";
-import { PlaySound } from "../../common/transit/EffectTransit";
+import { PlaySound, TextFlashEffect } from "../../common/transit/EffectTransit";
 import PlayerAct from "../../server/context/PlayerAct";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import FactionPlayerInfo from "../FactionPlayerInfo";
-import { RevealEvent } from "../FactionWarInitializer";
+import { RevealGeneralEvent } from "../FactionWarInitializer";
 
 
 export interface EventRegistryForSkills {
-    on<T>(type: Function, skill: SimpleConditionalSkill<T>): void
+    on<T>(type: Function, skill: SkillTrigger<T>): void
     onEvent<T>(type: Function, player: string, consumer: AckingConsumer<T>): void
 }
 
@@ -54,6 +54,17 @@ export class SkillStatus {
     public constructor(public readonly playerId: string) {}
 }
 
+export function invocable<T>(trigger: SkillTrigger<T>, event: T, manager: GameManager) {
+    let skill = trigger.getSkill()
+    if(skill.isDisabled) {
+        return false
+    }
+    if((skill.isRevealed || skill.isForewarned) && trigger.conditionFulfilled(event, manager)) {
+        return true
+    }
+    return false
+}
+
 /**
  * Sent for subscription
  * 需要能知道主体Skill的状态
@@ -62,8 +73,6 @@ export class SkillStatus {
 export interface SkillTrigger<T> {
 
     getSkill(): Skill
-
-    invocable(event: T, manager: GameManager): boolean
 
     invokeMsg(event: T, manager: GameManager): string
 
@@ -148,10 +157,16 @@ export abstract class Skill extends SkillStatus {
         manager.broadcast(new PlaySound(`audio/skill/${this.id}${random}.mp3`))
     }
 
+    public invokeEffects(manager: GameManager, targets: string[] = []) {
+        this.playSound(manager, 2)
+        manager.broadcast(new TextFlashEffect(this.playerId, targets, this.id))
+        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+    }
+
     protected async revealMySelfIfNeeded(manager: GameManager) {
         if(!this.isRevealed) {
             console.log(`[${this.id}] 明置 ${this.playerId}`)
-            await manager.events.publish(new RevealEvent(this.playerId, this.isMain, !this.isMain))
+            await manager.events.publish(new RevealGeneralEvent(this.playerId, this.isMain, !this.isMain))
         }
     }
 }

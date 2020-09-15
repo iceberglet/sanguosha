@@ -9,6 +9,7 @@ import { HintType } from "../common/ServerHint";
 import { Button } from "../common/PlayerAction";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
+import { RevealGeneralEvent, RevealPlayerEvent } from "./FactionWarInitializer";
 
 const playerAndEquipments = new Map<string, Equipment>()
 
@@ -101,6 +102,7 @@ export class WuLiu extends Equipment {
                         this.manager.broadcast(p, PlayerInfo.sanitize)
                     })
         //todo: newly revealed players need to have this as well!
+
     }
 
     async onDropped(): Promise<void> {
@@ -113,6 +115,10 @@ export class WuLiu extends Equipment {
                         console.log(`[装备] ${p.player.id} 受吴六剑卸下的影响, reachModifier成为${p.reachModifier}`)
                         this.manager.broadcast(p, PlayerInfo.sanitize)
                     })
+    }
+
+    onNewBuddyRevealed = async (event: RevealPlayerEvent): Promise<void> => {
+        
     }
 }
 

@@ -40,10 +40,10 @@ export default class AskSavingOp {
                 let card = response.getSingleCardAndPos()[0];
                 //桃, 或者酒
                 manager.broadcast(new TextFlashEffect(this.goodman.player.id, [targetId], card.type.name))
-                await manager.events.publish(new CardBeingUsedEvent(this.goodman.player.id, [[card, CardPos.HAND]], card.type, false, false))
+                card.description = `${this.goodman.player.id} 对 ${targetId} 使用 ${card.type.name}`                
                 //桃牌扔进workflow
-                card.description = `${this.goodman.player.id} 对 ${targetId} 使用 ${card.type.name}`
                 manager.sendToWorkflow(this.goodman.player.id, CardPos.HAND, [card])
+                await manager.events.publish(new CardBeingUsedEvent(this.goodman.player.id, [[card, CardPos.HAND]], card.type, false, false))
                 await new HealOp(this.goodman, this.deadman, 1).perform(manager)
             } else {
                 break

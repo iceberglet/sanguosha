@@ -3,7 +3,7 @@ import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import Card from "../../common/cards/Card";
-import { ServerHint } from "../../common/ServerHint";
+import { ServerHint, CardSelectionResult, GeneralSelectionResult } from "../../common/ServerHint";
 import { CardBeingDroppedEvent } from "../engine/Generic";
 
 export default class PlayerAct {
@@ -15,7 +15,7 @@ export default class PlayerAct {
     public readonly cards: Map<CardPos, Card[]>
     public readonly cardsAndPos: Array<[Card, CardPos]>
     public readonly serverHint: ServerHint
-    public readonly customData: any
+    public readonly customData: CardSelectionResult | GeneralSelectionResult | string
 
     public constructor(action: PlayerAction, private manager: GameManager) {
         this.serverHint = action.serverHint

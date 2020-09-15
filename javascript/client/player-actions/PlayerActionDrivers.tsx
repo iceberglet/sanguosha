@@ -148,7 +148,8 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段出借刀杀人')
             .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.JIE_DAO)
             .expectChoose([UIPosition.PLAYER], 2, 2, 
-                (id, context, chosen)=>{
+                (id, context, chosenMap)=>{
+                    let chosen = chosenMap.getArr(UIPosition.PLAYER)
                     if(chosen.length === 0) {
                         //not me, and has weapon!
                         return id !== context.myself.player.id && !!context.getPlayer(id).getCards(CardPos.EQUIP).find(c => c.type.genre === 'weapon')

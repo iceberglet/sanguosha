@@ -1,7 +1,7 @@
 import FactionWarGeneral from "./FactionWarGenerals"
 import { Faction, Gender, factionDiffers, factionsSame } from '../common/General'
 import { Player } from "../common/Player"
-import { PlayerInfo, Mark } from "../common/PlayerInfo"
+import { PlayerInfo, Mark, Sign } from "../common/PlayerInfo"
 import * as React from "react"
 import './faction-war.scss'
 import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
@@ -89,6 +89,16 @@ export default class FactionPlayerInfo extends PlayerInfo {
         }
         copy.general = this.isGeneralRevealed && this.general
         copy.subGeneral = this.isSubGeneralRevealed && this.subGeneral
+        copy.signs = {}
+        Object.keys(this.signs).forEach(k => {
+            if(this.signs[k].owner === 'main' && !this.isGeneralRevealed) {
+                return
+            }
+            if(this.signs[k].owner === 'sub' && !this.isSubGeneralRevealed) {
+                return
+            }
+            copy.signs[k] = this.signs[k]
+        })
         return copy
     }
 
@@ -126,6 +136,11 @@ export default class FactionPlayerInfo extends PlayerInfo {
                 {this.drawMark(this.subMark)}
             </div>)}
             <div className='player-name'>{this.player.id}</div>
+            <div className='signs'>
+                {Object.keys(this.signs).map(s => {
+                    return <div key={s} className={'sign center ' + this.signs[s].enabled}>{s}</div>
+                })}
+            </div>
         </div>,
         <FactionMark key={'faction-mark'} info={this}/>]
     }

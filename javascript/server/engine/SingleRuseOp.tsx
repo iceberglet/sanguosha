@@ -1,4 +1,4 @@
-import { Operation } from "../Operation";
+import { UseEventOperation, RuseOp } from "../Operation";
 import GameManager from "../GameManager";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { WuXieContext } from "./WuXieOp";
@@ -14,25 +14,16 @@ import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import { DropOthersCardRequest } from "./DropCardOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 
-export abstract class SingleRuse<T> extends Operation<T> {
-
-    public abort = false
+export abstract class SingleRuse<T> extends RuseOp<T> {
 
     public constructor(public readonly source: PlayerInfo, 
                         public readonly target: PlayerInfo, 
                         public readonly cards: Card[],
                         public readonly ruseType: CardType) {
-        super()
+        super(target, ruseType)
     }
 
-    public async perform(manager: GameManager): Promise<T> {
-
-        await manager.events.publish(this)
-
-        if(this.abort) {
-            console.log('锦囊牌被取消了')
-            return
-        }
+    public async doPerform(manager: GameManager): Promise<T> {
 
         this.doTextEffect(manager)
 
@@ -43,14 +34,14 @@ export abstract class SingleRuse<T> extends Operation<T> {
             return
         }
 
-        await this.doPerform(manager)
+        await this.doEffect(manager)
     }
 
     protected doTextEffect(manager: GameManager) {
         manager.broadcast(new TextFlashEffect(this.source.player.id, [this.target.player.id], this.ruseType.name))
     }
 
-    public abstract async doPerform(manager: GameManager): Promise<T>
+    public abstract async doEffect(manager: GameManager): Promise<T>
 
 }
 
@@ -73,7 +64,7 @@ export class JueDou extends SingleRuse<void> {
      * c.f. 貂蝉.离间
      * @param manager 
      */
-    public async doPerform(manager: GameManager) {
+    public async doEffect(manager: GameManager) {
 
         let targetPlayer = this.target
         let me = this.source
@@ -97,6 +88,35 @@ export class JueDou extends SingleRuse<void> {
     }
 }
 
+export async function GrabCard(source: PlayerInfo, target: PlayerInfo, title: string, manager: GameManager, poses: CardPos[]) {
+    
+    let candidates = gatherCards(target, poses)
+    if(!candidates) {
+        console.error('无法拿牌, 此玩家没有牌可以拿')
+        return
+    }
+
+    let resp = await manager.sendHint(source.player.id, {
+        hintType: HintType.UI_PANEL,
+        hintMsg: '请选择对方一张牌',
+        customRequest: {
+            data: {
+                rowsOfCard: candidates,
+                title: title,
+                chooseSize: 1
+            },
+            mode: 'choose'
+        }
+    })
+    let res = resp.customData as CardSelectionResult
+    let cardAndPos = findCard(target, res)[0]
+    let card = cardAndPos[0], pos = cardAndPos[1]
+    manager.log(`${source} 获得了 ${target} 的 ${pos === CardPos.HAND? '一张手牌' : card}`)
+    delete card.description
+    delete card.as
+    await manager.transferCards(target.player.id, source.player.id, pos, CardPos.HAND, [card])
+}
+
 export class ShunShou extends SingleRuse<void> {
 
     public constructor(public readonly source: PlayerInfo, 
@@ -105,35 +125,8 @@ export class ShunShou extends SingleRuse<void> {
         super(source, target, cards, CardType.SHUN_SHOU)
     }
 
-    public async doPerform(manager: GameManager) {
-        let targetPlayer = this.target
-
-        let candidates = gatherCards(targetPlayer, [CardPos.JUDGE, CardPos.HAND, CardPos.EQUIP])
-        if(!candidates) {
-            console.error('[顺手] 无法进行顺手结算, 此玩家没有牌可以拿')
-            return
-        }
-        
-        let resp = await manager.sendHint(this.source.player.id, {
-            hintType: HintType.UI_PANEL,
-            hintMsg: '请选择对方一张牌',
-            customRequest: {
-                data: {
-                    rowsOfCard: candidates,
-                    title: `顺手牵羊 > ${this.target}`,
-                    chooseSize: 1
-                },
-                mode: 'choose'
-            }
-        })
-        console.log('[顺手] 顺手牵羊成功!', this.source.player.id)
-        let res = resp.customData as CardSelectionResult
-        let cardAndPos = findCard(targetPlayer, res)[0]
-        let card = cardAndPos[0], pos = cardAndPos[1]
-        manager.log(`${this.source} 获得了 ${this.target} 的 ${pos === CardPos.HAND? '一张手牌' : card}`)
-        delete card.description
-        delete card.as
-        await manager.transferCards(this.target.player.id, this.source.player.id, pos, CardPos.HAND, [card])
+    public async doEffect(manager: GameManager) {
+        await GrabCard(this.source, this.target, `顺手牵羊 > ${this.target}`, manager, [CardPos.JUDGE, CardPos.HAND, CardPos.EQUIP])
     }
 }
 
@@ -145,7 +138,7 @@ export class GuoHe extends SingleRuse<void> {
     super(source, target, cards, CardType.GUO_HE)
     }
 
-    public async doPerform(manager: GameManager) {
+    public async doEffect(manager: GameManager) {
         await new DropOthersCardRequest().perform(manager, this.source, this.target, `过河拆桥 > ${this.target}`, [CardPos.JUDGE, CardPos.HAND, CardPos.EQUIP])
     }
 }
@@ -159,7 +152,7 @@ export class WuZhong extends SingleRuse<void> {
         super(source, target, cards, CardType.WU_ZHONG)
     }
 
-    public async doPerform(manager: GameManager) {
+    public async doEffect(manager: GameManager) {
         console.log('无中生有成功!')
         await new TakeCardOp(this.source, 2).perform(manager)
     }
@@ -178,7 +171,7 @@ export class JieDao extends SingleRuse<void> {
         manager.broadcast(new TextFlashEffect(this.source.player.id, [this.actors[0].player.id], this.ruseType.name, this.actors[1].player.id))
     }
 
-    public async doPerform(manager: GameManager) {
+    public async doEffect(manager: GameManager) {
         console.log('借刀杀人开始结算!')
 
         let from = this.actors[0]
@@ -222,7 +215,7 @@ export class HuoGong extends SingleRuse<void> {
         super(source, target, cards, CardType.HUO_GONG)
     }
 
-    public async doPerform(manager: GameManager): Promise<void> {
+    public async doEffect(manager: GameManager): Promise<void> {
         if(this.target.getCards(CardPos.HAND).length === 0) {
             console.error('[火攻] 玩家没有手牌, 无法火攻!! (最后手牌是无懈?)', this.target)
             return

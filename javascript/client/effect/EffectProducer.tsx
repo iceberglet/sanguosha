@@ -6,7 +6,7 @@ import { CENTER } from '../ui/UIWorkflowRow'
 import { getEffect } from './SpriteSheet'
 import { Coor, ScreenPosObtainer } from '../ui/ScreenPosObtainer'
 
-const rayDuration = 2500
+const rayDuration = 1500
 const textDuration = 3000
 const animDuration = 16 / 60 * 1000
 
@@ -73,7 +73,7 @@ export default class EffectProducer extends React.Component<Prop, State> {
         })
         if(effect.secondary && effect.targetPlayers && effect.targetPlayers.length > 0) {
             setTimeout(()=>{
-                this.drawRay(o.getPos(effect.secondary), o.getPos(effect.targetPlayers[0]))
+                this.drawRay(o.getPos(effect.targetPlayers[0]), o.getPos(effect.secondary))
             }, rayDuration)
         }
     }

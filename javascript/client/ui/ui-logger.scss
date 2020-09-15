@@ -10,6 +10,7 @@
         padding-bottom: 2px;
         padding-left: 2px;
         padding-right: 2px;
+        line-height: 1em;
     }
 }
 
@@ -26,6 +27,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+
+    .log-row {
+        line-height: 1em;
+    }
 
     .log-row:nth-child(1) {
         opacity: 60%;

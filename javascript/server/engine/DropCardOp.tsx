@@ -5,11 +5,17 @@ import { UIPosition, Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, ServerHint } from "../../common/ServerHint";
 import { CardBeingDroppedEvent, gatherCards, findCard } from "./Generic";
+import Card from "../../common/cards/Card";
 
+export enum DropTimeline {
+    BEFORE, AFTER
+}
 //弃牌阶段
 export default class DropCardOp extends Operation<void> {
 
     amount = 0
+    timeline: DropTimeline = DropTimeline.BEFORE
+    dropped: Card[] = []
 
     public constructor(public player: PlayerInfo) {
         super()
@@ -23,8 +29,13 @@ export default class DropCardOp extends Operation<void> {
         await manager.events.publish(this);
 
         if(this.amount > 0) {
-            await new DropCardRequest().perform(myId, this.amount, manager, `弃牌阶段 请弃置${this.amount}张手牌`)
+            let request = new DropCardRequest()
+            await request.perform(myId, this.amount, manager, `弃牌阶段 请弃置${this.amount}张手牌`)
+            this.dropped = request.dropped
         }
+        
+        this.timeline = DropTimeline.AFTER
+        await manager.events.publish(this);
     }
 }
 
@@ -64,6 +75,8 @@ export class DropOthersCardRequest {
 
 export class DropCardRequest {
 
+    dropped: Card[] = []
+
     /**
      * 若玩家取消, 返回false, 若玩家弃置, 返回true
      * @param targetId 
@@ -100,6 +113,7 @@ export class DropCardRequest {
             let toDrop = cp[1].map(card => {
                 delete card.as
                 card.description = `[${targetId}] 弃置`
+                this.dropped.push(card)
                 return card
             })
             manager.sendToWorkflow(targetId, p, toDrop, true)

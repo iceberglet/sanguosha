@@ -15,10 +15,14 @@ import TakeCardOp from "../server/engine/TakeCardOp";
 import { describer } from "../common/util/Describer";
 import initializeEquipments from "./FactionWarEquipmentInitializer";
 
-export class RevealEvent {
+export class RevealGeneralEvent {
     public constructor(public readonly playerId: string, 
                         public readonly mainReveal: boolean,
                         public readonly subReveal: boolean) {}
+}
+
+export class RevealPlayerEvent {
+    public constructor(public readonly player: PlayerInfo) {}
 }
 
 export default class FactionWarInitializer implements Initializer {
@@ -56,17 +60,17 @@ export default class FactionWarInitializer implements Initializer {
             }
             let choice = resp.button
             if(choice === 'general') {
-                await manager.events.publish(new RevealEvent(p.player.id, true, false))
+                await manager.events.publish(new RevealGeneralEvent(p.player.id, true, false))
             } else if (choice === 'subgeneral') {
-                await manager.events.publish(new RevealEvent(p.player.id, false, true))
+                await manager.events.publish(new RevealGeneralEvent(p.player.id, false, true))
             } else if (choice === 'all') {
-                await manager.events.publish(new RevealEvent(p.player.id, true, true))
+                await manager.events.publish(new RevealGeneralEvent(p.player.id, true, true))
             } else {
                 throw 'Unknown option ' + choice
             }
         })
 
-        manager.adminRegistry.onGeneral<RevealEvent>(RevealEvent, async (reveal)=>{
+        manager.adminRegistry.onGeneral<RevealGeneralEvent>(RevealGeneralEvent, async (reveal)=>{
             console.log('[牌局] 明置武将 ', reveal.playerId, reveal.mainReveal, reveal.subReveal)
             let p = manager.context.getPlayer(reveal.playerId) as FactionPlayerInfo
             let wasRevealed = p.isRevealed()
@@ -74,10 +78,11 @@ export default class FactionWarInitializer implements Initializer {
             p.isSubGeneralRevealed = p.isSubGeneralRevealed || reveal.subReveal
             let isRevealed = p.isRevealed()
             if(!wasRevealed && isRevealed) {
-                this.computeFactionForPlayer(p, manager)
+                await manager.events.publish(new RevealPlayerEvent(p))
             }
             //todo: update server side skill conditions
             manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
+            manager.log(`${p.player.id} 明置 ${reveal.mainReveal? '主将' + p.general.name : ''} ${reveal.subReveal? '副将' + p.subGeneral.name : ''}`)
         })
 
         manager.adminRegistry.onGeneral<DeathOp>(DeathOp, async (death)=>{
@@ -133,6 +138,10 @@ export default class FactionWarInitializer implements Initializer {
                 console.log(`[牌局] ${killer.player.id} 杀死了阵营不同的 ${deceased.player.id} 获得 ${reward} 张牌`)
                 await new TakeCardOp(killer, reward).perform(manager)
             }
+        })
+
+        manager.adminRegistry.onGeneral<RevealPlayerEvent>(RevealPlayerEvent, async(reveal)=>{
+            this.computeFactionForPlayer(reveal.player as FactionPlayerInfo, manager)
         })
     }
 

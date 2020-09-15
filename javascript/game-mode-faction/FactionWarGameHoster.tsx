@@ -112,12 +112,14 @@ export default class FactionWarGameHoster implements GameHoster {
             this.statsCollector = new GameStatsCollector(this.circus.statuses.map(s => s.player))
         }
         let context = new GameServerContext(this.circus.statuses.map(s => {
-            let info = new FactionPlayerInfo(s.player, s.chosenGeneral, s.chosenSubGeneral)
-            info.init()
-            return info
-        }), myMode, (size)=>{
-            this.manager.setDeckRemain(size)
-        })
+                                                let info = new FactionPlayerInfo(s.player, s.chosenGeneral, s.chosenSubGeneral)
+                                                info.init()
+                                                return info
+                                            }), 
+                                            myMode, 
+                                            (size)=>{
+                                                this.manager.setDeckRemain(size)
+                                            })
         this.initializer = new FactionWarInitializer()
         BlockedEquipment.reinit()
 

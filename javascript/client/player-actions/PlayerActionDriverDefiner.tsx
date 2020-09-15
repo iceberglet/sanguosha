@@ -3,6 +3,7 @@ import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerAct
 import GameClientContext from "../GameClientContext";
 import { TogglableMap } from "../../common/util/Togglable";
 import { ServerHint, isDirectButton } from "../../common/ServerHint";
+import Multimap from "../../common/util/Multimap";
 
 
 export default class PlayerActionDriverDefiner {
@@ -19,7 +20,7 @@ export default class PlayerActionDriverDefiner {
      * @param filter which can be chosen
      */
     public expectChoose(areas: UIPosition[], atLeast: number, atMost: number, 
-                        filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
+                        filter: (id: string, context: GameClientContext, existing: Multimap<UIPosition, string>)=>boolean,
                         msgObtainer: (context: GameClientContext)=>string = ()=>''): PlayerActionDriverDefiner {
         areas.forEach(a => {
             if(this.steps.find(s => s.isConcernedWith(a))) {
@@ -74,7 +75,7 @@ interface Step {
     //cannot go back by clicking on some other cards
     noBacksie: boolean
     msgObtainer: (context: GameClientContext)=>string
-    filter: (id: string, context: GameClientContext, existing: string[])=>boolean
+    filter: (id: string, context: GameClientContext, existing: Multimap<UIPosition, string>)=>boolean
     //can click on this at the current stage
     canClick(action: PlayerUIAction): boolean
     //we are at this stage and clicked on this item
@@ -96,7 +97,7 @@ abstract class AbstractStep implements Step {
     public noBacksie: boolean = false
     constructor(public readonly areas: UIPosition[],
                 public readonly size: number,
-                public readonly filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
+                public readonly filter: (id: string, context: GameClientContext, existing: Multimap<UIPosition, string>)=>boolean,
                 public readonly msgObtainer: (context: GameClientContext)=>string) {
         this.chosen = new TogglableMap<string, UIPosition>(size)
     }
@@ -124,7 +125,7 @@ abstract class AbstractStep implements Step {
 export class StepDataExact extends AbstractStep {
     constructor(areas: UIPosition[],
                 size: number,
-                filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
+                filter: (id: string, context: GameClientContext, existing: Multimap<UIPosition, string>)=>boolean,
                 msgObtainer: (context: GameClientContext)=>string) {
         super(areas, size, filter, msgObtainer)
     }
@@ -158,7 +159,7 @@ export class StepDataLoose extends AbstractStep {
     constructor(areas: UIPosition[],
                 private min: number, 
                 max: number,
-                filter: (id: string, context: GameClientContext, existing: string[])=>boolean,
+                filter: (id: string, context: GameClientContext, existing: Multimap<UIPosition, string>)=>boolean,
                 msgObtainer: (context: GameClientContext)=>string) {
         super(areas, max, filter, msgObtainer)
 
@@ -287,20 +288,30 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         }
         if(stepData !== this.currentStep()) {
             //an old step. if we chose this or this can be chosen, allow it
-            if(stepData.chosen.has(action.itemId) || stepData.filter(action.itemId, context, stepData.chosen.toArray().map(s => s[0]))) {
+            if(stepData.chosen.has(action.itemId) || stepData.filter(action.itemId, context, this.collectFromSteps())) {
                 return Clickability.CLICKABLE
             } else {
                 return Clickability.DISABLED
             }
         } else {
             //we are at this stage! make sure we don't click more than we can
-            if(stepData.filter(action.itemId, context, stepData.chosen.toArray().map(c => c[0])) && 
+            if(stepData.filter(action.itemId, context, this.collectFromSteps()) && 
                 stepData.canClick(action)) {
                 return Clickability.CLICKABLE
             } else {
                 return Clickability.DISABLED
             }
         }
+    }
+
+    collectFromSteps(): Multimap<UIPosition, string>{
+        let map = new Multimap<UIPosition, string>()
+        this.steps.forEach(s => {
+            s.chosen.toArray().forEach(dataAndPos => {
+                map.set(dataAndPos[1], dataAndPos[0])
+            })
+        })
+        return map
     }
 
     isSelected = (action: PlayerUIAction, context: GameClientContext): boolean => {

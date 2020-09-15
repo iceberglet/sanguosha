@@ -64,6 +64,10 @@ export default class DamageOp extends Operation<void> {
         super()
     }
 
+    public isFrom(player: string) {
+        return this.source && this.source.player.id === player
+    }
+
     public async perform(manager: GameManager): Promise<void> {
         let targetId = this.target.player.id
 

@@ -1,4 +1,4 @@
-import { Operation } from "../Operation";
+import { UseEventOperation, Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { WuXieContext } from "./WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
@@ -16,19 +16,19 @@ import { CardObtainedEvent } from "./Generic";
 import HealOp from "./HealOp";
 
 
-export abstract class MultiRuse extends Operation<void> {
+export abstract class MultiRuse extends UseEventOperation<void> {
 
     public skipThisRound = true
 
     public constructor(public readonly cards: Card[],
-                        public source: PlayerInfo, //祸首可能改变source
+                        public readonly source: PlayerInfo,
                         public readonly ruseType: CardType,
                         public readonly targets: PlayerInfo[]) {
         super()
         console.log('[MultiRuseOp] 多目标锦囊牌', ruseType.name, targets.map(t => t.player.id))
     }
 
-    public async perform(manager: GameManager): Promise<void> {
+    public async doPerform(manager: GameManager): Promise<void> {
 
         await this.init(manager)
 
@@ -56,7 +56,7 @@ export abstract class MultiRuse extends Operation<void> {
                 continue
             }
             console.log(`[MultiRuseOp] ${this.ruseType.name} 开始对 ${t.player.id} 的结算`)
-            await this.doPerform(t, manager)
+            await this.doForOne(t, manager)
         }
         await this.onDone(manager)
     }
@@ -73,7 +73,7 @@ export abstract class MultiRuse extends Operation<void> {
         //no-op by default
     }
 
-    public abstract async doPerform(target: PlayerInfo, manager: GameManager): Promise<void>;
+    public abstract async doForOne(target: PlayerInfo, manager: GameManager): Promise<void>;
 
 }
 
@@ -95,7 +95,7 @@ export class TieSuo extends Operation<void> {
 
 export class DoTieSuo extends MultiRuse {
 
-    public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
+    public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         target.isChained = !target.isChained
         manager.broadcast(target, PlayerInfo.sanitize)
     }
@@ -104,12 +104,20 @@ export class DoTieSuo extends MultiRuse {
 
 export class NanMan extends MultiRuse {
 
-    public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
+    //祸首可能改变source
+    public damageDealer: PlayerInfo
+    
+    public constructor(cards: Card[], source: PlayerInfo, ruseType: CardType, targets: PlayerInfo[]) {
+        super(cards, source, ruseType, targets)
+        this.damageDealer = source
+    }
+
+    public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         let issuer = this.source
         let slashed = await new AskForSlashOp(target, issuer, `${this.source} 使用南蛮, 请出杀`).perform(manager)
         if(!slashed) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃南蛮出杀, 掉血`)
-            await new DamageOp(issuer, target, 1, this.cards, DamageSource.NAN_MAN, DamageType.NORMAL).perform(manager)
+            await new DamageOp(this.damageDealer, target, 1, this.cards, DamageSource.NAN_MAN, DamageType.NORMAL).perform(manager)
         } else {
             //过了, 出了杀就成
         }
@@ -119,7 +127,7 @@ export class NanMan extends MultiRuse {
 
 export class WanJian extends MultiRuse {
 
-    public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
+    public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         let dodged = await new DodgeOp(target, this.source, 1, `${this.source} 的万箭齐发, 请出闪`).perform(manager)
         if(!dodged) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃万箭出闪, 掉血`)
@@ -133,7 +141,7 @@ export class WanJian extends MultiRuse {
 
 export class TaoYuan extends MultiRuse {
 
-    public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
+    public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         console.log('[MultiRuseOp] ',  target.player.id, '桃园加血~')
         await new HealOp(this.source, target, 1).perform(manager)
     }
@@ -166,7 +174,7 @@ export class WuGu extends MultiRuse {
         })
     }
 
-    public async doPerform(target: PlayerInfo, manager: GameManager): Promise<void> {
+    public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         let targetId = target.player.id
         this.broadCastCurrent(`等待 ${targetId} 选牌`, manager)
         let resp = await manager.sendHint(target.player.id, {
