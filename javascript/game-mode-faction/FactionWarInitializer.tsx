@@ -111,8 +111,7 @@ export default class FactionWarInitializer implements Initializer {
             if(killer.getFaction() === Faction.YE) {
                 console.log(`[牌局] ${killer.player.id} 野人杀人拿三张`)
                 await new TakeCardOp(killer, 3).perform(manager)
-            }
-            if(factionsSame(killer.getFaction(), deceased.getFaction())) {
+            } else if (factionsSame(killer.getFaction(), deceased.getFaction())) {
                 //打了自己人... 弃牌吧...
                 console.log(`[牌局] ${killer.player.id} 杀死了阵营相同的 ${deceased.player.id} 弃置所有牌`)
 

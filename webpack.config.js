@@ -75,7 +75,8 @@ let common = {
   },
   devServer: {
     contentBase: './resources/public'
-  }
+  },
+  devtool: "none",
 }
 
 module.exports = [{...common, ...server}, {...common, ...client}]

@@ -107,6 +107,7 @@ export default class DamageOp extends Operation<void> {
         manager.broadcast(new DamageEffect(targetId))
         manager.broadcast(this.target, PlayerInfo.sanitize)
 
+        let wasChained = this.target.isChained
         //死没死?
         if(this.target.isDying()) {
             //求桃
@@ -128,7 +129,7 @@ export default class DamageOp extends Operation<void> {
         await manager.events.publish(this)
 
         //铁索连环
-        if(isElemental(this.type) && this.target.isChained && this.doChain) {
+        if(isElemental(this.type) && wasChained && this.doChain) {
             console.log('[伤害结算] 触发铁索连环')
             this.target.isChained = false
             manager.broadcast(this.target, PlayerInfo.sanitize)
