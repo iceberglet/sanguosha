@@ -36,7 +36,7 @@ export default class DodgeOp extends Operation<boolean> {
 
             let hintMsg = this.hintMsg
             if(this.numberRequired > 1) {
-                hintMsg += `(还需要${this.numberRequired}张)`
+                hintMsg += `(还需要${needed}张)`
             }
 
             this.dodgeResp = await manager.sendHint(this.target.player.id, {

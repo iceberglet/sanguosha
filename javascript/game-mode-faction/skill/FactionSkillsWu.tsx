@@ -6,15 +6,15 @@ import { playerActionDriverProvider } from "../../client/player-actions/PlayerAc
 import { UIPosition, Button } from "../../common/PlayerAction"
 import PlayerAct from "../../server/context/PlayerAct"
 import GameManager from "../../server/GameManager"
-import { TextFlashEffect } from "../../common/transit/EffectTransit"
+import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit"
 import { CardPos } from "../../common/transit/CardPos"
-import { CardBeingDroppedEvent, CardBeingUsedEvent, CardAwayEvent, CardBeingTakenEvent } from "../../server/engine/Generic"
+import { CardBeingDroppedEvent, CardBeingUsedEvent, CardAwayEvent, CardBeingTakenEvent, CardObtainedEvent } from "../../server/engine/Generic"
 import Card, { CardType, Suit } from "../../common/cards/Card"
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp"
-import { isSuitBlack, isSuitRed } from "../../common/cards/ICard"
+import { isSuitBlack, isSuitRed, ICard, mimicCard } from "../../common/cards/ICard"
 import { GuoHe, ShunShou } from "../../server/engine/SingleRuseOp"
-import DamageOp, { DamageSource, DamageType } from "../../server/engine/DamageOp"
-import { StageStartFlow } from "../../server/engine/StageFlows"
+import DamageOp, { DamageSource, DamageType, DamageTimeline } from "../../server/engine/DamageOp"
+import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
 import DropCardOp, { DropCardRequest, DropTimeline } from "../../server/engine/DropCardOp"
 import { Suits, any, toChinese } from "../../common/util/Util"
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp"
@@ -25,6 +25,8 @@ import HealOp from "../../server/engine/HealOp"
 import { Stage } from "../../common/Stage"
 import CardFightOp from "../../server/engine/CardFightOp"
 import { EquipOp } from "../../server/engine/EquipOp"
+import GameClientContext from "../../client/GameClientContext"
+import FactionPlayerInfo from "../FactionPlayerInfo"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -143,7 +145,7 @@ export class YingZi extends SimpleConditionalSkill<TakeCardStageOp> {
                     dropOp.timeline === DropTimeline.BEFORE) {
                 let me = manager.context.getPlayer(this.playerId)
                 console.log('[英姿] 改变手牌上限为', me.maxHp)
-                this.invokeEffects(manager)
+                // this.invokeEffects(manager)
                 dropOp.amount = Math.max(me.getCards(CardPos.HAND).length - me.maxHp, 0)
             }
         })
@@ -197,7 +199,7 @@ export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
         await manager.transferCards(this.playerId, target, CardPos.HAND, CardPos.HAND, [card])
         
         //令其选择一项: 
-        let suit: Suit = manager.interpret(target, card.id).suit
+        let suit: Suit = manager.interpret(target, card).suit
         let resp = await manager.sendHint(target, {
             hintType: HintType.MULTI_CHOICE,
             hintMsg: '请选择对反间的反应',
@@ -212,7 +214,7 @@ export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
             let toDrop: Card[] = []
             //allCards.filter(c => manager.interpret(target, c.id).suit !== suit)
             allCards.forEach(c => {
-                if(manager.interpret(target, c.id).suit === suit) {
+                if(manager.interpret(target, c).suit === suit) {
                     c.description = '反间弃置手牌'
                     toDrop.push(c)
                 } else {
@@ -285,7 +287,7 @@ export class LiuLi extends SimpleConditionalSkill<SlashCompute> {
                             }, 
                             ()=>`选择‘流离’的对象`)
                         .expectAnyButton('点击确定发动流离')
-                        .build(hint)
+                        .build(hint, [Button.OK])
         })
     }
 
@@ -302,7 +304,8 @@ export class LiuLi extends SimpleConditionalSkill<SlashCompute> {
             hintType: HintType.SPECIAL,
             specialId: this.id,
             hintMsg: '请选择发动流离',
-            sourcePlayer: event.source.player.id
+            sourcePlayer: event.source.player.id,
+            extraButtons: [Button.CANCEL]
         })
         if(resp.isCancel()) {
             return
@@ -450,17 +453,10 @@ export class YingHun extends SimpleConditionalSkill<StageStartFlow> {
 
     bootstrapClient() {
         playerActionDriverProvider.registerSpecial(this.id, (hint, context)=>{
-            let me = context.getPlayer(this.playerId)
-            let x = me.maxHp - me.hp
-            let buttons = [new Button('take', `摸一张,弃${toChinese(x - 1)}张`), new Button('drop', `摸${toChinese(x - 1)}张, 弃一张`)]
-            if(x === 1) {
-                buttons = [new Button('take', `摸一张,弃一张`)]
-            }
-            buttons.forEach(b => b.isDirect = false)
             return new PlayerActionDriverDefiner('英魂')
                         .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>id !== this.playerId, ()=>'(英魂)选择一名其他角色')
                         .expectAnyButton('选择发动的选项')
-                        .build(hint, [...buttons, Button.CANCEL])
+                        .build(hint, [])
         })
     }
     
@@ -477,17 +473,23 @@ export class YingHun extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let me = manager.context.getPlayer(this.playerId)
+        let x = me.maxHp - me.hp
+        let buttons = [new Button('take', `摸一张,弃${toChinese(x - 1)}张`).inDirect(), new Button('drop', `摸${toChinese(x - 1)}张, 弃一张`).inDirect()]
+        if(x === 1) {
+            buttons = [new Button('take', `摸一张,弃一张`).inDirect()]
+        }
         let resp = await manager.sendHint(this.playerId, {
             hintType: HintType.SPECIAL,
             specialId: this.id,
-            hintMsg: '英魂'
+            hintMsg: '英魂',
+            extraButtons: [...buttons, Button.CANCEL]
         })
         if(resp.isCancel()) {
             return
         }
         let target = resp.targets[0]
         this.invokeEffects(manager, [target.player.id])
-        let x = resp.source.maxHp - resp.source.hp
         if(resp.button === 'take') {
             await new TakeCardOp(target, 1).perform(manager)
             await new DropCardRequest().perform(target.player.id, x, manager, `${resp.source} 发动英魂令你弃置 ${x} 张牌`, [UIPosition.MY_HAND, UIPosition.MY_EQUIP])
@@ -560,6 +562,7 @@ export class ZhiJian extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        await this.revealMySelfIfNeeded(manager)
         let card = act.getSingleCardAndPos()[0]
         this.invokeEffects(manager, act.targets.map(t => t.player.id))
         await new EquipOp(act.targets[0], card, CardPos.HAND, act.source).perform(manager)
@@ -607,23 +610,249 @@ export class GuZheng extends SimpleConditionalSkill<DropCardOp>{
     }
 }
 
+export class HongYan extends Skill {
+    id = '红颜'
+    displayName = '红颜'
+    description = '出牌阶段，你可明置此武将牌；你的黑桃牌视为红桃牌。'
+    hiddenType = HiddenType.REVEAL_IN_MY_USE_CARD
+
+    bootstrapClient(context: GameClientContext) {
+        context.registerInterpreter(this.playerId, this.interpret)
+    }
+
+    bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager) {
+        manager.context.registerInterpreter(this.playerId, this.interpret)
+    }
+
+    interpret=(card: ICard) => {
+        if(this.isDisabled || !this.isRevealed) {
+            return card
+        }
+        let res = mimicCard(card)
+        if(res.suit === 'spade') {
+            console.log('[红颜] 将黑桃改红桃')
+            res.suit = 'heart'
+        }
+        return res
+    }
+}
+
+export class TianXiang extends SimpleConditionalSkill<DamageOp> {
+    
+    id = '天香'
+    displayName = '天香'
+    description = '当你受到伤害时，你可以弃置一张红桃手牌,防止此次伤害并选择一名其他角色，'+
+                '你选择一项：令其受到1点伤害，然后摸X张牌（X为其已损失体力值且至多为5）；令其失去1点体力，然后其获得你弃置的牌。'
+
+    public bootstrapClient() {
+        playerActionDriverProvider.registerSpecial(this.id, (hint)=>{
+            return new PlayerActionDriverDefiner('天香')
+                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).suit === 'heart', ()=>'选择一张红桃手牌')
+                        .expectChoose([UIPosition.PLAYER], 1, 1, (id)=>id !== this.playerId, ()=>'(天香)选择一名其他角色')
+                        .expectAnyButton('选择一项')
+                        .build(hint, [])
+        })
+    }
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+    }
+
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        return event.target.player.id === this.playerId && event.timeline === DamageTimeline.TAKING_DAMAGE 
+                 && event.type !== DamageType.ENERGY
+    }
+
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        let buttons = [new Button('damage', '受到一点伤害然后摸其损失体力值的牌').inDirect(), new Button('energy', '损失一点体力获得你的天香牌').inDirect()]
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.SPECIAL,
+            specialId: this.id,
+            hintMsg: '天香',
+            extraButtons: [...buttons, Button.CANCEL]
+        })
+        if(resp.isCancel()) {
+            return
+        }
+
+        let source = resp.source, target = resp.targets[0]
+        this.invokeEffects(manager, [target.player.id])
+        //防止此伤害
+        event.amount = -999
+        //弃置牌
+        await resp.dropCardsFromSource('[天香] 弃置')
+        if(resp.button === 'damage') {
+            await new DamageOp(source, target, 1, [], DamageSource.SKILL).perform(manager)
+            if(!target.isDead && target.hp < target.maxHp) {
+                await new TakeCardOp(target, target.maxHp - target.hp).perform(manager)
+            }
+        } else {
+            await new DamageOp(source, target, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+            if(!target.isDead) {
+                manager.takeFromWorkflow(target.player.id, CardPos.HAND, [resp.getSingleCardAndPos()[0]])
+            }
+        }
+    }
+}
+
+export class HaoShi extends SimpleConditionalSkill<TakeCardStageOp> {
+    id = '好施'
+    displayName = '好施'
+    description = '摸牌阶段，你可以多摸两张牌，然后若你的手牌数大于5，则你将一半的手牌交给手牌最少的一名其他角色。'
+    hasInvoked = false
+    
+    public bootstrapClient() {
+        playerActionDriverProvider.registerSpecial(this.id, (hint, context)=>{
+            let required = Math.floor(context.myself.getCards(CardPos.HAND).length / 2)
+            let minimum = Infinity, choices = new Set<string>()
+            context.playerInfos.forEach(p => {
+                if(this.playerId !== p.player.id) {
+                    let hand = p.getCards(CardPos.HAND).length
+                    if(hand < minimum) {
+                        minimum = hand
+                        choices.clear()
+                        choices.add(p.player.id)
+                    } else if (hand === minimum) {
+                        choices.add(p.player.id)
+                    }
+                }
+            })
+            if(choices.size < 1) {
+                console.error('没有找到好施的对象!!! 不可能!!')
+            }
+            console.log('[好施] 手牌最少的为', minimum, choices)
+            return new PlayerActionDriverDefiner('好施')
+                        .expectChoose([UIPosition.MY_HAND], required, required, (id, context)=>true, ()=>`选择${required}张手牌`)
+                        .expectChoose([UIPosition.PLAYER], 1, 1, (id)=>choices.has(id), ()=>'(好施)选择手牌最少的一名其他角色')
+                        .expectAnyButton('点击确定发动好施')
+                        .build(hint, [Button.OK])
+        })
+    }
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<TakeCardStageOp>(TakeCardStageOp, this)
+        skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async(flow)=>{
+            if(flow.isFor(this.playerId, Stage.TAKE_CARD) && this.hasInvoked) {
+                this.hasInvoked = false
+                console.log('[好施] 负面效果发动')
+                let me = manager.context.getPlayer(this.playerId)
+                if(me.getCards(CardPos.HAND).length > 5) {
+                    //拿一半手牌
+                    let resp = await manager.sendHint(this.playerId, {
+                        hintType: HintType.SPECIAL,
+                        hintMsg: '好施',
+                        specialId: this.id
+                    })
+                    let cards = resp.cards.get(CardPos.HAND)
+                    manager.log(`${this.playerId} 将 ${cards.length} 张手牌交给 ${resp.targets[0]}`)
+                    await manager.transferCards(this.playerId, resp.targets[0].player.id, CardPos.HAND, CardPos.HAND, cards)
+                }
+            }
+        })
+    }
+
+    public conditionFulfilled(event: TakeCardStageOp, manager: GameManager): boolean {
+        return event.player.player.id === this.playerId
+    }
+
+    public async doInvoke(event: TakeCardStageOp, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        this.hasInvoked = true
+        event.amount += 2
+    }
+}
+
+export class DiMeng extends SimpleConditionalSkill<TakeCardStageOp> {
+    id = '缔盟'
+    displayName = '缔盟'
+    description = '出牌阶段限一次，你可以选择两名其他角色并弃置X张牌（X为这两名角色手牌数的差），然后令这两名角色交换手牌。'
+    hiddenType = HiddenType.NONE
+
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('缔盟')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
+                            return !hint.roundStat.customData[this.id] && id === this.id
+                        })
+                        .expectChoose([UIPosition.PLAYER], 2, 2, (id, context)=>{
+                            return id !== this.playerId
+                        }, ()=>'(缔盟)选择两名其他角色')
+                        .expectAnyButton('点击确定发动缔盟并弃牌')
+                        .build(hint)
+        })
+    }
+
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        let targetA = act.targets[0]
+        let targetB = act.targets[1]
+        let diff = Math.abs(targetA.getCards(CardPos.HAND).length - targetB.getCards(CardPos.HAND).length)
+
+        if(diff > 0) {
+            let success = await new DropCardRequest().perform(this.playerId, diff, manager, 
+                            `请弃置${diff}张牌完成缔盟, 或取消以放弃`, [UIPosition.MY_EQUIP, UIPosition.MY_HAND], true)
+            if(!success) {
+                console.log('[缔盟] 取消了, 玩家不愿意弃牌')
+                return
+            }
+        }
+
+        await this.revealMySelfIfNeeded(manager)
+        this.invokeEffects(manager, act.targets.map(t => t.player.id))
+        manager.roundStats.customData[this.id] = true
+
+        /**** Hackish Manipultion ****/
+        let a = targetA.getCards(CardPos.HAND)
+        targetA.cards.set(CardPos.HAND, [])
+        let b = targetB.getCards(CardPos.HAND)
+        targetB.cards.set(CardPos.HAND, [])
+        await manager.events.publish(new CardBeingTakenEvent(targetA.player.id, a.map(c => [c, CardPos.HAND])))
+        await manager.events.publish(new CardBeingTakenEvent(targetB.player.id, b.map(c => [c, CardPos.HAND])))
+        targetA.cards.set(CardPos.HAND, b)
+        targetB.cards.set(CardPos.HAND, a)
+        manager.broadcast(new CardTransit(targetA.player.id, CardPos.HAND, targetB.player.id, CardPos.HAND, a, 1000), CardTransit.defaultSanitize)
+        manager.broadcast(new CardTransit(targetB.player.id, CardPos.HAND, targetA.player.id, CardPos.HAND, b, 1000), CardTransit.defaultSanitize)
+        await manager.events.publish(new CardObtainedEvent(targetA.player.id, b.map(c => [c, CardPos.HAND])))
+        await manager.events.publish(new CardObtainedEvent(targetB.player.id, a.map(c => [c, CardPos.HAND])))
+    }
+
+}
+
+export class YiCheng extends SimpleConditionalSkill<SlashCompute> {
+
+    id = '疑城'
+    displayName = '疑城'
+    description = '当与你势力相同的一名角色成为【杀】的目标后，你可以令该角色摸一张牌然后弃置一张牌。'
+
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<SlashCompute>(SlashCompute, this)
+    }
+
+    public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
+        return FactionPlayerInfo.factionSame(event.target, manager.context.getPlayer(this.playerId)) && 
+                event.timeline === Timeline.AFTER_BECOMING_TARGET
+    }
+
+    invokeMsg(event: SlashCompute, manager: GameManager): string {
+        return `对${event.target}发动疑城`
+    }
+
+    public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager, [event.target.player.id])
+        await new TakeCardOp(event.target, 1).perform(manager)
+        await new DropCardRequest().perform(event.target.player.id, 1, manager, '(疑城)请弃置一张牌', [UIPosition.MY_HAND, UIPosition.MY_EQUIP])
+    }
+}
+
 // 克己 锁定技，弃牌阶段开始时，若你未于出牌阶段内使用过颜色不同的牌或出牌阶段被跳过，你的手牌上限于此回合内+4。
 // 谋断 结束阶段开始时，若你于出牌阶段内使用过四种花色或三种类别的牌，则你可以移动场上的一张牌。	
-
-// 天香 当你受到伤害时，你可以弃置一张红桃手牌,防止此次伤害并选择一名其他角色，你选择一项：令其受到1点伤害，然后摸X张牌（X为其已损失体力值且至多为5）；令其失去1点体力，然后其获得你弃置的牌。
-// 红颜 出牌阶段，你可明置此武将牌；你的黑桃牌视为红桃牌。
 
 // 不屈 锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。
 // 奋激 一名角色的结束阶段开始时，若其没有手牌，你可令其摸两张牌。若如此做，你失去1点体力。
 
-// 好施 摸牌阶段，你可以多摸两张牌，然后若你的手牌数大于5，则你将一半的手牌交给手牌最少的一名其他角色。
-// 缔盟 出牌阶段限一次，你可以选择两名其他角色并弃置X张牌（X为这两名角色手牌数的差），然后令这两名角色交换手牌。
-
-
 // 短兵 你使用【杀】可以多选择一名距离为1的角色为目标。
 // 奋迅 出牌阶段限一次，你可以弃置一张牌并选择一名其他角色，然后本回合你计算与其的距离视为1。
 
-// 疑城 当与你势力相同的一名角色成为【杀】的目标后，你可以令该角色摸一张牌然后弃置一张牌。
 // 尚义 出牌阶段限一次，你可以令一名其他角色观看你的手牌。若如此做，你选择一项：1.观看其手牌并可以弃置其中的一张黑色牌；2.观看其所有暗置的武将牌。
 // 鸟翔 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，你令该角色需依次使用两张【闪】才能抵消。
 

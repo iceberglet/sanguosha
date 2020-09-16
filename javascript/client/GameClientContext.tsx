@@ -18,6 +18,7 @@ export default class GameClientContext extends GameContext {
     private currentDriver: PlayerActionDriver = NoActionDriver.INSTANCE
     public readonly cardManager: CardManager
     public myself: PlayerInfo
+    public curr: string
     /**
      * Current Server Hint
      */
@@ -83,7 +84,7 @@ export default class GameClientContext extends GameContext {
         if(!card) {
             throw `Unable to find this card!! ${cardId}`
         }
-        return player.cardInterpreter(card)
+        return super.interpretCard(player.player.id, card)
     }
 
     //-------- Interactions with server -----------

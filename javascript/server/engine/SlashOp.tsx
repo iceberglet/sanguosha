@@ -48,7 +48,7 @@ export default class PlaySlashOp extends Operation<void> {
     }
 
     public async perform(manager: GameManager): Promise<void> {
-        let icards = this.cards.map(c =>this.source.cardInterpreter(c))
+        let icards = this.cards.map(c =>manager.interpret(this.source.player.id, c))
         if(icards.length === 1) {
             let type = icards[0].as || icards[0].type
             if(type === CardType.SLASH_FIRE) {
@@ -132,7 +132,7 @@ export class SlashCompute extends UseEventOperation<void> {
     constructor(public readonly source: PlayerInfo,
                 public target: PlayerInfo,
                 public readonly cards: Card[],
-                public readonly dodgeRequired: number,
+                public dodgeRequired: number,
                 public readonly damageAmount: number,
                 public damageType: DamageType,
                 public color: Color
@@ -168,23 +168,26 @@ export class SlashCompute extends UseEventOperation<void> {
  */
 export class AskForSlashOp extends Operation<boolean> {
     
-    public constructor(public slasher: PlayerInfo, public target: PlayerInfo, public hintMsg: string) {
+    public constructor(public slasher: PlayerInfo, public target: PlayerInfo, public hintMsg: string, private repeat: number = 1) {
         super()
     }
 
     public async perform(manager: GameManager): Promise<boolean> {
         await manager.events.publish(this)
         
-        let resp = await manager.sendHint(this.slasher.player.id, {
-            hintType: HintType.SLASH,
-            hintMsg: this.hintMsg,
-            extraButtons: [new Button(Button.CANCEL.id, '放弃')]
-        })
-        if(resp.isCancel()) {
-            console.log('玩家放弃出杀')
-            return false
-        } else {
-            await manager.resolver.onAskingForSlash(resp, this, manager)
+        while(this.repeat > 0) {
+            this.repeat--
+            let resp = await manager.sendHint(this.slasher.player.id, {
+                hintType: HintType.SLASH,
+                hintMsg: this.hintMsg,
+                extraButtons: [new Button(Button.CANCEL.id, '放弃')]
+            })
+            if(resp.isCancel()) {
+                console.log('玩家放弃出杀')
+                return false
+            } else {
+                await manager.resolver.onAskingForSlash(resp, this, manager)
+            }
         }
 
         return true

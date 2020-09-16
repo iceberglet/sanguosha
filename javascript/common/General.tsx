@@ -19,9 +19,14 @@ export class Faction {
     }
 }
 
+/**
+ * true if 两人任何人未明置或为野, 或均明置且阵营不同
+ * @param a 
+ * @param b 
+ */
 export function factionDiffers(a: Faction, b: Faction) {
-    if(a.name === Faction.UNKNOWN.name || b.name === Faction.YE.name) {
-        return false
+    if(a.name === Faction.UNKNOWN.name || b.name === Faction.UNKNOWN.name) {
+        return true
     }
     if(a.name === Faction.YE.name || b.name === Faction.YE.name) {
         return true

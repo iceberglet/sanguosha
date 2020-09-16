@@ -1,7 +1,7 @@
 import FactionWarGeneral from "./FactionWarGenerals"
-import { Faction, Gender, factionDiffers, factionsSame } from '../common/General'
+import { Faction, Gender, factionsSame } from '../common/General'
 import { Player } from "../common/Player"
-import { PlayerInfo, Mark, Sign } from "../common/PlayerInfo"
+import { PlayerInfo, Mark } from "../common/PlayerInfo"
 import * as React from "react"
 import './faction-war.scss'
 import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
@@ -199,19 +199,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
         super.declareDeath()
     }
 
-    /**
-     * 返回两人是否不同阵营:
-     * 要求: 
-     * - 均明置武将
-     * - 阵营不同
-     * @param a 
-     * @param b 
-     */
-    static factionDifferent(a: FactionPlayerInfo, b: FactionPlayerInfo): boolean {
-        return factionDiffers(a.getFaction(), b.getFaction())
-    }
-
-    static factionSame(a: FactionPlayerInfo, b: FactionPlayerInfo): boolean {
+    static factionSame(a: PlayerInfo, b: PlayerInfo): boolean {
         return factionsSame(a.getFaction(), b.getFaction())
     }
 }

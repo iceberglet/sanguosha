@@ -552,7 +552,7 @@ export class BaGua extends Equipment {
     async doEffect(dodgeOp: DodgeOp) {
         this.show()
         let card = await new JudgeOp(`${this.player} 八卦阵判定牌`, this.player).perform(this.manager)
-        if(isSuitRed(this.manager.interpret(this.player, card.id).suit)){
+        if(isSuitRed(this.manager.interpret(this.player, card).suit)){
             console.log(`[装备] ${this.player} 八卦判定成功`)
             this.manager.log(`${this.player} 的八卦阵判定成功`)
             dodgeOp.playedDodgeSomehow = true

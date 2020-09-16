@@ -19,6 +19,7 @@ import { SimpleConditionalSkill, Skill } from "./skill/Skill";
 import { RevealGeneralEvent } from "./FactionWarInitializer";
 import { AskForSlashOp } from "../server/engine/SlashOp";
 import PlayerAct from "../server/context/PlayerAct";
+import AskSavingOp from "../server/engine/AskSavingOp";
 
 
 
@@ -44,6 +45,16 @@ export default class FactionWarActionResolver extends ActionResolver {
             //武将技能
             let skill = await this.getSkillAndRevealIfNeeded(act, manager)
             await skill.onPlayerAction(act, askForSlashOp, manager)
+            return true
+        }
+        return false
+    }
+
+    public async onSaving(act: PlayerAct, ask: AskSavingOp, manager: GameManager): Promise<boolean> {
+        if(act.skill) {
+            //武将技能
+            let skill = await this.getSkillAndRevealIfNeeded(act, manager)
+            await skill.onPlayerAction(act, ask, manager)
             return true
         }
         return false
@@ -84,7 +95,7 @@ export default class FactionWarActionResolver extends ActionResolver {
             }
             let player = act.source as FactionPlayerInfo
             let card = hand[0]
-            let icard = act.source.cardInterpreter(card)
+            let icard = manager.interpret(act.source.player.id, card)
             if(icard.type.package !== '国战') {
                 return false
             }
@@ -246,7 +257,7 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
     }
 }
 
-class YuanJiao extends SingleRuse<void> {
+export class YuanJiao extends SingleRuse<void> {
 
     public constructor(public readonly source: PlayerInfo, 
         public readonly target: PlayerInfo, 

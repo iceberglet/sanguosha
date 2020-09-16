@@ -24,6 +24,11 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
         this._pubsub = new SequenceAwarePubSub(sorter)
     }
 
+    //todo: need to be invoked last
+    onPlayerDead(playerId: string) {
+        this._map.forEach(v => v.removeAll(playerId))
+    }
+
     on<T>(type: Function, trigger: SkillTrigger<T>) {
         let subMap = this._map.get(type) || new Multimap<string, SkillTrigger<any>>()
         if(subMap.contains(trigger.getSkill().playerId, trigger)) {

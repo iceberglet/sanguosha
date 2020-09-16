@@ -5,13 +5,13 @@ import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
 import { Stage } from "../../common/Stage"
 import { UIPosition, Button } from "../../common/PlayerAction"
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
-import { HintType } from "../../common/ServerHint"
+import { HintType, ServerHint } from "../../common/ServerHint"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
 import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit"
 import { CardPos } from "../../common/transit/CardPos"
 import { WINE_TAKEN } from "../../common/RoundStat"
 import Card, { CardType } from "../../common/cards/Card"
-import { slashTargetFilter } from "../../client/player-actions/PlayerActionDrivers"
+import { slashTargetFilter, registerSlashPlayingHand, registerPlaySlash, registerSlash } from "../../client/player-actions/PlayerActionDrivers"
 import WineOp from "../../server/engine/WineOp"
 import PeachOp from "../../server/engine/PeachOp"
 import PlaySlashOp, { SlashOP, AskForSlashOp, SlashDodgedEvent, SlashCompute, PlaySlashOpNoCards, SlashType } from "../../server/engine/SlashOp"
@@ -174,34 +174,16 @@ export class WuSheng extends Skill {
     description = '你可以将一张红色牌当【杀】使用或打出。'
     hiddenType = HiddenType.NONE
 
+    wusheng(definer: PlayerActionDriverDefiner, hint: ServerHint): PlayerActionDriverDefiner {
+        return definer.expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id) 
+                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, 
+                                        (id, context)=>isSuitRed(context.interpret(id).suit), ()=>'选择一张红色的手牌/装备牌当做杀打出')
+    }
+
     bootstrapClient() {
-        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
-            return new PlayerActionDriverDefiner('武圣出杀')
-                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
-                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, (id, context)=>{
-                            let roundStat = context.serverHint.hint.roundStat
-                            return isSuitRed(context.interpret(id).suit) && roundStat.slashMax > roundStat.slashCount
-                        }, ()=>'选择一张红色的手牌/装备牌')
-                        .expectChoose([UIPosition.PLAYER], 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
-                        .expectAnyButton('点击确定出杀')
-                        .build(hint)
-        })
-        playerActionDriverProvider.registerProvider(HintType.SLASH, (hint)=>{
-            return new PlayerActionDriverDefiner('武圣出杀')
-                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id)
-                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, 
-                            (id, context)=>isSuitRed(context.interpret(id).suit), ()=>'选择一张红色的手牌/装备牌当做杀打出')
-                        .expectAnyButton('点击确定使用杀')
-                        .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
-        })
-        playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, (hint)=>{
-            return new PlayerActionDriverDefiner('武圣出杀')
-                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id)
-                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, 
-                            (id, context)=>isSuitRed(context.interpret(id).suit), ()=>'选择一张红色的手牌/装备牌当做杀打出')
-                        .expectAnyButton('点击确定使用杀')
-                        .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
-        })
+        registerSlashPlayingHand(this.wusheng)
+        registerPlaySlash(this.wusheng)
+        registerSlash(this.wusheng)
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
@@ -291,32 +273,18 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
                     '当一名角色使用的【杀】被你通过发动【龙胆】使用的【闪】抵消时，你可以令另一名其他角色回复1点体力。'
     hiddenType = HiddenType.NONE
 
+    
+    longdan(definer: PlayerActionDriverDefiner, hint: ServerHint): PlayerActionDriverDefiner {
+        return definer.expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id, ()=>hint.hintMsg)
+                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.DODGE, 
+                                    ()=>'选择一张闪当杀打出')
+    }
+
+
     bootstrapClient() {
-        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
-            return new PlayerActionDriverDefiner('龙胆出杀')
-                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id)
-                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.DODGE, 
-                                        ()=>'选择一张闪当杀打出')
-                        .expectChoose([UIPosition.PLAYER], 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
-                        .expectAnyButton('点击确定出杀')
-                        .build(hint)
-        })
-        playerActionDriverProvider.registerProvider(HintType.SLASH, (hint)=>{
-            return new PlayerActionDriverDefiner('龙胆出杀')
-                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id)
-                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.DODGE, 
-                                        ()=>'选择一张闪当杀打出')
-                        .expectAnyButton('点击确定使用杀')
-                        .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
-        })
-        playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, (hint)=>{
-            return new PlayerActionDriverDefiner('龙胆出杀')
-                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id)
-                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.DODGE, 
-                                        ()=>'选择一张闪当杀打出')
-                        .expectAnyButton('点击确定使用杀')
-                        .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
-        })
+        registerSlashPlayingHand(this.longdan)
+        registerPlaySlash(this.longdan)
+        registerSlash(this.longdan)
         playerActionDriverProvider.registerProvider(HintType.DODGE, (hint)=>{
             return new PlayerActionDriverDefiner('龙胆出闪')
                         .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id)
@@ -476,7 +444,7 @@ export class TieQi extends SimpleConditionalSkill<SlashCompute> {
             this.cache.add(u)
             await manager.events.publish(u)
         }
-        let suit = manager.interpret(this.playerId, judgeCard.id).suit
+        let suit = manager.interpret(this.playerId, judgeCard).suit
         let ask = await manager.sendHint(target.player.id, {
             hintType: HintType.CHOOSE_CARD,
             hintMsg: `请弃置一张花色为[${Suits[suit]}]的手牌, 否则不能出闪`,
@@ -595,7 +563,7 @@ export class KanPo extends Skill {
     public canStillProcess = (manager: GameManager): boolean => {
         return manager.context.getPlayer(this.playerId)
                             .getCards(CardPos.HAND)
-                            .filter(c => isSuitBlack(manager.interpret(this.playerId, c.id).suit))
+                            .filter(c => isSuitBlack(manager.interpret(this.playerId, c).suit))
                             .length > 0
     }
 
@@ -619,7 +587,7 @@ export class KanPo extends Skill {
             //手上有黑牌
             if(manager.context.getPlayer(this.playerId)
                             .getCards(CardPos.HAND)
-                            .filter(c => isSuitBlack(manager.interpret(this.playerId, c.id).suit))
+                            .filter(c => isSuitBlack(manager.interpret(this.playerId, c).suit))
                             .length > 0) {
                 console.log('[看破] 添加技能处理')
                 context.candidates.push(this.playerId)
@@ -860,6 +828,7 @@ export class LianHuan extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        await this.revealMySelfIfNeeded(manager)
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let cardAndPos = act.getSingleCardAndPos()
@@ -968,7 +937,7 @@ export class ZaiQi extends SimpleConditionalSkill<TakeCardStageOp> {
         let collect: Card[] = []
         zaiQiCards.forEach(c => {
             manager.context.workflowCards.add(c)
-            if(manager.interpret(this.playerId, c.id).suit !== 'heart') {
+            if(manager.interpret(this.playerId, c).suit !== 'heart') {
                 collect.push(c)
             }
         })

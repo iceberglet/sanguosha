@@ -10,14 +10,17 @@ export interface ICard {
 }
 
 export class CardDummy implements ICard {
-    public constructor(public suit: Suit, public size: CardSize, public type: CardType){}
+    public constructor(public suit: Suit, public size: CardSize, public type: CardType, public as: CardType){}
 }
 
 export function mimicCard(card: ICard): CardDummy {
-    return new CardDummy(card.suit, card.size, card.type)
+    return new CardDummy(card.suit, card.size, card.type, card.as)
 }
 
 export function deriveColor(suits: Suit[]): Color {
+    if(suits.length === 0) {
+        return 'n.a.'
+    }
     if(all(suits, s=>isSuitRed(s))) {
         return 'red'
     }

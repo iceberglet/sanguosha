@@ -23,6 +23,7 @@ import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
 import { CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
 import PlayerAct from "./context/PlayerAct";
 import { Gender } from "../common/General";
+import DeathOp from "./engine/DeathOp";
 
 
 //Manages the rounds
@@ -307,8 +308,8 @@ export default class GameManager {
         await this.events.publish(new CardObtainedEvent(toPlayer, cards.map(c => [c, to])))
     }
 
-    public interpret(forPlayer: string, cardId: string): ICard {
-        return this.context.getPlayer(forPlayer).cardInterpreter(this.getCard(cardId))
+    public interpret(forPlayer: string, card: ICard): ICard {
+        return this.context.interpretCard(forPlayer, card)
     }
 
 

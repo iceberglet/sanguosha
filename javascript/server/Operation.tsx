@@ -1,6 +1,6 @@
 import GameManager from "./GameManager";
 import { PlayerInfo } from "../common/PlayerInfo";
-import { CardType } from "../common/cards/Card";
+import Card, { CardType } from "../common/cards/Card";
 
 
 export abstract class Operation<T> {
@@ -53,6 +53,7 @@ export abstract class UseEventOperation<T> extends Operation<T> {
 export abstract class RuseOp<T> extends UseEventOperation<T> {
 
     constructor(public readonly target: PlayerInfo,
+                public readonly cards: Card[],
                 public readonly ruseType: CardType) {
         super()
     }

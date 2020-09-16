@@ -40,12 +40,12 @@ export default class DropCardOp extends Operation<void> {
 }
 
 export class DropOthersCardRequest {
-    public async perform(manager: GameManager, source: PlayerInfo, target: PlayerInfo, title: string, poses: CardPos[]) {
+    public async perform(manager: GameManager, source: PlayerInfo, target: PlayerInfo, title: string, poses: CardPos[]): Promise<[Card, CardPos]> {
         let targetPlayer = target
         let cards = gatherCards(targetPlayer, poses)
         if(!cards) {
             console.error('[弃牌] 无法弃置, 此玩家没有牌可以弃置')
-            return
+            return null
         }
 
         let hint: ServerHint = {
@@ -70,6 +70,7 @@ export class DropOthersCardRequest {
         card.description = `${target.player.id} 被弃置`
         manager.sendToWorkflow(target.player.id, pos, [card])
         await manager.events.publish(new CardBeingDroppedEvent(target.player.id, [[card, pos]]))
+        return cardAndPos
     }
 }
 

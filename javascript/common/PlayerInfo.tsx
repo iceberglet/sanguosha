@@ -26,15 +26,6 @@ export class Identity {
     }
 }
 
-/**
- * 用于某些锁定技
- * 如: 天香(你的黑桃都是红桃)
- * 禁酒(你的酒都是杀)
- */
-export type CardInterpreter =(card: ICard) => ICard
-
-export const NoopInterpreter: CardInterpreter = (c)=>c
-
 //id to actual display
 //玩家的特殊标记 (潜袭, 铁骑之类的)
 export type Mark = {
@@ -80,8 +71,6 @@ export abstract class PlayerInfo {
 
     //阴阳鱼,珠联璧合,先驱,限定技
     signs: Sign = {}
-    
-    cardInterpreter: CardInterpreter = NoopInterpreter
 
     constructor(public player: Player) {
     }
@@ -190,6 +179,17 @@ export abstract class PlayerInfo {
     hasCards(): boolean {
         for(let kv of this.cards) {
             if(kv[0] === CardPos.HAND || kv[0] === CardPos.EQUIP || kv[0] === CardPos.JUDGE) {
+                if(kv[1].length > 0) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    hasOwnCards(): boolean {
+        for(let kv of this.cards) {
+            if(kv[0] === CardPos.HAND || kv[0] === CardPos.EQUIP) {
                 if(kv[1].length > 0) {
                     return true
                 }

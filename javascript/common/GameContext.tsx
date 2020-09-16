@@ -2,7 +2,10 @@ import { PlayerInfo } from "./PlayerInfo";
 import { CardPos, isCardPosHidden } from "./transit/CardPos";
 import Card from "./cards/Card";
 import { GameModeEnum } from "./GameModeEnum";
+import { ICard } from "./cards/ICard";
+import Multimap from "./util/Multimap";
 
+export type Interpreter = (c: ICard) => ICard
 /**
  * Contains current state of the game
  * All players' situations, card holdings, hp
@@ -11,8 +14,40 @@ import { GameModeEnum } from "./GameModeEnum";
  */
 export default class GameContext {
 
+    private interpreters = new Multimap<string, Interpreter>()
+
     //------------- listeners -------------------
     constructor(public readonly playerInfos: PlayerInfo[], public readonly gameMode: GameModeEnum) {
+    }    
+
+    interpretCard(player: string, icard: ICard): ICard {
+        this.interpreters.get(player).forEach(interpreter => icard = interpreter(icard))
+        return icard
+    }
+
+    registerInterpreter(player: string, interpreter: Interpreter) {
+        this.interpreters.set(player, interpreter)
+    }
+
+    /**
+     * 找出离你距离最近的角色. 不包括自己
+     * @param player 
+     */
+    findingNearestNeighbors(player: string): PlayerInfo[] {
+        let min = Infinity, targets: PlayerInfo[] = []
+        this.playerInfos.forEach(p => {
+            if(p.player.id === player) {
+                return
+            }
+            let dist = this.computeDistance(player, p.player.id)
+            if(dist < min) {
+                min = dist
+                targets = [p]
+            } else if (dist === min) {
+                targets.push(p)
+            }
+        })
+        return targets
     }
 
     //todo: 马术？神曹操？公孙瓒？

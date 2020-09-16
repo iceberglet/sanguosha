@@ -17,6 +17,7 @@ import { CustomUIData } from "../../client/card-panel/CustomUIRegistry"
 import { GameStats } from "../../server/GameStatsCollector"
 import { PlayerPrepChoice, Circus } from '../../game-mode-faction/FactionWarGameHoster'
 import { SkillStatus } from "../../game-mode-faction/skill/Skill"
+import Multimap from "./Multimap"
 
 
 export type Payload = {
@@ -172,6 +173,7 @@ Serde.register(Identity)
 Serde.register(Rescind)
 Serde.register(CustomUIData)
 Serde.register(RoundStat)
+Serde.register(Multimap)
 Serde.register(Button)
 Serde.register(Stage)
 Serde.register(LogTransit)

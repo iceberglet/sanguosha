@@ -30,11 +30,15 @@ export abstract class SkillForDamageTaken extends SimpleConditionalSkill<DamageO
 
     protected isMyDamage(event: DamageOp) {
         return event.target.player.id === this.playerId && event.timeline === DamageTimeline.TAKEN_DAMAGE 
-                 && event.type !== DamageType.ENERGY
+                 && event.type !== DamageType.ENERGY && !event.target.isDead
     }
 
     protected damageHasSource(event: DamageOp) {
         return event.source && !event.source.isDead
+    }
+
+    protected damageFromOthers(event: DamageOp) {
+        return event.source && !event.source.isDead && event.source.player.id !== this.playerId
     }
 }
 
@@ -47,7 +51,6 @@ export class JianXiong extends SkillForDamageTaken {
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
-        
     }
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
         return event.cards && event.cards.length > 0 && this.isMyDamage(event)
@@ -72,7 +75,7 @@ export class FanKui extends SkillForDamageTaken {
         skillRegistry.on<DamageOp>(DamageOp, this)
     }
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        return this.isMyDamage(event) && this.damageHasSource(event) &&
+        return this.isMyDamage(event) && this.damageFromOthers(event) &&
                 (event.source.getCards(CardPos.HAND).length > 0 || event.source.getCards(CardPos.EQUIP).length > 0)
     }
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
@@ -160,7 +163,7 @@ export class GangLie extends SkillForDamageTaken {
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let card = await new JudgeOp('刚烈判定', this.playerId).perform(manager)
-        if(manager.interpret(this.playerId, card.id).suit !== 'heart') {
+        if(manager.interpret(this.playerId, card).suit !== 'heart') {
             console.log('[刚烈] 判定成功 ' + card.id)
             let victim = event.source.player.id
 
@@ -343,7 +346,7 @@ export class LuoShen extends SimpleConditionalSkill<StageStartFlow> {
         while(true) {
             this.playSound(manager, 2)
             let card = await new JudgeOp('洛神判定', this.playerId).perform(manager)
-            if(isSuitBlack(manager.interpret(this.playerId, card.id).suit)) {
+            if(isSuitBlack(manager.interpret(this.playerId, card).suit)) {
                 cards.push(card)
                 console.log('[洛神] 成功', card.id)
             } else {

@@ -13,6 +13,8 @@ import { UseDelayedRuseOp } from "../engine/DelayedRuseOp";
 import WineOp from "../engine/WineOp";
 import PeachOp from "../engine/PeachOp";
 import PlayerAct from "./PlayerAct";
+import AskSavingOp from "../engine/AskSavingOp";
+import HealOp from "../engine/HealOp";
 
 export abstract class ActionResolver {
     /**
@@ -24,7 +26,9 @@ export abstract class ActionResolver {
 
     abstract async onDodge(act: PlayerAct, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean>
 
-    abstract async onAskingForSlash(act: PlayerAct, dodgeOp: AskForSlashOp, manager: GameManager): Promise<boolean>
+    abstract async onAskingForSlash(act: PlayerAct, askSlashOp: AskForSlashOp, manager: GameManager): Promise<boolean>
+
+    abstract async onSaving(act: PlayerAct, ask: AskSavingOp, manager: GameManager): Promise<boolean>
 
 }
 
@@ -71,7 +75,7 @@ export default class PlayerActionResolver extends ActionResolver {
                 throw `How can you play 2 cards at once????? ${act}`
             }
             let card = hand[0]
-            let icard = manager.interpret(act.source.player.id, card.id)
+            let icard = manager.interpret(act.source.player.id, card)
 
             // can be more than one
             let targetPs = act.targets
@@ -195,6 +199,24 @@ export default class PlayerActionResolver extends ActionResolver {
             await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE, false, false))
         }
         //张角呢??
+        return true
+    }
+
+    
+    public async onSaving(act: PlayerAct, ask: AskSavingOp, manager: GameManager): Promise<boolean> {
+        if(!await this.delegate.onSaving(act, ask, manager)) {
+            //金主爸爸!!
+            let card = act.getSingleCardAndPos()[0];
+            //桃, 或者酒
+            let goodman = ask.goodman.player.id
+            let deadman = ask.deadman.player.id
+            manager.broadcast(new TextFlashEffect(goodman, [deadman], card.type.name))
+            card.description = `${goodman} 对 ${deadman} 使用 ${card.type.name}`                
+            //桃牌扔进workflow
+            manager.sendToWorkflow(goodman, CardPos.HAND, [card])
+            await manager.events.publish(new CardBeingUsedEvent(goodman, [[card, CardPos.HAND]], card.type, false, false))
+            await new HealOp(ask.goodman, ask.deadman, 1).perform(manager)
+        }
         return true
     }
 

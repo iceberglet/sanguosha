@@ -9,7 +9,9 @@ export enum HintType {
     PLAY_HAND,
     //单纯弃牌
     CHOOSE_CARD,
-    //对指定目标出杀, 如果有技能之类的可以额外指定杀的目标...
+    //对指定目标出杀, 或没有指定目标的情况下选择目标 
+    // 如果有技能之类的可以额外指定杀的目标...
+    // 
     PLAY_SLASH,
     //单纯出杀, 无目标 (南蛮 / 决斗)
     SLASH,
@@ -44,6 +46,10 @@ export class ServerHintTransit {
         public hint: ServerHint){}
 }
 
+//direct buttons are always enabled
+//if this button is provided by server AND marked direct (by default) 
+//or if this button is not (OK/CANCEL)
+//then it's enabled
 export function isDirectButton(hint: ServerHint, buttonId: string): Button {
     let extra = hint.extraButtons?.find(b => b.id === buttonId)
     if(extra) {

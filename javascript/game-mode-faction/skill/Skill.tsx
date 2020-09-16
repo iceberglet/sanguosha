@@ -5,11 +5,13 @@ import PlayerAct from "../../server/context/PlayerAct";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import FactionPlayerInfo from "../FactionPlayerInfo";
 import { RevealGeneralEvent } from "../FactionWarInitializer";
+import GameClientContext from "../../client/GameClientContext";
 
 
 export interface EventRegistryForSkills {
     on<T>(type: Function, skill: SkillTrigger<T>): void
     onEvent<T>(type: Function, player: string, consumer: AckingConsumer<T>): void
+    onPlayerDead(playerId: string): void
 }
 
 //what action to do when clicked on while being hidden?
@@ -123,7 +125,7 @@ export abstract class Skill extends SkillStatus {
      * load player action driver on client
      * e.g. 红牌当杀之类的
      */
-    public bootstrapClient(player: PlayerInfo): void {
+    public bootstrapClient(context: GameClientContext, player: PlayerInfo): void {
         //no-op by default
     }
 

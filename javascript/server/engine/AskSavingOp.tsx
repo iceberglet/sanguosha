@@ -1,11 +1,27 @@
 import { PlayerInfo } from "../../common/PlayerInfo";
 import GameManager from "../GameManager";
 import { HintType } from "../../common/ServerHint";
-import { Button, UIPosition } from "../../common/PlayerAction";
-import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import HealOp from "./HealOp";
-import { CardPos } from "../../common/transit/CardPos";
-import { CardBeingUsedEvent } from "./Generic";
+import { Button } from "../../common/PlayerAction";
+
+export class AskSavingAround {
+
+    toAsk: PlayerInfo[]
+
+    constructor(public deadman: PlayerInfo) {
+
+    }
+
+    public async perform(manager: GameManager) {
+        let toAsk = manager.getSortedByCurr(true)
+
+        //完杀?
+        await manager.events.publish(this)
+
+        for(let i = 0; i < toAsk.length && this.deadman.isDying(); ++i) {
+            await new AskSavingOp(this.deadman, toAsk[i]).perform(manager)
+        }
+    }
+}
 
 /**
  * 濒死求桃
@@ -20,7 +36,7 @@ export default class AskSavingOp {
     }
 
     public async perform(manager: GameManager): Promise<void> {
-        //不屈, 急救, 涅槃 等等 均在此发动        
+        //不屈, 涅槃 等等 均在此发动        
         await manager.events.publish(this)
 
         let targetId = this.deadman.player.id
@@ -36,15 +52,7 @@ export default class AskSavingOp {
             })
             //todo: put this in resolver
             if(!response.isCancel()) {
-                //金主爸爸!!
-                let card = response.getSingleCardAndPos()[0];
-                //桃, 或者酒
-                manager.broadcast(new TextFlashEffect(this.goodman.player.id, [targetId], card.type.name))
-                card.description = `${this.goodman.player.id} 对 ${targetId} 使用 ${card.type.name}`                
-                //桃牌扔进workflow
-                manager.sendToWorkflow(this.goodman.player.id, CardPos.HAND, [card])
-                await manager.events.publish(new CardBeingUsedEvent(this.goodman.player.id, [[card, CardPos.HAND]], card.type, false, false))
-                await new HealOp(this.goodman, this.deadman, 1).perform(manager)
+                await manager.resolver.onSaving(response, this, manager)
             } else {
                 break
             }

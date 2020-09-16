@@ -48,8 +48,7 @@ class PlayerActionDriverProvider {
             }
         }
         let p = this.providers.get(hint.hintType) || []
-        let drivers = p.map((provider)=>provider(hint, context))
-            .filter(p => p)
+        let drivers = p.map((provider)=>provider(hint, context)).filter(p => p)
         if(drivers.length > 1) {
             return new CompositePlayerActionDriver(drivers)
         } else if (drivers.length === 1) {

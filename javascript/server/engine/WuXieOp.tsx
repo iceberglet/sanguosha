@@ -68,7 +68,7 @@ export class WuXieContext {
             let msg = `[${onPlayer.player.id}] 为 [${this.ruseType.name}${isRuseAbort? '的无懈' : ''}] 寻求无懈]`
             //OK, Cancel, Refuse, [Refuse All]
             let buttons = [Button.CANCEL, new Button(REFUSE, `放弃针对[${onPlayer.player.id}]的无懈`)]
-            if(this.ruseType.isDelayedRuse()) {
+            if(this.ruseType.genre === 'group-ruse') {
                 buttons.push(new Button(REFUSE_ALL, `不为本次 [${this.ruseType.name}] 出无懈`))
             }
 

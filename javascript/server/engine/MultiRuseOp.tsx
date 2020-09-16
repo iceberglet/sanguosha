@@ -125,15 +125,21 @@ export class NanMan extends MultiRuse {
     
 }
 
+export class WanJianDodgedEvent {
+    constructor(wanjian: WanJian, dodgeOp: DodgeOp) {}
+}
+
 export class WanJian extends MultiRuse {
 
     public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
-        let dodged = await new DodgeOp(target, this.source, 1, `${this.source} 的万箭齐发, 请出闪`).perform(manager)
+        let dodgeOp = new DodgeOp(target, this.source, 1, `${this.source} 的万箭齐发, 请出闪`)
+        let dodged = await dodgeOp.perform(manager)
         if(!dodged) {
             console.log(`[MultiRuseOp] ${target.player.id} 放弃万箭出闪, 掉血`)
             await new DamageOp(this.source, target, 1, this.cards, DamageSource.WAN_JIAN, DamageType.NORMAL).perform(manager)
         } else {
             //过了, 出了杀就成
+            await manager.events.publish(new WanJianDodgedEvent(this, dodgeOp))
         }
     }
 

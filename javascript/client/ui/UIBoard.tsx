@@ -10,7 +10,7 @@ import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
 import { ServerHintTransit, Rescind, HintType, CustomRequest } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
-import { TextFlashEffect, CardTransit } from '../../common/transit/EffectTransit'
+import { TextFlashEffect, CardTransit, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
 import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
@@ -100,7 +100,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                         .getSkills(GameMode.get(context.gameMode))
                         .map(skill => {
                             console.log('Boostrapping Skill', skill.playerId, skill.id)
-                            skill.bootstrapClient(context.getPlayer(myId))
+                            skill.bootstrapClient(context, context.getPlayer(myId))
                             return {
                                 skill,
                                 skillChecker, statusUpdater:(s)=>{
@@ -171,6 +171,9 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             Object.assign(context.getPlayer(info.player.id), info)
             // console.log('After update player', info, context.getPlayer(info.player.id).getAllCards())
             this.refresh()
+        })
+        p.pubsub.on(CurrentPlayerEffect, (currentPlayerEffect: CurrentPlayerEffect)=>{
+            context.curr = currentPlayerEffect.player
         })
         p.pubsub.on(IdentityWarPlayerInfo, (info: IdentityWarPlayerInfo)=>{
             // console.log('Received updated player info ', info)

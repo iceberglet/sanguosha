@@ -7,6 +7,7 @@ import { CardObtainedEvent } from "./Generic";
 import Card from "../../common/cards/Card";
 
 export class TakeCardStageOp extends Operation<void> {
+
     
     public constructor(public player: PlayerInfo, 
         public amount: number) {
@@ -35,6 +36,10 @@ export default class TakeCardOp extends Operation<Card[]> {
     }
 
     public async perform(manager: GameManager): Promise<Card[]> {
+        if(this.player.isDead) {
+            console.error('玩家已死亡, 无法摸牌', this.player.player.id)
+            return
+        }
         let cards = manager.context.deck.getCardsFromTop(this.amount)
         //add cards from deck to player
         cards.forEach(c => this.player.addCard(c, CardPos.HAND))

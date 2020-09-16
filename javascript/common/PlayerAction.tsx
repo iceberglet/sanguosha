@@ -50,6 +50,11 @@ export class Button {
         this.enabled = false
         return this
     }
+
+    public inDirect() {
+        this.isDirect = false
+        return this
+    }
 }
 
 export class PlayerActionTransit {

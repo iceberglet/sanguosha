@@ -19,16 +19,75 @@ export const slashTargetFilter = (id: string, context: GameClientContext)=>{
         (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.slashReach || context.myself.getReach()))
 }
 
-playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
-    return new PlayerActionDriverDefiner('出牌阶段出杀')
-            .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
-                let roundStat = context.serverHint.hint.roundStat
-                return context.interpret(id).type.isSlash() && roundStat.slashMax > roundStat.slashCount
-            })
-            .expectChoose([UIPosition.PLAYER], 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
-            .expectAnyButton('点击确定出杀')
-            .build(hint)
+//---------------------- Slash Play ----------------------
+
+export function registerSlashPlayingHand(slashPlayer: (definer: PlayerActionDriverDefiner, hint: ServerHint) => PlayerActionDriverDefiner) {
+    playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+        let roundStat = hint.roundStat
+        if(roundStat.slashMax <= roundStat.slashCount) {
+            return null //do not allow this
+        }
+        return slashPlayer(new PlayerActionDriverDefiner('出牌阶段出杀'), hint)
+                .expectChoose([UIPosition.PLAYER], 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
+                .expectAnyButton('点击确定出杀')
+                .build(hint)
+    })
+}
+
+export function registerSlash(slashPlayer: (definer: PlayerActionDriverDefiner, hint: ServerHint) => PlayerActionDriverDefiner) {
+    playerActionDriverProvider.registerProvider(HintType.SLASH, (hint)=>{
+        return slashPlayer(new PlayerActionDriverDefiner(hint.hintMsg), hint)
+                    .expectAnyButton('点击确定使用杀')
+                    .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
+    })
+}
+
+export function registerPlaySlash(slashPlayer: (definer: PlayerActionDriverDefiner, hint: ServerHint) => PlayerActionDriverDefiner) {
+    playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, (hint)=>{
+        let definer = slashPlayer(new PlayerActionDriverDefiner(hint.hintMsg), hint)
+        if(hint.targetPlayers) {
+            return definer.expectAnyButton(`点击确定对${hint.targetPlayers[0]}使用杀`)
+                            .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
+        } else {
+            return definer.expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
+                                //hacking, actually the opposite of forbidden
+                                if(hint.forbidden) {
+                                    return !!hint.forbidden.find(f => f === id)
+                                } else {
+                                    return id !== context.myself.player.id
+                                }
+                            }, ()=>'请选择出杀的目标')
+                            .expectAnyButton(`点击确定使用杀`)
+                            .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
+        }
+    })
+}
+
+registerSlashPlayingHand((definer, hint)=>{
+    return definer.expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isSlash(), ()=>hint.hintMsg)
 })
+
+registerPlaySlash((definer, hint) => {
+    return definer.expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isSlash(), ()=>hint.hintMsg)
+})
+
+registerSlash((definer, hint) => {
+    return definer.expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isSlash(), ()=>hint.hintMsg)
+})
+
+//------ 丈八 
+function Zhangba(definer: PlayerActionDriverDefiner, hint: ServerHint): PlayerActionDriverDefiner {
+    return definer.expectChoose([UIPosition.MY_EQUIP], 1, 1, (id, context)=>context.interpret(id).type === CardType.ZHANG_BA, ()=>hint.hintMsg)
+                  .expectChoose([UIPosition.MY_HAND], 2, 2, (id)=>true, ()=>'请选择两张手牌')
+}
+
+registerSlashPlayingHand(Zhangba)
+
+registerPlaySlash(Zhangba)
+
+registerSlash(Zhangba)
+
+//--------------------------------------------
 
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段出酒')
@@ -234,19 +293,6 @@ playerActionDriverProvider.registerProvider(HintType.DODGE, (hint)=>{
                 .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
 })
 
-playerActionDriverProvider.registerProvider(HintType.SLASH, (hint)=>{
-    return new PlayerActionDriverDefiner(hint.hintMsg)
-                .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isSlash(), ()=>hint.hintMsg)
-                .expectAnyButton('点击确定使用杀')
-                .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
-})
-
-playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, (hint)=>{
-    return new PlayerActionDriverDefiner(hint.hintMsg)
-                .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isSlash(), ()=>hint.hintMsg)
-                .expectAnyButton('点击确定使用杀')
-                .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
-})
 
 playerActionDriverProvider.registerProvider(HintType.WU_XIE, (hint)=>{
     return new PlayerActionDriverDefiner(hint.hintMsg)
@@ -285,39 +331,15 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             .build(hint)
 })
 
-playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
-    return new PlayerActionDriverDefiner('出牌阶段丈八出杀')
-            .expectChoose([UIPosition.MY_EQUIP], 1, 1, (id, context)=>{
-                let roundStat = context.serverHint.hint.roundStat
-                return context.interpret(id).type === CardType.ZHANG_BA && roundStat.slashMax > roundStat.slashCount
-            })
-            .expectChoose([UIPosition.MY_HAND], 2, 2, (id)=>true, ()=>'请选择两张手牌')
-            .expectChoose([UIPosition.PLAYER], 1, hint.roundStat.slashNumber, slashTargetFilter, ()=>`选择‘杀’的对象，可选${hint.roundStat.slashNumber}个`)
-            .expectAnyButton('点击确定出杀')
-            .build(hint)
-})
-
-let passiveZhangBa = (hint: ServerHint)=>{
-    return new PlayerActionDriverDefiner('被动丈八出杀')
-            .expectChoose([UIPosition.MY_EQUIP], 1, 1, (id, context)=>context.interpret(id).type === CardType.ZHANG_BA)
-            .expectChoose([UIPosition.MY_HAND], 2, 2, (id)=>true, ()=>'请选择两张手牌')
-            .expectAnyButton('点击确定出杀')
-            .build(hint)
-}
-
-playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, passiveZhangBa)
-
-playerActionDriverProvider.registerProvider(HintType.SLASH, passiveZhangBa)
-
-playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, (hint)=>{
-    return new PlayerActionDriverDefiner('被动方天画戟')
-            .expectChoose([UIPosition.MY_EQUIP], 1, 1, (id, context) => context.interpret(id).type === CardType.FANG_TIAN && 
-                                                                    context.myself.getCards(CardPos.HAND).length === 1) //最后一张手牌了...
-            .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).type.isSlash() , ()=>'请选择杀')
-            .expectChoose([UIPosition.PLAYER], 1, 2, slashTargetFilter, ()=>`选择‘杀’的对象，可额外选2个`)
-            .expectAnyButton('点击确定出杀')
-            .build(hint)
-})
+// playerActionDriverProvider.registerProvider(HintType.PLAY_SLASH, (hint)=>{
+//     return new PlayerActionDriverDefiner('被动方天画戟')
+//             .expectChoose([UIPosition.MY_EQUIP], 1, 1, (id, context) => context.interpret(id).type === CardType.FANG_TIAN && 
+//                                                                     context.myself.getCards(CardPos.HAND).length === 1) //最后一张手牌了...
+//             .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).type.isSlash() , ()=>'请选择杀')
+//             .expectChoose([UIPosition.PLAYER], 1, 2, slashTargetFilter, ()=>`选择‘杀’的对象，可额外选2个`)
+//             .expectAnyButton('点击确定出杀')
+//             .build(hint)
+// })
 
 playerActionDriverProvider.registerSpecial(CardType.SAN_JIAN.name, (hint)=>{
     let source = hint.sourcePlayer

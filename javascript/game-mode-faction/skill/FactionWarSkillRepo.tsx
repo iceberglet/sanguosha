@@ -9,9 +9,10 @@ import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianD
         JieMing, QuHu, YiJi, QiaoBian, XiaoGuo } from "./FactionSkillsWei";
 import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi, 
         HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng } from "./FactionSkillsShu";
-import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian } from "./FactionSkillsWu";
+import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng } from "./FactionSkillsWu";
 import { Stage } from "../../common/Stage";
 import { PlayerInfo } from "../../common/PlayerInfo";
+import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan } from "./FactionSkillsQun";
 
 
 class FactionSkillProvider {
@@ -101,7 +102,25 @@ FactionSkillProviders.register('英魂', pid => new YingHun(pid))
 FactionSkillProviders.register('天义', pid => new TianYi(pid))
 FactionSkillProviders.register('固政', pid => new GuZheng(pid))
 FactionSkillProviders.register('直谏', pid => new ZhiJian(pid))
+FactionSkillProviders.register('红颜', pid => new HongYan(pid))
+FactionSkillProviders.register('天香', pid => new TianXiang(pid))
+FactionSkillProviders.register('好施', pid => new HaoShi(pid))
+FactionSkillProviders.register('缔盟', pid => new DiMeng(pid))
+FactionSkillProviders.register('疑城', pid => new YiCheng(pid))
 
+FactionSkillProviders.register('除疠', pid => new ChuLi(pid))
+FactionSkillProviders.register('急救', pid => new JiJiu(pid))
+FactionSkillProviders.register('无双', pid => new WuShuang(pid))
+FactionSkillProviders.register('离间', pid => new LiJian(pid))
+FactionSkillProviders.register('闭月', pid => new BiYue(pid))
+FactionSkillProviders.register('双雄', pid => new ShuangXiong(pid))
+FactionSkillProviders.register('完杀', pid => new WanSha(pid))
+FactionSkillProviders.register('乱武', pid => new LuanWu(pid))
+FactionSkillProviders.register('帷幕', pid => new WeiMu(pid))
+FactionSkillProviders.register('鸩毒', pid => new ZhenDu(pid))
+FactionSkillProviders.register('戚乱', pid => new QiLuan(pid))
+FactionSkillProviders.register('从谏', pid => new CongJian(pid))
+FactionSkillProviders.register('附敌', pid => new FuDi(pid))
 
 export default class FactionWarSkillRepo {
     

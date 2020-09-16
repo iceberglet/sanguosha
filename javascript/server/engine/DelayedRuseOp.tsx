@@ -17,7 +17,7 @@ export class UseDelayedRuseOp extends RuseOp<void> {
                 public readonly source: PlayerInfo,
                 public readonly sourcePos: CardPos,
                 public readonly target: PlayerInfo) {
-        super(target, card.as || card.type)
+        super(target, [card], card.as || card.type)
         checkThat(this.ruseType.isDelayedRuse(), '必须得是延时锦囊!!')
     }
 
@@ -87,7 +87,7 @@ export class JudgeDelayedRuseOp extends Operation<void> {
             console.log(`[延迟锦囊] 进入判定 ${type.name} ${p}`)
 
             let card = await new JudgeOp(`${p} 的 ${type.name} 判定`, p).perform(manager)
-            let icard = manager.interpret(p, card.id)
+            let icard = manager.interpret(p, card)
             console.log(`[延迟锦囊] 判定牌为 ${p} ${card.id} > ${icard.suit}`)
 
             switch(type) {

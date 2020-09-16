@@ -3,7 +3,7 @@ import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { DamageEffect, PlaySound } from "../../common/transit/EffectTransit";
 import DeathOp from "./DeathOp";
-import AskSavingOp from "./AskSavingOp";
+import AskSavingOp, { AskSavingAround } from "./AskSavingOp";
 import Card from "../../common/cards/Card";
 
 export enum DamageType {
@@ -26,10 +26,14 @@ export enum DamageType {
 }
 
 export enum DamageTimeline {
-    DOING_DAMAGE, //造成伤害时
-    TAKING_DAMAGE, //受到伤害时
-    DID_DAMAGE, //造成伤害后
-    TAKEN_DAMAGE, //受到伤害后
+    //造成伤害时
+    DOING_DAMAGE, 
+    //受到伤害时
+    TAKING_DAMAGE, 
+    //造成伤害后
+    DID_DAMAGE, 
+    //受到伤害后
+    TAKEN_DAMAGE, 
 }
 
 export enum DamageSource {
@@ -73,10 +77,6 @@ export default class DamageOp extends Operation<void> {
 
         //藤甲伤害加深?
         await manager.events.publish(this)
-        if(this.amount <= 0) {
-            console.log('[伤害结算] 伤害被防止, 停止结算')
-            return
-        }
 
         let size = Math.min(3, this.amount)
         manager.broadcast(new PlaySound(`audio/injure${size}.ogg`))
@@ -84,12 +84,10 @@ export default class DamageOp extends Operation<void> {
         this.timeline = DamageTimeline.TAKING_DAMAGE
         await manager.events.publish(this)
 
-        //伤害可以被防止(曹冲? 沮授?)
-        // if(this.amount <= 0) {
-        //     console.log('[伤害结算] 伤害被防止, 停止结算')
-        //     return
-        // }
-
+        if(this.amount <= 0) {
+            console.log('[伤害结算] 伤害被防止, 停止结算')
+            return
+        }
 
         this.target.damage(this.amount)
         
@@ -112,10 +110,7 @@ export default class DamageOp extends Operation<void> {
         //死没死?
         if(this.target.isDying()) {
             //求桃
-            let toAsk = manager.getSortedByCurr(true)
-            for(let i = 0; i < toAsk.length && this.target.isDying(); ++i) {
-                await new AskSavingOp(this.target, toAsk[i]).perform(manager)
-            }
+            await new AskSavingAround(this.target).perform(manager)
 
             //拯救不力, 还是死了
             if(this.target.isDying()) {

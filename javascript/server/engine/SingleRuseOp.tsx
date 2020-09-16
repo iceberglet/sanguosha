@@ -20,7 +20,7 @@ export abstract class SingleRuse<T> extends RuseOp<T> {
                         public readonly target: PlayerInfo, 
                         public readonly cards: Card[],
                         public readonly ruseType: CardType) {
-        super(target, ruseType)
+        super(target, cards, ruseType)
     }
 
     public async doPerform(manager: GameManager): Promise<T> {
@@ -50,6 +50,9 @@ export class JueDou extends SingleRuse<void> {
 
     public targetLost: boolean
     public damage: number = 1
+    public slashCountDecider = (source: PlayerInfo, target: PlayerInfo) => {
+        return 1
+    }
 
     public constructor(public readonly source: PlayerInfo, 
                         public readonly target: PlayerInfo, 
@@ -72,7 +75,7 @@ export class JueDou extends SingleRuse<void> {
         while(true) {
             let curr = this.targetLost? targetPlayer : me
             let issuer = this.targetLost? me: targetPlayer
-            let slashed = await new AskForSlashOp(curr, issuer, `${issuer.player.id}和你决斗, 请出杀`).perform(manager)
+            let slashed = await new AskForSlashOp(curr, issuer, `${issuer.player.id}和你决斗, 请出杀`, this.slashCountDecider(issuer, curr)).perform(manager)
             if(!slashed) {
                 console.log('玩家决斗放弃出杀, 掉血')
                 await manager.events.publish(this)
@@ -230,7 +233,7 @@ export class HuoGong extends SingleRuse<void> {
         })
 
         let card = resp.getSingleCardAndPos()[0]
-        let suit = this.target.cardInterpreter(card).suit
+        let suit = manager.interpret(this.target.player.id, card).suit
         card.description = `${this.target} 火攻展示牌`
 
         console.log(`${this.target} 为火攻展示手牌 ${card.id}`)
