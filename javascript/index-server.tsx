@@ -8,6 +8,29 @@ import { PlayerRegistry } from './server/PlayerRegistry';
 import { GameMode } from './common/GameMode';
 import { GameModeEnum } from './common/GameModeEnum';
 import { serverConfig } from './server/ServerConfig';
+import GameContext from './common/GameContext';
+import { PlayerInfo } from './common/PlayerInfo';
+import FactionPlayerInfo from './game-mode-faction/FactionPlayerInfo';
+import FactionWarGeneral from './game-mode-faction/FactionWarGenerals';
+import { FWCard } from './game-mode-faction/FactionWarCardSet';
+import { CardSize, CardType } from './common/cards/Card';
+import { CardPos } from './common/transit/CardPos';
+
+//-------------------------- test -------------------------
+
+// let a = new FactionPlayerInfo({id: 'A'}, FactionWarGeneral.liu_bei, FactionWarGeneral.liu_shan)
+// let b = new FactionPlayerInfo({id: 'B'}, FactionWarGeneral.liu_bei, FactionWarGeneral.liu_shan)
+// b.isDead = true
+// let c = new FactionPlayerInfo({id: 'C'}, FactionWarGeneral.liu_bei, FactionWarGeneral.liu_shan)
+// let d = new FactionPlayerInfo({id: 'D'}, FactionWarGeneral.liu_bei, FactionWarGeneral.liu_shan)
+// d.addCard(new FWCard('club', CardSize.QUEEN, CardType.DA_YUAN), CardPos.EQUIP)
+// let e = new FactionPlayerInfo({id: 'E'}, FactionWarGeneral.liu_bei, FactionWarGeneral.liu_shan)
+// let f = new FactionPlayerInfo({id: 'F'}, FactionWarGeneral.liu_bei, FactionWarGeneral.liu_shan)
+// let g = new FactionPlayerInfo({id: 'G'}, FactionWarGeneral.liu_bei, FactionWarGeneral.liu_shan)
+// let context = new GameContext([a, b, c, d, e, f, g], GameModeEnum.FactionWarGame)
+// console.log('hello')
+// console.log(context.computeDistance('D', 'A'))
+
 
 let app = express()
 
@@ -29,6 +52,8 @@ try {
 } catch (err) {
     console.error('Game Failure', err)
 }
+
+
 
 // let after = Serde.deserialize(Serde.serialize(context.getPlayer('欧阳挠挠'))) as PlayerInfo
 // console.log(after)

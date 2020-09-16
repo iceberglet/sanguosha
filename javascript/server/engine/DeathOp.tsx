@@ -39,5 +39,16 @@ export default class DeathOp extends Operation<void> {
             throw new PlayerDeadInHisRound()
         }
 
+        await manager.events.publish(new EventualDeath(this.deceased))
+    }
+}
+
+/**
+ * Used for cleanup
+ */
+export class EventualDeath {
+
+    constructor(public readonly deceased: PlayerInfo) {
+
     }
 }

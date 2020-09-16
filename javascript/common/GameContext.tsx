@@ -73,9 +73,9 @@ export default class GameContext {
 
         if(from <= to) {
             //we can go by left or go by right
-            return Math.max(1, Math.min(to - from, this.playerInfos.length - to + from) + delta)
+            return Math.max(1, Math.min(to - from, living.length - to + from) + delta)
         } else {
-            return Math.max(1, Math.min(from - to, this.playerInfos.length - from + to) + delta)
+            return Math.max(1, Math.min(from - to, living.length - from + to) + delta)
         }
     }
 

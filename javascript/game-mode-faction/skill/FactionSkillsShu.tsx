@@ -664,9 +664,11 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
     }
     public conditionFulfilled(event: CardBeingUsedEvent, manager: GameManager): boolean {
         if(event.player === this.playerId) {
-            this.playedInThisRound++
-            console.log('[蒺藜] 使用牌数为', this.playedInThisRound)
-            if(this.playedInThisRound === manager.context.getPlayer(this.playerId).getReach()) {
+            let wasPlayed = this.playedInThisRound
+            this.playedInThisRound += event.cards.length
+            let currentReach = manager.context.getPlayer(this.playerId).getReach()
+            console.log('[蒺藜] 使用牌数为', wasPlayed, this.playedInThisRound, currentReach)
+            if(wasPlayed < this.playedInThisRound && this.playedInThisRound >= currentReach) {
                 return true
             }
             return false 

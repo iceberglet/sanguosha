@@ -23,7 +23,7 @@ import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
 import { CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
 import PlayerAct from "./context/PlayerAct";
 import { Gender } from "../common/General";
-import DeathOp from "./engine/DeathOp";
+import DeathOp, { EventualDeath } from "./engine/DeathOp";
 
 
 //Manages the rounds
@@ -66,6 +66,9 @@ export default class GameManager {
 
         this.statsCollector.subscribeTo(adminRegistry)
         adminRegistry.onGeneral<CardBeingUsedEvent>(CardBeingUsedEvent, this.processCardEvent)
+        adminRegistry.onGeneral<EventualDeath>(EventualDeath, async (death) => {
+            skillRegistry.onPlayerDead(death.deceased.player.id)
+        })
     }
 
     processCardEvent = async (event: CardBeingUsedEvent): Promise<void> => {
