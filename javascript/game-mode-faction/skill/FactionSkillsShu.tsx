@@ -663,12 +663,14 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
         })
     }
     public conditionFulfilled(event: CardBeingUsedEvent, manager: GameManager): boolean {
-        this.playedInThisRound++
-        console.log('[蒺藜] 使用牌数为', this.playedInThisRound)
-        if(this.playedInThisRound === manager.context.getPlayer(this.playerId).getReach()) {
-            return true
+        if(event.player === this.playerId) {
+            this.playedInThisRound++
+            console.log('[蒺藜] 使用牌数为', this.playedInThisRound)
+            if(this.playedInThisRound === manager.context.getPlayer(this.playerId).getReach()) {
+                return true
+            }
+            return false 
         }
-        return false 
     }
     public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
         let me = manager.context.getPlayer(this.playerId)
