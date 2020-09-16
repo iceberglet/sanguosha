@@ -174,7 +174,7 @@ export class WuSheng extends Skill {
     description = '你可以将一张红色牌当【杀】使用或打出。'
     hiddenType = HiddenType.NONE
 
-    wusheng(definer: PlayerActionDriverDefiner, hint: ServerHint): PlayerActionDriverDefiner {
+    wusheng = (definer: PlayerActionDriverDefiner, hint: ServerHint): PlayerActionDriverDefiner => {
         return definer.expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>id === this.id) 
                         .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, 
                                         (id, context)=>isSuitRed(context.interpret(id).suit), ()=>'选择一张红色的手牌/装备牌当做杀打出')
@@ -274,7 +274,7 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
     hiddenType = HiddenType.NONE
 
     
-    longdan(definer: PlayerActionDriverDefiner, hint: ServerHint): PlayerActionDriverDefiner {
+    longdan = (definer: PlayerActionDriverDefiner, hint: ServerHint): PlayerActionDriverDefiner => {
         return definer.expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id, ()=>hint.hintMsg)
                         .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type === CardType.DODGE, 
                                     ()=>'选择一张闪当杀打出')
