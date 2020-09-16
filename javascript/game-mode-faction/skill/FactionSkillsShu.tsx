@@ -24,7 +24,7 @@ import HealOp, { HealTimeline } from "../../server/engine/HealOp"
 import { Timeline } from "../../server/Operation"
 import JudgeOp from "../../server/engine/JudgeOp"
 import FactionPlayerInfo from "../FactionPlayerInfo"
-import { Suits, all } from "../../common/util/Util"
+import { Suits, all, any } from "../../common/util/Util"
 import { PlayerInfo } from "../../common/PlayerInfo"
 import { BlockedEquipment, BaGua } from "../../server/engine/Equipments"
 import { HuoGong, GrabCard } from "../../server/engine/SingleRuseOp"
@@ -1132,7 +1132,9 @@ export class ShouCheng extends SimpleConditionalSkill<CardAwayEvent> {
             return false
         }
         if(FactionPlayerInfo.factionSame(me, theGuy) && theGuy.getCards(CardPos.HAND).length === 0) {
-            return true
+            if(any(event.cards, pair => pair[1] === CardPos.HAND)) {
+                return true
+            }
         }
         return false
     }
