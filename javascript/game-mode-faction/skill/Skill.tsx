@@ -159,10 +159,16 @@ export abstract class Skill extends SkillStatus {
         manager.broadcast(new PlaySound(`audio/skill/${this.id}${random}.mp3`))
     }
 
-    public invokeEffects(manager: GameManager, targets: string[] = []) {
+    public invokeEffects(manager: GameManager, targets: string[] = [], msg: string = `${this.playerId} 发动了 ${this.displayName}`) {
         this.playSound(manager, 2)
         manager.broadcast(new TextFlashEffect(this.playerId, targets, this.id))
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        if(msg) {
+            manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        } else if(targets.length === 0) {
+            manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+        } else {
+            manager.log(`${this.playerId} 对 ${targets} 发动了 ${this.displayName}`)
+        }
     }
 
     protected async revealMySelfIfNeeded(manager: GameManager) {
@@ -170,6 +176,23 @@ export abstract class Skill extends SkillStatus {
             console.log(`[${this.id}] 明置 ${this.playerId}`)
             await manager.events.publish(new RevealGeneralEvent(this.playerId, this.isMain, !this.isMain))
         }
+    }
+}
+
+export abstract class SimpleTrigger<T> implements SkillTrigger<T> {
+    protected player: PlayerInfo
+    constructor(protected skill: Skill, manager: GameManager) {
+        this.player = manager.context.getPlayer(skill.playerId)
+    }
+
+    abstract conditionFulfilled(event: T, manager: GameManager): boolean 
+    abstract async doInvoke(event: T, manager: GameManager): Promise<void>
+
+    getSkill(): Skill {
+        return this.skill
+    }
+    invokeMsg(event: T, manager: GameManager): string {
+        return '发动' + this.getSkill().id
     }
 }
 

@@ -21,6 +21,10 @@ export default class Multimap<K, V> {
         return this.get(k).has(v)
     }
 
+    forEach(func: (v: Set<V>, k: K)=>void) {
+        this._map.forEach(func)
+    }
+
     set(k: K, v: V) {
         let set = this._map.get(k) || new Set<V>()
         set.add(v)

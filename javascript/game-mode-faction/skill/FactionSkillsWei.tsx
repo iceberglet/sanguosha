@@ -60,7 +60,7 @@ export class JianXiong extends SkillForDamageTaken {
             this.playSound(manager, 2)
             manager.log(`${this.playerId} 发动了 ${this.displayName}`)
             manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
-            manager.takeFromWorkflow(this.playerId, CardPos.HAND, event.cards)
+            await manager.takeFromWorkflow(this.playerId, CardPos.HAND, event.cards)
         }
     }
 }
@@ -292,7 +292,7 @@ export class TianDu extends SimpleConditionalSkill<JudgeOp> {
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName} 拿走了 ${event.judgeCard}`)
         manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
-        manager.takeFromWorkflow(this.playerId, CardPos.HAND, [event.judgeCard])
+        await manager.takeFromWorkflow(this.playerId, CardPos.HAND, [event.judgeCard])
     }
 }
 
@@ -367,7 +367,7 @@ export class LuoShen extends SimpleConditionalSkill<StageStartFlow> {
         if(cards.length > 0) {
             console.log('[洛神] 获得牌', cards.map(c => c.id))
             //最后才拿回来
-            manager.takeFromWorkflow(this.playerId, CardPos.HAND, cards)
+            await manager.takeFromWorkflow(this.playerId, CardPos.HAND, cards)
         } else {
             console.log('[洛神] 没有获得牌')
         }
@@ -1080,6 +1080,37 @@ export class XiaoGuo extends SimpleConditionalSkill<StageStartFlow> {
     }
 }
 
+// export class XunYou extends Skill {
+//     id = '奇策'
+//     displayName = '奇策'
+//     description = '出牌阶段限一次，你可以将所有手牌当任意一张普通锦囊牌使用，你不能以此法使用目标数超过X的牌（X为你的手牌数）。' //，然后你可以变更一次副将。'
+    
+//     bootstrapClient() {
+//         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+//             return new PlayerActionDriverDefiner('奇策')
+//                         .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
+//                             return id === this.id && !hint.roundStat.customData[this.id]
+//                         })
+//                         .expectChoose([UIPosition.MY_HAND], 1, 1, (id)=>true, ()=>'(凶算)选择一张手牌弃置')
+//                         .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
+//                             if(id === this.playerId) {
+//                                 return true
+//                             }
+//                             let me = context.getPlayer(this.playerId).getFaction()
+//                             let dude = context.getPlayer(id).getFaction()
+//                             return factionsSame(me, dude)
+//                         }, ()=>'(凶算)选择一名势力与你相同的角色,对其造成一点伤害,本回合后恢复其一个限定技')
+//                         .expectAnyButton('点击确定发动凶算')
+//                         .build(hint)
+//         })
+//     }
+// }
+
+// export class ZhiYu extends Skill<DamageOp> {
+
+//     displayName = '智愚'
+//     description = '当你受到伤害后，你可以摸一张牌，然后展示所有手牌，若颜色均相同，伤害来源弃置一张手牌。'
+// }
 
 /*
 export class TunTian extends Skill<DamageOp> {
@@ -1130,15 +1161,4 @@ export class HengJiang extends Skill<DamageOp> {
     description = '当你受到1点伤害后，你可以令当前回合角色本回合的手牌上限-1。然后若其弃牌阶段内没有弃牌，则你摸一张牌。'
 }
 
-export class XunYou extends Skill<DamageOp> {
-
-    displayName = '奇策'
-    description = '出牌阶段限一次，你可以将所有手牌当任意一张普通锦囊牌使用，你不能以此法使用目标数超过X的牌（X为你的手牌数），然后你可以变更一次副将。'
-}
-
-export class ZhiYu extends Skill<DamageOp> {
-
-    displayName = '智愚'
-    description = '当你受到伤害后，你可以摸一张牌，然后展示所有手牌，若颜色均相同，伤害来源弃置一张手牌。'
-}
  */

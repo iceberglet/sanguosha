@@ -1,29 +1,29 @@
-import { Skill, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger } from "./Skill";
+import { Skill, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger, SimpleTrigger } from "./Skill";
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
 import { HintType } from "../../common/ServerHint";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { factionDiffers, factionsSame } from "../../common/General";
 import FactionPlayerInfo from "../FactionPlayerInfo";
-import { all } from "../../common/util/Util";
+import { all, Suits, any } from "../../common/util/Util";
 import PlayerAct from "../../server/context/PlayerAct";
 import GameManager from "../../server/GameManager";
 import { DropCardRequest, DropOthersCardRequest } from "../../server/engine/DropCardOp";
 import { CardPos } from "../../common/transit/CardPos";
-import { PlayerInfo } from "../../common/PlayerInfo";
+import { PlayerInfo, Sign } from "../../common/PlayerInfo";
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp";
 import AskSavingOp, { AskSavingAround } from "../../server/engine/AskSavingOp";
 import HealOp from "../../server/engine/HealOp";
 import { isSuitRed, isSuitBlack, deriveColor } from "../../common/cards/ICard"
-import { CardType, Color } from "../../common/cards/Card";
-import { CardBeingUsedEvent } from "../../server/engine/Generic";
+import { CardType, Color, Suit } from "../../common/cards/Card";
+import { CardBeingUsedEvent, CardObtainedEvent, CardAwayEvent, CardBeingDroppedEvent, CardBeingTakenEvent } from "../../server/engine/Generic";
 import { SlashCompute } from "../../server/engine/SlashOp";
 import { Timeline, RuseOp } from "../../server/Operation";
 import { JueDou, ShunShou, GuoHe, WuZhong, JieDao, HuoGong } from "../../server/engine/SingleRuseOp";
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows";
 import { Stage } from "../../common/Stage";
-import JudgeOp from "../../server/engine/JudgeOp";
-import { DamageSource, DamageType, DamageTimeline } from "../../server/engine/DamageOp";
+import JudgeOp, { JudgeTimeline } from "../../server/engine/JudgeOp";
+import { DamageSource, DamageType, DamageTimeline, EnterDyingEvent } from "../../server/engine/DamageOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
 import { DoTieSuo, MultiRuse, WanJian, NanMan, WuGu, TaoYuan } from "../../server/engine/MultiRuseOp";
 import { YiYiDaiLao, ZhiJiZhiBi, YuanJiao } from "../FactionWarActionResolver";
@@ -32,6 +32,9 @@ import DeathOp from "../../server/engine/DeathOp";
 import { SkillForDamageTaken } from "./FactionSkillsWei";
 import {Faction} from '../../common/General'
 import DamageOp from "../../server/engine/DamageOp";
+import DodgeOp, { DodgePlayed } from "../../server/engine/DodgeOp";
+import { MaShu } from "./FactionSkillsShu";
+import { getFactionsWithLeastMembers, getFactionMembers } from "./FactionWarUtil";
 
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
@@ -122,15 +125,16 @@ export class JiJiu extends Skill {
         this.invokeEffects(manager, [ask.deadman.player.id])
 
         //金主爸爸!!
-        let card = act.getSingleCardAndPos()[0];
+        let cardAndPos = act.getSingleCardAndPos()
+        let card = cardAndPos[0];
         card.as = CardType.PEACH
         //桃, 或者酒
         let goodman = ask.goodman.player.id
         let deadman = ask.deadman.player.id
         card.description = `${goodman} 对 ${deadman} 使用 ${card.type.name}`                
         //桃牌扔进workflow
-        manager.sendToWorkflow(goodman, CardPos.HAND, [card])
-        await manager.events.publish(new CardBeingUsedEvent(goodman, [[card, CardPos.HAND]], card.type, false, false))
+        manager.sendToWorkflow(goodman, cardAndPos[1], [card])
+        await manager.events.publish(new CardBeingUsedEvent(goodman, [cardAndPos], card.type, false, false))
         await new HealOp(ask.goodman, ask.deadman, 1).perform(manager)
     }
 }
@@ -258,7 +262,7 @@ export class ShuangXiong extends SimpleConditionalSkill<TakeCardStageOp> {
         this.invokeEffects(manager)
         event.amount = -999
         let card = await new JudgeOp('双雄判定', this.playerId).perform(manager)
-        manager.takeFromWorkflow(this.playerId, CardPos.HAND, [card])
+        await manager.takeFromWorkflow(this.playerId, CardPos.HAND, [card])
         manager.roundStats.customData[this.id] = deriveColor([manager.interpret(this.playerId, card).suit])
     }
 }
@@ -305,6 +309,8 @@ export class LuanWu extends Skill {
         this.invokeEffects(manager)
         act.source.signs['乱'] = {
             enabled: false,
+            type: 'limit-skill',
+            displayName: this.displayName,
             owner: this.isMain? 'main' : 'sub'
         }
         manager.broadcast(act.source, PlayerInfo.sanitize)
@@ -329,6 +335,8 @@ export class LuanWu extends Skill {
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         manager.context.getPlayer(this.playerId).signs['乱'] = {
             enabled: true,
+            type: 'limit-skill',
+            displayName: this.displayName,
             owner: this.isMain? 'main' : 'sub'
         }
     }
@@ -411,7 +419,9 @@ export class ZhenDu extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
-        return event.stage === Stage.USE_CARD && manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length > 0
+        return event.stage === Stage.USE_CARD && 
+                manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length > 0 &&
+                !manager.roundStats.skipStages.get(Stage.USE_CARD) //不能是要跳过出牌阶段的人
     }
 
     async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
@@ -537,23 +547,402 @@ export class CongJian extends SimpleConditionalSkill<DamageOp> {
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
     }
+
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        return event.source && event.source.player.id === this.playerId && 
-            manager.currPlayer().player.id !== this.playerId && event.timeline === DamageTimeline.DOING_DAMAGE
+        //回合内受到伤害
+        if(event.target.player.id === this.playerId && manager.currPlayer().player.id === this.playerId &&
+                event.timeline === DamageTimeline.TAKING_DAMAGE) {
+            return true
+        }
+        //回合外造成伤害
+        if(event.source && event.source.player.id === this.playerId && 
+            manager.currPlayer().player.id !== this.playerId && event.timeline === DamageTimeline.DOING_DAMAGE) {
+            return true
+        }
+        return false
     }
+
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         this.invokeEffects(manager, [event.target.player.id])
         event.amount += 1
     }
 }
 
-// 乱击 你可以将两张手牌当【万箭齐发】使用（不能使用本回合此前发动此技能时已用过的花色）。若如此做，其他与你同势力角色使用【闪】响应此【万箭齐发】时，其可摸一张牌。
+export class GuiDao extends SimpleConditionalSkill<JudgeOp> {
 
-// 马术 出牌阶段，你可以明置此武将牌；你计算与其他角色的距离-1。
-// 鞬出 当你使用【杀】指定一个目标后，你可以弃置其一张牌，若弃置的牌：是装备牌，该角色不能使用【闪】；不是装备牌，该角色获得此【杀】。
+    id = '鬼道'
+    displayName = '鬼道'
+    description = '当一名角色的判定牌生效前，你可以打出一张黑色牌替换之。'
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<JudgeOp>(JudgeOp, this)
+    }
 
-// 雷击 当你使用或打出【闪】时，你可以令一名其他角色进行判定，若结果为黑桃，你对该角色造成2点雷电伤害。
-// 鬼道 当一名角色的判定牌生效前，你可以打出一张黑色牌替换之。
+    public conditionFulfilled(event: JudgeOp, manager: GameManager): boolean {
+        return event.timeline === JudgeTimeline.CONFIRMING && manager.context.getPlayer(this.playerId).hasOwnCards()
+    }
+
+    public async doInvoke(event: JudgeOp, manager: GameManager): Promise<void> {
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.CHOOSE_CARD,
+            hintMsg: `请选择要改变的判定牌`,
+            quantity: 1,
+            positions: [UIPosition.MY_HAND, UIPosition.MY_EQUIP],
+            extraButtons: [Button.CANCEL],
+            suits: ['club', 'spade']
+        })
+        if(!resp.isCancel()) {
+            let cardAndPos = resp.getSingleCardAndPos()
+            let card = cardAndPos[0], pos = cardAndPos[1]
+            this.invokeEffects(manager, [event.owner], `${this.playerId} 发动 ${this.displayName} 将判定牌替换为 ${card}`)
+            card.description = this.playerId + ' 鬼道改判定'
+            manager.sendToWorkflow(this.playerId, pos, [card], false)
+            await manager.events.publish(new CardBeingUsedEvent(this.playerId, [cardAndPos], null, true, false))
+            await manager.takeFromWorkflow(this.playerId, CardPos.HAND, [event.judgeCard])
+            event.judgeCard = card
+        } else {
+            console.log('[鬼道] 最终放弃了')
+        }
+    }
+}
+
+export class LeiJi extends SimpleConditionalSkill<DodgePlayed> {
+    
+    id = '雷击'
+    displayName = '雷击'
+    description = '当你使用或打出【闪】时，你可以令一名其他角色进行判定，若结果为黑桃，你对该角色造成2点雷电伤害。'
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<DodgePlayed>(DodgePlayed, this)
+    }
+
+    public conditionFulfilled(event: DodgePlayed, manager: GameManager): boolean {
+        return event.player === this.playerId
+    }
+
+    public async doInvoke(event: DodgePlayed, manager: GameManager): Promise<void> {
+        let choice = await manager.sendHint(this.playerId, {
+            hintType: HintType.CHOOSE_PLAYER,
+            hintMsg: '选择雷击的对象',
+            forbidden: [this.playerId],
+            minQuantity: 1,
+            quantity: 1,
+            extraButtons: [Button.CANCEL]
+        })
+        if(choice.isCancel()){
+            return
+        }
+        let target = choice.targets[0].player.id
+        this.invokeEffects(manager, [target])
+        let card = await new JudgeOp('雷击判定', target).perform(manager)
+        let suit = manager.interpret(target, card).suit
+        if(suit === 'spade') {
+            await new DamageOp(manager.context.getPlayer(this.playerId), choice.targets[0], 2, [], DamageSource.SKILL, DamageType.THUNDER).perform(manager)
+        } else {
+            manager.log(`雷击判定为${Suits[suit]}, 失效`)
+        }
+    }
+}
+
+export class MaShuPang extends MaShu {
+    id = '马术(庞)'
+}
+
+export class MaShuTeng extends MaShu {
+    id = '马术(腾)'
+}
+
+export class JianChu extends SimpleConditionalSkill<SlashCompute> {
+    id = '鞬出'
+    displayName = '鞬出'
+    description = '当你使用【杀】指定一个目标后，你可以弃置其一张牌，若弃置的牌：是装备牌，该角色不能使用【闪】；不是装备牌，该角色获得此【杀】。'
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<SlashCompute>(SlashCompute, this)
+    }
+
+    public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
+        return event.timeline === Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.playerId && 
+                event.target.player.id !== this.playerId && event.target.hasOwnCards()
+    }
+
+    public invokeMsg(event: SlashCompute, manager: GameManager){
+        return `对${event.target}发动鞬出`
+    }
+
+    public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+        let me = manager.context.getPlayer(this.playerId)
+        let cardAndPos = await new DropOthersCardRequest().perform(manager, me, event.target, `${this.displayName}弃置对方一张牌`, [CardPos.HAND, CardPos.EQUIP])
+        this.invokeEffects(manager, [event.target.player.id])
+        if(cardAndPos[0].type.isEquipment()) {
+            event.undodgeable = true
+        } else {
+            await manager.takeFromWorkflow(event.target.player.id, CardPos.HAND, event.cards)
+        }
+    }
+}
+
+export class XiongYi extends Skill {
+    
+    id = '雄异'
+    displayName = '雄异'
+    description = '限定技，出牌阶段，你可以令与你势力相同的所有角色各摸三张牌，然后若你的势力是全场角色最少的势力，则你回复1点体力。'
+    hiddenType = HiddenType.NONE
+
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('雄异')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
+                            return id === this.id && context.getPlayer(this.playerId).signs['雄'].enabled
+                        })
+                        .expectAnyButton('点击确定发动雄异')
+                        .build(hint)
+        })
+    }
+    
+    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        await this.revealMySelfIfNeeded(manager)
+        act.source.signs['雄'] = {
+            enabled: false,
+            type: 'limit-skill',
+            displayName: this.displayName,
+            owner: this.isMain? 'main' : 'sub'
+        }
+        manager.broadcast(act.source, PlayerInfo.sanitize)
+        let me = act.source
+        let cardTakers: PlayerInfo[]
+        if(me.getFaction() === Faction.YE) {
+            //just me
+            cardTakers = [me]
+        } else {
+            cardTakers = getFactionMembers(manager).getArr(me.getFaction())
+        }
+        let ts = cardTakers.map(c => c.player.id)
+        this.invokeEffects(manager, ts)
+        for(let p of cardTakers) {
+            await new TakeCardOp(p, 3).perform(manager)
+        }
+        if(getFactionsWithLeastMembers(manager).has(me.getFaction()) && me.hp < me.maxHp) {
+            await new HealOp(me, me, 1).perform(manager)
+        }
+    }
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        manager.context.getPlayer(this.playerId).signs['雄'] = {
+            enabled: true,
+            type: 'limit-skill',
+            displayName: this.displayName,
+            owner: this.isMain? 'main' : 'sub'
+        }
+    }
+}
+
+export class LuanJi extends Skill {
+    
+    id = '乱击'
+    displayName = '乱击'
+    description = '你可以将两张手牌当【万箭齐发】使用（不能使用本回合此前发动此技能时已用过的花色）。若如此做，其他与你同势力角色使用【闪】响应此【万箭齐发】时，其可摸一张牌。'
+    hiddenType = HiddenType.NONE
+
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('乱击')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
+                            return id === this.id
+                        })
+                        .expectChoose([UIPosition.MY_HAND], 2, 2, (id, context)=>{
+                            let prev = hint.roundStat.customData[this.id] as Set<Suit>
+                            if(!prev) {
+                                //尚未发动过, 嗯
+                                return true
+                            }
+                            return !prev.has(context.interpret(id).suit)
+                        })
+                        .expectAnyButton('点击确定发动乱击')
+                        .build(hint)
+        })
+    }
+    
+    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        let prev: Set<Suit> = manager.roundStats.customData[this.id] || new Set<Suit>()
+        let cards = act.getCardsAtPos(CardPos.HAND)
+        cards.forEach(c => {
+            c.as = CardType.WAN_JIAN,
+            c.description = act.source + ' ' + this.displayName
+            prev.add(manager.interpret(this.playerId, c).suit)
+        })
+        manager.roundStats.customData[this.id] = prev
+        let targets = manager.getSortedByCurr(false)
+        this.invokeEffects(manager, [], `${this.playerId} 用 ${cards} 发动了 ${this.displayName}`)
+        manager.sendToWorkflow(this.playerId, CardPos.HAND, cards, true)
+        await manager.events.publish(new CardBeingUsedEvent(this.playerId, cards.map(c => [c, CardPos.HAND]), CardType.WAN_JIAN, true))
+        await new WanJian(cards, act.source, CardType.WAN_JIAN, targets).perform(manager)
+    }
+}
+
+
+export class SiJian extends SimpleConditionalSkill<CardAwayEvent> {
+    
+    id = '死谏'
+    displayName = '死谏'
+    description = '当你失去最后的手牌时，你可以弃置一名其他角色的一张牌。'
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<CardBeingDroppedEvent>(CardBeingDroppedEvent, this)
+        skillRegistry.on<CardBeingTakenEvent>(CardBeingTakenEvent, this)
+        skillRegistry.on<CardBeingUsedEvent>(CardBeingUsedEvent, this)
+    }
+    public conditionFulfilled(event: CardAwayEvent, manager: GameManager): boolean {
+        if(event.player === this.playerId && manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length === 0) {
+            if(any(event.cards, pair => pair[1] === CardPos.HAND)) {
+                return true
+            }
+        }
+        return false
+    }
+    public async doInvoke(event: CardAwayEvent, manager: GameManager): Promise<void> {
+        let forbidden = manager.getOthers(this.playerId).filter(p => !p.hasOwnCards()).map(p => p.player.id)
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.CHOOSE_PLAYER,
+            hintMsg: '选择死谏的对象(弃置其一张牌)',
+            minQuantity: 1,
+            quantity: 1,
+            forbidden: [this.playerId, ...forbidden],
+            extraButtons: [Button.CANCEL]
+        })
+        if(resp.isCancel()) {
+            return
+        }
+        this.invokeEffects(manager, [resp.targets[0].player.id])
+        await new DropOthersCardRequest().perform(manager, resp.source, resp.targets[0], `${this.displayName} 弃置对方一张牌`, [CardPos.HAND, CardPos.EQUIP])
+    }
+
+}
+
+export class SuiShi extends Skill {
+
+    id = '随势'
+    displayName = '随势'
+    description = '锁定技，当其他角色进入濒死状态时，若伤害来源与你势力相同，你摸一张牌；当其他角色死亡时，若其与你势力相同，你失去1点体力。'
+    isLocked = true
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<EnterDyingEvent>(EnterDyingEvent, new SuiShiDying(this, manager))
+        skillRegistry.on<DeathOp>(DeathOp, new SuiShiDeath(this, manager))
+    }
+}
+
+export class SuiShiDying extends SimpleTrigger<EnterDyingEvent> {
+
+    conditionFulfilled(event: EnterDyingEvent, manager: GameManager): boolean {
+        if(event.damage.target.player.id !== this.skill.playerId && event.damage.source) {
+            let hisFac = event.damage.source.getFaction()
+            let meFac = this.player.getFaction()
+            return factionsSame(hisFac, meFac)
+        }
+        return false
+    }
+    async doInvoke(event: EnterDyingEvent, manager: GameManager): Promise<void> {
+        this.skill.invokeEffects(manager)
+        await new TakeCardOp(this.player, 1).perform(manager)
+    }
+}
+
+export class SuiShiDeath extends SimpleTrigger<DeathOp> {
+    
+    conditionFulfilled(event: DeathOp, manager: GameManager): boolean {
+        if(event.deceased.player.id !== this.skill.playerId) {
+            let hisFac = event.deceased.getFaction()
+            let meFac = this.player.getFaction()
+            return factionsSame(hisFac, meFac)
+        }
+        return false
+    }
+    async doInvoke(event: DeathOp, manager: GameManager): Promise<void> {
+        this.skill.invokeEffects(manager)
+        await new DamageOp(this.player, this.player, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+    }
+}
+
+
+export class XiongSuan extends Skill {
+
+    id = '凶算'
+    displayName = '凶算'
+    description = '限定技，出牌阶段，你可以弃置一张手牌并选择与你势力相同的一名角色，对其造成1点伤害，' + 
+                '然后你摸三张牌。若该角色有已发动的限定技，则你选择其一个限定技，此回合结束时视为该限定技未发动过。'
+
+    toRestore: [PlayerInfo, string] = null
+    
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('凶算')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
+                            return id === this.id && context.getPlayer(this.playerId).signs['凶'].enabled
+                        })
+                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id)=>true, ()=>'(凶算)选择一张手牌弃置')
+                        .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
+                            if(id === this.playerId) {
+                                return true
+                            }
+                            let me = context.getPlayer(this.playerId).getFaction()
+                            let dude = context.getPlayer(id).getFaction()
+                            return factionsSame(me, dude)
+                        }, ()=>'(凶算)选择一名势力与你相同的角色,对其造成一点伤害,本回合后恢复其一个限定技')
+                        .expectAnyButton('点击确定发动凶算')
+                        .build(hint)
+        })
+    }
+    
+    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        await this.revealMySelfIfNeeded(manager)
+        act.source.signs['涅'].enabled = false
+        manager.broadcast(act.source, PlayerInfo.sanitize)
+        this.invokeEffects(manager, [act.targets[0].player.id])
+
+        await act.dropCardsFromSource('凶算弃置')
+        await new DamageOp(act.source, act.targets[0], 1, [], DamageSource.SKILL).perform(manager)
+        if(act.source.isDead) {
+            console.log('[凶算] 把自己整死了...')
+            return
+        }
+        await new TakeCardOp(act.source, 3).perform(manager)
+
+        let choices: Button[] = []
+        for(let k of Object.keys(act.targets[0].signs)) {
+            let sign = act.targets[0].signs[k]
+            if(sign.type === 'limit-skill' && !sign.enabled) {
+                choices.push(new Button(k, sign.displayName))
+            }
+        }
+        if(choices.length > 0) {
+            let resp = await manager.sendHint(this.playerId, {
+                hintType: HintType.MULTI_CHOICE,
+                hintMsg: `(凶算) 请选择 ${act.targets[0]} 未发动过的技能`,
+                extraButtons: choices
+            })
+            this.toRestore = [act.targets[0], resp.button]
+        }
+    }
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        manager.context.getPlayer(this.playerId).signs['凶'] = {
+            enabled: true,
+            type: 'limit-skill',
+            displayName: this.displayName,
+            owner: this.isMain? 'main' : 'sub'
+        }
+        skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async (flow) => {
+            if(flow.info.player.id === this.playerId && this.toRestore) {
+                //restore limited skills
+                let sign = this.toRestore[0].signs[this.toRestore[1]]
+                sign.enabled = true
+                manager.broadcast(this.toRestore[0], PlayerInfo.sanitize)
+                manager.log(`(凶算) ${this.toRestore[0]} 的限定技 ${sign.displayName} 视为未发动`)
+            }
+        })
+    }
+}
 
 // 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 
@@ -561,14 +950,9 @@ export class CongJian extends SimpleConditionalSkill<DamageOp> {
 // 
 // 断肠 锁定技，当你死亡时，你令杀死你的角色失去一张武将牌的所有技能。
 
-// 马术 出牌阶段，你可以明置此武将牌；你计算与其他角色的距离-1。
-// 雄异 限定技，出牌阶段，你可以令与你势力相同的所有角色各摸三张牌，然后若你的势力是全场角色最少的势力，则你回复1点体力。
-
 // 名士 锁定技，当你受到伤害时，若伤害来源有暗置的武将牌，此伤害-1。
 // 礼让 当你的牌因弃置而置入弃牌堆时，你可以将其中的任意张牌交给其他角色。
 // 双刃 出牌阶段开始时，你可以与一名角色拼点。若你赢，你视为对其或与其势力相同的另一名角色使用一张【杀】；若你没赢，你结束出牌阶段。
-// 死谏 当你失去最后的手牌时，你可以弃置一名其他角色的一张牌。
-// 随势 锁定技，当其他角色进入濒死状态时，若伤害来源与你势力相同，你摸一张牌；当其他角色死亡时，若其与你势力相同，你失去1点体力。
 
 // 狂斧 当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。
 // 祸水 出牌阶段，你可以明置此武将牌；你的回合内，其他角色不能明置其武将牌。
@@ -583,4 +967,3 @@ export class CongJian extends SimpleConditionalSkill<DamageOp> {
 // 锋矢 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，可令该角色弃置装备区里的一张牌。
 
 
-// 凶算 限定技，出牌阶段，你可以弃置一张手牌并选择与你势力相同的一名角色，对其造成1点伤害，然后你摸三张牌。若该角色有已发动的限定技，则你选择其一个限定技，此回合结束时视为该限定技未发动过。

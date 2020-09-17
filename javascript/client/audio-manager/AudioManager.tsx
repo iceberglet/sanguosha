@@ -3,16 +3,24 @@ class AudioManager {
 
     cache = new Map<string, any>()
 
-    play(name: string) {
-        if(this.cache.has(name)) {
-            this.cache.get(name).play()
-            return
-        }
+    stop(name: string) {
+        let audio = this.cache.get(name)
+        audio.pause()
+        audio.currentTime = 0
+    }
 
+    play(name: string, loop = false) {
         try {
-            let audio = new Audio(name)
+            let audio: any
+            if(this.cache.has(name)) {
+                audio = this.cache.get(name)
+            } else {
+                audio = new Audio(name)
+                this.cache.set(name, audio)
+            }
+
+            audio.loop = loop
             audio.play()
-            this.cache.set(name, audio)
             return
         } catch (err) {
             console.error('No Such Sound ', name)

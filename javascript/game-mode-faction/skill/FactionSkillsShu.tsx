@@ -476,13 +476,13 @@ export class MaShu extends Skill {
     async onStatusUpdated(manager: GameManager) {
         let me = manager.context.getPlayer(this.playerId)
         if(!this.isApplied && !this.isDisabled && this.isRevealed) {
-            console.log('[马术] 生效, 计算与他人距离时减1', this.playerId)
+            console.log(`[${this.id}] 生效, 计算与他人距离时减1`, this.playerId)
             me.distanceModTargetingOthers -= 1
             manager.broadcast(me, PlayerInfo.sanitize)
             this.isApplied = true
         }
         if(this.isApplied && this.isDisabled) {
-            console.log('[马术] 失效, 计算与他人距离时不再减1', this.playerId)
+            console.log(`[${this.id}] 失效, 计算与他人距离时不再减1`, this.playerId)
             me.distanceModTargetingOthers += 1
             manager.broadcast(me, PlayerInfo.sanitize)
             this.isApplied = false
@@ -857,6 +857,8 @@ export class NiePan extends SimpleConditionalSkill<AskSavingOp> {
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         manager.context.getPlayer(this.playerId).signs['涅'] = {
             enabled: true,
+            type: 'limit-skill',
+            displayName: this.displayName,
             owner: this.isMain? 'main' : 'sub'
         }
         skillRegistry.on<AskSavingOp>(AskSavingOp, this)
@@ -873,10 +875,7 @@ export class NiePan extends SimpleConditionalSkill<AskSavingOp> {
             manager.sendToWorkflow(me.player.id, cardAndPos[1], [cardAndPos[0]])
         }
         await manager.events.publish(new CardBeingDroppedEvent(me.player.id, cardsAndPos))
-        me.signs['涅'] = {
-            enabled: false,
-            owner: this.isMain? 'main' : 'sub'
-        }
+        me.signs['涅'].enabled = false
         me.isDrunk = false
         me.isChained = false
         me.isTurnedOver = false
@@ -956,7 +955,7 @@ export class ZaiQi extends SimpleConditionalSkill<TakeCardStageOp> {
         }
         manager.log(msg)
         await new HealOp(me, me, recover).perform(manager)
-        manager.takeFromWorkflow(this.playerId, CardPos.HAND, collect)
+        await manager.takeFromWorkflow(this.playerId, CardPos.HAND, collect)
     }
 }
 
@@ -987,7 +986,7 @@ export class JuXiang extends SimpleConditionalSkill<NanMan> {
                 this.playSound(manager, 2)
                 manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
                 manager.log(`${this.playerId} 获得南蛮入侵牌 ${event.cards}`)
-                manager.takeFromWorkflow(this.playerId, CardPos.HAND, event.cards)
+                await manager.takeFromWorkflow(this.playerId, CardPos.HAND, event.cards)
             }
         }
     }

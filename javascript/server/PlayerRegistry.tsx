@@ -28,7 +28,7 @@ export class PlayerRegistry {
     private _failedHint = new Map<string, ServerHintTransit>()
     private static hintCount = 0
 
-    constructor(public pubsub: Pubsub) {
+    constructor(public pubsub: Pubsub, private allowed: number) {
         pubsub.on(PlayerActionTransit, this.onPlayerAction)
     }
 
@@ -55,19 +55,17 @@ export class PlayerRegistry {
         if(p) {
             console.warn('[Player Registry] Player Dropped', p.player.id)
             this._byId.delete(p.player.id)
+            //remove current expectations if it's on this player
+            let exp = this._currentExpectors.get(p.player.id)
+            if(exp) {
+                console.warn('[Player Registry] 掉线的玩家尚有未完成的操作.加入replay list', p.player.id)
+                this._failedHint.set(p.player.id, exp.hint)
+            }
         } else {
             console.warn('[Player Registry] Unnamed Player Dropped')
         }
         this._byConnection.delete(ws)
         //note: we still keep this in _byId so that if player connects again, we get to keep previous records!
-
-        //remove current expectations if it's on this player
-        let exp = this._currentExpectors.get(p.player.id)
-        if(exp) {
-            console.warn('[Player Registry] 掉线的玩家尚有未完成的操作.加入replay list', p.player.id)
-            this._failedHint.set(p.player.id, exp.hint)
-            // this.stopExpecting(exp)
-        }
     }
 
     /**

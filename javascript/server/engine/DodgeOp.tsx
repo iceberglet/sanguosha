@@ -29,6 +29,7 @@ export default class DodgeOp extends Operation<boolean> {
             if(this.playedDodgeSomehow) {
                 console.log('[Dodge OP] 被八卦啥的闪掉了?')
                 needed--
+                await manager.events.publish(new DodgePlayed(this.target.player.id))
                 continue
             }
 
@@ -54,10 +55,18 @@ export default class DodgeOp extends Operation<boolean> {
                 needed--
                 console.log('[Dodge OP] 闪避成功')
                 await manager.resolver.onDodge(this.dodgeResp, this, manager)
+                await manager.events.publish(new DodgePlayed(this.target.player.id))
             }
         }
 
         return true
     }
 
+}
+
+export class DodgePlayed {
+
+    constructor(public readonly player: string) {
+
+    }
 }

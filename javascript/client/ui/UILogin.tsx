@@ -7,9 +7,16 @@ import './ui-login.scss'
 type Prop = {
     myself: Player
     onDone: (p: Player)=>void
+    error: string
 }
 
 export default function UILogin(p: Prop) {
+
+    if(p.error) {
+        return <div className='login-panel'>
+            <div className='prompt'>{'登录失败...' + p.error}</div>
+        </div>
+    }
     
     if(p.myself.id) {
         return <div className='login-panel'>

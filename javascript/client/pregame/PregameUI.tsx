@@ -10,6 +10,7 @@ import UIButton from "../ui/UIButton";
 import { Serde } from "../../common/util/Serializer";
 import { ClassFormatter } from "../../common/util/Togglable";
 import './pregame-ui.scss'
+import { audioManager } from "../audio-manager/AudioManager";
 
 type Prop = {
     circus: Circus,
@@ -37,7 +38,15 @@ export default function PregameUI(p: Prop) {
         // return ()=>{
         //     p.pubsub.off(PlayerPrepChoice, func)
         // }
-    })
+    }, [])
+
+    // React.useEffect(()=>{
+    //     audioManager.play('/audio/music-pre-game.mp3', true)
+
+    //     return ()=>{
+    //         audioManager.stop('/audio/music-pre-game.mp3')
+    //     }
+    // }, [])
 
     let me = p.circus.statuses.find(s => s.player.id === p.myId)
 

@@ -605,8 +605,8 @@ export class GuZheng extends SimpleConditionalSkill<DropCardOp>{
         let ans = (resp.customData as CardSelectionResult)[0]
         let picked = remaining.splice(ans.idx, 1)
         
-        manager.takeFromWorkflow(event.player.player.id, CardPos.HAND, picked)
-        manager.takeFromWorkflow(this.playerId, CardPos.HAND, remaining)
+        await manager.takeFromWorkflow(event.player.player.id, CardPos.HAND, picked)
+        await manager.takeFromWorkflow(this.playerId, CardPos.HAND, remaining)
     }
 }
 
@@ -689,7 +689,7 @@ export class TianXiang extends SimpleConditionalSkill<DamageOp> {
         } else {
             await new DamageOp(source, target, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
             if(!target.isDead) {
-                manager.takeFromWorkflow(target.player.id, CardPos.HAND, [resp.getSingleCardAndPos()[0]])
+                await manager.takeFromWorkflow(target.player.id, CardPos.HAND, [resp.getSingleCardAndPos()[0]])
             }
         }
     }

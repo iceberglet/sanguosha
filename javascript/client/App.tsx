@@ -19,7 +19,8 @@ type AppState = {
     myself?: Player,
     pregame?: Circus,
     context?: GameClientContext,
-    socket: WebSocket
+    socket: WebSocket,
+    error: string
 }
 
 // const audio = new Audio('无双.mp3')
@@ -44,6 +45,7 @@ export default class App extends React.Component<object, AppState> {
                 let login = msg as LoginMessage
                 if(login.error) {
                     console.error(login.error)
+                    this.setState({error: login.error})
                 }
                 this.setPlayer(login)
             } else {
@@ -62,7 +64,8 @@ export default class App extends React.Component<object, AppState> {
             socket,
             context: null, 
             myself: this.getPlayer(),
-            pregame: null
+            pregame: null,
+            error: null
         }
     }
 
@@ -126,7 +129,7 @@ export default class App extends React.Component<object, AppState> {
         if(this.state.pregame) {
             return this.renderPrep()
         }
-        return <UILogin myself={this.state.myself} onDone={this.doLogin}/>
+        return <UILogin myself={this.state.myself} onDone={this.doLogin} error={this.state.error}/>
     }
 
     render() {

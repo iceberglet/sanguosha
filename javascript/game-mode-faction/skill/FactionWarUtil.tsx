@@ -6,6 +6,7 @@ import { HintType } from "../../common/ServerHint";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardBeingDroppedEvent } from "../../server/engine/Generic";
+import Multimap from "../../common/util/Multimap";
 
 export function getNumberOfFactions(manager: GameManager): number {
     let revealed = manager.getSortedByCurr(true).filter(p => (p as FactionPlayerInfo).isRevealed())
@@ -21,6 +22,41 @@ export function getNumberOfFactions(manager: GameManager): number {
         }
     })
     return facs.size + count
+}
+
+/**
+ * 返回势力的个数
+ * (注: 野势力会被归为一栏,但是并不属于同一势力)
+ * @param manager 
+ */
+export function getFactionMembers(manager: GameManager): Multimap<Faction, PlayerInfo> {
+    let revealed = manager.getSortedByCurr(true).filter(p => (p as FactionPlayerInfo).isRevealed())
+    let res = new Multimap<Faction, PlayerInfo>()
+    revealed.forEach(r => {
+        if(r.getFaction() === Faction.UNKNOWN) {
+            throw 'Not possible!!'
+        }
+        res.set(r.getFaction(), r)
+    })
+    return res
+}
+
+export function getFactionsWithLeastMembers(manager: GameManager): Set<Faction> {
+    let counts = getFactionMembers(manager)
+    let min = 999, minFac = new Set<Faction>()
+    counts.forEach((v, k)=>{
+        let count = k === Faction.YE? 1 : v.size
+        if(count < min) {
+            min = count
+            minFac = new Set<Faction>([k])
+        } else if (count === min) {
+            minFac.add(k)
+        }
+    })
+    if(minFac.size === 0) {
+        throw 'Unable to determine faction with least members: ' + counts
+    }
+    return minFac
 }
 
 /**

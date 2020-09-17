@@ -249,7 +249,7 @@ export default class GameManager {
     }
 
     public getOthers(id: string) {
-        return this.context.playerInfos.map(p => !p.isDead && p.player.id !== id)
+        return this.context.playerInfos.filter(p => !p.isDead && p.player.id !== id)
     }
 
     /**
@@ -285,13 +285,14 @@ export default class GameManager {
         return true
     }
 
-    public takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: Card[]): Card[] {
+    public async takeFromWorkflow(toPlayer: string, toPos: CardPos, cards: Card[]): Promise<Card[]> {
         // if(!this.stillInWorkflow(cards)) {
         //     console.error('Workflow 没有这些卡了!')
         // }
         // this.broadcast(new TransferCardEffect(null, toPlayer, cards))
         let cardos = this.context.takeFromWorkflow(toPlayer, toPos, cards)
         this.broadcast(CardTransit.fromWorkflow(toPlayer, toPos, cardos))
+        await this.events.publish(new CardObtainedEvent(toPlayer, cards.map(c => [c, toPos])))
         return cardos
     }
     

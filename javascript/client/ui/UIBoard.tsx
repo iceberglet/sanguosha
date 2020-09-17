@@ -22,6 +22,7 @@ import { CustomUIData } from '../card-panel/CustomUIRegistry'
 import { GameMode } from '../../common/GameMode'
 import { SkillStatus } from '../../game-mode-faction/skill/Skill'
 import { UIRollingLogger, UILogger } from './UILogger'
+import { audioManager } from '../audio-manager/AudioManager'
 
 type UIBoardProp = {
     myId: string
@@ -122,6 +123,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             skillButtons,
             others: context.getRingFromPerspective(myId, false, true)
         }
+
         p.pubsub.on(SkillStatus, (s: SkillStatus)=>{
             // console.log('Received Skill Status', s)
             this.setState(state => {
@@ -183,6 +185,14 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         })
         this.dom = React.createRef()
         screenPosObtainer.registerObtainer(myId, this.dom)
+    }
+
+    componentDidMount() {
+        audioManager.play('/audio/music-in-game.mp3', true)
+    }
+
+    componentWillUnmount() {
+        audioManager.stop('/audio/music-in-game.mp3')
     }
 
     refresh=()=>{

@@ -12,7 +12,7 @@ import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, K
 import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng } from "./FactionSkillsWu";
 import { Stage } from "../../common/Stage";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan } from "./FactionSkillsQun";
+import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan, MaShuPang, MaShuTeng, LeiJi, GuiDao, SuiShi, SiJian, LuanJi, XiongYi, JianChu, XiongSuan } from "./FactionSkillsQun";
 
 
 class FactionSkillProvider {
@@ -121,6 +121,16 @@ FactionSkillProviders.register('鸩毒', pid => new ZhenDu(pid))
 FactionSkillProviders.register('戚乱', pid => new QiLuan(pid))
 FactionSkillProviders.register('从谏', pid => new CongJian(pid))
 FactionSkillProviders.register('附敌', pid => new FuDi(pid))
+FactionSkillProviders.register('鬼道', pid => new LeiJi(pid))
+FactionSkillProviders.register('雷击', pid => new GuiDao(pid))
+FactionSkillProviders.register('马术(庞)', pid => new MaShuPang(pid))
+FactionSkillProviders.register('马术(腾)', pid => new MaShuTeng(pid))
+FactionSkillProviders.register('鞬出', pid => new JianChu(pid))
+FactionSkillProviders.register('雄异', pid => new XiongYi(pid))
+FactionSkillProviders.register('随势', pid => new SuiShi(pid))
+FactionSkillProviders.register('死谏', pid => new SiJian(pid))
+FactionSkillProviders.register('乱击', pid => new LuanJi(pid))
+FactionSkillProviders.register('凶算', pid => new XiongSuan(pid))
 
 export default class FactionWarSkillRepo {
     

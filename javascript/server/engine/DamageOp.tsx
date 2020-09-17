@@ -3,8 +3,12 @@ import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { DamageEffect, PlaySound } from "../../common/transit/EffectTransit";
 import DeathOp from "./DeathOp";
-import AskSavingOp, { AskSavingAround } from "./AskSavingOp";
+import { AskSavingAround } from "./AskSavingOp";
 import Card from "../../common/cards/Card";
+
+export class EnterDyingEvent {
+    constructor(public readonly damage: DamageOp){}
+}
 
 export enum DamageType {
     /**
@@ -78,8 +82,10 @@ export default class DamageOp extends Operation<void> {
         //藤甲伤害加深?
         await manager.events.publish(this)
 
-        let size = Math.min(3, this.amount)
-        manager.broadcast(new PlaySound(`audio/injure${size}.ogg`))
+        if(this.amount <= 0) {
+            console.log('[伤害结算] 伤害被防止, 停止结算')
+            return
+        }
 
         this.timeline = DamageTimeline.TAKING_DAMAGE
         await manager.events.publish(this)
@@ -89,13 +95,15 @@ export default class DamageOp extends Operation<void> {
             return
         }
 
+        let size = Math.min(3, this.amount)
+        manager.broadcast(new PlaySound(`audio/injure${size}.ogg`))
         this.target.damage(this.amount)
         
         //what's done is done
         if(this.type === DamageType.ENERGY) {
             manager.log(`${this.target} 流失了 ${this.amount} 点体力`)
         } else {
-            let msg = `${this.target} 受到了${this.source? `来自 ${this.source} 的 ` : ''} ${this.amount} 点伤害`
+            let msg = `${this.target} 受到了来自 ${this.source || '苍天'} 的 ${this.amount} 点伤害`
             if(this.type === DamageType.FIRE) {
                 msg += '(火属性)'
             }
@@ -110,6 +118,9 @@ export default class DamageOp extends Operation<void> {
         let wasChained = this.target.isChained
         //死没死?
         if(this.target.isDying()) {
+
+            await manager.events.publish(new EnterDyingEvent(this))
+
             //求桃
             await new AskSavingAround(this.target).perform(manager)
 
