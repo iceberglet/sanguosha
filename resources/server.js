@@ -12593,12 +12593,12 @@ wss.on('connection', (ws) => {
         playerRegistry.removePlayer(ws);
     });
 });
-// server.listen(8080, ()=>{
-//     console.log('Server running on 8080')
-// })
-server.listen(8080, '192.168.1.102', () => {
+server.listen(8080, () => {
     console.log('Server running on 8080');
 });
+// server.listen(8080, '192.168.1.102', ()=>{
+//     console.log('Server running on 8080')
+// })
 
 
 /***/ }),
