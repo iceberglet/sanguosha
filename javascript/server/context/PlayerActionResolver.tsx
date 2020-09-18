@@ -101,8 +101,8 @@ export default class PlayerActionResolver extends ActionResolver {
             if(icard.type.isEquipment()) {
                 card.description = `${act.source} 装备`
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true, true)
-                await new EquipOp(act.source, card).perform(manager)
                 await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, CardPos.HAND]], card.type))
+                await new EquipOp(act.source, card).perform(manager)
                 return
             } else if (!icard.type.isDelayedRuse()) {
                 manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [card], true)

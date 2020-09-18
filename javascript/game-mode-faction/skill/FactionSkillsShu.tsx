@@ -673,6 +673,7 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
             }
             return false 
         }
+        return false
     }
     public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
         let me = manager.context.getPlayer(this.playerId)

@@ -305,17 +305,17 @@ export class LuanWu extends Skill {
     async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
         await this.revealMySelfIfNeeded(manager)
         this.invokeEffects(manager)
-        act.source.signs['乱'] = {
-            enabled: false,
-            type: 'limit-skill',
-            displayName: this.displayName,
-            owner: this.isMain? 'main' : 'sub'
-        }
+        act.source.signs['乱'].enabled = false
         manager.broadcast(act.source, PlayerInfo.sanitize)
         let toAsk = manager.getSortedByCurr(false)
         for(let t of toAsk) {
             let valid = manager.context.findingNearestNeighbors(t.player.id)
-            console.log(`离${t}最近的为${valid.map(i => i.player.id)}`)
+            console.log(`【乱武】离${t}最近的邻居为${valid}`)
+            valid = valid.filter(p => {
+                console.log(`【乱武】${t}能否砍到${p}? ${manager.context.computeDistance(t.player.id, p.player.id)} <= ${t.getReach()} ?`)
+                return manager.context.computeDistance(t.player.id, p.player.id) <= t.getReach()
+            })
+            console.log(`离${t}最近的为${valid}`)
             let resp = await manager.sendHint(t.player.id, {
                 hintType: HintType.PLAY_SLASH,
                 hintMsg: `${this.playerId} 发动乱武, 你需要对离你距离最小的角色出杀`,
@@ -894,7 +894,7 @@ export class XiongSuan extends Skill {
     
     async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
         await this.revealMySelfIfNeeded(manager)
-        act.source.signs['涅'].enabled = false
+        act.source.signs['凶'].enabled = false
         manager.broadcast(act.source, PlayerInfo.sanitize)
         this.invokeEffects(manager, [act.targets[0].player.id])
 

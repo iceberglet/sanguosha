@@ -14,7 +14,7 @@ import GameEnding from "../server/GameEnding";
 import TakeCardOp from "../server/engine/TakeCardOp";
 import initializeEquipments from "./FactionWarEquipmentInitializer";
 import { generalPairs } from "./FactionWarGenerals";
-import DropCardOp from "../server/engine/DropCardOp";
+import DropCardOp, {DropTimeline} from "../server/engine/DropCardOp";
 
 export class RevealGeneralEvent {
     public constructor(public readonly playerId: string, 
@@ -189,7 +189,7 @@ export default class FactionWarInitializer implements Initializer {
         
         
         manager.adminRegistry.onGeneral<DropCardOp>(DropCardOp, async (dropOp)=>{
-            if(dropOp.player.signs['鱼'] && dropOp.amount > 0) {
+            if(dropOp.timeline === DropTimeline.BEFORE && dropOp.player.signs['鱼'] && dropOp.amount > 0) {
                 let resp = await manager.sendHint(dropOp.player.player.id, {
                     hintType: HintType.MULTI_CHOICE,
                     hintMsg: '是否弃置阴阳鱼标记使本回合弃牌阶段手牌上限+2?',
