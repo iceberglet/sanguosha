@@ -11,6 +11,8 @@ import { Serde } from "../../common/util/Serializer";
 import { ClassFormatter } from "../../common/util/Togglable";
 import './pregame-ui.scss'
 import { audioManager } from "../audio-manager/AudioManager";
+import FactionWarRuleBook from "../../game-mode-faction/FactionWarRuleBook";
+import UIRuleModal from '../ui/UIRuleModal'
 
 type Prop = {
     circus: Circus,
@@ -75,6 +77,7 @@ export default function PregameUI(p: Prop) {
             })}
         </div>
         {me.chosenGeneral? <div className='my-choices'>
+            <UIRuleModal ruleName={'国战规则'} rules={<FactionWarRuleBook />}/>
             <div className='title center'>等待其他玩家加入/完成选将</div>
             <div className='chosen center'>
                 <div className='place-holder general-wrapper'>
@@ -87,6 +90,7 @@ export default function PregameUI(p: Prop) {
         </div> : 
 
         <div className='my-choices'>
+            <UIRuleModal ruleName={'国战规则'} rules={<FactionWarRuleBook />}/>
             <div className='title center'>{main? (sub? '点击确定选将' : '请选择副将') : '请选择主将'}</div>
             <div className='available'>
                 {generals.map(g => {
