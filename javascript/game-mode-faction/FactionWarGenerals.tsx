@@ -60,7 +60,7 @@ export default class FactionWarGeneral extends General {
     public static sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', Faction.WU, 2, '制衡')
     public static gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', Faction.WU, 2, '奇袭')
     public static huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', Faction.WU, 2, '苦肉')
-    public static tai_shi_ci = new FactionWarGeneral('fire_tai_shi_ci', '太史慈', Faction.WU, 2, '天义').asFemale() as FactionWarGeneral
+    public static tai_shi_ci = new FactionWarGeneral('fire_tai_shi_ci', '太史慈', Faction.WU, 2, '天义')
     public static lu_xun = new FactionWarGeneral('standard_lu_xun', '陆逊', Faction.WU, 1.5, '谦逊', '度势')
     public static sun_shang_xiang = new FactionWarGeneral('standard_sun_shang_xiang', '孙尚香', Faction.WU, 1.5, '枭姬', '结姻').asFemale() as FactionWarGeneral
     public static er_zhang = new FactionWarGeneral('mountain_er_zhang', '张昭张纮', Faction.WU, 1.5, '直谏', '固政')
