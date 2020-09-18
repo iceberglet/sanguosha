@@ -8839,7 +8839,8 @@ class KuangGu extends Skill_1.SimpleConditionalSkill {
     }
     conditionFulfilled(event, manager) {
         return event.isFrom(this.playerId) && event.timeline === DamageOp_1.DamageTimeline.DID_DAMAGE &&
-            manager.context.computeDistance(this.playerId, event.target.player.id) <= 1;
+            manager.context.computeDistance(this.playerId, event.target.player.id) <= 1 &&
+            event.source.hp < event.source.maxHp;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {

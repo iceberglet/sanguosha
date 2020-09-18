@@ -99,6 +99,7 @@
             -ms-flex: 1 1 auto;
             flex: 1 1 auto;
             padding: 1rem;
+            max-width: 780px;
         }
     }
 }
@@ -107,7 +108,7 @@
 .rule-book {
     display: flex;
     font-size: 13px;
-    width: 780px;
+    width: 100%;
 
     .rule-col {
         padding: 4px;

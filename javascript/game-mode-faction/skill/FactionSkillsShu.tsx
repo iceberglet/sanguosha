@@ -618,7 +618,8 @@ export class KuangGu extends SimpleConditionalSkill<DamageOp> {
     }
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
         return event.isFrom(this.playerId) && event.timeline === DamageTimeline.DID_DAMAGE && 
-                manager.context.computeDistance(this.playerId, event.target.player.id) <= 1
+                manager.context.computeDistance(this.playerId, event.target.player.id) <= 1 &&
+                event.source.hp < event.source.maxHp
     }
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         let me = event.source
