@@ -2,7 +2,7 @@ import GameManager from "../GameManager";
 import { CardType } from "../../common/cards/Card";
 import { Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
-import { filterMap, promiseAny, delay } from "../../common/util/Util";
+import { promiseAny, delay } from "../../common/util/Util";
 import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import PlayerAct from "../context/PlayerAct";

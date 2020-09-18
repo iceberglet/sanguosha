@@ -11,6 +11,8 @@ import { GameModeEnum } from "./GameModeEnum";
 import { Skill } from "../game-mode-faction/skill/Skill";
 import { FactionSkillProviders } from "../game-mode-faction/skill/FactionWarSkillRepo";
 import { describer } from "./util/Describer";
+import * as React from 'react'
+import FactionWarRuleBook from '../game-mode-faction/FactionWarRuleBook'
 
 
 export interface Initializer {
@@ -40,7 +42,8 @@ export class GameMode {
                         public readonly resolver: ActionResolver,
                         public readonly gameHosterProvider: (registry: PlayerRegistry, no: number)=>GameHoster,
                         public readonly skillProvider: (skillId: string, playerId: string)=>Skill,
-                        public readonly initClient: ()=>void) {
+                        public readonly initClient: ()=>void,
+                        public readonly manual: ()=>React.ReactElement) {
         GameMode.rules.set(id, this)
     }
 
@@ -50,7 +53,7 @@ export class GameMode {
 }
 
 new GameMode(GameModeEnum.IdentityWarGame, '身份局', IdentityWarCards, 
-                null, null, null, null)
+                null, null, null, null, null)
 new GameMode(GameModeEnum.FactionWarGame, '国战', FactionWarCards, 
                 new FactionWarActionResolver(),
                 (registry, no) => new FactionWarGameHoster(registry, no),
@@ -88,4 +91,5 @@ new GameMode(GameModeEnum.FactionWarGame, '国战', FactionWarCards,
                     describer.register(CardType.WU_ZHONG.id, '出牌阶段，对自己使用。摸两张牌。')
                     describer.register(CardType.JUE_DOU.id, '出牌阶段，对一名其他角色使用。由该角色开始，你与其轮流打出一张【杀】，首先不出【杀】的一方受到另一方造成的1点伤害。')
                     describer.register(CardType.WU_XIE_GUO.id, '抵消目标锦囊牌对一名角色或一种势力产生的效果，或抵消另一张【无懈可击】产生的效果。')
-                })
+                }, 
+                ()=><FactionWarRuleBook />)

@@ -21,6 +21,18 @@
         flex-grow: 1;
         display: flex;
 
+        .system-buttons {
+            position: absolute;
+            background: rgba(27, 27, 27, 0.712);
+            color: white;
+            font-family: initial;
+            border-radius: 6px;
+            padding: 5px;
+            font-size: 13px;
+            top: 4px;
+            left: 4px;
+        }
+
         .playground {
             flex-grow: 1;
             // border: 1px solid lime;
@@ -96,31 +108,6 @@
         .my-cards {
             flex-grow: 1;
             display: flex;
-
-            .mid {
-                position: relative;
-                width: 240px;
-                // height: 172px;
-                padding: 4px;
-                background-color: rgba(56, 52, 29, 0.767);
-                box-shadow: inset 0px 0px 5px #ffffff;
-                z-index: 3;  //要高过手牌栏
-    
-                .my-judge {
-                    height: 40px;
-                    display: flex;
-                }
-    
-                .my-equip {
-                    height: 132px;
-                    font-size: 18px;
-                    // border: 1px solid red;
-                }
-            }
-    
-        }
-
-        .my-cards {
             position: relative;
             height: 180px;
             flex-grow: 1;
@@ -130,6 +117,64 @@
             box-shadow: inset 0px 0px 5px #ffffff;
             // border: 1px solid red;
             display: flex;
+
+            .mid {
+                position: relative;
+                width: 240px;
+                // height: 172px;
+                padding: 4px;
+                background-color: rgba(56, 52, 29, 0.767);
+                box-shadow: inset 0px 0px 5px #ffffff;
+                z-index: 3;  //要高过手牌栏
+                
+                .my-signs {
+                    height: 36px;
+                    display: flex;
+                    padding-left: 10px;
+                    align-items: center;
+
+                    .sign {
+                        width: 20px;
+                        height: 20px;
+                        margin: 6px;
+                        border-radius: 20px;
+                        background: #777777;
+                        font-size: 26px;
+                        color: #ffffff;
+                        opacity: 0.5;
+                        transition: 0.2s;
+
+                        &.enabled {
+                            opacity: 1;
+                        }
+
+                        &.selectable {
+                            cursor: pointer;
+                        }
+
+                        &.selectable:hover {
+                            transform: translate(0px, -5px);
+                        }
+
+                        &.selected {
+                            transform: translate(0px, -5px);
+                            color: gold;
+                        }
+                    }
+                }
+    
+                .my-judge {
+                    height: 36px;
+                    display: flex;
+                }
+    
+                .my-equip {
+                    height: 100px;
+                    font-size: 18px;
+                    // border: 1px solid red;
+                }
+            }
+    
         }
 
         .player-buttons {

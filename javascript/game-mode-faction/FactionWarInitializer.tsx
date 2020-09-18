@@ -5,15 +5,16 @@ import { CardPos } from "../common/transit/CardPos";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
 import { HintType } from "../common/ServerHint";
-import { Button, UIPosition } from "../common/PlayerAction";
+import { Button } from "../common/PlayerAction";
 import { StageStartFlow } from "../server/engine/StageFlows";
 import { Faction, factionsSame } from "../common/General";
 import { Stage } from "../common/Stage";
 import DeathOp from "../server/engine/DeathOp";
 import GameEnding from "../server/GameEnding";
 import TakeCardOp from "../server/engine/TakeCardOp";
-import { describer } from "../common/util/Describer";
 import initializeEquipments from "./FactionWarEquipmentInitializer";
+import { generalPairs } from "./FactionWarGenerals";
+import DropCardOp from "../server/engine/DropCardOp";
 
 export class RevealGeneralEvent {
     public constructor(public readonly playerId: string, 
@@ -76,6 +77,37 @@ export default class FactionWarInitializer implements Initializer {
             let wasRevealed = p.isRevealed()
             p.isGeneralRevealed = p.isGeneralRevealed || reveal.mainReveal
             p.isSubGeneralRevealed = p.isSubGeneralRevealed || reveal.subReveal
+
+            if(p.isGeneralRevealed && p.isSubGeneralRevealed) {
+                //珠联璧合
+                if(generalPairs.isPaired(p.general.name, p.subGeneral.name)) {
+                    if(p.signs['珠']) {
+                        console.error('已经有了珠联璧合了，咋回事？？', p, reveal)
+                    } else {
+                        p.signs['珠'] = {
+                            displayName: '珠联璧合',
+                            enabled: true,
+                            owner: 'player',
+                            type: 'usable-sign'
+                        }
+                    }
+                }
+                //阴阳鱼
+                let hp1 = p.general.hp, hp2 = p.subGeneral.hp
+                if(Math.round(2 * (hp1 + hp2 - Math.floor(hp2 + hp1))) === 1) {
+                    if(p.signs['鱼']) {
+                        console.error('已经有了阴阳鱼了，咋回事？？', p, reveal)
+                    } else {
+                        p.signs['鱼'] = {
+                            displayName: '阴阳鱼',
+                            enabled: true,
+                            owner: 'player',
+                            type: 'usable-sign'
+                        }
+                    }
+                }
+            }
+
             let isRevealed = p.isRevealed()
             if(!wasRevealed && isRevealed) {
                 await manager.events.publish(new RevealPlayerEvent(p))
@@ -83,6 +115,7 @@ export default class FactionWarInitializer implements Initializer {
             //todo: update server side skill conditions
             manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
             manager.log(`${p.player.id} 明置 ${reveal.mainReveal? '主将' + p.general.name : ''} ${reveal.subReveal? '副将' + p.subGeneral.name : ''}`)
+            this.checkGameEndingCondition(manager.context.playerInfos.filter(p => !p.isDead) as FactionPlayerInfo[], manager)
         })
 
         manager.adminRegistry.onGeneral<DeathOp>(DeathOp, async (death)=>{
@@ -97,7 +130,7 @@ export default class FactionWarInitializer implements Initializer {
                 this.computeFactionForPlayer(deceased, manager)
             }
 
-            this.checkGameEndingCondition(deceased, manager)
+            this.checkGameEndingCondition(manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id) as FactionPlayerInfo[], manager)
 
             //奖惩
             if(!killer) {
@@ -139,8 +172,37 @@ export default class FactionWarInitializer implements Initializer {
             }
         })
 
+        let noOneRevealed = true
+
         manager.adminRegistry.onGeneral<RevealPlayerEvent>(RevealPlayerEvent, async(reveal)=>{
+            if(noOneRevealed) {
+                noOneRevealed = false
+                reveal.player.signs['先'] = {
+                    displayName: '先驱',
+                    enabled: true,
+                    owner: 'player',
+                    type: 'usable-sign'
+                }
+            }
             this.computeFactionForPlayer(reveal.player as FactionPlayerInfo, manager)
+        })
+        
+        
+        manager.adminRegistry.onGeneral<DropCardOp>(DropCardOp, async (dropOp)=>{
+            if(dropOp.player.signs['鱼'] && dropOp.amount > 0) {
+                let resp = await manager.sendHint(dropOp.player.player.id, {
+                    hintType: HintType.MULTI_CHOICE,
+                    hintMsg: '是否弃置阴阳鱼标记使本回合弃牌阶段手牌上限+2?',
+                    extraButtons: [Button.OK, Button.CANCEL]
+                })
+                if(!resp.isCancel()) {
+                    manager.log(`${dropOp.player} 弃置阴阳鱼标记使手牌上限+2`)
+                    dropOp.amount -= 2
+                    delete dropOp.player.signs['鱼']
+                    manager.broadcast(dropOp.player, PlayerInfo.sanitize)
+                }
+                // this.invokeEffects(manager)
+            }
         })
     }
 
@@ -186,8 +248,7 @@ export default class FactionWarInitializer implements Initializer {
      * @param deceased 
      * @param manager 
      */
-    checkGameEndingCondition(deceased: PlayerInfo, manager: GameManager) {
-        let surviving = manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id) as FactionPlayerInfo[]
+    checkGameEndingCondition(surviving: FactionPlayerInfo[], manager: GameManager) {
         if(surviving.length === 1) {
             console.log('[牌局] 只剩一人了!')
             //强制结算

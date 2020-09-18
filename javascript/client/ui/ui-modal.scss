@@ -1,0 +1,141 @@
+.modal-backdrop.fade {
+    opacity: 0;
+}
+
+.modal-backdrop.show {
+    opacity: .5;
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+}
+
+.modal-open .modal {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1050;
+    display: none;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    outline: 0;
+}
+
+.fade {
+    transition: opacity .15s linear;
+}
+
+.modal.fade .modal-dialog {
+    transition: -webkit-transform .3s ease-out;
+    transition: transform .3s ease-out;
+    transition: transform .3s ease-out,-webkit-transform .3s ease-out;
+    -webkit-transform: translate(0, -50px);
+    transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+    -webkit-transform: none;
+    transform: none;
+}
+
+
+.modal-dialog {
+    margin: auto;
+    position: relative;
+    width: auto;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 50px;
+
+    .modal-content {
+        position: relative;
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-direction: column;
+        flex-direction: column;
+        max-width: 80%;
+        pointer-events: auto;
+        background-image: url('ui/bak.png');
+        background-repeat: repeat;
+        color: white;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        border-radius: .3rem;
+        outline: 0;
+        font-family: initial;
+
+        .modal-header {
+            display: -ms-flexbox;
+            display: flex;
+            -ms-flex-align: start;
+            align-items: flex-start;
+            -ms-flex-pack: justify;
+            justify-content: space-between;
+            padding: 1rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+            border-top-left-radius: calc(.3rem - 1px);
+            border-top-right-radius: calc(.3rem - 1px);
+
+            .close {
+                cursor: pointer;
+            }
+        }
+        
+        .modal-body {
+            position: relative;
+            -ms-flex: 1 1 auto;
+            flex: 1 1 auto;
+            padding: 1rem;
+        }
+    }
+}
+
+
+.rule-book {
+    display: flex;
+    font-size: 13px;
+    width: 780px;
+
+    .rule-col {
+        padding: 4px;
+        min-width: 130px;
+        margin-right: 10px;
+        
+        .rule-item {
+            margin-bottom: 5px;
+            cursor: pointer;
+            text-align: right;
+            z-index: 1;
+            transition: 0.2s;
+
+            &.active {
+                color: gold;
+                // border: 1px solid white;
+                border-right: none;
+                transform: translate(5px, 0px);
+            }
+        }
+    }
+
+    .rule-content {
+        padding: 4px;
+        // border: 1px solid white;
+
+        p {
+            margin-top: initial;
+        }
+    }
+}

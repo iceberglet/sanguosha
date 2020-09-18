@@ -15,6 +15,7 @@ export default class PlayerAct {
     public readonly cards: Map<CardPos, Card[]>
     public readonly cardsAndPos: Array<[Card, CardPos]>
     public readonly serverHint: ServerHint
+    public readonly signChosen: string
     public readonly customData: CardSelectionResult | GeneralSelectionResult | string
 
     public constructor(action: PlayerAction, private manager: GameManager) {
@@ -32,6 +33,7 @@ export default class PlayerAct {
         }
         this.button = tryGetSingle(action.actionData[UIPosition.BUTTONS])
         this.skill = tryGetSingle(action.actionData[UIPosition.MY_SKILL])
+        this.signChosen = tryGetSingle(action.actionData[UIPosition.SIGNS])
         if(action.actionData[UIPosition.PLAYER]) {
             this.targets = action.actionData[UIPosition.PLAYER].map(p => manager.context.getPlayer(p))
         }

@@ -23,6 +23,7 @@ import { GameMode } from '../../common/GameMode'
 import { SkillStatus } from '../../game-mode-faction/skill/Skill'
 import { UIRollingLogger, UILogger } from './UILogger'
 import { audioManager } from '../audio-manager/AudioManager'
+import RuleModal from './UIRuleModal'
 
 type UIBoardProp = {
     myId: string
@@ -80,11 +81,13 @@ type State = {
     cardsChecker: Checker,
     buttonChecker: Checker,
     equipChecker: Checker,
+    signsChecker: Checker,
     skillButtons: SkillButtonProp[],
     uiRequest?: CustomRequest,
     uiData?: CustomUIData<any>,
     others: PlayerInfo[],
-    cardTransitManager: CardTransitManager
+    cardTransitManager: CardTransitManager,
+    audioPlaying: boolean
 }
 
 export default class UIBoard extends React.Component<UIBoardProp, State> {
@@ -117,12 +120,15 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             cardsChecker: new CheckerImpl(UIPosition.MY_HAND, context, this.refresh),
             buttonChecker: new CheckerImpl(UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new CheckerImpl(UIPosition.MY_EQUIP, context, this.refresh),
+            signsChecker: new CheckerImpl(UIPosition.SIGNS, context, this.refresh),
             cardTransitManager: new CardTransitManager(context.cardManager),
             uiRequest: null,
             uiData: null,
             skillButtons,
-            others: context.getRingFromPerspective(myId, false, true)
+            others: context.getRingFromPerspective(myId, false, true),
+            audioPlaying: true
         }
+        audioManager.play('/audio/music-in-game.mp3', true)
 
         p.pubsub.on(SkillStatus, (s: SkillStatus)=>{
             // console.log('Received Skill Status', s)
@@ -187,12 +193,18 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         screenPosObtainer.registerObtainer(myId, this.dom)
     }
 
-    componentDidMount() {
-        audioManager.play('/audio/music-in-game.mp3', true)
-    }
-
     componentWillUnmount() {
         audioManager.stop('/audio/music-in-game.mp3')
+    }
+
+    toggleMusic=()=>{
+        this.setState({audioPlaying: !this.state.audioPlaying}, ()=>{
+            if(this.state.audioPlaying) {
+                audioManager.play('/audio/music-in-game.mp3', true)
+            } else {
+                audioManager.pause('/audio/music-in-game.mp3')
+            }
+        })
     }
 
     refresh=()=>{
@@ -202,9 +214,10 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
 
     render() {
         let {myId, context, pubsub} = this.props
-        let {showDistance, hideCards, screenPosObtainer, others, skillButtons,
+        let {showDistance, hideCards, screenPosObtainer, others, skillButtons, signsChecker,
             playerChecker, cardsChecker, buttonChecker, equipChecker, cardTransitManager} = this.state
         let playerInfo = context.getPlayer(myId)
+        let mode = GameMode.get(context.gameMode)
         // console.log(context.playerInfos, myId, playerInfo)
 
         return <div className='board occupy noselect' style={{}}>
@@ -230,12 +243,16 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 <div className='chat-logger'>
                     <UILogger pubsub={pubsub} />
                 </div>
+                <div className='system-buttons'>
+                    <RuleModal ruleName={mode.name + '规则'} rules={mode.manual()}/>
+                    <i className='fa fa-music icon' onClick={this.toggleMusic}/>
+                </div>
             </div>
             <div className='btm' ref={this.dom}>
                 {/* 状态 */}
                 <UIMyPlayerCard info={playerInfo} elementStatus={playerChecker.getStatus(myId)} 
                                 onSelect={(s)=>playerChecker.onClicked(s)} pubsub={pubsub} skillButtons={skillButtons}/>
-                <UIMyCards info={playerInfo} equipChecker={equipChecker} cardsChecker={cardsChecker} 
+                <UIMyCards info={playerInfo} equipChecker={equipChecker} cardsChecker={cardsChecker} signsChecker={signsChecker}
                             hideCards={hideCards} cardTransitManager={cardTransitManager}/>
                 <div className='player-buttons'>
                     <div className='server-hint-msg'>{context.getMsg()}</div>

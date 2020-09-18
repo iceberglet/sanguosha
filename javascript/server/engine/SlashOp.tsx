@@ -8,6 +8,8 @@ import Card, { CardType, Color } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import { deriveColor } from "../../common/cards/ICard";
 import { HintType } from "../../common/ServerHint";
+import { CardPos } from "../../common/transit/CardPos";
+import { CardBeingUsedEvent } from "./Generic";
 
 export class SlashDodgedEvent {
     constructor(public readonly slashOp: SlashCompute, public readonly dodgeOp: DodgeOp) {
@@ -185,8 +187,20 @@ export class AskForSlashOp extends Operation<boolean> {
             if(resp.isCancel()) {
                 console.log('玩家放弃出杀')
                 return false
+            } else if (resp.skill) {
+                await manager.resolver.onSkillAction(resp, this, manager)
             } else {
-                await manager.resolver.onAskingForSlash(resp, this, manager)
+                let cards = resp.getCardsAtPos(CardPos.HAND).map(card => {
+                    card.description = `${this.slasher.player.id} 出杀`
+                    if(!card.type.isSlash()) {
+                        card.as = CardType.SLASH
+                    }
+                    return card
+                })
+                manager.log(`${resp.source} 打出了 ${cards}`)
+                let type: CardType = cards.length === 1? cards[0].type : CardType.SLASH
+                manager.sendToWorkflow(this.slasher.player.id, CardPos.HAND, cards)
+                await manager.events.publish(new CardBeingUsedEvent(this.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type, false, false))
             }
         }
 

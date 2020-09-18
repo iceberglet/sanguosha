@@ -3,17 +3,20 @@ import UIEquipGrid from "./UIEquipGrid";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import * as React from 'react'
 import { CardPos } from "../../common/transit/CardPos";
-import { Checker } from "./UIBoard";
+import { Checker, ElementStatus } from "./UIBoard";
 import CardTransitManager, { CardAndCoor, CardEndpoint, InCardAndCoor, getCardCoor } from "./CardTransitManager";
 import Card from "../../common/cards/Card";
 import {v4 as uuidv4} from 'uuid'
 import { CardTransit } from "../../common/transit/EffectTransit";
+import { ClassFormatter } from "../../common/util/Togglable";
+import { wrapSign } from "./UIPlayerCard";
 
 type Prop = {
     info: PlayerInfo,
     hideCards: boolean,
     equipChecker: Checker,
     cardsChecker: Checker,
+    signsChecker: Checker,
     cardTransitManager: CardTransitManager
 }
 
@@ -79,9 +82,27 @@ export default class UIMyCards extends React.Component<Prop, object> {
     }
 
     render() {
-        let {info, hideCards, equipChecker, cardsChecker} = this.props
+        let {info, hideCards, equipChecker, cardsChecker, signsChecker} = this.props
         return <div className='my-cards'>
             <div className='mid' ref={this.dom}>
+                {/* 标记 */}
+                <div className='my-signs'>
+                    {Object.keys(info.signs).map(s => {
+                        let sign = info.signs[s]
+                        let status = signsChecker.getStatus(s)
+                        let canSelect = status.isSelectable && sign.enabled
+                        let clazz = new ClassFormatter('sign center')
+                                            .and(sign.enabled, 'enabled')
+                                            .and(canSelect, 'selectable')
+                                            .and(status === ElementStatus.SELECTED, 'selected')
+                                            .done()
+                        return wrapSign(<div key={s} className={clazz} onClick={()=>{
+                                    if(canSelect) {
+                                        signsChecker.onClicked(s)
+                                    }
+                                }}>{s}</div>, sign)
+                    })}
+                </div>
                 {/* 判定牌 */}
                 <div className='my-judge'>
                     <UIMarkRow marks={info.getCards(CardPos.JUDGE)} />

@@ -344,6 +344,10 @@ class AudioManager {
         audio.pause();
         audio.currentTime = 0;
     }
+    pause(name) {
+        let audio = this.cache.get(name);
+        audio.pause();
+    }
     play(name, loop = false) {
         try {
             let audio;
@@ -1457,7 +1461,8 @@ class StepByStepActionDriver extends PlayerActionDriver_1.PlayerActionDriver {
             console.log('[Player Action] Clicked on', action);
             //if we clicked on abort:
             if (action.actionArea === PlayerAction_1.UIPosition.BUTTONS) {
-                if (ServerHint_1.isDirectButton(context.serverHint.hint, action.itemId)) {
+                let button = this.buttons.find(b => b.id === action.itemId);
+                if (ServerHint_1.isDirectButton(context.serverHint.hint, button)) {
                     //abort sends a message to server
                     let actionData = {};
                     let actionToServer = {
@@ -1516,9 +1521,10 @@ class StepByStepActionDriver extends PlayerActionDriver_1.PlayerActionDriver {
         };
         this.canBeClicked = (action, context) => {
             if (action.actionArea === PlayerAction_1.UIPosition.BUTTONS) {
+                let button = this.buttons.find(b => b.id === action.itemId);
                 // console.log(isDirectButton(context.serverHint.hint, action.itemId))
-                if (ServerHint_1.isDirectButton(context.serverHint.hint, action.itemId)) {
-                    return ServerHint_1.isDirectButton(context.serverHint.hint, action.itemId).enabled ? PlayerActionDriver_1.Clickability.CLICKABLE : PlayerActionDriver_1.Clickability.DISABLED;
+                if (ServerHint_1.isDirectButton(context.serverHint.hint, button)) {
+                    return ServerHint_1.isDirectButton(context.serverHint.hint, button).enabled ? PlayerActionDriver_1.Clickability.CLICKABLE : PlayerActionDriver_1.Clickability.DISABLED;
                 }
                 else if (action.itemId === PlayerAction_1.Button.CANCEL.id) {
                     // console.log('Can Cancel? ', this.curr, this.currentStep())
@@ -1682,7 +1688,7 @@ exports.playerActionDriverProvider = new PlayerActionDriverProvider();
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerPlaySlash = exports.registerSlash = exports.registerSlashPlayingHand = exports.slashTargetFilter = void 0;
+exports.registerPeach = exports.registerPeachPlayHand = exports.registerPlaySlash = exports.registerSlash = exports.registerSlashPlayingHand = exports.slashTargetFilter = void 0;
 const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 const PlayerActionDriverDefiner_1 = __webpack_require__(/*! ./PlayerActionDriverDefiner */ "./javascript/client/player-actions/PlayerActionDriverDefiner.tsx");
@@ -1746,12 +1752,21 @@ function registerPlaySlash(slashPlayer) {
     });
 }
 exports.registerPlaySlash = registerPlaySlash;
+/**
+ * 出牌阶段出杀
+ */
 registerSlashPlayingHand((definer, hint) => {
     return definer.expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).type.isSlash(), () => hint.hintMsg);
 });
+/**
+ * 被动被要求对指定目标出杀
+ */
 registerPlaySlash((definer, hint) => {
     return definer.expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).type.isSlash(), () => hint.hintMsg);
 });
+/**
+ * 被动出杀（决斗，南蛮）
+ */
 registerSlash((definer, hint) => {
     return definer.expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).type.isSlash(), () => hint.hintMsg);
 });
@@ -1874,14 +1889,28 @@ PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerH
         .expectAnyButton('点击确定使用借刀杀人')
         .build(hint);
 });
-PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
-    return new PlayerActionDriverDefiner_1.default('出牌阶段吃桃')
-        .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => {
-        return context.myself.hp < context.myself.maxHp && context.interpret(id).type === Card_1.CardType.PEACH;
-    })
-        .expectAnyButton('点击确定吃桃')
-        .build(hint);
+// playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+//     return new PlayerActionDriverDefiner('出牌阶段吃桃')
+//             .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
+//                 return context.myself.hp < context.myself.maxHp && context.interpret(id).type === CardType.PEACH
+//             })
+//             .expectAnyButton('点击确定吃桃')
+//             .build(hint)
+// })
+registerPeachPlayHand((definer, hint) => {
+    return definer.expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => context.myself.hp < context.myself.maxHp && context.interpret(id).type === Card_1.CardType.PEACH);
 });
+/**
+ * 出牌阶段出桃回血
+ */
+function registerPeachPlayHand(peachStepper) {
+    PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
+        return peachStepper(new PlayerActionDriverDefiner_1.default('出牌阶段吃桃'), hint)
+            .expectAnyButton('点击确定使用此牌/标记回复1点体力')
+            .build(hint);
+    });
+}
+exports.registerPeachPlayHand = registerPeachPlayHand;
 PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
     return new PlayerActionDriverDefiner_1.default('出牌阶段喝酒')
         .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => {
@@ -1918,18 +1947,30 @@ PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerH
         .expectAnyButton('点击确定完成操作')
         .build(hint, [PlayerAction_1.Button.OK]); //cannot refuse unless server allows you
 });
-PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PEACH, (hint) => {
-    if (!hint.sourcePlayer) {
-        throw `Source Player not specified in hint: ${hint}`;
-    }
-    return new PlayerActionDriverDefiner_1.default('玩家濒死求桃')
-        .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => {
+registerPeach((definer, hint) => {
+    return definer.expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => {
         return context.interpret(id).type === Card_1.CardType.PEACH ||
             (hint.sourcePlayer === context.myself.player.id && context.interpret(id).type === Card_1.CardType.WINE);
-    }, () => hint.hintMsg)
-        .expectAnyButton('点击确定使用桃')
-        .build(hint, [PlayerAction_1.Button.OK]); //refusal is provided by serverHint.extraButtons
+    });
 });
+/**
+ * 濒死求桃时使用桃
+ */
+function registerPeach(peachStepper) {
+    PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PEACH, (hint) => {
+        if (!hint.sourcePlayer) {
+            throw `Source Player not specified in hint: ${hint}`;
+        }
+        return peachStepper(new PlayerActionDriverDefiner_1.default('玩家濒死求桃'), hint)
+            .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => {
+            return context.interpret(id).type === Card_1.CardType.PEACH ||
+                (hint.sourcePlayer === context.myself.player.id && context.interpret(id).type === Card_1.CardType.WINE);
+        }, () => hint.hintMsg)
+            .expectAnyButton('点击确定使用桃/酒')
+            .build(hint, [PlayerAction_1.Button.OK]); //refusal is provided by serverHint.extraButtons
+    });
+}
+exports.registerPeach = registerPeach;
 PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.DODGE, (hint) => {
     return new PlayerActionDriverDefiner_1.default(hint.hintMsg)
         .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).type === Card_1.CardType.DODGE, () => hint.hintMsg)
@@ -2459,6 +2500,7 @@ const GameMode_1 = __webpack_require__(/*! ../../common/GameMode */ "./javascrip
 const Skill_1 = __webpack_require__(/*! ../../game-mode-faction/skill/Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
 const UILogger_1 = __webpack_require__(/*! ./UILogger */ "./javascript/client/ui/UILogger.tsx");
 const AudioManager_1 = __webpack_require__(/*! ../audio-manager/AudioManager */ "./javascript/client/audio-manager/AudioManager.tsx");
+const UIRuleModal_1 = __webpack_require__(/*! ./UIRuleModal */ "./javascript/client/ui/UIRuleModal.tsx");
 class ElementStatus {
     constructor(name, isSelectable) {
         this.name = name;
@@ -2502,6 +2544,16 @@ class CheckerImpl {
 class UIBoard extends React.Component {
     constructor(p) {
         super(p);
+        this.toggleMusic = () => {
+            this.setState({ audioPlaying: !this.state.audioPlaying }, () => {
+                if (this.state.audioPlaying) {
+                    AudioManager_1.audioManager.play('/audio/music-in-game.mp3', true);
+                }
+                else {
+                    AudioManager_1.audioManager.pause('/audio/music-in-game.mp3');
+                }
+            });
+        };
         this.refresh = () => {
             // console.log('Force Refreshing UIBoard')
             this.forceUpdate();
@@ -2529,12 +2581,15 @@ class UIBoard extends React.Component {
             cardsChecker: new CheckerImpl(PlayerAction_1.UIPosition.MY_HAND, context, this.refresh),
             buttonChecker: new CheckerImpl(PlayerAction_1.UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new CheckerImpl(PlayerAction_1.UIPosition.MY_EQUIP, context, this.refresh),
+            signsChecker: new CheckerImpl(PlayerAction_1.UIPosition.SIGNS, context, this.refresh),
             cardTransitManager: new CardTransitManager_1.default(context.cardManager),
             uiRequest: null,
             uiData: null,
             skillButtons,
-            others: context.getRingFromPerspective(myId, false, true)
+            others: context.getRingFromPerspective(myId, false, true),
+            audioPlaying: true
         };
+        AudioManager_1.audioManager.play('/audio/music-in-game.mp3', true);
         p.pubsub.on(Skill_1.SkillStatus, (s) => {
             // console.log('Received Skill Status', s)
             this.setState(state => {
@@ -2597,16 +2652,14 @@ class UIBoard extends React.Component {
         this.dom = React.createRef();
         screenPosObtainer.registerObtainer(myId, this.dom);
     }
-    componentDidMount() {
-        AudioManager_1.audioManager.play('/audio/music-in-game.mp3', true);
-    }
     componentWillUnmount() {
         AudioManager_1.audioManager.stop('/audio/music-in-game.mp3');
     }
     render() {
         let { myId, context, pubsub } = this.props;
-        let { showDistance, hideCards, screenPosObtainer, others, skillButtons, playerChecker, cardsChecker, buttonChecker, equipChecker, cardTransitManager } = this.state;
+        let { showDistance, hideCards, screenPosObtainer, others, skillButtons, signsChecker, playerChecker, cardsChecker, buttonChecker, equipChecker, cardTransitManager } = this.state;
         let playerInfo = context.getPlayer(myId);
+        let mode = GameMode_1.GameMode.get(context.gameMode);
         // console.log(context.playerInfos, myId, playerInfo)
         return React.createElement("div", { className: 'board occupy noselect', style: {} },
             React.createElement("div", { className: 'top' },
@@ -2623,10 +2676,13 @@ class UIBoard extends React.Component {
                         } }),
                     React.createElement(UILogger_1.UIRollingLogger, { pubsub: pubsub })),
                 React.createElement("div", { className: 'chat-logger' },
-                    React.createElement(UILogger_1.UILogger, { pubsub: pubsub }))),
+                    React.createElement(UILogger_1.UILogger, { pubsub: pubsub })),
+                React.createElement("div", { className: 'system-buttons' },
+                    React.createElement(UIRuleModal_1.default, { ruleName: mode.name + '规则', rules: mode.manual() }),
+                    React.createElement("i", { className: 'fa fa-music icon', onClick: this.toggleMusic }))),
             React.createElement("div", { className: 'btm', ref: this.dom },
                 React.createElement(UIMyPlayerCard_1.UIMyPlayerCard, { info: playerInfo, elementStatus: playerChecker.getStatus(myId), onSelect: (s) => playerChecker.onClicked(s), pubsub: pubsub, skillButtons: skillButtons }),
-                React.createElement(UIMyCards_1.default, { info: playerInfo, equipChecker: equipChecker, cardsChecker: cardsChecker, hideCards: hideCards, cardTransitManager: cardTransitManager }),
+                React.createElement(UIMyCards_1.default, { info: playerInfo, equipChecker: equipChecker, cardsChecker: cardsChecker, signsChecker: signsChecker, hideCards: hideCards, cardTransitManager: cardTransitManager }),
                 React.createElement("div", { className: 'player-buttons' },
                     React.createElement("div", { className: 'server-hint-msg' }, context.getMsg()),
                     context.getButtons().map(b => {
@@ -3113,8 +3169,11 @@ const UICardRow_1 = __webpack_require__(/*! ./UICardRow */ "./javascript/client/
 const UIEquipGrid_1 = __webpack_require__(/*! ./UIEquipGrid */ "./javascript/client/ui/UIEquipGrid.tsx");
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const UIBoard_1 = __webpack_require__(/*! ./UIBoard */ "./javascript/client/ui/UIBoard.tsx");
 const CardTransitManager_1 = __webpack_require__(/*! ./CardTransitManager */ "./javascript/client/ui/CardTransitManager.tsx");
 const uuid_1 = __webpack_require__(/*! uuid */ "./node_modules/uuid/dist/esm-browser/index.js");
+const Togglable_1 = __webpack_require__(/*! ../../common/util/Togglable */ "./javascript/common/util/Togglable.tsx");
+const UIPlayerCard_1 = __webpack_require__(/*! ./UIPlayerCard */ "./javascript/client/ui/UIPlayerCard.tsx");
 class UIMyCards extends React.Component {
     constructor(p) {
         super(p);
@@ -3170,9 +3229,24 @@ class UIMyCards extends React.Component {
         this.props.cardTransitManager.register(null, this.props.info.player.id);
     }
     render() {
-        let { info, hideCards, equipChecker, cardsChecker } = this.props;
+        let { info, hideCards, equipChecker, cardsChecker, signsChecker } = this.props;
         return React.createElement("div", { className: 'my-cards' },
             React.createElement("div", { className: 'mid', ref: this.dom },
+                React.createElement("div", { className: 'my-signs' }, Object.keys(info.signs).map(s => {
+                    let sign = info.signs[s];
+                    let status = signsChecker.getStatus(s);
+                    let canSelect = status.isSelectable && sign.enabled;
+                    let clazz = new Togglable_1.ClassFormatter('sign center')
+                        .and(sign.enabled, 'enabled')
+                        .and(canSelect, 'selectable')
+                        .and(status === UIBoard_1.ElementStatus.SELECTED, 'selected')
+                        .done();
+                    return UIPlayerCard_1.wrapSign(React.createElement("div", { key: s, className: clazz, onClick: () => {
+                            if (canSelect) {
+                                signsChecker.onClicked(s);
+                            }
+                        } }, s), sign);
+                })),
                 React.createElement("div", { className: 'my-judge' },
                     React.createElement(UICardRow_1.UIMarkRow, { marks: info.getCards(CardPos_1.CardPos.JUDGE) })),
                 React.createElement("div", { className: 'my-equip' },
@@ -3404,7 +3478,7 @@ exports.default = UIPlayGround;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UIPlayerCard = void 0;
+exports.wrapSign = exports.UIPlayerCard = void 0;
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 const UIHpCol_1 = __webpack_require__(/*! ./UIHpCol */ "./javascript/client/ui/UIHpCol.tsx");
 const UICardRow_1 = __webpack_require__(/*! ./UICardRow */ "./javascript/client/ui/UICardRow.tsx");
@@ -3417,6 +3491,8 @@ const UIMyPlayerCard_1 = __webpack_require__(/*! ./UIMyPlayerCard */ "./javascri
 __webpack_require__(/*! ./ui-player-card.scss */ "./javascript/client/ui/ui-player-card.scss");
 const UIBoard_1 = __webpack_require__(/*! ./UIBoard */ "./javascript/client/ui/UIBoard.tsx");
 const CardTransitManager_1 = __webpack_require__(/*! ./CardTransitManager */ "./javascript/client/ui/CardTransitManager.tsx");
+const react_bootstrap_1 = __webpack_require__(/*! react-bootstrap */ "./node_modules/react-bootstrap/esm/index.js");
+const Describer_1 = __webpack_require__(/*! ../../common/util/Describer */ "./javascript/common/util/Describer.tsx");
 class UIPlayerCard extends React.Component {
     constructor(p) {
         super(p);
@@ -3448,6 +3524,9 @@ class UIPlayerCard extends React.Component {
         //todo: highlight, click
         return React.createElement("div", { className: clazz, ref: this.dom, onClick: this.onClick },
             info.draw(),
+            React.createElement("div", { className: 'signs' }, Object.keys(info.signs).map(s => {
+                return wrapSign(React.createElement("div", { key: s, className: 'sign center ' + info.signs[s].enabled }, s), info.signs[s]);
+            })),
             React.createElement(Util_1.Mask, { isMasked: info.isDrunk, maskClass: 'drunk' }),
             React.createElement(Util_1.Mask, { isMasked: info.isTurnedOver, maskClass: 'turned-over' }),
             info.isTurnedOver && React.createElement("div", { className: 'occupy center' }, "\u7FFB\u9762"),
@@ -3471,6 +3550,46 @@ class UIPlayerCard extends React.Component {
     }
 }
 exports.UIPlayerCard = UIPlayerCard;
+function wrapSign(ele, sign) {
+    let msg = Describer_1.describer.get(sign.displayName);
+    if (!msg && sign.type === 'limit-skill') {
+        msg = `限定技, ${sign.enabled ? '未发动' : '已发动'}`;
+    }
+    let overlay = (props) => React.createElement(react_bootstrap_1.Tooltip, Object.assign({}, props),
+        React.createElement("p", null, '【' + sign.displayName + '】 ' + msg));
+    return React.createElement(react_bootstrap_1.OverlayTrigger, { placement: 'auto', overlay: overlay, delay: { show: 0, hide: 0 }, key: sign.displayName }, ele);
+}
+exports.wrapSign = wrapSign;
+
+
+/***/ }),
+
+/***/ "./javascript/client/ui/UIRuleModal.tsx":
+/*!**********************************************!*\
+  !*** ./javascript/client/ui/UIRuleModal.tsx ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+const react_bootstrap_1 = __webpack_require__(/*! react-bootstrap */ "./node_modules/react-bootstrap/esm/index.js");
+// import "bootstrap/dist/css/bootstrap.min.css";
+__webpack_require__(/*! ./ui-modal.scss */ "./javascript/client/ui/ui-modal.scss");
+function RuleModal(p) {
+    const [show, setShow] = React.useState(false);
+    const handleClose = () => setShow(false);
+    const handleShow = () => setShow(true);
+    return React.createElement(React.Fragment, null,
+        React.createElement("i", { className: 'fa fa-book icon', onClick: handleShow }),
+        React.createElement(react_bootstrap_1.Modal, { show: show, onHide: handleClose },
+            React.createElement(react_bootstrap_1.Modal.Header, { closeButton: true },
+                React.createElement(react_bootstrap_1.Modal.Title, null, p.ruleName)),
+            React.createElement(react_bootstrap_1.Modal.Body, null, p.rules)));
+}
+exports.default = RuleModal;
 
 
 /***/ }),
@@ -3821,6 +3940,36 @@ if(false) {}
 
 /***/ }),
 
+/***/ "./javascript/client/ui/ui-modal.scss":
+/*!********************************************!*\
+  !*** ./javascript/client/ui/ui-modal.scss ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+
+var content = __webpack_require__(/*! !../../../node_modules/css-loader/dist/cjs.js?url=false!../../../node_modules/sass-loader/dist/cjs.js?url=false!./ui-modal.scss */ "./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-modal.scss");
+
+if(typeof content === 'string') content = [[module.i, content, '']];
+
+var transform;
+var insertInto;
+
+
+
+var options = {"hmr":true}
+
+options.transform = transform
+options.insertInto = undefined;
+
+var update = __webpack_require__(/*! ../../../node_modules/style-loader/lib/addStyles.js */ "./node_modules/style-loader/lib/addStyles.js")(content, options);
+
+if(content.locals) module.exports = content.locals;
+
+if(false) {}
+
+/***/ }),
+
 /***/ "./javascript/client/ui/ui-my-player-card.scss":
 /*!*****************************************************!*\
   !*** ./javascript/client/ui/ui-my-player-card.scss ***!
@@ -4035,8 +4184,10 @@ const FactionWarGameHoster_1 = __webpack_require__(/*! ../game-mode-faction/Fact
 const GameModeEnum_1 = __webpack_require__(/*! ./GameModeEnum */ "./javascript/common/GameModeEnum.tsx");
 const FactionWarSkillRepo_1 = __webpack_require__(/*! ../game-mode-faction/skill/FactionWarSkillRepo */ "./javascript/game-mode-faction/skill/FactionWarSkillRepo.tsx");
 const Describer_1 = __webpack_require__(/*! ./util/Describer */ "./javascript/common/util/Describer.tsx");
+const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+const FactionWarRuleBook_1 = __webpack_require__(/*! ../game-mode-faction/FactionWarRuleBook */ "./javascript/game-mode-faction/FactionWarRuleBook.tsx");
 class GameMode {
-    constructor(id, name, cardManager, resolver, gameHosterProvider, skillProvider, initClient) {
+    constructor(id, name, cardManager, resolver, gameHosterProvider, skillProvider, initClient, manual) {
         this.id = id;
         this.name = name;
         this.cardManager = cardManager;
@@ -4044,6 +4195,7 @@ class GameMode {
         this.gameHosterProvider = gameHosterProvider;
         this.skillProvider = skillProvider;
         this.initClient = initClient;
+        this.manual = manual;
         GameMode.rules.set(id, this);
     }
     static get(name) {
@@ -4056,7 +4208,7 @@ class GameMode {
 }
 exports.GameMode = GameMode;
 GameMode.rules = new Map();
-new GameMode(GameModeEnum_1.GameModeEnum.IdentityWarGame, '身份局', IdentityWarCardSet_1.IdentityWarCards, null, null, null, null);
+new GameMode(GameModeEnum_1.GameModeEnum.IdentityWarGame, '身份局', IdentityWarCardSet_1.IdentityWarCards, null, null, null, null, null);
 new GameMode(GameModeEnum_1.GameModeEnum.FactionWarGame, '国战', FactionWarCardSet_1.FactionWarCards, new FactionWarActionResolver_1.default(), (registry, no) => new FactionWarGameHoster_1.default(registry, no), (s, p) => FactionWarSkillRepo_1.FactionSkillProviders.get(s, p), () => {
     Describer_1.describer.register(Card_1.CardType.TENG_JIA.id, '锁定技，【南蛮入侵】、【万箭齐发】和普通【杀】对你无效。当你受到火焰伤害时，此伤害+1。');
     Describer_1.describer.register(Card_1.CardType.SILVER_LION.id, '锁定技，当你受到伤害时，若此伤害多于1点，则防止多余的伤害；当你失去装备区里的【白银狮子】时，你回复1点体力。');
@@ -4091,7 +4243,7 @@ new GameMode(GameModeEnum_1.GameModeEnum.FactionWarGame, '国战', FactionWarCar
     Describer_1.describer.register(Card_1.CardType.WU_ZHONG.id, '出牌阶段，对自己使用。摸两张牌。');
     Describer_1.describer.register(Card_1.CardType.JUE_DOU.id, '出牌阶段，对一名其他角色使用。由该角色开始，你与其轮流打出一张【杀】，首先不出【杀】的一方受到另一方造成的1点伤害。');
     Describer_1.describer.register(Card_1.CardType.WU_XIE_GUO.id, '抵消目标锦囊牌对一名角色或一种势力产生的效果，或抵消另一张【无懈可击】产生的效果。');
-});
+}, () => React.createElement(FactionWarRuleBook_1.default, null));
 
 
 /***/ }),
@@ -4242,6 +4394,8 @@ var UIPosition;
     UIPosition[UIPosition["AD_HOC"] = 5] = "AD_HOC";
     // 确定 / 取消 / 技能选项
     UIPosition[UIPosition["BUTTONS"] = 6] = "BUTTONS";
+    // 标记 （阴阳鱼，先驱，珠联璧合）
+    UIPosition[UIPosition["SIGNS"] = 7] = "SIGNS";
 })(UIPosition = exports.UIPosition || (exports.UIPosition = {}));
 function isPositionForCard(ui) {
     return ui !== UIPosition.MY_SKILL && ui !== UIPosition.PLAYER && ui !== UIPosition.BUTTONS;
@@ -4573,14 +4727,14 @@ exports.ServerHintTransit = ServerHintTransit;
 //if this button is provided by server AND marked direct (by default) 
 //or if this button is not (OK/CANCEL)
 //then it's enabled
-function isDirectButton(hint, buttonId) {
+function isDirectButton(hint, button) {
     var _a;
-    let extra = (_a = hint.extraButtons) === null || _a === void 0 ? void 0 : _a.find(b => b.id === buttonId);
+    let extra = (_a = hint.extraButtons) === null || _a === void 0 ? void 0 : _a.find(b => b.id === button.id);
     if (extra) {
         return extra.isDirect ? extra : null;
     }
-    if (buttonId !== PlayerAction_1.Button.OK.id && buttonId !== PlayerAction_1.Button.CANCEL.id) {
-        return new PlayerAction_1.Button(buttonId, 'hackish');
+    if (button.id !== PlayerAction_1.Button.OK.id && button.id !== PlayerAction_1.Button.CANCEL.id && button.isDirect) {
+        return button;
     }
 }
 exports.isDirectButton = isDirectButton;
@@ -5900,10 +6054,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
                     this.renderGeneral(this.subGeneral, false),
                     React.createElement("div", { className: 'general-name' }, sub),
                     this.drawMark(this.subMark))),
-                React.createElement("div", { className: 'player-name' }, this.player.id),
-                React.createElement("div", { className: 'signs' }, Object.keys(this.signs).map(s => {
-                    return React.createElement("div", { key: s, className: 'sign center ' + this.signs[s].enabled }, s);
-                }))),
+                React.createElement("div", { className: 'player-name' }, this.player.id)),
             React.createElement(FactionMark, { key: 'faction-mark', info: this })];
     }
     drawSelf(skillButtons) {
@@ -5993,8 +6144,8 @@ const PlayerAction_1 = __webpack_require__(/*! ../common/PlayerAction */ "./java
 const FactionPlayerInfo_1 = __webpack_require__(/*! ./FactionPlayerInfo */ "./javascript/game-mode-faction/FactionPlayerInfo.tsx");
 const CardPos_1 = __webpack_require__(/*! ../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 const Card_1 = __webpack_require__(/*! ../common/cards/Card */ "./javascript/common/cards/Card.tsx");
-//todo: 如何让这个file被import到??
-//todo: 需要势力确认才能用这些牌!
+const Describer_1 = __webpack_require__(/*! ../common/util/Describer */ "./javascript/common/util/Describer.tsx");
+const PlayerActionDrivers_1 = __webpack_require__(/*! ../client/player-actions/PlayerActionDrivers */ "./javascript/client/player-actions/PlayerActionDrivers.tsx");
 PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
     return new PlayerActionDriverDefiner_1.default('出牌阶段出知己知彼')
         .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).type === Card_1.CardType.ZHI_JI)
@@ -6039,6 +6190,75 @@ PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerH
         .expectAnyButton('点击确定使用远交近攻')
         .build(hint);
 });
+PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
+    let lookMain = new PlayerAction_1.Button('main', '观看其主将牌').inDirect();
+    let lookSub = new PlayerAction_1.Button('sub', '观看其副将牌').inDirect();
+    let noLook = new PlayerAction_1.Button('noLook', '不观看').inDirect();
+    return new PlayerActionDriverDefiner_1.default('出牌阶段弃置先驱标记')
+        .expectChoose([PlayerAction_1.UIPosition.SIGNS], 1, 1, (id, context) => {
+        return id === '先';
+    })
+        .expectChoose([PlayerAction_1.UIPosition.PLAYER], 0, 1, (id, context) => {
+        if (id === context.myself.player.id) {
+            return false;
+        }
+        console.trace(id);
+        let target = context.getPlayer(id);
+        if (target.isGeneralRevealed && target.isSubGeneralRevealed) {
+            return false;
+        }
+        return true;
+    }, () => `选择一个有暗置武将牌的玩家观看其武将牌`)
+        .expectChoose([PlayerAction_1.UIPosition.BUTTONS], 1, 1, (id, context, chosen) => {
+        if (id === 'noLook') {
+            return true;
+        }
+        let choice = chosen.getArr(PlayerAction_1.UIPosition.PLAYER)[0];
+        if (!choice) {
+            return false;
+        }
+        let target = context.getPlayer(choice);
+        if (target.isGeneralRevealed && id === 'main') {
+            return false;
+        }
+        if (target.isSubGeneralRevealed && id === 'sub') {
+            return false;
+        }
+        return true;
+    }, () => '选择弃置先驱标记要观看的武将牌')
+        .build(hint, [lookMain, lookSub, noLook, PlayerAction_1.Button.CANCEL]);
+});
+PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
+    return new PlayerActionDriverDefiner_1.default('出牌阶段弃置阴阳鱼标记')
+        .expectChoose([PlayerAction_1.UIPosition.SIGNS], 1, 1, (id, context) => {
+        return id === '鱼';
+    })
+        .expectAnyButton('点击确定弃置阴阳鱼')
+        .build(hint);
+});
+PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
+    let regen = new PlayerAction_1.Button('regen', '回复一点体力').inDirect();
+    let card = new PlayerAction_1.Button('card', '摸两张牌').inDirect();
+    return new PlayerActionDriverDefiner_1.default('出牌阶段弃置珠联璧合标记')
+        .expectChoose([PlayerAction_1.UIPosition.SIGNS], 1, 1, (id, context) => {
+        return id === '珠';
+    })
+        .expectChoose([PlayerAction_1.UIPosition.BUTTONS], 1, 1, (id, context) => {
+        if (id === 'regen') {
+            return context.myself.hp < context.myself.maxHp;
+        }
+        return true;
+    }, () => '选择弃置珠联璧合标记的效果')
+        .build(hint, [regen, card, PlayerAction_1.Button.CANCEL]);
+});
+PlayerActionDrivers_1.registerPeach((definer, hint) => {
+    return definer.expectChoose([PlayerAction_1.UIPosition.SIGNS], 1, 1, (id, context) => {
+        return id === '珠';
+    });
+});
+Describer_1.describer.register('先驱', '出牌阶段时，你可以弃置标记，将手牌补至4张并观看一个暗置的武将牌。');
+Describer_1.describer.register('阴阳鱼', '你可以：1.出牌阶段时，弃置标记摸一张牌。 2.弃牌阶段弃置标记令手牌上限+2。');
+Describer_1.describer.register('珠联璧合', '你可以：1.出牌阶段或其他角色濒死时可以弃置此标记，视为使用一张桃 2.出牌阶段可以弃置此标记，摸2张牌。');
 
 
 /***/ }),
@@ -6072,10 +6292,13 @@ const SingleRuseOp_1 = __webpack_require__(/*! ../server/engine/SingleRuseOp */ 
 const TakeCardOp_1 = __webpack_require__(/*! ../server/engine/TakeCardOp */ "./javascript/server/engine/TakeCardOp.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const MultiRuseOp_1 = __webpack_require__(/*! ../server/engine/MultiRuseOp */ "./javascript/server/engine/MultiRuseOp.tsx");
+const PlayerInfo_1 = __webpack_require__(/*! ../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
 const DropCardOp_1 = __webpack_require__(/*! ../server/engine/DropCardOp */ "./javascript/server/engine/DropCardOp.tsx");
 const General_1 = __webpack_require__(/*! ../common/General */ "./javascript/common/General.tsx");
 const EquipOp_1 = __webpack_require__(/*! ../server/engine/EquipOp */ "./javascript/server/engine/EquipOp.tsx");
 const FactionWarInitializer_1 = __webpack_require__(/*! ./FactionWarInitializer */ "./javascript/game-mode-faction/FactionWarInitializer.tsx");
+const HealOp_1 = __webpack_require__(/*! ../server/engine/HealOp */ "./javascript/server/engine/HealOp.tsx");
+const EffectTransit_1 = __webpack_require__(/*! ../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
 class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
     register(skillRepo) {
         this.skillRepo = skillRepo;
@@ -6090,37 +6313,25 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
             return skill;
         });
     }
-    onAskingForSlash(act, askForSlashOp, manager) {
+    onSkillAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             if (act.skill) {
                 //武将技能
                 let skill = yield this.getSkillAndRevealIfNeeded(act, manager);
-                yield skill.onPlayerAction(act, askForSlashOp, manager);
-                return true;
+                yield skill.onPlayerAction(act, event, manager);
             }
-            return false;
+            throw 'what?';
         });
     }
-    onSaving(act, ask, manager) {
+    onSignAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (act.skill) {
-                //武将技能
-                let skill = yield this.getSkillAndRevealIfNeeded(act, manager);
-                yield skill.onPlayerAction(act, ask, manager);
-                return true;
+            if (act.signChosen === '珠') {
+                manager.log(`${act.source} 弃置了 ${act.source.signs[act.signChosen].displayName} 标记作为桃`);
+                delete act.source.signs[act.signChosen];
+                manager.broadcast(act.source, PlayerInfo_1.PlayerInfo.sanitize);
+                manager.broadcast(new EffectTransit_1.TextFlashEffect(event.goodman.player.id, [event.deadman.player.id], Card_1.CardType.PEACH.name));
+                yield new HealOp_1.default(event.goodman, event.deadman, 1).perform(manager);
             }
-            return false;
-        });
-    }
-    onDodge(act, dodgeOp, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (act.skill) {
-                //武将技能
-                let skill = yield this.getSkillAndRevealIfNeeded(act, manager);
-                yield skill.onPlayerAction(act, dodgeOp, manager);
-                return true;
-            }
-            return false;
         });
     }
     on(act, manager) {
@@ -6138,6 +6349,32 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
                 //吴六剑 + 三尖两刃刀 都是没有主动技能的!
                 //还给parent resolver
                 return false;
+            }
+            else if (act.signChosen) {
+                switch (act.signChosen) {
+                    case '先':
+                        yield this.processXianQu(act.source, act.targets[0], act.button, manager);
+                        break;
+                    case '珠':
+                        if (act.button === 'regen') {
+                            yield new HealOp_1.default(act.source, act.source, 1).perform(manager);
+                        }
+                        else if (act.button === 'card') {
+                            yield new TakeCardOp_1.default(act.source, 2).perform(manager);
+                        }
+                        else {
+                            console.error('(珠联璧合)选择有问题！' + act.button);
+                        }
+                        break;
+                    case '鱼':
+                        yield new TakeCardOp_1.default(act.source, 1).perform(manager);
+                        break;
+                    default:
+                        throw `Can't handle this...` + act.signChosen;
+                }
+                manager.log(`${act.source} 弃置了 ${act.source.signs[act.signChosen].displayName} 标记`);
+                delete act.source.signs[act.signChosen];
+                manager.broadcast(act.source, PlayerInfo_1.PlayerInfo.sanitize);
             }
             else if (act.getCardsAtPos(CardPos_1.CardPos.HAND).length > 0) {
                 let hand = act.getCardsAtPos(CardPos_1.CardPos.HAND);
@@ -6199,6 +6436,48 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
             return false;
         });
     }
+    processXianQu(source, target, choice, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let curr = source.getCards(CardPos_1.CardPos.HAND).length;
+            if (curr < 4) {
+                yield new TakeCardOp_1.default(source, 4 - curr).perform(manager);
+            }
+            switch (choice) {
+                case 'main':
+                    console.log(`(先驱) ${source} 选择观看了 ${target} 的主将`);
+                    yield manager.sendHint(source.player.id, {
+                        hintType: ServerHint_1.HintType.UI_PANEL,
+                        hintMsg: `${target} 的主将`,
+                        customRequest: {
+                            data: {
+                                title: `${target} 的主将`,
+                                items: [target.general],
+                                mode: 'general'
+                            },
+                            mode: 'display'
+                        }
+                    });
+                    break;
+                case 'sub':
+                    console.log(`${source} 选择观看了 ${target} 的副将`);
+                    yield manager.sendHint(source.player.id, {
+                        hintType: ServerHint_1.HintType.UI_PANEL,
+                        hintMsg: `${target} 的副将`,
+                        customRequest: {
+                            data: {
+                                title: `${target} 的副将`,
+                                items: [target.subGeneral],
+                                mode: 'general'
+                            },
+                            mode: 'display'
+                        }
+                    });
+                    break;
+                default:
+                    console.log(`(先驱) ${source} 选择不观看`);
+            }
+        });
+    }
 }
 exports.default = FactionWarActionResolver;
 class YiYiDaiLao extends MultiRuseOp_1.MultiRuse {
@@ -6245,7 +6524,6 @@ class ZhiJiZhiBi extends SingleRuseOp_1.SingleRuse {
                 extraButtons: buttons
             });
             let b = resp.button;
-            //todo!!!
             switch (b) {
                 case ZhiJiZhiBi.ZHU_JIANG:
                     console.log(`${this.source} 选择观看了 ${this.target} 的主将`);
@@ -7161,6 +7439,8 @@ const DeathOp_1 = __webpack_require__(/*! ../server/engine/DeathOp */ "./javascr
 const GameEnding_1 = __webpack_require__(/*! ../server/GameEnding */ "./javascript/server/GameEnding.tsx");
 const TakeCardOp_1 = __webpack_require__(/*! ../server/engine/TakeCardOp */ "./javascript/server/engine/TakeCardOp.tsx");
 const FactionWarEquipmentInitializer_1 = __webpack_require__(/*! ./FactionWarEquipmentInitializer */ "./javascript/game-mode-faction/FactionWarEquipmentInitializer.tsx");
+const FactionWarGenerals_1 = __webpack_require__(/*! ./FactionWarGenerals */ "./javascript/game-mode-faction/FactionWarGenerals.tsx");
+const DropCardOp_1 = __webpack_require__(/*! ../server/engine/DropCardOp */ "./javascript/server/engine/DropCardOp.tsx");
 class RevealGeneralEvent {
     constructor(playerId, mainReveal, subReveal) {
         this.playerId = playerId;
@@ -7225,6 +7505,37 @@ class FactionWarInitializer {
             let wasRevealed = p.isRevealed();
             p.isGeneralRevealed = p.isGeneralRevealed || reveal.mainReveal;
             p.isSubGeneralRevealed = p.isSubGeneralRevealed || reveal.subReveal;
+            if (p.isGeneralRevealed && p.isSubGeneralRevealed) {
+                //珠联璧合
+                if (FactionWarGenerals_1.generalPairs.isPaired(p.general.name, p.subGeneral.name)) {
+                    if (p.signs['珠']) {
+                        console.error('已经有了珠联璧合了，咋回事？？', p, reveal);
+                    }
+                    else {
+                        p.signs['珠'] = {
+                            displayName: '珠联璧合',
+                            enabled: true,
+                            owner: 'player',
+                            type: 'usable-sign'
+                        };
+                    }
+                }
+                //阴阳鱼
+                let hp1 = p.general.hp, hp2 = p.subGeneral.hp;
+                if (Math.round(2 * (hp1 + hp2 - Math.floor(hp2 + hp1))) === 1) {
+                    if (p.signs['鱼']) {
+                        console.error('已经有了阴阳鱼了，咋回事？？', p, reveal);
+                    }
+                    else {
+                        p.signs['鱼'] = {
+                            displayName: '阴阳鱼',
+                            enabled: true,
+                            owner: 'player',
+                            type: 'usable-sign'
+                        };
+                    }
+                }
+            }
             let isRevealed = p.isRevealed();
             if (!wasRevealed && isRevealed) {
                 yield manager.events.publish(new RevealPlayerEvent(p));
@@ -7232,6 +7543,7 @@ class FactionWarInitializer {
             //todo: update server side skill conditions
             manager.broadcast(p, PlayerInfo_1.PlayerInfo.sanitize);
             manager.log(`${p.player.id} 明置 ${reveal.mainReveal ? '主将' + p.general.name : ''} ${reveal.subReveal ? '副将' + p.subGeneral.name : ''}`);
+            this.checkGameEndingCondition(manager.context.playerInfos.filter(p => !p.isDead), manager);
         }));
         manager.adminRegistry.onGeneral(DeathOp_1.default, (death) => __awaiter(this, void 0, void 0, function* () {
             let deceased = death.deceased;
@@ -7244,7 +7556,7 @@ class FactionWarInitializer {
                 deceased.isSubGeneralRevealed = true;
                 this.computeFactionForPlayer(deceased, manager);
             }
-            this.checkGameEndingCondition(deceased, manager);
+            this.checkGameEndingCondition(manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id), manager);
             //奖惩
             if (!killer) {
                 console.log('[牌局] 天谴死亡, 不计奖惩...');
@@ -7283,8 +7595,34 @@ class FactionWarInitializer {
                 yield new TakeCardOp_1.default(killer, reward).perform(manager);
             }
         }));
+        let noOneRevealed = true;
         manager.adminRegistry.onGeneral(RevealPlayerEvent, (reveal) => __awaiter(this, void 0, void 0, function* () {
+            if (noOneRevealed) {
+                noOneRevealed = false;
+                reveal.player.signs['先'] = {
+                    displayName: '先驱',
+                    enabled: true,
+                    owner: 'player',
+                    type: 'usable-sign'
+                };
+            }
             this.computeFactionForPlayer(reveal.player, manager);
+        }));
+        manager.adminRegistry.onGeneral(DropCardOp_1.default, (dropOp) => __awaiter(this, void 0, void 0, function* () {
+            if (dropOp.player.signs['鱼'] && dropOp.amount > 0) {
+                let resp = yield manager.sendHint(dropOp.player.player.id, {
+                    hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                    hintMsg: '是否弃置阴阳鱼标记使本回合弃牌阶段手牌上限+2?',
+                    extraButtons: [PlayerAction_1.Button.OK, PlayerAction_1.Button.CANCEL]
+                });
+                if (!resp.isCancel()) {
+                    manager.log(`${dropOp.player} 弃置阴阳鱼标记使手牌上限+2`);
+                    dropOp.amount -= 2;
+                    delete dropOp.player.signs['鱼'];
+                    manager.broadcast(dropOp.player, PlayerInfo_1.PlayerInfo.sanitize);
+                }
+                // this.invokeEffects(manager)
+            }
         }));
     }
     computeFactionForPlayer(p, manager) {
@@ -7326,8 +7664,7 @@ class FactionWarInitializer {
      * @param deceased
      * @param manager
      */
-    checkGameEndingCondition(deceased, manager) {
-        let surviving = manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id);
+    checkGameEndingCondition(surviving, manager) {
         if (surviving.length === 1) {
             console.log('[牌局] 只剩一人了!');
             //强制结算
@@ -7371,6 +7708,194 @@ class FactionWarInitializer {
     }
 }
 exports.default = FactionWarInitializer;
+
+
+/***/ }),
+
+/***/ "./javascript/game-mode-faction/FactionWarRuleBook.tsx":
+/*!*************************************************************!*\
+  !*** ./javascript/game-mode-faction/FactionWarRuleBook.tsx ***!
+  \*************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+const choices = {
+    '选将与势力': React.createElement("div", null,
+        React.createElement("p", null, "\u6E38\u620F\u5F00\u59CB\u65F6,\u6BCF\u4F4D\u73A9\u5BB6\u9700\u8981\u4ECE\u81F3\u591A\u4E03\u5F20\u6B66\u5C06\u724C\u4E2D\u9009\u51FA\u4E24\u5F20\u52BF\u529B\u76F8\u540C\u7684\u4F5C\u4E3A\u81EA\u5DF1\u7684\u6B66\u5C06\u724C"),
+        React.createElement("p", null, "\u4E24\u5F20\u6B66\u5C06\u724C\u5206\u4E3A\u4E3B\u5C06\u548C\u526F\u5C06\u3002\u6E38\u620F\u5F00\u59CB\u65F6\u4E24\u5F20\u6B66\u5C06\u724C\u5747\u4E3A\u6697\u7F6E\uFF0C\u5176\u4ED6\u73A9\u5BB6\u4E0D\u53EF\u89C1\u3002\u73A9\u5BB6\u7684\u8840\u91CF\u4E3A\u8FD9\u4E24\u5F20\u6B66\u5C06\u724C\u6807\u8BB0\u8840\u91CF\u4E4B\u548C\uFF08\u5411\u4E0B\u53D6\u6574\u3002\u591A\u51FA\u6765\u7684\u534A\u8840\u4F1A\u5728\u73A9\u5BB6\u660E\u7F6E\u53CC\u5C06\u65F6\u4F5C\u4E3A\u9634\u9633\u9C7C\u6807\u8BB0\u7ED9\u4E88\u73A9\u5BB6\uFF09"),
+        React.createElement("p", null, "\u6697\u7F6E\u7684\u6B66\u5C06\u6CA1\u6709\u52BF\u529B\uFF0C\u6027\u522B\u548C\u6280\u80FD\uFF0C\u9700\u8981\u660E\u7F6E\u52BF\u529B\u6216\u6027\u522B\u7684\u6280\u80FD\u65E0\u6CD5\u53D1\u52A8\uFF08\u4F8B\uFF1A\u8C82\u8749\u79BB\u95F4\uFF0C\u96CC\u96C4\u53CC\u80A1\u5251\uFF0C\u9526\u56CA\u724C\u8FDC\u4EA4\u8FD1\u653B\uFF09"),
+        React.createElement("p", null, "\u6B66\u5C06\u660E\u7F6E\u65F6\u786E\u5B9A\u52BF\u529B\u3002\u82E5\u660E\u7F6E\u540E\u4F60\u7684\u52BF\u529B\u8D85\u8FC7\u4E86\u5168\u90E8\u73A9\u5BB6\u7684\u534A\u6570\uFF0C\u5219\u4F60\u7684\u52BF\u529B\u53D8\u4E3A\u201C\u91CE\u5FC3\u5BB6\u201D")),
+    '胜利条件与击杀奖惩': React.createElement("div", null,
+        React.createElement("p", null, "\u51FB\u6740\u6240\u6709\u5176\u4ED6\u52BF\u529B\u4E0E\u4F60\u4E0D\u540C\u7684\u73A9\u5BB6\u5373\u53EF\u83B7\u5F97\u80DC\u5229\u3002\u6BCF\u4E2A\u91CE\u5FC3\u5BB6\u5355\u72EC\u4E3A\u4E00\u80A1\u52BF\u529B\uFF0C\u4E0D\u4E0E\u5176\u4ED6\u91CE\u5FC3\u5BB6\u4E3A\u76DF\u53CB\uFF0C\u6240\u4EE5\u91CE\u5FC3\u5BB6\u9700\u8981\u6700\u7EC8\u51FB\u6740\u5176\u4ED6\u6240\u6709\u4EBA\u6765\u83B7\u5F97\u80DC\u5229"),
+        React.createElement("p", null, "\u88AB\u51FB\u6740\u7684\u89D2\u8272\u82E5\u4E3A\u6697\u7F6E\uFF0C\u5219\u5F3A\u5236\u9A8C\u660E\u8EAB\u4EFD\u4EE5\u786E\u8BA4\u52BF\u529B"),
+        React.createElement("p", null, "\u5373\u4F7F\u4F60\u7684\u89D2\u8272\u6B7B\u4EA1\uFF0C\u53EA\u8981\u4F60\u7684\u52BF\u529B\u6700\u7EC8\u83B7\u5F97\u4E86\u80DC\u5229\uFF0C\u4F60\u4F9D\u7136\u662F\u80DC\u5229\u8005"),
+        React.createElement("p", null, "\u51FB\u6740\u5956\u60E9\uFF1A"),
+        React.createElement("ul", null,
+            React.createElement("li", null, "\u53EA\u6709\u660E\u7F6E\u4E86\u6B66\u5C06\u724C\u786E\u8BA4\u4E86\u52BF\u529B\u7684\u4EBA\u624D\u8BA1\u7B97\u5956\u60E9\u3002\u82E5\u4F60\u51FB\u6740\u5176\u4ED6\u89D2\u8272\u65F6\u4ECD\u4E3A\u6697\u7F6E\uFF0C\u5219\u4E0D\u8BA1\u4EFB\u4F55\u5956\u60E9"),
+            React.createElement("li", null, "\u91CE\u5FC3\u5BB6\u51FB\u6740\u4EFB\u4F55\u4EBA\u5747\u83B7\u5F973\u5F20\u624B\u724C"),
+            React.createElement("li", null, "\u51FB\u6740\u52BF\u529B\u4E0E\u4F60\u4E0D\u540C\u7684\u4EBA\u5219\u4F60\u83B7\u5F97\u5BF9\u65B9\u52BF\u529B\u4EBA\u6570\u76F8\u540C\u7684\u624B\u724C\uFF08\u5305\u542B\u51FB\u6740\u5BF9\u8C61\uFF09"),
+            React.createElement("li", null, "\u51FB\u6740\u52BF\u529B\u4E0E\u4F60\u76F8\u540C\u7684\u4EBA\u5219\u4F60\u5F03\u7F6E\u6240\u6709\u724C\uFF08\u5148\u5F03\u7F6E\u6240\u6709\u88C5\u5907\uFF0C\u518D\u5F03\u7F6E\u6240\u6709\u624B\u724C\uFF09"))),
+    '明置武将的条件': React.createElement("div", null,
+        React.createElement("p", null, "\u6BCF\u4E2A\u73A9\u5BB6\u5728\u5F00\u59CB\u81EA\u5DF1\u7684\u56DE\u5408\u524D\u53EF\u4EE5\u660E\u7F6E\u81EA\u5DF1\u4E3B\u5C06/\u526F\u5C06"),
+        React.createElement("ul", null,
+            React.createElement("li", null, "\u4E3B\u52A8\u6280\u80FD\uFF08\u5982\u5173\u7FBD\u2018\u6B66\u5723\u2019\uFF0C\u8D3E\u8BE9\u2018\u4E71\u6B66\u2019\uFF09\u5728\u53D1\u52A8\u7684\u65F6\u5019\u4F1A\u81EA\u52A8\u660E\u7F6E\u76F8\u5173\u6B66\u5C06"),
+            React.createElement("li", null, "\u7279\u6B8A\u6280\u80FD\u53EF\u4EE5\u5728\u51FA\u724C\u9636\u6BB5\u4E3B\u52A8\u660E\u7F6E\u6B66\u5C06\uFF08\u5982\u2018\u9A6C\u672F\u2019\uFF09"),
+            React.createElement("li", null,
+                "\u88AB\u52A8\u6280\u80FD\u9700\u8981\u5728\u4E8B\u4EF6\u89E6\u53D1\u524D\u8BBE\u7F6E\u9884\u4EAE\uFF08\u70B9\u51FB\u6280\u80FD\u6309\u94AE\u81F3\u95EA\u70C1\u72B6\u6001\uFF09\uFF0C\u5219\u53EF\u5728\u6EE1\u8DB3\u6280\u80FD\u53D1\u52A8\u6761\u4EF6\u65F6\u83B7\u5F97\u63D0\u793A\uFF0C\u5426\u5219\u65E0\u6CD5\u53D1\u52A8\u6280\u80FD\u4E5F\u4E0D\u80FD\u660E\u7F6E\u6B66\u5C06\u3002",
+                React.createElement("br", null),
+                "\u4F8B\uFF1A\u90ED\u5609\u2018\u9057\u8BA1\u2019\u82E5\u672A\u9884\u4EAE\uFF0C\u5219\u5728\u53D7\u5230\u4F24\u5BB3\u65F6\u65E0\u6CD5\u53D1\u52A8"),
+            React.createElement("li", null, "\u6CE8: \u9884\u4EAE\u529F\u80FD\u662F\u4E3A\u4E86\u9632\u6B62\u66B4\u9732\u4F60\u6697\u7F6E\u7684\u6B66\u5C06\u6280\u80FD\uFF0C\u4F8B\u5982\u5F20\u89D2\u7684\u9B3C\u9053\u6539\u5224\u5B9A"))),
+    '标记': React.createElement("div", null,
+        React.createElement("p", null, "\u73A9\u5BB6\u53EF\u80FD\u6709\u5982\u4E0B\u6807\u8BB0:"),
+        React.createElement("p", null, "\u9650\u5B9A\u6280\u6807\u8BB0: \u7528\u6765\u660E\u793A\u73A9\u5BB6\u662F\u5426\u80FD\u591F\u53D1\u52A8\u9650\u5B9A\u6280"),
+        React.createElement("p", null, "\u56FD\u6218\u6807\u8BB0: \u5171\u6709\u4E09\u79CD"),
+        React.createElement("ul", null,
+            React.createElement("li", null, "\u5148\u9A71: \u7B2C\u4E00\u4E2A\u660E\u786E\u52BF\u529B\u7684\u73A9\u5BB6\u83B7\u5F97\u6B64\u6807\u8BB0\u3002 \u51FA\u724C\u9636\u6BB5\u65F6\uFF0C\u4F60\u53EF\u4EE5\u5F03\u7F6E\u6807\u8BB0\uFF0C\u5C06\u624B\u724C\u8865\u81F34\u5F20\u5E76\u89C2\u770B\u4E00\u4E2A\u6697\u7F6E\u7684\u6B66\u5C06\u724C\u3002"),
+            React.createElement("li", null, "\u9634\u9633\u9C7C: \u4F60\u7684\u6B66\u5C06\u724C\u8840\u91CF\u82E5\u6709\u591A\u4F59\u7684\u534A\u8840\u9634\u9633\u9C7C\uFF0C\u5219\u5728\u4F60\u9996\u6B21\u660E\u7F6E\u4E24\u5F20\u6B66\u5C06\u724C\u65F6\u83B7\u5F97\u6B64\u6807\u8BB0\u3002 \u4F60\u53EF\u4EE5\uFF1A1.\u51FA\u724C\u9636\u6BB5\u65F6\uFF0C\u5F03\u7F6E\u6807\u8BB0\u6478\u4E00\u5F20\u724C\u3002 2.\u5F03\u724C\u9636\u6BB5\u5F03\u7F6E\u6807\u8BB0\u4EE4\u624B\u724C\u4E0A\u9650+2\u3002"),
+            React.createElement("li", null, "\u73E0\u8054\u74A7\u5408: \u82E5\u4F60\u9009\u62E9\u4E86\u7279\u6B8A\u7684\u6B66\u5C06\u7EC4\u5408(\u5982\u590F\u4FAF\u6E0A+\u590F\u4FAF\u60C7)\uFF0C\u5219\u5728\u4F60\u9996\u6B21\u660E\u7F6E\u4E24\u5F20\u6B66\u5C06\u724C\u65F6\u83B7\u5F97\u6B64\u6807\u8BB0\u3002 \u4F60\u53EF\u4EE5\uFF1A1.\u51FA\u724C\u9636\u6BB5\u6216\u5176\u4ED6\u89D2\u8272\u6FD2\u6B7B\u65F6\u53EF\u4EE5\u5F03\u7F6E\u6B64\u6807\u8BB0\uFF0C\u89C6\u4E3A\u4F7F\u7528\u4E00\u5F20\u6843 2.\u51FA\u724C\u9636\u6BB5\u53EF\u4EE5\u5F03\u7F6E\u6B64\u6807\u8BB0\uFF0C\u64782\u5F20\u724C\u3002")))
+};
+function FactionWarRuleBook() {
+    let [choice, setChoice] = React.useState('选将与势力');
+    return React.createElement("div", { className: 'rule-book' },
+        React.createElement("div", { className: 'rule-col' }, Object.keys(choices).map(k => {
+            return React.createElement("div", { key: k, className: k === choice ? 'rule-item active' : 'rule-item', onClick: () => setChoice(k) }, k);
+        })),
+        React.createElement("div", { className: 'rule-content' }, choices[choice]));
+}
+exports.default = FactionWarRuleBook;
+
+
+/***/ }),
+
+/***/ "./javascript/game-mode-faction/FactionWarUtil.tsx":
+/*!*********************************************************!*\
+  !*** ./javascript/game-mode-faction/FactionWarUtil.tsx ***!
+  \*********************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.askAbandonEquip = exports.askAbandonBasicCard = exports.getFactionsWithLeastMembers = exports.getFactionMembers = exports.getNumberOfFactions = void 0;
+const General_1 = __webpack_require__(/*! ../common/General */ "./javascript/common/General.tsx");
+const ServerHint_1 = __webpack_require__(/*! ../common/ServerHint */ "./javascript/common/ServerHint.tsx");
+const PlayerAction_1 = __webpack_require__(/*! ../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
+const CardPos_1 = __webpack_require__(/*! ../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const Multimap_1 = __webpack_require__(/*! ../common/util/Multimap */ "./javascript/common/util/Multimap.tsx");
+function getNumberOfFactions(manager) {
+    let revealed = manager.getSortedByCurr(true).filter(p => p.isRevealed());
+    let count = 0;
+    let facs = new Set();
+    revealed.forEach(r => {
+        if (r.getFaction() === General_1.Faction.UNKNOWN) {
+            throw 'Not possible!!';
+        }
+        else if (r.getFaction() === General_1.Faction.YE) {
+            count++;
+        }
+        else {
+            facs.add(r.getFaction().name);
+        }
+    });
+    return facs.size + count;
+}
+exports.getNumberOfFactions = getNumberOfFactions;
+/**
+ * 返回势力的个数
+ * (注: 野势力会被归为一栏,但是并不属于同一势力)
+ * @param manager
+ */
+function getFactionMembers(manager) {
+    let revealed = manager.getSortedByCurr(true).filter(p => p.isRevealed());
+    let res = new Multimap_1.default();
+    revealed.forEach(r => {
+        if (r.getFaction() === General_1.Faction.UNKNOWN) {
+            throw 'Not possible!!';
+        }
+        res.set(r.getFaction(), r);
+    });
+    return res;
+}
+exports.getFactionMembers = getFactionMembers;
+function getFactionsWithLeastMembers(manager) {
+    let counts = getFactionMembers(manager);
+    let min = 999, minFac = new Set();
+    counts.forEach((v, k) => {
+        let count = k === General_1.Faction.YE ? 1 : v.size;
+        if (count < min) {
+            min = count;
+            minFac = new Set([k]);
+        }
+        else if (count === min) {
+            minFac.add(k);
+        }
+    });
+    if (minFac.size === 0) {
+        throw 'Unable to determine faction with least members: ' + counts;
+    }
+    return minFac;
+}
+exports.getFactionsWithLeastMembers = getFactionsWithLeastMembers;
+/**
+ * Return 是否按要求弃置了牌
+ * @param manager
+ * @param target
+ * @param canCancel
+ */
+function askAbandonBasicCard(manager, target, msg, canCancel) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let notBasic = target.getCards(CardPos_1.CardPos.HAND).filter(c => !c.type.isBasic()).map(c => c.id);
+        let resp = yield manager.sendHint(target.player.id, {
+            hintType: ServerHint_1.HintType.CHOOSE_CARD,
+            hintMsg: msg,
+            positions: [PlayerAction_1.UIPosition.MY_HAND],
+            minQuantity: 1,
+            quantity: 1,
+            forbidden: notBasic,
+            extraButtons: canCancel ? [PlayerAction_1.Button.CANCEL] : []
+        });
+        if (resp.isCancel()) {
+            return false;
+        }
+        yield resp.dropCardsFromSource(this.playerId + ' 弃置');
+        return true;
+    });
+}
+exports.askAbandonBasicCard = askAbandonBasicCard;
+function askAbandonEquip(manager, target, msg, canCancel) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let nonEquip = target.getCards(CardPos_1.CardPos.HAND).filter(c => !c.type.isEquipment()).map(c => c.id);
+        let resp = yield manager.sendHint(target.player.id, {
+            hintType: ServerHint_1.HintType.CHOOSE_CARD,
+            hintMsg: msg,
+            positions: [PlayerAction_1.UIPosition.MY_EQUIP, PlayerAction_1.UIPosition.MY_HAND],
+            minQuantity: 1,
+            quantity: 1,
+            forbidden: nonEquip,
+            extraButtons: canCancel ? [PlayerAction_1.Button.CANCEL] : []
+        });
+        if (resp.isCancel()) {
+            return false;
+        }
+        yield resp.dropCardsFromSource(target.player.id + ' 弃置');
+        return true;
+    });
+}
+exports.askAbandonEquip = askAbandonEquip;
 
 
 /***/ }),
@@ -7458,7 +7983,8 @@ const General_2 = __webpack_require__(/*! ../../common/General */ "./javascript/
 const DamageOp_2 = __webpack_require__(/*! ../../server/engine/DamageOp */ "./javascript/server/engine/DamageOp.tsx");
 const DodgeOp_1 = __webpack_require__(/*! ../../server/engine/DodgeOp */ "./javascript/server/engine/DodgeOp.tsx");
 const FactionSkillsShu_1 = __webpack_require__(/*! ./FactionSkillsShu */ "./javascript/game-mode-faction/skill/FactionSkillsShu.tsx");
-const FactionWarUtil_1 = __webpack_require__(/*! ./FactionWarUtil */ "./javascript/game-mode-faction/skill/FactionWarUtil.tsx");
+const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
+const PlayerActionDrivers_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDrivers */ "./javascript/client/player-actions/PlayerActionDrivers.tsx");
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
     [A]不可以，因为华佗判定【闪电】即说明华佗处于自己回合内，不符合【急救】的发动条件。同理，华佗在自己回合内被【刚烈】或者【天香】等技能影响而进入濒死状态，也不能发动【急救】技能。
@@ -7530,16 +8056,13 @@ class JiJiu extends Skill_1.Skill {
         this.description = '你的回合外，你可以将一张红色牌当【桃】使用。';
     }
     bootstrapClient() {
-        PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PEACH, (hint) => {
-            return new PlayerActionDriverDefiner_1.default('急救')
-                .expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id, context) => {
+        PlayerActionDrivers_1.registerPeach((definer, hint) => {
+            return definer.expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id, context) => {
                 return id === this.id && context.curr !== this.playerId;
             })
                 .expectChoose([PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP], 1, 1, (id, context) => {
                 return ICard_1.isSuitRed(context.interpret(id).suit);
-            }, () => '(急救)将一张红色牌当【桃】使用')
-                .expectAnyButton('点击确定发动急救')
-                .build(hint);
+            }, () => '(急救)将一张红色牌当【桃】使用');
         });
     }
     onPlayerAction(act, ask, manager) {
@@ -8474,7 +8997,7 @@ const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javas
 const Equipments_1 = __webpack_require__(/*! ../../server/engine/Equipments */ "./javascript/server/engine/Equipments.tsx");
 const SingleRuseOp_1 = __webpack_require__(/*! ../../server/engine/SingleRuseOp */ "./javascript/server/engine/SingleRuseOp.tsx");
 const WuXieOp_1 = __webpack_require__(/*! ../../server/engine/WuXieOp */ "./javascript/server/engine/WuXieOp.tsx");
-const FactionWarUtil_1 = __webpack_require__(/*! ./FactionWarUtil */ "./javascript/game-mode-faction/skill/FactionWarUtil.tsx");
+const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
 const MultiRuseOp_1 = __webpack_require__(/*! ../../server/engine/MultiRuseOp */ "./javascript/server/engine/MultiRuseOp.tsx");
 const AskSavingOp_1 = __webpack_require__(/*! ../../server/engine/AskSavingOp */ "./javascript/server/engine/AskSavingOp.tsx");
 const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */ "./javascript/server/engine/CardFightOp.tsx");
@@ -9132,7 +9655,7 @@ class JiLi extends Skill_1.SimpleConditionalSkill {
             this.playedInThisRound += event.cards.length;
             let currentReach = manager.context.getPlayer(this.playerId).getReach();
             console.log('[蒺藜] 使用牌数为', wasPlayed, this.playedInThisRound, currentReach);
-            if (wasPlayed < this.playedInThisRound && this.playedInThisRound >= currentReach) {
+            if (wasPlayed < currentReach && this.playedInThisRound >= currentReach) {
                 return true;
             }
             return false;
@@ -9578,7 +10101,7 @@ class ShenZhi extends Skill_1.SimpleConditionalSkill {
             });
             manager.sendToWorkflow(this.playerId, CardPos_1.CardPos.HAND, toDrop, true);
             yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(this.playerId, toDrop.map(d => [d, CardPos_1.CardPos.HAND])));
-            if (toDrop.length >= me.hp) {
+            if (toDrop.length >= me.hp && me.hp < me.maxHp) {
                 yield new HealOp_1.default(me, me, 1).perform(manager);
             }
         });
@@ -9712,7 +10235,7 @@ const DeathOp_1 = __webpack_require__(/*! ../../server/engine/DeathOp */ "./java
 const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
 const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */ "./javascript/server/engine/CardFightOp.tsx");
 const DropCardOp_1 = __webpack_require__(/*! ../../server/engine/DropCardOp */ "./javascript/server/engine/DropCardOp.tsx");
-const FactionWarUtil_1 = __webpack_require__(/*! ./FactionWarUtil */ "./javascript/game-mode-faction/skill/FactionWarUtil.tsx");
+const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
 class SkillForDamageTaken extends Skill_1.SimpleConditionalSkill {
     isMyDamage(event) {
         return event.target.player.id === this.playerId && event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE
@@ -11044,11 +11567,11 @@ class YingZi extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(TakeCardOp_1.TakeCardStageOp, this);
         skillRegistry.onEvent(DropCardOp_1.default, this.playerId, (dropOp) => __awaiter(this, void 0, void 0, function* () {
             if (!this.isDisabled && this.isRevealed && dropOp.player.player.id === this.playerId &&
-                dropOp.timeline === DropCardOp_1.DropTimeline.BEFORE) {
+                dropOp.timeline === DropCardOp_1.DropTimeline.BEFORE && dropOp.amount > 0) {
                 let me = manager.context.getPlayer(this.playerId);
-                console.log('[英姿] 改变手牌上限为', me.maxHp);
                 // this.invokeEffects(manager)
-                dropOp.amount = Math.max(me.getCards(CardPos_1.CardPos.HAND).length - me.maxHp, 0);
+                console.log('[英姿] 改变弃牌数为', dropOp.amount, '=>', dropOp.amount - (me.maxHp - me.hp));
+                dropOp.amount -= (me.maxHp - me.hp);
             }
         }));
     }
@@ -11639,9 +12162,9 @@ class HaoShi extends Skill_1.SimpleConditionalSkill {
             }
             console.log('[好施] 手牌最少的为', minimum, choices);
             return new PlayerActionDriverDefiner_1.default('好施')
-                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], required, required, (id, context) => true, () => `选择${required}张手牌`)
                 .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id) => choices.has(id), () => '(好施)选择手牌最少的一名其他角色')
-                .expectAnyButton('点击确定发动好施')
+                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], required, required, (id, context) => true, () => `请选择${required}张手牌交给此角色`)
+                .expectAnyButton('点击确定完成好施')
                 .build(hint, [PlayerAction_1.Button.OK]);
         });
     }
@@ -12050,135 +12573,6 @@ class Disabler {
         this.reasons = new Set();
     }
 }
-
-
-/***/ }),
-
-/***/ "./javascript/game-mode-faction/skill/FactionWarUtil.tsx":
-/*!***************************************************************!*\
-  !*** ./javascript/game-mode-faction/skill/FactionWarUtil.tsx ***!
-  \***************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.askAbandonEquip = exports.askAbandonBasicCard = exports.getFactionsWithLeastMembers = exports.getFactionMembers = exports.getNumberOfFactions = void 0;
-const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
-const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
-const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
-const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
-const Multimap_1 = __webpack_require__(/*! ../../common/util/Multimap */ "./javascript/common/util/Multimap.tsx");
-function getNumberOfFactions(manager) {
-    let revealed = manager.getSortedByCurr(true).filter(p => p.isRevealed());
-    let count = 0;
-    let facs = new Set();
-    revealed.forEach(r => {
-        if (r.getFaction() === General_1.Faction.UNKNOWN) {
-            throw 'Not possible!!';
-        }
-        else if (r.getFaction() === General_1.Faction.YE) {
-            count++;
-        }
-        else {
-            facs.add(r.getFaction().name);
-        }
-    });
-    return facs.size + count;
-}
-exports.getNumberOfFactions = getNumberOfFactions;
-/**
- * 返回势力的个数
- * (注: 野势力会被归为一栏,但是并不属于同一势力)
- * @param manager
- */
-function getFactionMembers(manager) {
-    let revealed = manager.getSortedByCurr(true).filter(p => p.isRevealed());
-    let res = new Multimap_1.default();
-    revealed.forEach(r => {
-        if (r.getFaction() === General_1.Faction.UNKNOWN) {
-            throw 'Not possible!!';
-        }
-        res.set(r.getFaction(), r);
-    });
-    return res;
-}
-exports.getFactionMembers = getFactionMembers;
-function getFactionsWithLeastMembers(manager) {
-    let counts = getFactionMembers(manager);
-    let min = 999, minFac = new Set();
-    counts.forEach((v, k) => {
-        let count = k === General_1.Faction.YE ? 1 : v.size;
-        if (count < min) {
-            min = count;
-            minFac = new Set([k]);
-        }
-        else if (count === min) {
-            minFac.add(k);
-        }
-    });
-    if (minFac.size === 0) {
-        throw 'Unable to determine faction with least members: ' + counts;
-    }
-    return minFac;
-}
-exports.getFactionsWithLeastMembers = getFactionsWithLeastMembers;
-/**
- * Return 是否按要求弃置了牌
- * @param manager
- * @param target
- * @param canCancel
- */
-function askAbandonBasicCard(manager, target, msg, canCancel) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let notBasic = target.getCards(CardPos_1.CardPos.HAND).filter(c => !c.type.isBasic()).map(c => c.id);
-        let resp = yield manager.sendHint(target.player.id, {
-            hintType: ServerHint_1.HintType.CHOOSE_CARD,
-            hintMsg: msg,
-            positions: [PlayerAction_1.UIPosition.MY_HAND],
-            minQuantity: 1,
-            quantity: 1,
-            forbidden: notBasic,
-            extraButtons: canCancel ? [PlayerAction_1.Button.CANCEL] : []
-        });
-        if (resp.isCancel()) {
-            return false;
-        }
-        yield resp.dropCardsFromSource(this.playerId + ' 弃置');
-        return true;
-    });
-}
-exports.askAbandonBasicCard = askAbandonBasicCard;
-function askAbandonEquip(manager, target, msg, canCancel) {
-    return __awaiter(this, void 0, void 0, function* () {
-        let nonEquip = target.getCards(CardPos_1.CardPos.HAND).filter(c => !c.type.isEquipment()).map(c => c.id);
-        let resp = yield manager.sendHint(target.player.id, {
-            hintType: ServerHint_1.HintType.CHOOSE_CARD,
-            hintMsg: msg,
-            positions: [PlayerAction_1.UIPosition.MY_EQUIP, PlayerAction_1.UIPosition.MY_HAND],
-            minQuantity: 1,
-            quantity: 1,
-            forbidden: nonEquip,
-            extraButtons: canCancel ? [PlayerAction_1.Button.CANCEL] : []
-        });
-        if (resp.isCancel()) {
-            return false;
-        }
-        yield resp.dropCardsFromSource(target.player.id + ' 弃置');
-        return true;
-    });
-}
-exports.askAbandonEquip = askAbandonEquip;
 
 
 /***/ }),
@@ -13806,6 +14200,7 @@ class PlayerAct {
         }
         this.button = tryGetSingle(action.actionData[PlayerAction_1.UIPosition.BUTTONS]);
         this.skill = tryGetSingle(action.actionData[PlayerAction_1.UIPosition.MY_SKILL]);
+        this.signChosen = tryGetSingle(action.actionData[PlayerAction_1.UIPosition.SIGNS]);
         if (action.actionData[PlayerAction_1.UIPosition.PLAYER]) {
             this.targets = action.actionData[PlayerAction_1.UIPosition.PLAYER].map(p => manager.context.getPlayer(p));
         }
@@ -13916,7 +14311,6 @@ const MultiRuseOp_1 = __webpack_require__(/*! ../engine/MultiRuseOp */ "./javasc
 const DelayedRuseOp_1 = __webpack_require__(/*! ../engine/DelayedRuseOp */ "./javascript/server/engine/DelayedRuseOp.tsx");
 const WineOp_1 = __webpack_require__(/*! ../engine/WineOp */ "./javascript/server/engine/WineOp.tsx");
 const PeachOp_1 = __webpack_require__(/*! ../engine/PeachOp */ "./javascript/server/engine/PeachOp.tsx");
-const HealOp_1 = __webpack_require__(/*! ../engine/HealOp */ "./javascript/server/engine/HealOp.tsx");
 class ActionResolver {
 }
 exports.ActionResolver = ActionResolver;
@@ -13924,6 +14318,16 @@ class PlayerActionResolver extends ActionResolver {
     constructor(delegate) {
         super();
         this.delegate = delegate;
+    }
+    onSkillAction(act, event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.delegate.onSkillAction(act, event, manager);
+        });
+    }
+    onSignAction(act, event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.delegate.onSignAction(act, event, manager);
+        });
     }
     on(act, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -14063,59 +14467,6 @@ class PlayerActionResolver extends ActionResolver {
             }
         });
     }
-    onDodge(act, dodgeOp, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!(yield this.delegate.onDodge(act, dodgeOp, manager))) {
-                manager.broadcast(new EffectTransit_1.TextFlashEffect(dodgeOp.target.player.id, [dodgeOp.source.player.id], '闪'));
-                //assume he played it
-                let cards = act.getCardsAtPos(CardPos_1.CardPos.HAND);
-                if (cards.length !== 1) {
-                    throw `Player played dodge cards but not one card!!!! ${act.source.player.id} ${cards}`;
-                }
-                manager.log(`${act.source} 打出了 ${cards}`);
-                manager.sendToWorkflow(dodgeOp.target.player.id, CardPos_1.CardPos.HAND, [cards[0]]);
-                yield manager.events.publish(new Generic_1.CardBeingUsedEvent(act.source.player.id, cards.map(c => [c, CardPos_1.CardPos.HAND]), Card_1.CardType.DODGE, false, false));
-            }
-            //张角呢??
-            return true;
-        });
-    }
-    onSaving(act, ask, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!(yield this.delegate.onSaving(act, ask, manager))) {
-                //金主爸爸!!
-                let card = act.getSingleCardAndPos()[0];
-                //桃, 或者酒
-                let goodman = ask.goodman.player.id;
-                let deadman = ask.deadman.player.id;
-                manager.broadcast(new EffectTransit_1.TextFlashEffect(goodman, [deadman], card.type.name));
-                card.description = `${goodman} 对 ${deadman} 使用 ${card.type.name}`;
-                //桃牌扔进workflow
-                manager.sendToWorkflow(goodman, CardPos_1.CardPos.HAND, [card]);
-                yield manager.events.publish(new Generic_1.CardBeingUsedEvent(goodman, [[card, CardPos_1.CardPos.HAND]], card.type, false, false));
-                yield new HealOp_1.default(ask.goodman, ask.deadman, 1).perform(manager);
-            }
-            return true;
-        });
-    }
-    onAskingForSlash(resp, askSlashOp, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!(yield this.delegate.onAskingForSlash(resp, askSlashOp, manager))) {
-                let cards = resp.getCardsAtPos(CardPos_1.CardPos.HAND).map(card => {
-                    card.description = `${askSlashOp.slasher.player.id} 出杀`;
-                    if (!card.type.isSlash()) {
-                        card.as = Card_1.CardType.SLASH;
-                    }
-                    return card;
-                });
-                manager.log(`${resp.source} 打出了 ${cards}`);
-                let type = cards.length === 1 ? cards[0].type : Card_1.CardType.SLASH;
-                manager.sendToWorkflow(askSlashOp.slasher.player.id, CardPos_1.CardPos.HAND, cards);
-                yield manager.events.publish(new Generic_1.CardBeingUsedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos_1.CardPos.HAND]), type, false, false));
-            }
-            return true;
-        });
-    }
 }
 exports.default = PlayerActionResolver;
 
@@ -14144,6 +14495,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AskSavingAround = void 0;
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
+const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const Generic_1 = __webpack_require__(/*! ./Generic */ "./javascript/server/engine/Generic.tsx");
+const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
+const HealOp_1 = __webpack_require__(/*! ./HealOp */ "./javascript/server/engine/HealOp.tsx");
 class AskSavingAround {
     constructor(deadman) {
         this.deadman = deadman;
@@ -14187,7 +14542,25 @@ class AskSavingOp {
                 });
                 //todo: put this in resolver
                 if (!response.isCancel()) {
-                    yield manager.resolver.onSaving(response, this, manager);
+                    if (response.skill) {
+                        yield manager.resolver.onSkillAction(response, this, manager);
+                    }
+                    if (response.signChosen) {
+                        yield manager.resolver.onSignAction(response, this, manager);
+                    }
+                    else {
+                        //金主爸爸!!
+                        let card = response.getSingleCardAndPos()[0];
+                        //桃, 或者酒
+                        let goodman = this.goodman.player.id;
+                        let deadman = this.deadman.player.id;
+                        manager.broadcast(new EffectTransit_1.TextFlashEffect(goodman, [deadman], card.type.name));
+                        card.description = `${goodman} 对 ${deadman} 使用 ${card.type.name}`;
+                        //桃牌扔进workflow
+                        manager.sendToWorkflow(goodman, CardPos_1.CardPos.HAND, [card]);
+                        yield manager.events.publish(new Generic_1.CardBeingUsedEvent(goodman, [[card, CardPos_1.CardPos.HAND]], card.type, false, false));
+                        yield new HealOp_1.default(this.goodman, this.deadman, 1).perform(manager);
+                    }
                 }
                 else {
                     break;
@@ -14727,6 +15100,10 @@ exports.DodgePlayed = void 0;
 const Operation_1 = __webpack_require__(/*! ../Operation */ "./javascript/server/Operation.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
+const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
+const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
+const Generic_1 = __webpack_require__(/*! ./Generic */ "./javascript/server/engine/Generic.tsx");
 class DodgeOp extends Operation_1.Operation {
     constructor(target, source, numberRequired, hintMsg) {
         super();
@@ -14768,7 +15145,20 @@ class DodgeOp extends Operation_1.Operation {
                 else {
                     needed--;
                     console.log('[Dodge OP] 闪避成功');
-                    yield manager.resolver.onDodge(this.dodgeResp, this, manager);
+                    if (this.dodgeResp.skill) {
+                        yield manager.resolver.onSkillAction(this.dodgeResp, this, manager);
+                    }
+                    else {
+                        manager.broadcast(new EffectTransit_1.TextFlashEffect(this.target.player.id, [this.source.player.id], '闪'));
+                        //assume he played it
+                        let cards = this.dodgeResp.getCardsAtPos(CardPos_1.CardPos.HAND);
+                        if (cards.length !== 1) {
+                            throw `Player played dodge cards but not one card!!!! ${this.dodgeResp.source.player.id} ${cards}`;
+                        }
+                        manager.log(`${this.dodgeResp.source} 打出了 ${cards}`);
+                        manager.sendToWorkflow(this.target.player.id, CardPos_1.CardPos.HAND, [cards[0]]);
+                        yield manager.events.publish(new Generic_1.CardBeingUsedEvent(this.dodgeResp.source.player.id, cards.map(c => [c, CardPos_1.CardPos.HAND]), Card_1.CardType.DODGE, false, false));
+                    }
                     yield manager.events.publish(new DodgePlayed(this.target.player.id));
                 }
             }
@@ -16445,6 +16835,8 @@ const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/
 const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
 const ICard_1 = __webpack_require__(/*! ../../common/cards/ICard */ "./javascript/common/cards/ICard.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
+const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const Generic_1 = __webpack_require__(/*! ./Generic */ "./javascript/server/engine/Generic.tsx");
 class SlashDodgedEvent {
     constructor(slashOp, dodgeOp) {
         this.slashOp = slashOp;
@@ -16624,8 +17016,21 @@ class AskForSlashOp extends Operation_1.Operation {
                     console.log('玩家放弃出杀');
                     return false;
                 }
+                else if (resp.skill) {
+                    yield manager.resolver.onSkillAction(resp, this, manager);
+                }
                 else {
-                    yield manager.resolver.onAskingForSlash(resp, this, manager);
+                    let cards = resp.getCardsAtPos(CardPos_1.CardPos.HAND).map(card => {
+                        card.description = `${this.slasher.player.id} 出杀`;
+                        if (!card.type.isSlash()) {
+                            card.as = Card_1.CardType.SLASH;
+                        }
+                        return card;
+                    });
+                    manager.log(`${resp.source} 打出了 ${cards}`);
+                    let type = cards.length === 1 ? cards[0].type : Card_1.CardType.SLASH;
+                    manager.sendToWorkflow(this.slasher.player.id, CardPos_1.CardPos.HAND, cards);
+                    yield manager.events.publish(new Generic_1.CardBeingUsedEvent(this.slasher.player.id, cards.map(c => [c, CardPos_1.CardPos.HAND]), type, false, false));
                 }
             }
             return true;
@@ -20595,7 +21000,7 @@ exports.push([module.i, ".tooltip {\n  background: rgba(0, 0, 0, 0.74);\n  paddi
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 40px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 132px;\n          font-size: 18px; }\n    .board .btm .my-cards {\n      position: relative;\n      height: 180px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px;\n        animation: flashing-red 1.6s infinite; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n@keyframes flashing-red {\n  0% {\n    color: white; }\n  50% {\n    color: red; }\n  100% {\n    color: white; } }\n", ""]);
+exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .system-buttons {\n      position: absolute;\n      background: rgba(27, 27, 27, 0.712);\n      color: white;\n      font-family: initial;\n      border-radius: 6px;\n      padding: 5px;\n      font-size: 13px;\n      top: 4px;\n      left: 4px; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex;\n      position: relative;\n      height: 180px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-signs {\n          height: 36px;\n          display: flex;\n          padding-left: 10px;\n          align-items: center; }\n          .board .btm .my-cards .mid .my-signs .sign {\n            width: 20px;\n            height: 20px;\n            margin: 6px;\n            border-radius: 20px;\n            background: #777777;\n            font-size: 26px;\n            color: #ffffff;\n            opacity: 0.5;\n            transition: 0.2s; }\n            .board .btm .my-cards .mid .my-signs .sign.enabled {\n              opacity: 1; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable {\n              cursor: pointer; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable:hover {\n              transform: translate(0px, -5px); }\n            .board .btm .my-cards .mid .my-signs .sign.selected {\n              transform: translate(0px, -5px);\n              color: gold; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 36px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 100px;\n          font-size: 18px; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px;\n        animation: flashing-red 1.6s infinite; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n@keyframes flashing-red {\n  0% {\n    color: white; }\n  50% {\n    color: red; }\n  100% {\n    color: white; } }\n", ""]);
 
 
 
@@ -20656,6 +21061,21 @@ exports.push([module.i, ".logger-container {\n  display: flex;\n  flex-direction
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
 exports.push([module.i, ".login-panel {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  width: 100%;\n  height: 100%;\n  padding-bottom: 40px; }\n  .login-panel .prompt {\n    font-size: 24px;\n    margin-bottom: 20px; }\n  .login-panel .name-input {\n    margin-bottom: 20px; }\n", ""]);
+
+
+
+/***/ }),
+
+/***/ "./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-modal.scss":
+/*!*********************************************************************************************************************************************!*\
+  !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-modal.scss ***!
+  \*********************************************************************************************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
+// Module
+exports.push([module.i, ".modal-backdrop.fade {\n  opacity: 0; }\n\n.modal-backdrop.show {\n  opacity: .5; }\n\n.modal-backdrop {\n  position: fixed;\n  top: 0;\n  left: 0;\n  z-index: 1040;\n  width: 100vw;\n  height: 100vh;\n  background-color: #000; }\n\n.modal-open .modal {\n  overflow-x: hidden;\n  overflow-y: auto; }\n\n.modal {\n  position: fixed;\n  top: 0;\n  left: 0;\n  z-index: 1050;\n  display: none;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  outline: 0; }\n\n.fade {\n  transition: opacity .15s linear; }\n\n.modal.fade .modal-dialog {\n  transition: -webkit-transform .3s ease-out;\n  transition: transform .3s ease-out;\n  transition: transform .3s ease-out,-webkit-transform .3s ease-out;\n  -webkit-transform: translate(0, -50px);\n  transform: translate(0, -50px); }\n\n.modal.show .modal-dialog {\n  -webkit-transform: none;\n  transform: none; }\n\n.modal-dialog {\n  margin: auto;\n  position: relative;\n  width: auto;\n  pointer-events: none;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  margin-top: 50px; }\n  .modal-dialog .modal-content {\n    position: relative;\n    display: -ms-flexbox;\n    display: flex;\n    -ms-flex-direction: column;\n    flex-direction: column;\n    max-width: 80%;\n    pointer-events: auto;\n    background-image: url(\"ui/bak.png\");\n    background-repeat: repeat;\n    color: white;\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: .3rem;\n    outline: 0;\n    font-family: initial; }\n    .modal-dialog .modal-content .modal-header {\n      display: -ms-flexbox;\n      display: flex;\n      -ms-flex-align: start;\n      align-items: flex-start;\n      -ms-flex-pack: justify;\n      justify-content: space-between;\n      padding: 1rem 1rem;\n      border-bottom: 1px solid #dee2e6;\n      border-top-left-radius: calc(.3rem - 1px);\n      border-top-right-radius: calc(.3rem - 1px); }\n      .modal-dialog .modal-content .modal-header .close {\n        cursor: pointer; }\n    .modal-dialog .modal-content .modal-body {\n      position: relative;\n      -ms-flex: 1 1 auto;\n      flex: 1 1 auto;\n      padding: 1rem; }\n\n.rule-book {\n  display: flex;\n  font-size: 13px;\n  width: 780px; }\n  .rule-book .rule-col {\n    padding: 4px;\n    min-width: 130px;\n    margin-right: 10px; }\n    .rule-book .rule-col .rule-item {\n      margin-bottom: 5px;\n      cursor: pointer;\n      text-align: right;\n      z-index: 1;\n      transition: 0.2s; }\n      .rule-book .rule-col .rule-item.active {\n        color: gold;\n        border-right: none;\n        transform: translate(5px, 0px); }\n  .rule-book .rule-content {\n    padding: 4px; }\n    .rule-book .rule-content p {\n      margin-top: initial; }\n", ""]);
 
 
 
@@ -20730,7 +21150,7 @@ exports.push([module.i, ".ui-player-card .identity-war {\n  width: 170px;\n  hei
 
 exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, "body {\n  margin: 0px;\n  font-family: LiShuFanTi;\n  overflow-y: hidden; }\n\n.occupy {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  bottom: 0px;\n  right: 0px;\n  width: 100%;\n  height: 100%; }\n\n.font-big {\n  font-size: 30px; }\n\n.center {\n  display: flex;\n  align-items: center;\n  justify-content: center; }\n\n.bg {\n  z-index: -1; }\n\n.overflow-hidden {\n  overflow: hidden; }\n\n.noselect * {\n  -webkit-touch-callout: none;\n  /* iOS Safari */\n  -webkit-user-select: none;\n  /* Safari */\n  -khtml-user-select: none;\n  /* Konqueror HTML */\n  -moz-user-select: none;\n  /* Old versions of Firefox */\n  -ms-user-select: none;\n  /* Internet Explorer/Edge */\n  user-select: none;\n  /* Non-prefixed version, currently\r\n                                    supported by Chrome, Edge, Opera and Firefox */ }\n\n.mask {\n  background-color: rgba(0, 0, 0, 0.548); }\n", ""]);
+exports.push([module.i, "body {\n  margin: 0px;\n  font-family: LiShuFanTi;\n  overflow-y: hidden; }\n\n.icon {\n  margin: 3px;\n  cursor: pointer; }\n\n.icon:hover {\n  color: gold; }\n\n.occupy {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  bottom: 0px;\n  right: 0px;\n  width: 100%;\n  height: 100%; }\n\n.font-big {\n  font-size: 30px; }\n\n.center {\n  display: flex;\n  align-items: center;\n  justify-content: center; }\n\n.bg {\n  z-index: -1; }\n\n.overflow-hidden {\n  overflow: hidden; }\n\n.noselect * {\n  -webkit-touch-callout: none;\n  /* iOS Safari */\n  -webkit-user-select: none;\n  /* Safari */\n  -khtml-user-select: none;\n  /* Konqueror HTML */\n  -moz-user-select: none;\n  /* Old versions of Firefox */\n  -ms-user-select: none;\n  /* Internet Explorer/Edge */\n  user-select: none;\n  /* Non-prefixed version, currently\r\n                                    supported by Chrome, Edge, Opera and Firefox */ }\n\n.mask {\n  background-color: rgba(0, 0, 0, 0.548); }\n", ""]);
 
 
 

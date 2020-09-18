@@ -10,13 +10,13 @@ import PlayerAct from "../../server/context/PlayerAct";
 import GameManager from "../../server/GameManager";
 import { DropCardRequest, DropOthersCardRequest } from "../../server/engine/DropCardOp";
 import { CardPos } from "../../common/transit/CardPos";
-import { PlayerInfo, Sign } from "../../common/PlayerInfo";
+import { PlayerInfo } from "../../common/PlayerInfo";
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp";
 import AskSavingOp, { AskSavingAround } from "../../server/engine/AskSavingOp";
 import HealOp from "../../server/engine/HealOp";
 import { isSuitRed, isSuitBlack, deriveColor } from "../../common/cards/ICard"
 import { CardType, Color, Suit } from "../../common/cards/Card";
-import { CardBeingUsedEvent, CardObtainedEvent, CardAwayEvent, CardBeingDroppedEvent, CardBeingTakenEvent } from "../../server/engine/Generic";
+import { CardBeingUsedEvent, CardAwayEvent, CardBeingDroppedEvent, CardBeingTakenEvent } from "../../server/engine/Generic";
 import { SlashCompute } from "../../server/engine/SlashOp";
 import { Timeline, RuseOp } from "../../server/Operation";
 import { JueDou, ShunShou, GuoHe, WuZhong, JieDao, HuoGong } from "../../server/engine/SingleRuseOp";
@@ -32,9 +32,10 @@ import DeathOp from "../../server/engine/DeathOp";
 import { SkillForDamageTaken } from "./FactionSkillsWei";
 import {Faction} from '../../common/General'
 import DamageOp from "../../server/engine/DamageOp";
-import DodgeOp, { DodgePlayed } from "../../server/engine/DodgeOp";
+import { DodgePlayed } from "../../server/engine/DodgeOp";
 import { MaShu } from "./FactionSkillsShu";
-import { getFactionsWithLeastMembers, getFactionMembers } from "./FactionWarUtil";
+import { getFactionsWithLeastMembers, getFactionMembers } from "../FactionWarUtil";
+import { registerPeach } from "../../client/player-actions/PlayerActionDrivers";
 
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
@@ -104,16 +105,13 @@ export class JiJiu extends Skill {
     description = '你的回合外，你可以将一张红色牌当【桃】使用。'
     
     bootstrapClient() {
-        playerActionDriverProvider.registerProvider(HintType.PEACH, (hint)=>{
-            return new PlayerActionDriverDefiner('急救')
-                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
-                            return id === this.id && context.curr !== this.playerId
-                        })
-                        .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, (id, context)=>{
-                            return isSuitRed(context.interpret(id).suit)
-                        }, ()=>'(急救)将一张红色牌当【桃】使用')
-                        .expectAnyButton('点击确定发动急救')
-                        .build(hint)
+        registerPeach((definer, hint)=>{
+            return definer.expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
+                                return id === this.id && context.curr !== this.playerId
+                            })
+                            .expectChoose([UIPosition.MY_HAND, UIPosition.MY_EQUIP], 1, 1, (id, context)=>{
+                                return isSuitRed(context.interpret(id).suit)
+                            }, ()=>'(急救)将一张红色牌当【桃】使用')
         })
     }
 

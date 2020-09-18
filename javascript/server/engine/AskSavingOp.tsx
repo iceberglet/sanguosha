@@ -2,6 +2,10 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import GameManager from "../GameManager";
 import { HintType } from "../../common/ServerHint";
 import { Button } from "../../common/PlayerAction";
+import { CardPos } from "../../common/transit/CardPos";
+import { CardBeingUsedEvent } from "./Generic";
+import { TextFlashEffect } from "../../common/transit/EffectTransit";
+import HealOp from "./HealOp";
 
 export class AskSavingAround {
 
@@ -52,7 +56,23 @@ export default class AskSavingOp {
             })
             //todo: put this in resolver
             if(!response.isCancel()) {
-                await manager.resolver.onSaving(response, this, manager)
+                if(response.skill) {
+                    await manager.resolver.onSkillAction(response, this, manager)
+                } if(response.signChosen) {
+                    await manager.resolver.onSignAction(response, this, manager)
+                } else {
+                    //金主爸爸!!
+                    let card = response.getSingleCardAndPos()[0];
+                    //桃, 或者酒
+                    let goodman = this.goodman.player.id
+                    let deadman = this.deadman.player.id
+                    manager.broadcast(new TextFlashEffect(goodman, [deadman], card.type.name))
+                    card.description = `${goodman} 对 ${deadman} 使用 ${card.type.name}`                
+                    //桃牌扔进workflow
+                    manager.sendToWorkflow(goodman, CardPos.HAND, [card])
+                    await manager.events.publish(new CardBeingUsedEvent(goodman, [[card, CardPos.HAND]], card.type, false, false))
+                    await new HealOp(this.goodman, this.deadman, 1).perform(manager)
+                }
             } else {
                 break
             }

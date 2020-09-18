@@ -142,11 +142,11 @@ export class YingZi extends SimpleConditionalSkill<TakeCardStageOp> {
         skillRegistry.on<TakeCardStageOp>(TakeCardStageOp, this)
         skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async (dropOp)=>{
             if(!this.isDisabled && this.isRevealed && dropOp.player.player.id === this.playerId && 
-                    dropOp.timeline === DropTimeline.BEFORE) {
+                    dropOp.timeline === DropTimeline.BEFORE && dropOp.amount > 0) {
                 let me = manager.context.getPlayer(this.playerId)
-                console.log('[英姿] 改变手牌上限为', me.maxHp)
                 // this.invokeEffects(manager)
-                dropOp.amount = Math.max(me.getCards(CardPos.HAND).length - me.maxHp, 0)
+                console.log('[英姿] 改变弃牌数为', dropOp.amount, '=>', dropOp.amount - (me.maxHp - me.hp))
+                dropOp.amount -= (me.maxHp - me.hp)
             }
         })
     }
@@ -722,9 +722,9 @@ export class HaoShi extends SimpleConditionalSkill<TakeCardStageOp> {
             }
             console.log('[好施] 手牌最少的为', minimum, choices)
             return new PlayerActionDriverDefiner('好施')
-                        .expectChoose([UIPosition.MY_HAND], required, required, (id, context)=>true, ()=>`选择${required}张手牌`)
                         .expectChoose([UIPosition.PLAYER], 1, 1, (id)=>choices.has(id), ()=>'(好施)选择手牌最少的一名其他角色')
-                        .expectAnyButton('点击确定发动好施')
+                        .expectChoose([UIPosition.MY_HAND], required, required, (id, context)=>true, ()=>`请选择${required}张手牌交给此角色`)
+                        .expectAnyButton('点击确定完成好施')
                         .build(hint, [Button.OK])
         })
     }

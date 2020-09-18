@@ -136,11 +136,6 @@ export default class FactionPlayerInfo extends PlayerInfo {
                 {this.drawMark(this.subMark)}
             </div>)}
             <div className='player-name'>{this.player.id}</div>
-            <div className='signs'>
-                {Object.keys(this.signs).map(s => {
-                    return <div key={s} className={'sign center ' + this.signs[s].enabled}>{s}</div>
-                })}
-            </div>
         </div>,
         <FactionMark key={'faction-mark'} info={this}/>]
     }

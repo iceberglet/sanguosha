@@ -214,7 +214,8 @@ export class StepByStepActionDriver extends PlayerActionDriver {
         console.log('[Player Action] Clicked on', action)
         //if we clicked on abort:
         if(action.actionArea === UIPosition.BUTTONS) {
-            if(isDirectButton(context.serverHint.hint, action.itemId)) {
+            let button = this.buttons.find(b => b.id === action.itemId)
+            if(isDirectButton(context.serverHint.hint, button)) {
                 //abort sends a message to server
                 let actionData: {[key in UIPosition]?: string[]} = {}
                 let actionToServer: PlayerAction = {
@@ -273,9 +274,10 @@ export class StepByStepActionDriver extends PlayerActionDriver {
 
     canBeClicked = (action: PlayerUIAction, context: GameClientContext): Clickability => {
         if(action.actionArea === UIPosition.BUTTONS) {
+            let button = this.buttons.find(b => b.id === action.itemId)
             // console.log(isDirectButton(context.serverHint.hint, action.itemId))
-            if(isDirectButton(context.serverHint.hint, action.itemId)) {
-                return isDirectButton(context.serverHint.hint, action.itemId).enabled? Clickability.CLICKABLE : Clickability.DISABLED
+            if(isDirectButton(context.serverHint.hint, button)) {
+                return isDirectButton(context.serverHint.hint, button).enabled? Clickability.CLICKABLE : Clickability.DISABLED
             } else if (action.itemId === Button.CANCEL.id) {
                 // console.log('Can Cancel? ', this.curr, this.currentStep())
                 return this.currentStep().canCancel? Clickability.CLICKABLE : Clickability.DISABLED

@@ -9,6 +9,11 @@ class AudioManager {
         audio.currentTime = 0
     }
 
+    pause(name: string) {
+        let audio = this.cache.get(name)
+        audio.pause()
+    }
+
     play(name: string, loop = false) {
         try {
             let audio: any

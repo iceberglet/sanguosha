@@ -24,11 +24,9 @@ export abstract class ActionResolver {
      */
     abstract async on(act: PlayerAct, manager: GameManager): Promise<boolean>
 
-    abstract async onDodge(act: PlayerAct, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean>
+    abstract async onSkillAction(act: PlayerAct, event: DodgeOp | AskForSlashOp | AskSavingOp, manager: GameManager): Promise<void>
 
-    abstract async onAskingForSlash(act: PlayerAct, askSlashOp: AskForSlashOp, manager: GameManager): Promise<boolean>
-
-    abstract async onSaving(act: PlayerAct, ask: AskSavingOp, manager: GameManager): Promise<boolean>
+    abstract async onSignAction(act: PlayerAct, event: AskSavingOp, manager: GameManager): Promise<void>
 
 }
 
@@ -36,6 +34,14 @@ export default class PlayerActionResolver extends ActionResolver {
 
     public constructor(private readonly delegate: ActionResolver) {
         super()
+    }
+
+    public async onSkillAction(act: PlayerAct, event: DodgeOp | AskForSlashOp | AskSavingOp, manager: GameManager): Promise<void> {
+        await this.delegate.onSkillAction(act, event, manager)
+    }
+
+    public async onSignAction(act: PlayerAct, event: AskSavingOp, manager: GameManager): Promise<void> {
+        await this.delegate.onSignAction(act, event, manager)
     }
 
     public async on(act: PlayerAct, manager: GameManager): Promise<boolean> {
@@ -185,56 +191,5 @@ export default class PlayerActionResolver extends ActionResolver {
 
         }
 
-    }
-
-    public async onDodge(act: PlayerAct, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean> {
-        if(!await this.delegate.onDodge(act, dodgeOp, manager)) {
-            manager.broadcast(new TextFlashEffect(dodgeOp.target.player.id, [dodgeOp.source.player.id], '闪'))
-            //assume he played it
-            let cards = act.getCardsAtPos(CardPos.HAND)
-            if(cards.length !== 1) {
-                throw `Player played dodge cards but not one card!!!! ${act.source.player.id} ${cards}`
-            }
-            manager.log(`${act.source} 打出了 ${cards}`)            
-            manager.sendToWorkflow(dodgeOp.target.player.id, CardPos.HAND, [cards[0]])
-            await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE, false, false))
-        }
-        //张角呢??
-        return true
-    }
-
-    
-    public async onSaving(act: PlayerAct, ask: AskSavingOp, manager: GameManager): Promise<boolean> {
-        if(!await this.delegate.onSaving(act, ask, manager)) {
-            //金主爸爸!!
-            let card = act.getSingleCardAndPos()[0];
-            //桃, 或者酒
-            let goodman = ask.goodman.player.id
-            let deadman = ask.deadman.player.id
-            manager.broadcast(new TextFlashEffect(goodman, [deadman], card.type.name))
-            card.description = `${goodman} 对 ${deadman} 使用 ${card.type.name}`                
-            //桃牌扔进workflow
-            manager.sendToWorkflow(goodman, CardPos.HAND, [card])
-            await manager.events.publish(new CardBeingUsedEvent(goodman, [[card, CardPos.HAND]], card.type, false, false))
-            await new HealOp(ask.goodman, ask.deadman, 1).perform(manager)
-        }
-        return true
-    }
-
-    public async onAskingForSlash(resp: PlayerAct, askSlashOp: AskForSlashOp, manager: GameManager): Promise<boolean> {
-        if(!await this.delegate.onAskingForSlash(resp, askSlashOp, manager)) {
-            let cards = resp.getCardsAtPos(CardPos.HAND).map(card => {
-                card.description = `${askSlashOp.slasher.player.id} 出杀`
-                if(!card.type.isSlash()) {
-                    card.as = CardType.SLASH
-                }
-                return card
-            })
-            manager.log(`${resp.source} 打出了 ${cards}`)
-            let type: CardType = cards.length === 1? cards[0].type : CardType.SLASH
-            manager.sendToWorkflow(askSlashOp.slasher.player.id, CardPos.HAND, cards)
-            await manager.events.publish(new CardBeingUsedEvent(askSlashOp.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type, false, false))
-        }
-        return true
     }
 }

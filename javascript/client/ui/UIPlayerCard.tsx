@@ -8,11 +8,13 @@ import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { CardPos } from '../../common/transit/CardPos'
 import { StageDeclarer } from './UIMyPlayerCard'
 import './ui-player-card.scss'
-import { PlayerInfo } from '../../common/PlayerInfo'
+import { PlayerInfo, Sign } from '../../common/PlayerInfo'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
 import { CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { ElementStatus } from './UIBoard'
 import CardTransitManager, { DefaultCardEndpoint, CardEndpoint } from './CardTransitManager'
+import { Tooltip, OverlayTrigger } from 'react-bootstrap'
+import { describer } from '../../common/util/Describer'
 
 type CardProp = {
     info: PlayerInfo,
@@ -63,6 +65,11 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
         return <div className={clazz} ref={this.dom} onClick={this.onClick}>
             {info.draw()}
             
+            <div className='signs'>
+                {Object.keys(info.signs).map(s => {
+                    return wrapSign(<div key={s} className={'sign center ' + info.signs[s].enabled}>{s}</div>, info.signs[s])
+                })}
+            </div>
             <Mask isMasked={info.isDrunk} maskClass={'drunk'} />
             <Mask isMasked={info.isTurnedOver} maskClass={'turned-over'} />
             {info.isTurnedOver && <div className='occupy center'>翻面</div>}
@@ -93,4 +100,18 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
             <DefaultCardEndpoint info={info} callback={()=>this.forceUpdate()} ref={this.doRegister}/>
         </div>
     }
+}
+
+export function wrapSign(ele: React.ReactElement, sign: Sign) {
+    
+        let msg = describer.get(sign.displayName)
+        if(!msg && sign.type === 'limit-skill') {
+            msg = `限定技, ${sign.enabled? '未发动':'已发动'}`
+        }
+        let overlay = (props: any) => <Tooltip {...props}>
+                <p>{'【'+sign.displayName+'】 ' + msg}</p>
+            </Tooltip>
+        return <OverlayTrigger placement='auto' overlay={overlay} delay={{show: 0, hide: 0}} key={sign.displayName}>
+            {ele}
+        </OverlayTrigger>
 }

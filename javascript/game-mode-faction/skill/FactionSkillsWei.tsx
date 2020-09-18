@@ -24,7 +24,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import PlayerAct from "../../server/context/PlayerAct";
 import CardFightOp from "../../server/engine/CardFightOp";
 import { DropCardRequest } from "../../server/engine/DropCardOp";
-import { getNumberOfFactions, askAbandonBasicCard, askAbandonEquip } from "./FactionWarUtil";
+import { getNumberOfFactions, askAbandonBasicCard, askAbandonEquip } from "../FactionWarUtil";
 
 export abstract class SkillForDamageTaken extends SimpleConditionalSkill<DamageOp> {
 

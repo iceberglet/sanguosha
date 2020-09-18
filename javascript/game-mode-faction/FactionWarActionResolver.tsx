@@ -14,12 +14,12 @@ import { DropCardRequest } from "../server/engine/DropCardOp";
 import { Faction } from "../common/General";
 import { EquipOp } from "../server/engine/EquipOp";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
-import DodgeOp from "../server/engine/DodgeOp";
-import { SimpleConditionalSkill, Skill } from "./skill/Skill";
+import { Skill } from "./skill/Skill";
 import { RevealGeneralEvent } from "./FactionWarInitializer";
-import { AskForSlashOp } from "../server/engine/SlashOp";
 import PlayerAct from "../server/context/PlayerAct";
-import AskSavingOp from "../server/engine/AskSavingOp";
+import HealOp from "../server/engine/HealOp";
+import AskSavingOp from '../server/engine/AskSavingOp'
+import { TextFlashEffect } from "../common/transit/EffectTransit";
 
 
 
@@ -40,36 +40,25 @@ export default class FactionWarActionResolver extends ActionResolver {
         return skill
     }
 
-    public async onAskingForSlash(act: PlayerAct, askForSlashOp: AskForSlashOp, manager: GameManager): Promise<boolean> {
+    public async onSkillAction(act: PlayerAct, event: any, manager: GameManager): Promise<void> {
         if(act.skill) {
             //武将技能
             let skill = await this.getSkillAndRevealIfNeeded(act, manager)
-            await skill.onPlayerAction(act, askForSlashOp, manager)
-            return true
+            await skill.onPlayerAction(act, event, manager)
         }
-        return false
+        throw 'what?'
     }
-
-    public async onSaving(act: PlayerAct, ask: AskSavingOp, manager: GameManager): Promise<boolean> {
-        if(act.skill) {
-            //武将技能
-            let skill = await this.getSkillAndRevealIfNeeded(act, manager)
-            await skill.onPlayerAction(act, ask, manager)
-            return true
-        }
-        return false
-    }
-
-    public async onDodge(act: PlayerAct, dodgeOp: DodgeOp, manager: GameManager): Promise<boolean> {
-        if(act.skill) {
-            //武将技能
-            let skill = await this.getSkillAndRevealIfNeeded(act, manager)
-            await skill.onPlayerAction(act, dodgeOp, manager)
-            return true
-        }
-        return false
-    } 
     
+    public async onSignAction(act: PlayerAct, event: AskSavingOp, manager: GameManager): Promise<void> {
+        if(act.signChosen === '珠') {
+            manager.log(`${act.source} 弃置了 ${act.source.signs[act.signChosen].displayName} 标记作为桃`)
+            delete act.source.signs[act.signChosen]
+            manager.broadcast(act.source, PlayerInfo.sanitize)
+            manager.broadcast(new TextFlashEffect(event.goodman.player.id, [event.deadman.player.id], CardType.PEACH.name))
+            await new HealOp(event.goodman, event.deadman, 1).perform(manager)
+        }
+    }
+
     public async on(act: PlayerAct, manager: GameManager): Promise<boolean> {
         //skills?
         if(act.skill) {
@@ -85,6 +74,31 @@ export default class FactionWarActionResolver extends ActionResolver {
             //吴六剑 + 三尖两刃刀 都是没有主动技能的!
             //还给parent resolver
             return false
+        }
+
+        else if(act.signChosen) {
+            switch(act.signChosen) {
+                case '先': 
+                    await this.processXianQu(act.source, act.targets[0] as FactionPlayerInfo, act.button, manager)
+                    break
+                case '珠':
+                    if(act.button === 'regen') {
+                        await new HealOp(act.source, act.source, 1).perform(manager)
+                    } else if (act.button === 'card') {
+                        await new TakeCardOp(act.source, 2).perform(manager)
+                    } else {
+                        console.error('(珠联璧合)选择有问题！' + act.button)
+                    }
+                    break;
+                case '鱼':
+                    await new TakeCardOp(act.source, 1).perform(manager)
+                    break;
+                default:
+                    throw `Can't handle this...` + act.signChosen
+            }
+            manager.log(`${act.source} 弃置了 ${act.source.signs[act.signChosen].displayName} 标记`)
+            delete act.source.signs[act.signChosen]
+            manager.broadcast(act.source, PlayerInfo.sanitize)
         }
 
         else if(act.getCardsAtPos(CardPos.HAND).length > 0) {
@@ -146,10 +160,49 @@ export default class FactionWarActionResolver extends ActionResolver {
 
             return true
         }
-
         return false
     }
 
+    private async processXianQu(source: PlayerInfo, target: FactionPlayerInfo, choice: string, manager: GameManager) {
+        let curr = source.getCards(CardPos.HAND).length
+        if(curr < 4) {
+            await new TakeCardOp(source, 4 - curr).perform(manager)
+        }
+        switch(choice) {
+            case 'main':
+                console.log(`(先驱) ${source} 选择观看了 ${target} 的主将`)
+                await manager.sendHint(source.player.id, {
+                    hintType: HintType.UI_PANEL,
+                    hintMsg: `${target} 的主将`,
+                    customRequest: {
+                        data: {
+                            title: `${target} 的主将`,
+                            items: [target.general],
+                            mode: 'general'
+                        },
+                        mode: 'display'
+                    }
+                })
+                break;
+            case 'sub':
+                console.log(`${source} 选择观看了 ${target} 的副将`)
+                await manager.sendHint(source.player.id, {
+                    hintType: HintType.UI_PANEL,
+                    hintMsg: `${target} 的副将`,
+                    customRequest: {
+                        data: {
+                            title: `${target} 的副将`,
+                            items: [target.subGeneral],
+                            mode: 'general'
+                        },
+                        mode: 'display'
+                    }
+                })
+                break;
+            default: 
+                console.log(`(先驱) ${source} 选择不观看`)
+        }
+    }
 }
 
 
@@ -204,7 +257,6 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
 
         let b = resp.button
 
-        //todo!!!
         switch(b) {
             case ZhiJiZhiBi.ZHU_JIANG:
                 console.log(`${this.source} 选择观看了 ${this.target} 的主将`)

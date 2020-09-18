@@ -21,7 +21,9 @@ export enum UIPosition {
     // 任意 （诸葛观星）
     AD_HOC,
     // 确定 / 取消 / 技能选项
-    BUTTONS
+    BUTTONS,
+    // 标记 （阴阳鱼，先驱，珠联璧合）
+    SIGNS
 }
 
 export function isPositionForCard(ui: UIPosition) {

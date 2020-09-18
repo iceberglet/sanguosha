@@ -4,6 +4,10 @@ import { Button } from "../../common/PlayerAction";
 import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import PlayerAct from "../context/PlayerAct";
+import { TextFlashEffect } from "../../common/transit/EffectTransit";
+import { CardPos } from "../../common/transit/CardPos";
+import { CardType } from "../../common/cards/Card";
+import { CardBeingUsedEvent } from "./Generic";
 
 export default class DodgeOp extends Operation<boolean> {
 
@@ -54,7 +58,21 @@ export default class DodgeOp extends Operation<boolean> {
             } else {
                 needed--
                 console.log('[Dodge OP] 闪避成功')
-                await manager.resolver.onDodge(this.dodgeResp, this, manager)
+
+                if(this.dodgeResp.skill) {
+                    await manager.resolver.onSkillAction(this.dodgeResp, this, manager)
+                } else {
+                    manager.broadcast(new TextFlashEffect(this.target.player.id, [this.source.player.id], '闪'))
+                    //assume he played it
+                    let cards = this.dodgeResp.getCardsAtPos(CardPos.HAND)
+                    if(cards.length !== 1) {
+                        throw `Player played dodge cards but not one card!!!! ${this.dodgeResp.source.player.id} ${cards}`
+                    }
+                    manager.log(`${this.dodgeResp.source} 打出了 ${cards}`)            
+                    manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [cards[0]])
+                    await manager.events.publish(new CardBeingUsedEvent(this.dodgeResp.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE, false, false))
+                }
+
                 await manager.events.publish(new DodgePlayed(this.target.player.id))
             }
         }

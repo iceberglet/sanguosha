@@ -50,13 +50,13 @@ export class ServerHintTransit {
 //if this button is provided by server AND marked direct (by default) 
 //or if this button is not (OK/CANCEL)
 //then it's enabled
-export function isDirectButton(hint: ServerHint, buttonId: string): Button {
-    let extra = hint.extraButtons?.find(b => b.id === buttonId)
+export function isDirectButton(hint: ServerHint, button: Button): Button {
+    let extra = hint.extraButtons?.find(b => b.id === button.id)
     if(extra) {
         return extra.isDirect? extra: null
     }
-    if(buttonId !== Button.OK.id && buttonId !== Button.CANCEL.id) {
-        return new Button(buttonId, 'hackish')
+    if(button.id !== Button.OK.id && button.id !== Button.CANCEL.id && button.isDirect) {
+        return button
     }
 }
 

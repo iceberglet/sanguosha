@@ -6,6 +6,15 @@ body {
     overflow-y: hidden;
 }
 
+.icon {
+    margin: 3px;
+    cursor: pointer;
+}
+
+.icon:hover {
+    color: gold;
+}
+
 .occupy {
     position: absolute;
     top: 0px;

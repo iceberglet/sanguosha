@@ -63,14 +63,23 @@ export function registerPlaySlash(slashPlayer: (definer: PlayerActionDriverDefin
     })
 }
 
+/**
+ * 出牌阶段出杀
+ */
 registerSlashPlayingHand((definer, hint)=>{
     return definer.expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isSlash(), ()=>hint.hintMsg)
 })
 
+/**
+ * 被动被要求对指定目标出杀
+ */
 registerPlaySlash((definer, hint) => {
     return definer.expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isSlash(), ()=>hint.hintMsg)
 })
 
+/**
+ * 被动出杀（决斗，南蛮）
+ */
 registerSlash((definer, hint) => {
     return definer.expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).type.isSlash(), ()=>hint.hintMsg)
 })
@@ -222,14 +231,29 @@ playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             .build(hint)
 })
 
-playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
-    return new PlayerActionDriverDefiner('出牌阶段吃桃')
-            .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
-                return context.myself.hp < context.myself.maxHp && context.interpret(id).type === CardType.PEACH
-            })
-            .expectAnyButton('点击确定吃桃')
-            .build(hint)
+// playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+//     return new PlayerActionDriverDefiner('出牌阶段吃桃')
+//             .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
+//                 return context.myself.hp < context.myself.maxHp && context.interpret(id).type === CardType.PEACH
+//             })
+//             .expectAnyButton('点击确定吃桃')
+//             .build(hint)
+// })
+
+registerPeachPlayHand((definer, hint)=>{
+    return definer.expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.myself.hp < context.myself.maxHp && context.interpret(id).type === CardType.PEACH)
 })
+
+/**
+ * 出牌阶段出桃回血
+ */
+export function registerPeachPlayHand(peachStepper: (definer: PlayerActionDriverDefiner, hint: ServerHint) => PlayerActionDriverDefiner) {
+    playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+        return peachStepper(new PlayerActionDriverDefiner('出牌阶段吃桃'), hint)
+                .expectAnyButton('点击确定使用此牌/标记回复1点体力')
+                .build(hint)
+    })
+}
 
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段喝酒')
@@ -272,19 +296,30 @@ playerActionDriverProvider.registerProvider(HintType.CHOOSE_CARD, (hint)=>{
             .build(hint, [Button.OK]) //cannot refuse unless server allows you
 })
 
-
-playerActionDriverProvider.registerProvider(HintType.PEACH, (hint)=>{
-    if(!hint.sourcePlayer) {
-        throw `Source Player not specified in hint: ${hint}`
-    }
-    return new PlayerActionDriverDefiner('玩家濒死求桃')
-            .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
-                return context.interpret(id).type === CardType.PEACH || 
-                        (hint.sourcePlayer === context.myself.player.id && context.interpret(id).type === CardType.WINE)
-            }, ()=>hint.hintMsg)
-            .expectAnyButton('点击确定使用桃')
-            .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
+registerPeach((definer, hint)=>{
+    return definer.expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
+        return context.interpret(id).type === CardType.PEACH || 
+                    (hint.sourcePlayer === context.myself.player.id && context.interpret(id).type === CardType.WINE)
+    })
 })
+
+/**
+ * 濒死求桃时使用桃
+ */
+export function registerPeach(peachStepper: (definer: PlayerActionDriverDefiner, hint: ServerHint) => PlayerActionDriverDefiner) {
+    playerActionDriverProvider.registerProvider(HintType.PEACH, (hint)=>{
+        if(!hint.sourcePlayer) {
+            throw `Source Player not specified in hint: ${hint}`
+        }
+        return peachStepper(new PlayerActionDriverDefiner('玩家濒死求桃'), hint)
+                .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
+                    return context.interpret(id).type === CardType.PEACH || 
+                            (hint.sourcePlayer === context.myself.player.id && context.interpret(id).type === CardType.WINE)
+                }, ()=>hint.hintMsg)
+                .expectAnyButton('点击确定使用桃/酒')
+                .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
+    })
+}
 
 playerActionDriverProvider.registerProvider(HintType.DODGE, (hint)=>{
     return new PlayerActionDriverDefiner(hint.hintMsg)

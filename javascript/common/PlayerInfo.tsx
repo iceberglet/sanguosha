@@ -35,8 +35,8 @@ export type Mark = {
 export type Sign = {
     enabled: boolean
     owner: 'player' | 'main' | 'sub'
-    //限定技
-    type: 'limit-skill',
+    //限定技 / 可使用标记
+    type: 'limit-skill' | 'usable-sign'
     displayName: string
 }
 

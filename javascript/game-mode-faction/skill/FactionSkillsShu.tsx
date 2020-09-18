@@ -29,7 +29,7 @@ import { PlayerInfo } from "../../common/PlayerInfo"
 import { BlockedEquipment, BaGua } from "../../server/engine/Equipments"
 import { HuoGong, GrabCard } from "../../server/engine/SingleRuseOp"
 import { WuXieContext } from "../../server/engine/WuXieOp"
-import { askAbandonBasicCard } from "./FactionWarUtil";
+import { askAbandonBasicCard } from "../FactionWarUtil";
 import { TieSuo, NanMan } from "../../server/engine/MultiRuseOp"
 import AskSavingOp from "../../server/engine/AskSavingOp"
 import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp"
@@ -668,7 +668,7 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
             this.playedInThisRound += event.cards.length
             let currentReach = manager.context.getPlayer(this.playerId).getReach()
             console.log('[蒺藜] 使用牌数为', wasPlayed, this.playedInThisRound, currentReach)
-            if(wasPlayed < this.playedInThisRound && this.playedInThisRound >= currentReach) {
+            if(wasPlayed < currentReach && this.playedInThisRound >= currentReach) {
                 return true
             }
             return false 
@@ -1077,7 +1077,7 @@ export class ShenZhi extends SimpleConditionalSkill<StageStartFlow> {
         })
         manager.sendToWorkflow(this.playerId, CardPos.HAND, toDrop, true)
         await manager.events.publish(new CardBeingDroppedEvent(this.playerId, toDrop.map(d => [d, CardPos.HAND])))
-        if(toDrop.length >= me.hp) {
+        if(toDrop.length >= me.hp && me.hp < me.maxHp) {
             await new HealOp(me, me, 1).perform(manager)
         }
     }

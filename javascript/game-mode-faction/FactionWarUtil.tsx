@@ -1,12 +1,11 @@
-import GameManager from "../../server/GameManager";
-import FactionPlayerInfo from "../FactionPlayerInfo";
-import { Faction } from "../../common/General";
-import { PlayerInfo } from "../../common/PlayerInfo";
-import { HintType } from "../../common/ServerHint";
-import { UIPosition, Button } from "../../common/PlayerAction";
-import { CardPos } from "../../common/transit/CardPos";
-import { CardBeingDroppedEvent } from "../../server/engine/Generic";
-import Multimap from "../../common/util/Multimap";
+import GameManager from "../server/GameManager";
+import FactionPlayerInfo from "./FactionPlayerInfo";
+import { Faction } from "../common/General";
+import { PlayerInfo } from "../common/PlayerInfo";
+import { HintType } from "../common/ServerHint";
+import { UIPosition, Button } from "../common/PlayerAction";
+import { CardPos } from "../common/transit/CardPos";
+import Multimap from "../common/util/Multimap";
 
 export function getNumberOfFactions(manager: GameManager): number {
     let revealed = manager.getSortedByCurr(true).filter(p => (p as FactionPlayerInfo).isRevealed())
