@@ -312,10 +312,6 @@ export function registerPeach(peachStepper: (definer: PlayerActionDriverDefiner,
             throw `Source Player not specified in hint: ${hint}`
         }
         return peachStepper(new PlayerActionDriverDefiner('玩家濒死求桃'), hint)
-                .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
-                    return context.interpret(id).type === CardType.PEACH || 
-                            (hint.sourcePlayer === context.myself.player.id && context.interpret(id).type === CardType.WINE)
-                }, ()=>hint.hintMsg)
                 .expectAnyButton('点击确定使用桃/酒')
                 .build(hint, [Button.OK]) //refusal is provided by serverHint.extraButtons
     })

@@ -137,6 +137,33 @@ export class JiJiu extends Skill {
     }
 }
 
+class WuShuangSlash extends SimpleTrigger<SlashCompute> {
+    conditionFulfilled(slash: SlashCompute, manager: GameManager): boolean {
+        return slash.timeline === Timeline.AFTER_CONFIRMING_TARGET && slash.source.player.id === this.skill.playerId
+    }
+    async doInvoke(slash: SlashCompute, manager: GameManager): Promise<void> {
+        this.skill.invokeEffects(manager, [slash.target.player.id])
+        slash.dodgeRequired = 2
+    }
+}
+
+class WuShuangJueDou extends SimpleTrigger<JueDou> {
+    conditionFulfilled(jueDou: JueDou, manager: GameManager): boolean {
+        return jueDou.timeline === Timeline.AFTER_BECOMING_TARGET && 
+                (jueDou.source.player.id === this.skill.playerId || jueDou.target.player.id === this.skill.playerId)
+    }
+    async doInvoke(jueDou: JueDou, manager: GameManager): Promise<void> {
+        //override the decider
+        jueDou.slashCountDecider = (source, target)=>{
+            if(source.player.id === this.skill.playerId) {
+                this.skill.invokeEffects(manager, [target.player.id])
+                return 2
+            }
+            return 1
+        }
+    }
+}
+
 export class WuShuang extends Skill {
     id = '无双'
     displayName = '无双'
@@ -144,25 +171,8 @@ export class WuShuang extends Skill {
     isLocked = true
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-        skillRegistry.onEvent<SlashCompute>(SlashCompute, this.playerId, async(slash) => {
-            if(!this.isDisabled && this.isRevealed && slash.timeline === Timeline.AFTER_BECOMING_TARGET && 
-                slash.source.player.id === this.playerId) {
-                this.invokeEffects(manager, [slash.target.player.id])
-                slash.dodgeRequired = 2
-            }
-        })
-        skillRegistry.onEvent<JueDou>(JueDou, this.playerId, async(jueDou) => {
-            if(!this.isDisabled && this.isRevealed && jueDou.timeline === Timeline.AFTER_BECOMING_TARGET) {
-                //override the decider
-                jueDou.slashCountDecider = (source, target)=>{
-                    if(source.player.id === this.playerId) {
-                        this.invokeEffects(manager, [target.player.id])
-                        return 2
-                    }
-                    return 1
-                }
-            }
-        })
+        skillRegistry.on<SlashCompute>(SlashCompute, new WuShuangSlash(this, manager))
+        skillRegistry.on<JueDou>(JueDou, new WuShuangJueDou(this, manager))
     }
 }
 

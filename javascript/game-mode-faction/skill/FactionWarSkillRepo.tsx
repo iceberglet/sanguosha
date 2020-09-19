@@ -9,7 +9,7 @@ import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianD
         JieMing, QuHu, YiJi, QiaoBian, XiaoGuo } from "./FactionSkillsWei";
 import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi, 
         HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng } from "./FactionSkillsShu";
-import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng } from "./FactionSkillsWu";
+import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng, KeJi, MouDuan } from "./FactionSkillsWu";
 import { Stage } from "../../common/Stage";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan, MaShuPang, MaShuTeng, LeiJi, GuiDao, SuiShi, SiJian, LuanJi, XiongYi, JianChu, XiongSuan } from "./FactionSkillsQun";
@@ -107,6 +107,8 @@ FactionSkillProviders.register('天香', pid => new TianXiang(pid))
 FactionSkillProviders.register('好施', pid => new HaoShi(pid))
 FactionSkillProviders.register('缔盟', pid => new DiMeng(pid))
 FactionSkillProviders.register('疑城', pid => new YiCheng(pid))
+FactionSkillProviders.register('克己', pid => new KeJi(pid))
+FactionSkillProviders.register('谋断', pid => new MouDuan(pid))
 
 FactionSkillProviders.register('除疠', pid => new ChuLi(pid))
 FactionSkillProviders.register('急救', pid => new JiJiu(pid))

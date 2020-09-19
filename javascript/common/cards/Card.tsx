@@ -1,6 +1,8 @@
 import { shuffle, Suits } from "../util/Util"
 import { ICard } from "./ICard"
 
+export type SuperGenre = 'basic' | 'ruse' | 'equipment'
+
 export type CardGenre = 'basic' | 'single-immediate-ruse' | 'single-delay-ruse' | 'group-ruse' | 'horse+1' | 'horse-1' | 'weapon' | 'shield' | 'none'
 
 export type Suit = 'club' | 'spade' | 'heart' | 'diamond' | 'none'
@@ -140,6 +142,16 @@ export class CardType {
 
     public toString(): string {
         return this.name
+    }
+
+    public getSuperGenre(): SuperGenre {
+        if(this.isBasic()) {
+            return 'basic'
+        }
+        if(this.isEquipment()) {
+            return 'equipment'
+        }
+        return 'ruse'
     }
 }
 

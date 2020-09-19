@@ -56,7 +56,7 @@ export default class FactionWarGeneral extends General {
     public static gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', Faction.SHU, 1.5, '淑慎', '神智').asFemale() as FactionWarGeneral
     public static jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', Faction.SHU, 1.5, '生息', '守成')
 
-    // //13
+    //14
     public static sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', Faction.WU, 2, '制衡')
     public static gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', Faction.WU, 2, '奇袭')
     public static huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', Faction.WU, 2, '苦肉')
@@ -70,8 +70,9 @@ export default class FactionWarGeneral extends General {
     public static xiao_qiao = new FactionWarGeneral('wind_xiao_qiao', '小乔', Faction.WU, 1.5, '天香', '红颜').asFemale() as FactionWarGeneral
     public static lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', Faction.WU, 1.5, '好施', '缔盟')
     public static xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', Faction.WU, 2, '疑城')
+    public static lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', Faction.WU, 2, '克己', '谋断')
 
-    // //13
+    //13
     public static hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', Faction.QUN, 1.5, '除疠', '急救')
     public static lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', Faction.QUN, 2.5, '无双')
     public static diao_chan = new FactionWarGeneral('standard_diao_chan', '貂蝉', Faction.QUN, 1.5, '闭月', '离间').asFemale() as FactionWarGeneral
@@ -87,7 +88,6 @@ export default class FactionWarGeneral extends General {
     public static li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', Faction.QUN, 2, '凶算')
     
     // public static zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', Faction.SHU, 1.5, '观星', '空城')
-    // public static lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', Faction.WU, 2, '克己', '谋断')
     // public static zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', Faction.WU, 2, '不屈', '奋激')
     // public static ding_feng = new FactionWarGeneral('guo_ding_feng', '丁奉', Faction.WU, 2, '短兵', '奋迅')
 

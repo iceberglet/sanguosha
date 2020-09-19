@@ -9,9 +9,9 @@ import GameManager from "../../server/GameManager"
 import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit"
 import { CardPos } from "../../common/transit/CardPos"
 import { CardBeingDroppedEvent, CardBeingUsedEvent, CardAwayEvent, CardBeingTakenEvent, CardObtainedEvent } from "../../server/engine/Generic"
-import Card, { CardType, Suit } from "../../common/cards/Card"
+import Card, { CardType, Suit, Color, SuperGenre } from "../../common/cards/Card"
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp"
-import { isSuitBlack, isSuitRed, ICard, mimicCard } from "../../common/cards/ICard"
+import { isSuitBlack, isSuitRed, ICard, mimicCard, deriveColor } from "../../common/cards/ICard"
 import { GuoHe, ShunShou } from "../../server/engine/SingleRuseOp"
 import DamageOp, { DamageSource, DamageType, DamageTimeline } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
@@ -27,6 +27,8 @@ import CardFightOp from "../../server/engine/CardFightOp"
 import { EquipOp } from "../../server/engine/EquipOp"
 import GameClientContext from "../../client/GameClientContext"
 import FactionPlayerInfo from "../FactionPlayerInfo"
+import { MoveCardOnField } from "../../server/engine/MoveCardOp"
+import AskSavingOp from "../../server/engine/AskSavingOp"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -142,11 +144,11 @@ export class YingZi extends SimpleConditionalSkill<TakeCardStageOp> {
         skillRegistry.on<TakeCardStageOp>(TakeCardStageOp, this)
         skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async (dropOp)=>{
             if(!this.isDisabled && this.isRevealed && dropOp.player.player.id === this.playerId && 
-                    dropOp.timeline === DropTimeline.BEFORE && dropOp.amount > 0) {
+                    dropOp.timeline === DropTimeline.BEFORE) {
                 let me = manager.context.getPlayer(this.playerId)
                 // this.invokeEffects(manager)
-                console.log('[英姿] 改变弃牌数为', dropOp.amount, '=>', dropOp.amount - (me.maxHp - me.hp))
-                dropOp.amount -= (me.maxHp - me.hp)
+                dropOp.limit += me.maxHp - me.hp
+                console.log('[英姿] 改变手牌上限为', dropOp.limit)
             }
         })
     }
@@ -844,8 +846,118 @@ export class YiCheng extends SimpleConditionalSkill<SlashCompute> {
     }
 }
 
-// 克己 锁定技，弃牌阶段开始时，若你未于出牌阶段内使用过颜色不同的牌或出牌阶段被跳过，你的手牌上限于此回合内+4。
-// 谋断 结束阶段开始时，若你于出牌阶段内使用过四种花色或三种类别的牌，则你可以移动场上的一张牌。	
+export class KeJi extends SimpleConditionalSkill<DropCardOp> {
+   
+    id = '克己'
+    displayName = '克己'
+    description = '锁定技，弃牌阶段开始时，若你未于出牌阶段内使用过颜色不同的牌或出牌阶段被跳过，你的手牌上限于此回合内+4'
+    isLocked = true
+    colorsUsed = new Set<Color>()
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<DropCardOp>(DropCardOp, this)
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async (stageEvent)=> {
+            if(stageEvent.isFor(this.playerId, Stage.USE_CARD)) {
+                this.colorsUsed.clear()
+            }
+        })
+        skillRegistry.onEvent<CardBeingUsedEvent>(CardBeingUsedEvent, this.playerId, async (useOp)=>{
+            //你的出牌阶段,你用的牌
+            if(manager.currEffect.stage === Stage.USE_CARD && manager.currPlayer().player.id === this.playerId && 
+                useOp.player === this.playerId) {
+                useOp.cards.forEach(c => {
+                    this.colorsUsed.add(deriveColor([manager.interpret(this.playerId, c[0]).suit]))
+                })
+            }
+        })
+    }
+
+    public conditionFulfilled(event: DropCardOp, manager: GameManager): boolean {
+        return event.player.player.id === this.playerId && (this.colorsUsed.size < 2)
+    }
+
+    public async doInvoke(event: DropCardOp, manager: GameManager): Promise<void> {
+        console.log('[克己] 发动')
+        this.invokeEffects(manager)
+        event.limit += 4
+    }
+}
+
+export class MouDuan extends SimpleConditionalSkill<StageStartFlow> {
+    
+    id = '谋断'
+    displayName = '谋断'
+    description = '结束阶段开始时，若你于出牌阶段内使用过四种花色或三种类别的牌，则你可以移动场上的一张牌。'
+    suitsUsed = new Set<Suit>()
+    typesUsed = new Set<SuperGenre>()
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+        skillRegistry.onEvent<CardBeingUsedEvent>(CardBeingUsedEvent, this.playerId, async (useOp)=>{
+            //你的出牌阶段,你用的牌
+            if(manager.currEffect.stage === Stage.USE_CARD && manager.currPlayer().player.id === this.playerId && 
+                useOp.player === this.playerId) {
+                useOp.cards.forEach(c => {
+                    this.suitsUsed.add(c[0].suit)
+                    this.typesUsed.add(c[0].type.getSuperGenre())
+                })
+            }
+        })
+    }
+
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        //趁机重置state
+        if(event.isFor(this.playerId, Stage.USE_CARD)) {
+            this.suitsUsed.clear()
+            this.typesUsed.clear()
+        }
+        if(event.isFor(this.playerId, Stage.ROUND_END)) {
+            return this.suitsUsed.size === 4 || this.typesUsed.size === 3
+        }
+        return false
+    }
+
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        await MoveCardOnField(manager, event.info, this.displayName)
+    }
+}
+
+/**
+ * 新版【不屈】的周泰则会经历濒死状态，一路求桃到周泰本人时锁定发动，成功则脱离濒死并回复至1体力，失败则继续向后求桃。
+ * 旧版【不屈】是按周泰受到伤害的点数翻不屈牌的，而新版【不屈】则是按次。
+ */
+// export class BuQu extends SimpleConditionalSkill<AskSavingOp> {
+    
+//     id = '不屈'
+//     displayName = '不屈'
+//     description = '锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。'
+//     //by card sizes
+//     wounds = new Set<number>()
+
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+//         skillRegistry.on<AskSavingOp>(AskSavingOp, this)
+//         skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async (useOp)=>{
+//             //你的出牌阶段,你用的牌
+//             if(manager.currEffect.stage === Stage.USE_CARD && manager.currPlayer().player.id === this.playerId && 
+//                 useOp.player === this.playerId) {
+//                 useOp.cards.forEach(c => {
+//                     this.suitsUsed.add(c[0].suit)
+//                     this.typesUsed.add(c[0].type.getSuperGenre())
+//                 })
+//             }
+//         })
+//     }
+
+//     public conditionFulfilled(event: AskSavingOp, manager: GameManager): boolean {
+//         //趁机重置state
+//         return event.deadman.player.id === this.playerId
+//     }
+
+//     public async doInvoke(event: AskSavingOp, manager: GameManager): Promise<void> {
+//         await MoveCardOnField(manager, event.info, this.displayName)
+//     }
+// }
+
 
 // 不屈 锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。
 // 奋激 一名角色的结束阶段开始时，若其没有手牌，你可令其摸两张牌。若如此做，你失去1点体力。

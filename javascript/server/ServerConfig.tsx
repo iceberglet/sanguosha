@@ -5,7 +5,8 @@ var file = fs.readFileSync('./config-server.json', "utf8");
 console.log(file);
 
 type Config = {
-    players: number
+    players: number,
+    url: string
 }
 
 export const serverConfig = JSON.parse(file) as Config

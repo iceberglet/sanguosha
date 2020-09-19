@@ -245,7 +245,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 </div>
                 <div className='system-buttons'>
                     <RuleModal ruleName={mode.name + '规则'} rules={mode.manual()}/>
-                    <i className='fa fa-music icon' onClick={this.toggleMusic}/>
+                    <i className={'fa fa-music icon ' + (this.state.audioPlaying? 'flashing-red' : '')} onClick={this.toggleMusic}/>
                 </div>
             </div>
             <div className='btm' ref={this.dom}>

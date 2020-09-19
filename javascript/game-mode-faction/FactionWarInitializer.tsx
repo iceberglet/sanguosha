@@ -175,7 +175,7 @@ export default class FactionWarInitializer implements Initializer {
         let noOneRevealed = true
 
         manager.adminRegistry.onGeneral<RevealPlayerEvent>(RevealPlayerEvent, async(reveal)=>{
-            if(noOneRevealed) {
+            if(noOneRevealed && manager.context.playerInfos.length > 5) {
                 noOneRevealed = false
                 reveal.player.signs['先'] = {
                     displayName: '先驱',
@@ -189,7 +189,7 @@ export default class FactionWarInitializer implements Initializer {
         
         
         manager.adminRegistry.onGeneral<DropCardOp>(DropCardOp, async (dropOp)=>{
-            if(dropOp.timeline === DropTimeline.BEFORE && dropOp.player.signs['鱼'] && dropOp.amount > 0) {
+            if(dropOp.timeline === DropTimeline.BEFORE && dropOp.player.signs['鱼'] && dropOp.limit < dropOp.player.getCards(CardPos.HAND).length) {
                 let resp = await manager.sendHint(dropOp.player.player.id, {
                     hintType: HintType.MULTI_CHOICE,
                     hintMsg: '是否弃置阴阳鱼标记使本回合弃牌阶段手牌上限+2?',
@@ -197,7 +197,8 @@ export default class FactionWarInitializer implements Initializer {
                 })
                 if(!resp.isCancel()) {
                     manager.log(`${dropOp.player} 弃置阴阳鱼标记使手牌上限+2`)
-                    dropOp.amount -= 2
+                    dropOp.limit += 2
+                    console.log('[鱼] 改变手牌上限为', dropOp.limit)
                     delete dropOp.player.signs['鱼']
                     manager.broadcast(dropOp.player, PlayerInfo.sanitize)
                 }

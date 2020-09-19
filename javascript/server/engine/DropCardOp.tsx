@@ -13,7 +13,7 @@ export enum DropTimeline {
 //弃牌阶段
 export default class DropCardOp extends Operation<void> {
 
-    amount = 0
+    limit = 0
     timeline: DropTimeline = DropTimeline.BEFORE
     dropped: Card[] = []
 
@@ -24,13 +24,16 @@ export default class DropCardOp extends Operation<void> {
     public async perform(manager: GameManager): Promise<void> {
         let myId = this.player.player.id
 
-        this.amount = Math.max(this.player.getCards(CardPos.HAND).length - this.player.hp, 0)
+        //默认玩家的手牌上限为体力值
+        this.limit = this.player.hp
 
         await manager.events.publish(this);
 
-        if(this.amount > 0) {
+        let amount = Math.max(this.player.getCards(CardPos.HAND).length - this.limit, 0)
+
+        if(amount > 0) {
             let request = new DropCardRequest()
-            await request.perform(myId, this.amount, manager, `弃牌阶段 请弃置${this.amount}张手牌`)
+            await request.perform(myId, amount, manager, `弃牌阶段 请弃置${amount}张手牌`)
             this.dropped = request.dropped
         }
         

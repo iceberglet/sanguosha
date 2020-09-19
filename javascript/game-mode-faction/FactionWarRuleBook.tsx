@@ -37,7 +37,7 @@ const choices: {[key: string]: React.ReactElement} = {
         <p>限定技标记: 用来明示玩家是否能够发动限定技</p>
         <p>国战标记: 共有三种</p>
         <ul>
-            <li>先驱: 第一个明确势力的玩家获得此标记。 出牌阶段时，你可以弃置标记，将手牌补至4张并观看一个暗置的武将牌。</li>
+            <li>先驱: 当有五名以上的玩家时，第一个明确势力的玩家获得此标记。 出牌阶段时，你可以弃置标记，将手牌补至4张并观看一个暗置的武将牌。</li>
             <li>阴阳鱼: 你的武将牌血量若有多余的半血阴阳鱼，则在你首次明置两张武将牌时获得此标记。 你可以：1.出牌阶段时，弃置标记摸一张牌。 2.弃牌阶段弃置标记令手牌上限+2。</li>
             <li>珠联璧合: 若你选择了特殊的武将组合(如夏侯渊+夏侯惇)，则在你首次明置两张武将牌时获得此标记。 你可以：1.出牌阶段或其他角色濒死时可以弃置此标记，视为使用一张桃 2.出牌阶段可以弃置此标记，摸2张牌。</li>
         </ul>
@@ -52,7 +52,7 @@ export default function FactionWarRuleBook() {
     return <div className='rule-book'>
         <div className='rule-col'>
             {Object.keys(choices).map(k => {
-                return <div key={k} className={k === choice? 'rule-item active': 'rule-item'} onClick={()=>setChoice(k)}>{k}</div>
+                return <div key={k} className={k === choice? 'rule-item active': 'rule-item'} onClick={()=>setChoice(k)}>{k + '>'}</div>
             })}
         </div>
         <div className='rule-content'>
