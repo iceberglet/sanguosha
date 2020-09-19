@@ -207,12 +207,17 @@ export default class FactionWarInitializer implements Initializer {
         })
     }
 
-
+    /**
+     * 
+     * @param p 必须已经明示
+     * @param manager 
+     */
     computeFactionForPlayer(p: FactionPlayerInfo, manager: GameManager) {
         console.log(`[牌局] ${p.player.id} 身份亮明`)
-        //身份要确认
+        //身份要确认. 已经明置的人中(包含此人)同为一个势力的超过一半, 则成为野
         let numberOfFriends = manager.context.playerInfos
                             // .filter(pp => (pp as FactionPlayerInfo).isRevealed())
+                            // getFaction 已经会返回UNKNOWN / YE
                             .filter(pp => pp.getFaction().name === p.getFaction().name)
                             .length
         //若场上势力相同的加上你已经超过了全体玩家的一半, 则你成为野

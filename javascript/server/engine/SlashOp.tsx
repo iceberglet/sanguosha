@@ -91,7 +91,7 @@ export default class PlaySlashOp extends Operation<void> {
  */
 export async function PlaySlashOpNoCards(manager: GameManager, source: PlayerInfo, targets: PlayerInfo[], slashType: SlashType) {
     manager.broadcast(new TextFlashEffect(source.player.id, targets.map(t => t.player.id), slashType.text))
-    manager.playSound(source.getGender(), CardType.SLASH_FIRE.id)
+    manager.playSound(source.getGender(), slashType.cardType.id)
     manager.roundStats.slashCount++;
     await new SlashOP(source, targets, [], 1, slashType.damageType, slashType.color).perform(manager)
 }

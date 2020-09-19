@@ -624,6 +624,7 @@ export class QiangXi extends Skill {
     }
 }
 
+//只能是手牌 / 装备牌
 export class XingShang extends SimpleConditionalSkill<DeathOp> {
 
     id = '行殇'

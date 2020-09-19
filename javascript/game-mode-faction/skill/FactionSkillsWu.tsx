@@ -15,7 +15,7 @@ import { isSuitBlack, isSuitRed, ICard, mimicCard, deriveColor } from "../../com
 import { GuoHe, ShunShou } from "../../server/engine/SingleRuseOp"
 import DamageOp, { DamageSource, DamageType, DamageTimeline } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
-import DropCardOp, { DropCardRequest, DropTimeline } from "../../server/engine/DropCardOp"
+import DropCardOp, { DropCardRequest, DropTimeline, DropOthersCardRequest } from "../../server/engine/DropCardOp"
 import { Suits, any, toChinese } from "../../common/util/Util"
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp"
 import { SlashCompute } from "../../server/engine/SlashOp"
@@ -28,7 +28,7 @@ import { EquipOp } from "../../server/engine/EquipOp"
 import GameClientContext from "../../client/GameClientContext"
 import FactionPlayerInfo from "../FactionPlayerInfo"
 import { MoveCardOnField } from "../../server/engine/MoveCardOp"
-import AskSavingOp from "../../server/engine/AskSavingOp"
+import { DoTieSuo } from "../../server/engine/MultiRuseOp"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -47,8 +47,7 @@ export class ZhiHeng extends Skill {
         })
     }
 
-    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
-        await this.revealMySelfIfNeeded(manager)
+    public async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
         if(act.isCancel()) {
             console.error('[制衡] 怎么可能cancel??')
             return
@@ -90,7 +89,7 @@ export class QiXi extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         let cardAndPos = act.getSingleCardAndPos()
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 使用${this.displayName}将${cardAndPos[0]}作为过河拆桥打出`)
@@ -120,7 +119,7 @@ export class KuRou extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         manager.roundStats.customData[this.id] = true
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)
@@ -187,7 +186,7 @@ export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let cardAndPos = act.getSingleCardAndPos()
@@ -262,7 +261,7 @@ export class GuoSe extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         let cardAndPos = act.getSingleCardAndPos()
         let card = cardAndPos[0], pos = cardAndPos[1]
         card.as = CardType.LE_BU
@@ -374,7 +373,7 @@ export class DuoShi extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         let cardAndPos = act.getSingleCardAndPos()
         this.playSound(manager, 2)
         let card = cardAndPos[0], pos = cardAndPos[1]
@@ -409,7 +408,7 @@ export class JieYin extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         manager.roundStats.customData[this.id] = true
         await act.dropCardsFromSource('结姻')
 
@@ -527,7 +526,7 @@ export class TianYi extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         this.invokeEffects(manager, [act.targets[0].player.id])
         manager.roundStats.customData[this.id] = true
 
@@ -564,7 +563,7 @@ export class ZhiJian extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         let card = act.getSingleCardAndPos()[0]
         this.invokeEffects(manager, act.targets.map(t => t.player.id))
         await new EquipOp(act.targets[0], card, CardPos.HAND, act.source).perform(manager)
@@ -798,7 +797,7 @@ export class DiMeng extends SimpleConditionalSkill<TakeCardStageOp> {
             }
         }
 
-        await this.revealMySelfIfNeeded(manager)
+        
         this.invokeEffects(manager, act.targets.map(t => t.player.id))
         manager.roundStats.customData[this.id] = true
 
@@ -918,9 +917,67 @@ export class MouDuan extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
         await MoveCardOnField(manager, event.info, this.displayName)
     }
 }
+
+export class DuanXie extends Skill {
+    id = '断绁'
+    displayName = '断绁'
+    description = '出牌阶段限一次，你可以令一名其他角色横置，然后你横置。'
+    hiddenType = HiddenType.NONE
+
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('断绁')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
+                            return !hint.roundStat.customData[this.id] && id === this.id
+                        })
+                        .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
+                            return id !== this.playerId && !context.getPlayer(id).isChained
+                        }, ()=>'(断绁)选择一名未横置(连环)的角色')
+                        .expectAnyButton('点击确定发动断绁')
+                        .build(hint)
+        })
+    }
+
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        manager.roundStats.customData[this.id] = true
+        this.invokeEffects(manager, [act.targets[0].player.id])
+        await new DoTieSuo([], act.source, CardType.TIE_SUO, []).doForOne(act.targets[0], manager)
+        if(act.source.isChained) {
+            await new DoTieSuo([], act.source, CardType.TIE_SUO, []).doForOne(act.source, manager)
+        }
+    }
+}
+
+export class FenMing extends SimpleConditionalSkill<StageStartFlow> {
+    id = '奋命'
+    displayName = '奋命'
+    description = '结束阶段，若你处于连环状态，则你可以弃置所有处于连环状态的角色的各一张牌。'
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+    }
+
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        if(event.isFor(this.playerId, Stage.ROUND_END) && event.info.isChained) {
+            return true
+        }
+        return false
+    }
+
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let targets = manager.getSortedByCurr(true).filter(p => p.hasOwnCards())
+        this.invokeEffects(manager, targets.map(t => t.player.id))
+        for(let t of targets) {
+            await new DropOthersCardRequest().perform(manager, event.info, t, `(奋命)弃置${t}一张牌`, [CardPos.HAND, CardPos.EQUIP])
+        }
+    }
+}
+
+
 
 /**
  * 新版【不屈】的周泰则会经历濒死状态，一路求桃到周泰本人时锁定发动，成功则脱离濒死并回复至1体力，失败则继续向后求桃。
@@ -973,8 +1030,6 @@ export class MouDuan extends SimpleConditionalSkill<StageStartFlow> {
 // 鹰扬 当你拼点的牌亮出后，你可以令此牌的点数+3或-3。
 // 魂殇 副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。
 
-// 断绁 出牌阶段限一次，你可以令一名其他角色横置，然后你横置。
-// 奋命 结束阶段，若你处于连环状态，则你可以弃置所有处于连环状态的角色的各一张牌。
 
 // 调度 与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。
 // 典财 其他角色的出牌阶段结束时，若你于此阶段失去了X张或更多的牌，则你可以将手牌摸至体力上限，然后你可以变更一次副将(X为你的体力值)。

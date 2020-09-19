@@ -72,7 +72,7 @@ export class ChuLi extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         manager.roundStats.customData[this.id] = true
         this.invokeEffects(manager, act.targets.map(t => t.player.id))
         //先弃置自己的
@@ -119,7 +119,7 @@ export class JiJiu extends Skill {
         if(manager.currPlayer().player.id === this.playerId) {
             throw `急救只能在你的回合之外!!`
         }
-        await this.revealMySelfIfNeeded(manager)
+        
         this.invokeEffects(manager, [ask.deadman.player.id])
 
         //金主爸爸!!
@@ -198,7 +198,7 @@ export class LiJian extends Skill {
     }
 
     async onPlayerAction(act: PlayerAct, ask: AskSavingOp, manager: GameManager): Promise<void> {
-        await this.revealMySelfIfNeeded(manager)
+        
         this.invokeEffects(manager, act.targets.map(t => t.player.id))
         manager.roundStats.customData[this.id] = true
         act.dropCardsFromSource(`[${this.id}] 弃置`)
@@ -313,7 +313,7 @@ export class LuanWu extends Skill {
     }
     
     async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
-        await this.revealMySelfIfNeeded(manager)
+        
         this.invokeEffects(manager)
         act.source.signs['乱'].enabled = false
         manager.broadcast(act.source, PlayerInfo.sanitize)
@@ -709,7 +709,7 @@ export class XiongYi extends Skill {
     }
     
     async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
-        await this.revealMySelfIfNeeded(manager)
+        
         act.source.signs['雄'] = {
             enabled: false,
             type: 'limit-skill',
@@ -903,7 +903,7 @@ export class XiongSuan extends Skill {
     }
     
     async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
-        await this.revealMySelfIfNeeded(manager)
+        
         act.source.signs['凶'].enabled = false
         manager.broadcast(act.source, PlayerInfo.sanitize)
         this.invokeEffects(manager, [act.targets[0].player.id])

@@ -10,6 +10,7 @@ import { Button } from "../common/PlayerAction";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
 import { RevealGeneralEvent, RevealPlayerEvent } from "./FactionWarInitializer";
+import { factionsSame } from "../common/General";
 
 const playerAndEquipments = new Map<string, Equipment>()
 
@@ -102,7 +103,7 @@ export class WuLiu extends Equipment {
                         this.manager.broadcast(p, PlayerInfo.sanitize)
                     })
         //todo: newly revealed players need to have this as well!
-
+        this.manager.equipmentRegistry.onGeneral<RevealPlayerEvent>(RevealPlayerEvent, this.onNewBuddyRevealed)
     }
 
     async onDropped(): Promise<void> {
@@ -115,10 +116,19 @@ export class WuLiu extends Equipment {
                         console.log(`[装备] ${p.player.id} 受吴六剑卸下的影响, reachModifier成为${p.reachModifier}`)
                         this.manager.broadcast(p, PlayerInfo.sanitize)
                     })
+        this.manager.equipmentRegistry.offGeneral<RevealPlayerEvent>(RevealPlayerEvent, this.onNewBuddyRevealed)
     }
 
     onNewBuddyRevealed = async (event: RevealPlayerEvent): Promise<void> => {
-        
+        if(event.player.player.id === this.player) {
+            return
+        }
+        let me = this.manager.context.getPlayer(this.player) as FactionPlayerInfo
+        if(factionsSame(event.player.getFaction(), me.getFaction())) {
+            event.player.reachModifier += 1
+            console.log(`[装备] ${event.player} 受吴六剑装备的影响, reachModifier成为${event.player.reachModifier}`)
+            this.manager.broadcast(event.player, PlayerInfo.sanitize)
+        }
     }
 }
 

@@ -3,7 +3,7 @@ import GameManager from "../GameManager";
 import { WuXieContext } from "./WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import Card, { CardType } from "../../common/cards/Card";
-import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit";
+import { TextFlashEffect, CardTransit, PlaySound } from "../../common/transit/EffectTransit";
 import TakeCardOp from "./TakeCardOp";
 import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import { AskForSlashOp } from "./SlashOp";
@@ -97,6 +97,7 @@ export class DoTieSuo extends MultiRuse {
 
     public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         target.isChained = !target.isChained
+        manager.broadcast(new PlaySound(`audio/card/common/chain.ogg`))
         manager.broadcast(target, PlayerInfo.sanitize)
     }
 

@@ -85,6 +85,7 @@ export default class GameManager {
     }
 
     playSound(gender: Gender, soundName: string) {
+        //no gender -> defaults to male (for unrevealed players)
         let genderFolder = gender === 'F'? 'female' : 'male'
         console.log('[Game Manager] Play Sound ', `audio/card/${genderFolder}/${soundName}.ogg`)
         this.broadcast(new PlaySound(`audio/card/${genderFolder}/${soundName}.ogg`))

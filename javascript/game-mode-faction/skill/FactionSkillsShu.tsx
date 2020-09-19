@@ -78,7 +78,7 @@ export class Rende extends Skill {
     }
 
     async onPlayerAction(act: PlayerAct, ignore: void, manager: GameManager): Promise<void> {
-        await this.revealMySelfIfNeeded(manager)
+        
         let hasGiven = manager.roundStats.customData[this.id] as Set<string>
         let target = act.targets[0]
         let me = manager.context.getPlayer(this.playerId)
@@ -190,7 +190,7 @@ export class WuSheng extends Skill {
         if(event && !(event instanceof AskForSlashOp)) {
             throw '[武圣] 不会对此做出反应: ' + event
         }
-        await this.revealMySelfIfNeeded(manager)
+        
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let posAndCard = act.getSingleCardAndPos()
@@ -296,7 +296,7 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         let posAndCard = act.getSingleCardAndPos()
         let card = posAndCard[0]
         let pos = posAndCard[1]
@@ -538,7 +538,7 @@ export class HuoJi extends Skill {
         this.invokeEffects(manager)
         cardAndPos[0].as = CardType.HUO_GONG
         
-        await this.revealMySelfIfNeeded(manager)
+        
         manager.sendToWorkflow(act.source.player.id, CardPos.HAND, [cardAndPos[0]], true)
         await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [cardAndPos], cardAndPos[0].type, true))
         await new HuoGong(act.source, act.targets[0], [cardAndPos[0]]).perform(manager)
@@ -568,7 +568,7 @@ export class KanPo extends Skill {
     }
 
     public doProcess = async (resp: PlayerAct, manager: GameManager) => {
-        await this.revealMySelfIfNeeded(manager)
+        
         let card = resp.getSingleCardAndPos()[0]
         console.log(`[无懈的结算] (看破) 打出了${card.id}作为无懈`)
         card.description = `${resp.source.player.id} 看破`
@@ -834,7 +834,7 @@ export class LianHuan extends Skill {
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
-        await this.revealMySelfIfNeeded(manager)
+        
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         let cardAndPos = act.getSingleCardAndPos()

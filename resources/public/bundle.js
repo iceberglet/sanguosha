@@ -6785,6 +6785,8 @@ const ServerHint_1 = __webpack_require__(/*! ../common/ServerHint */ "./javascri
 const PlayerAction_1 = __webpack_require__(/*! ../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 const FactionPlayerInfo_1 = __webpack_require__(/*! ./FactionPlayerInfo */ "./javascript/game-mode-faction/FactionPlayerInfo.tsx");
 const PlayerInfo_1 = __webpack_require__(/*! ../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
+const FactionWarInitializer_1 = __webpack_require__(/*! ./FactionWarInitializer */ "./javascript/game-mode-faction/FactionWarInitializer.tsx");
+const General_1 = __webpack_require__(/*! ../common/General */ "./javascript/common/General.tsx");
 const playerAndEquipments = new Map();
 function initializeEquipments(manager) {
     playerAndEquipments.clear();
@@ -6870,6 +6872,15 @@ class WuLiu extends Equipments_1.Equipment {
     constructor() {
         super(...arguments);
         this.onNewBuddyRevealed = (event) => __awaiter(this, void 0, void 0, function* () {
+            if (event.player.player.id === this.player) {
+                return;
+            }
+            let me = this.manager.context.getPlayer(this.player);
+            if (General_1.factionsSame(event.player.getFaction(), me.getFaction())) {
+                event.player.reachModifier += 1;
+                console.log(`[装备] ${event.player} 受吴六剑装备的影响, reachModifier成为${event.player.reachModifier}`);
+                this.manager.broadcast(event.player, PlayerInfo_1.PlayerInfo.sanitize);
+            }
         });
     }
     onEquipped() {
@@ -6884,6 +6895,7 @@ class WuLiu extends Equipments_1.Equipment {
                 this.manager.broadcast(p, PlayerInfo_1.PlayerInfo.sanitize);
             });
             //todo: newly revealed players need to have this as well!
+            this.manager.equipmentRegistry.onGeneral(FactionWarInitializer_1.RevealPlayerEvent, this.onNewBuddyRevealed);
         });
     }
     onDropped() {
@@ -6897,6 +6909,7 @@ class WuLiu extends Equipments_1.Equipment {
                 console.log(`[装备] ${p.player.id} 受吴六剑卸下的影响, reachModifier成为${p.reachModifier}`);
                 this.manager.broadcast(p, PlayerInfo_1.PlayerInfo.sanitize);
             });
+            this.manager.equipmentRegistry.offGeneral(FactionWarInitializer_1.RevealPlayerEvent, this.onNewBuddyRevealed);
         });
     }
 }
@@ -7349,7 +7362,7 @@ FactionWarGeneral.zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', 
 FactionWarGeneral.pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', General_1.Faction.SHU, 1.5, '连环', '涅槃');
 FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', General_1.Faction.SHU, 1.5, '淑慎', '神智').asFemale();
 FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成');
-//14
+//15
 FactionWarGeneral.sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', General_1.Faction.WU, 2, '制衡');
 FactionWarGeneral.gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', General_1.Faction.WU, 2, '奇袭');
 FactionWarGeneral.huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', General_1.Faction.WU, 2, '苦肉');
@@ -7364,6 +7377,7 @@ FactionWarGeneral.xiao_qiao = new FactionWarGeneral('wind_xiao_qiao', '小乔', 
 FactionWarGeneral.lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', General_1.Faction.WU, 1.5, '好施', '缔盟');
 FactionWarGeneral.xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', General_1.Faction.WU, 2, '疑城');
 FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', General_1.Faction.WU, 2, '克己', '谋断');
+FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命');
 //13
 FactionWarGeneral.hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', General_1.Faction.QUN, 1.5, '除疠', '急救');
 FactionWarGeneral.lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', General_1.Faction.QUN, 2.5, '无双');
@@ -7638,11 +7652,17 @@ class FactionWarInitializer {
             }
         }));
     }
+    /**
+     *
+     * @param p 必须已经明示
+     * @param manager
+     */
     computeFactionForPlayer(p, manager) {
         console.log(`[牌局] ${p.player.id} 身份亮明`);
-        //身份要确认
+        //身份要确认. 已经明置的人中(包含此人)同为一个势力的超过一半, 则成为野
         let numberOfFriends = manager.context.playerInfos
             // .filter(pp => (pp as FactionPlayerInfo).isRevealed())
+            // getFaction 已经会返回UNKNOWN / YE
             .filter(pp => pp.getFaction().name === p.getFaction().name)
             .length;
         //若场上势力相同的加上你已经超过了全体玩家的一半, 则你成为野
@@ -7741,7 +7761,9 @@ const choices = {
         React.createElement("p", null, "\u6E38\u620F\u5F00\u59CB\u65F6,\u6BCF\u4F4D\u73A9\u5BB6\u9700\u8981\u4ECE\u81F3\u591A\u4E03\u5F20\u6B66\u5C06\u724C\u4E2D\u9009\u51FA\u4E24\u5F20\u52BF\u529B\u76F8\u540C\u7684\u4F5C\u4E3A\u81EA\u5DF1\u7684\u6B66\u5C06\u724C"),
         React.createElement("p", null, "\u4E24\u5F20\u6B66\u5C06\u724C\u5206\u4E3A\u4E3B\u5C06\u548C\u526F\u5C06\u3002\u6E38\u620F\u5F00\u59CB\u65F6\u4E24\u5F20\u6B66\u5C06\u724C\u5747\u4E3A\u6697\u7F6E\uFF0C\u5176\u4ED6\u73A9\u5BB6\u4E0D\u53EF\u89C1\u3002\u73A9\u5BB6\u7684\u8840\u91CF\u4E3A\u8FD9\u4E24\u5F20\u6B66\u5C06\u724C\u6807\u8BB0\u8840\u91CF\u4E4B\u548C\uFF08\u5411\u4E0B\u53D6\u6574\u3002\u591A\u51FA\u6765\u7684\u534A\u8840\u4F1A\u5728\u73A9\u5BB6\u660E\u7F6E\u53CC\u5C06\u65F6\u4F5C\u4E3A\u9634\u9633\u9C7C\u6807\u8BB0\u7ED9\u4E88\u73A9\u5BB6\uFF09"),
         React.createElement("p", null, "\u6697\u7F6E\u7684\u6B66\u5C06\u6CA1\u6709\u52BF\u529B\uFF0C\u6027\u522B\u548C\u6280\u80FD\uFF0C\u9700\u8981\u660E\u7F6E\u52BF\u529B\u6216\u6027\u522B\u7684\u6280\u80FD\u65E0\u6CD5\u53D1\u52A8\uFF08\u4F8B\uFF1A\u8C82\u8749\u79BB\u95F4\uFF0C\u96CC\u96C4\u53CC\u80A1\u5251\uFF0C\u9526\u56CA\u724C\u8FDC\u4EA4\u8FD1\u653B\uFF09"),
-        React.createElement("p", null, "\u6B66\u5C06\u660E\u7F6E\u65F6\u786E\u5B9A\u52BF\u529B\u3002\u82E5\u660E\u7F6E\u540E\u4F60\u7684\u52BF\u529B\u8D85\u8FC7\u4E86\u5168\u90E8\u73A9\u5BB6\u7684\u534A\u6570\uFF0C\u5219\u4F60\u7684\u52BF\u529B\u53D8\u4E3A\u201C\u91CE\u5FC3\u5BB6\u201D")),
+        React.createElement("p", null, "\u82E5\u73A9\u5BB6\u5DF2\u660E\u7F6E\u6B66\u5C06\uFF0C\u5176\u89D2\u8272\u6027\u522B\u53D6\u51B3\u4E8E\u4E3B\u5C06\u7684\u6027\u522B\u3002\u82E5\u4E3B\u5C06\u672A\u660E\u7F6E\u5219\u53D6\u51B3\u4E8E\u526F\u5C06\u7684\u6027\u522B"),
+        React.createElement("p", null, "\u73A9\u5BB6\u4EFB\u4F55\u6B66\u5C06\u660E\u7F6E\u65F6\u786E\u5B9A\u52BF\u529B\u3002\u82E5\u660E\u7F6E\u540E\u4F60\u7684\u52BF\u529B\u8D85\u8FC7\u4E86\u5168\u90E8\u73A9\u5BB6\u7684\u534A\u6570\uFF0C\u5219\u4F60\u7684\u52BF\u529B\u53D8\u4E3A\u201C\u91CE\u5FC3\u5BB6\u201D"),
+        React.createElement("p", null, "\u7279\u6B8A\u7684\u6B66\u5C06\u6280\u80FD\u53D6\u51B3\u4E8E\u5176\u4F4D\u7F6E\uFF0C\u4F8B\u5982\u8463\u5353\uFF0C\u9093\u827E\uFF0C\u59DC\u7EF4")),
     '胜利条件与击杀奖惩': React.createElement("div", null,
         React.createElement("p", null, "\u51FB\u6740\u6240\u6709\u5176\u4ED6\u52BF\u529B\u4E0E\u4F60\u4E0D\u540C\u7684\u73A9\u5BB6\u5373\u53EF\u83B7\u5F97\u80DC\u5229\u3002\u6BCF\u4E2A\u91CE\u5FC3\u5BB6\u5355\u72EC\u4E3A\u4E00\u80A1\u52BF\u529B\uFF0C\u4E0D\u4E0E\u5176\u4ED6\u91CE\u5FC3\u5BB6\u4E3A\u76DF\u53CB\uFF0C\u6240\u4EE5\u91CE\u5FC3\u5BB6\u9700\u8981\u6700\u7EC8\u51FB\u6740\u5176\u4ED6\u6240\u6709\u4EBA\u6765\u83B7\u5F97\u80DC\u5229"),
         React.createElement("p", null, "\u88AB\u51FB\u6740\u7684\u89D2\u8272\u82E5\u4E3A\u6697\u7F6E\uFF0C\u5219\u5F3A\u5236\u9A8C\u660E\u8EAB\u4EFD\u4EE5\u786E\u8BA4\u52BF\u529B"),
@@ -8035,7 +8057,6 @@ class ChuLi extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             manager.roundStats.customData[this.id] = true;
             this.invokeEffects(manager, act.targets.map(t => t.player.id));
             //先弃置自己的
@@ -8083,7 +8104,6 @@ class JiJiu extends Skill_1.Skill {
             if (manager.currPlayer().player.id === this.playerId) {
                 throw `急救只能在你的回合之外!!`;
             }
-            yield this.revealMySelfIfNeeded(manager);
             this.invokeEffects(manager, [ask.deadman.player.id]);
             //金主爸爸!!
             let cardAndPos = act.getSingleCardAndPos();
@@ -8168,7 +8188,6 @@ class LiJian extends Skill_1.Skill {
     }
     onPlayerAction(act, ask, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             this.invokeEffects(manager, act.targets.map(t => t.player.id));
             manager.roundStats.customData[this.id] = true;
             act.dropCardsFromSource(`[${this.id}] 弃置`);
@@ -8293,7 +8312,6 @@ class LuanWu extends Skill_1.Skill {
     }
     onPlayerAction(act, ignore, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             this.invokeEffects(manager);
             act.source.signs['乱'].enabled = false;
             manager.broadcast(act.source, PlayerInfo_1.PlayerInfo.sanitize);
@@ -8706,7 +8724,6 @@ class XiongYi extends Skill_1.Skill {
     }
     onPlayerAction(act, ignore, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             act.source.signs['雄'] = {
                 enabled: false,
                 type: 'limit-skill',
@@ -8906,7 +8923,6 @@ class XiongSuan extends Skill_1.Skill {
     }
     onPlayerAction(act, ignore, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             act.source.signs['凶'].enabled = false;
             manager.broadcast(act.source, PlayerInfo_1.PlayerInfo.sanitize);
             this.invokeEffects(manager, [act.targets[0].player.id]);
@@ -9069,7 +9085,6 @@ class Rende extends Skill_1.Skill {
     }
     onPlayerAction(act, ignore, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             let hasGiven = manager.roundStats.customData[this.id];
             let target = act.targets[0];
             let me = manager.context.getPlayer(this.playerId);
@@ -9181,7 +9196,6 @@ class WuSheng extends Skill_1.Skill {
             if (event && !(event instanceof SlashOp_1.AskForSlashOp)) {
                 throw '[武圣] 不会对此做出反应: ' + event;
             }
-            yield this.revealMySelfIfNeeded(manager);
             this.playSound(manager, 2);
             manager.log(`${this.playerId} 发动了 ${this.displayName}`);
             let posAndCard = act.getSingleCardAndPos();
@@ -9288,7 +9302,6 @@ class LongDan extends Skill_1.SimpleConditionalSkill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             let posAndCard = act.getSingleCardAndPos();
             let card = posAndCard[0];
             let pos = posAndCard[1];
@@ -9540,7 +9553,6 @@ class HuoJi extends Skill_1.Skill {
             let cardAndPos = act.getSingleCardAndPos();
             this.invokeEffects(manager);
             cardAndPos[0].as = Card_1.CardType.HUO_GONG;
-            yield this.revealMySelfIfNeeded(manager);
             manager.sendToWorkflow(act.source.player.id, CardPos_1.CardPos.HAND, [cardAndPos[0]], true);
             yield manager.events.publish(new Generic_1.CardBeingUsedEvent(act.source.player.id, [cardAndPos], cardAndPos[0].type, true));
             yield new SingleRuseOp_1.HuoGong(act.source, act.targets[0], [cardAndPos[0]]).perform(manager);
@@ -9561,7 +9573,6 @@ class KanPo extends Skill_1.Skill {
                 .length > 0;
         };
         this.doProcess = (resp, manager) => __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             let card = resp.getSingleCardAndPos()[0];
             console.log(`[无懈的结算] (看破) 打出了${card.id}作为无懈`);
             card.description = `${resp.source.player.id} 看破`;
@@ -9863,7 +9874,6 @@ class LianHuan extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             this.playSound(manager, 2);
             manager.log(`${this.playerId} 发动了 ${this.displayName}`);
             let cardAndPos = act.getSingleCardAndPos();
@@ -10876,6 +10886,7 @@ class QiangXi extends Skill_1.Skill {
     }
 }
 exports.QiangXi = QiangXi;
+//只能是手牌 / 装备牌
 class XingShang extends Skill_1.SimpleConditionalSkill {
     constructor() {
         super(...arguments);
@@ -11355,7 +11366,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
+exports.FenMing = exports.DuanXie = exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
 const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const PlayerActionDriverDefiner_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverDefiner */ "./javascript/client/player-actions/PlayerActionDriverDefiner.tsx");
@@ -11382,6 +11393,7 @@ const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */
 const EquipOp_1 = __webpack_require__(/*! ../../server/engine/EquipOp */ "./javascript/server/engine/EquipOp.tsx");
 const FactionPlayerInfo_1 = __webpack_require__(/*! ../FactionPlayerInfo */ "./javascript/game-mode-faction/FactionPlayerInfo.tsx");
 const MoveCardOp_1 = __webpack_require__(/*! ../../server/engine/MoveCardOp */ "./javascript/server/engine/MoveCardOp.tsx");
+const MultiRuseOp_1 = __webpack_require__(/*! ../../server/engine/MultiRuseOp */ "./javascript/server/engine/MultiRuseOp.tsx");
 class ZhiHeng extends Skill_1.Skill {
     constructor() {
         super(...arguments);
@@ -11402,7 +11414,6 @@ class ZhiHeng extends Skill_1.Skill {
     }
     onPlayerAction(act, ignore, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             if (act.isCancel()) {
                 console.error('[制衡] 怎么可能cancel??');
                 return;
@@ -11443,7 +11454,6 @@ class QiXi extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             let cardAndPos = act.getSingleCardAndPos();
             this.playSound(manager, 2);
             manager.log(`${this.playerId} 使用${this.displayName}将${cardAndPos[0]}作为过河拆桥打出`);
@@ -11474,7 +11484,6 @@ class KuRou extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             manager.roundStats.customData[this.id] = true;
             this.playSound(manager, 2);
             manager.log(`${this.playerId} 发动了 ${this.displayName}`);
@@ -11544,7 +11553,6 @@ class FanJian extends Skill_1.SimpleConditionalSkill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             this.playSound(manager, 2);
             manager.log(`${this.playerId} 发动了 ${this.displayName}`);
             let cardAndPos = act.getSingleCardAndPos();
@@ -11620,7 +11628,6 @@ class GuoSe extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             let cardAndPos = act.getSingleCardAndPos();
             let card = cardAndPos[0], pos = cardAndPos[1];
             card.as = Card_1.CardType.LE_BU;
@@ -11732,7 +11739,6 @@ class DuoShi extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             let cardAndPos = act.getSingleCardAndPos();
             this.playSound(manager, 2);
             let card = cardAndPos[0], pos = cardAndPos[1];
@@ -11769,7 +11775,6 @@ class JieYin extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             manager.roundStats.customData[this.id] = true;
             yield act.dropCardsFromSource('结姻');
             this.invokeEffects(manager, [act.targets[0].player.id]);
@@ -11892,7 +11897,6 @@ class TianYi extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             this.invokeEffects(manager, [act.targets[0].player.id]);
             manager.roundStats.customData[this.id] = true;
             let success = yield new CardFightOp_1.default(act.source, act.targets[0], this.displayName).perform(manager);
@@ -11932,7 +11936,6 @@ class ZhiJian extends Skill_1.Skill {
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.revealMySelfIfNeeded(manager);
             let card = act.getSingleCardAndPos()[0];
             this.invokeEffects(manager, act.targets.map(t => t.player.id));
             yield new EquipOp_1.EquipOp(act.targets[0], card, CardPos_1.CardPos.HAND, act.source).perform(manager);
@@ -12168,7 +12171,6 @@ class DiMeng extends Skill_1.SimpleConditionalSkill {
                     return;
                 }
             }
-            yield this.revealMySelfIfNeeded(manager);
             this.invokeEffects(manager, act.targets.map(t => t.player.id));
             manager.roundStats.customData[this.id] = true;
             /**** Hackish Manipultion ****/
@@ -12287,11 +12289,72 @@ class MouDuan extends Skill_1.SimpleConditionalSkill {
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager);
             yield MoveCardOp_1.MoveCardOnField(manager, event.info, this.displayName);
         });
     }
 }
 exports.MouDuan = MouDuan;
+class DuanXie extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '断绁';
+        this.displayName = '断绁';
+        this.description = '出牌阶段限一次，你可以令一名其他角色横置，然后你横置。';
+        this.hiddenType = Skill_1.HiddenType.NONE;
+    }
+    bootstrapClient() {
+        PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
+            return new PlayerActionDriverDefiner_1.default('断绁')
+                .expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id, context) => {
+                return !hint.roundStat.customData[this.id] && id === this.id;
+            })
+                .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id, context) => {
+                return id !== this.playerId && !context.getPlayer(id).isChained;
+            }, () => '(断绁)选择一名未横置(连环)的角色')
+                .expectAnyButton('点击确定发动断绁')
+                .build(hint);
+        });
+    }
+    onPlayerAction(act, event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            manager.roundStats.customData[this.id] = true;
+            this.invokeEffects(manager, [act.targets[0].player.id]);
+            yield new MultiRuseOp_1.DoTieSuo([], act.source, Card_1.CardType.TIE_SUO, []).doForOne(act.targets[0], manager);
+            if (act.source.isChained) {
+                yield new MultiRuseOp_1.DoTieSuo([], act.source, Card_1.CardType.TIE_SUO, []).doForOne(act.source, manager);
+            }
+        });
+    }
+}
+exports.DuanXie = DuanXie;
+class FenMing extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '奋命';
+        this.displayName = '奋命';
+        this.description = '结束阶段，若你处于连环状态，则你可以弃置所有处于连环状态的角色的各一张牌。';
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(StageFlows_1.StageStartFlow, this);
+    }
+    conditionFulfilled(event, manager) {
+        if (event.isFor(this.playerId, Stage_1.Stage.ROUND_END) && event.info.isChained) {
+            return true;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let targets = manager.getSortedByCurr(true).filter(p => p.hasOwnCards());
+            this.invokeEffects(manager, targets.map(t => t.player.id));
+            for (let t of targets) {
+                yield new DropCardOp_1.DropOthersCardRequest().perform(manager, event.info, t, `(奋命)弃置${t}一张牌`, [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP]);
+            }
+        });
+    }
+}
+exports.FenMing = FenMing;
 /**
  * 新版【不屈】的周泰则会经历濒死状态，一路求桃到周泰本人时锁定发动，成功则脱离濒死并回复至1体力，失败则继续向后求桃。
  * 旧版【不屈】是按周泰受到伤害的点数翻不屈牌的，而新版【不屈】则是按次。
@@ -12332,8 +12395,6 @@ exports.MouDuan = MouDuan;
 // 激昂 当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。
 // 鹰扬 当你拼点的牌亮出后，你可以令此牌的点数+3或-3。
 // 魂殇 副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。
-// 断绁 出牌阶段限一次，你可以令一名其他角色横置，然后你横置。
-// 奋命 结束阶段，若你处于连环状态，则你可以弃置所有处于连环状态的角色的各一张牌。
 // 调度 与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。
 // 典财 其他角色的出牌阶段结束时，若你于此阶段失去了X张或更多的牌，则你可以将手牌摸至体力上限，然后你可以变更一次副将(X为你的体力值)。
 
@@ -12460,6 +12521,8 @@ exports.FactionSkillProviders.register('缔盟', pid => new FactionSkillsWu_1.Di
 exports.FactionSkillProviders.register('疑城', pid => new FactionSkillsWu_1.YiCheng(pid));
 exports.FactionSkillProviders.register('克己', pid => new FactionSkillsWu_1.KeJi(pid));
 exports.FactionSkillProviders.register('谋断', pid => new FactionSkillsWu_1.MouDuan(pid));
+exports.FactionSkillProviders.register('奋命', pid => new FactionSkillsWu_1.FenMing(pid));
+exports.FactionSkillProviders.register('断绁', pid => new FactionSkillsWu_1.DuanXie(pid));
 exports.FactionSkillProviders.register('除疠', pid => new FactionSkillsQun_1.ChuLi(pid));
 exports.FactionSkillProviders.register('急救', pid => new FactionSkillsQun_1.JiJiu(pid));
 exports.FactionSkillProviders.register('无双', pid => new FactionSkillsQun_1.WuShuang(pid));
@@ -12641,7 +12704,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeneralSkillStatusUpdate = exports.SimpleConditionalSkill = exports.SimpleTrigger = exports.Skill = exports.invocable = exports.SkillStatus = exports.HiddenType = void 0;
 const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
-const FactionWarInitializer_1 = __webpack_require__(/*! ../FactionWarInitializer */ "./javascript/game-mode-faction/FactionWarInitializer.tsx");
 //what action to do when clicked on while being hidden?
 var HiddenType;
 (function (HiddenType) {
@@ -12696,6 +12758,12 @@ class Skill extends SkillStatus {
         this.disabledForMain = false;
         this.disabledForSub = false;
         this.description = '暂无 (Please override this field)';
+        // protected async revealMySelfIfNeeded(manager: GameManager) {
+        //     if(!this.isRevealed) {
+        //         console.log(`[${this.id}] 明置 ${this.playerId}`)
+        //         await manager.events.publish(new RevealGeneralEvent(this.playerId, this.isMain, !this.isMain))
+        //     }
+        // }
     }
     toStatus() {
         let s = new SkillStatus(this.playerId);
@@ -12752,14 +12820,6 @@ class Skill extends SkillStatus {
         else {
             manager.log(`${this.playerId} 对 ${targets} 发动了 ${this.displayName}`);
         }
-    }
-    revealMySelfIfNeeded(manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isRevealed) {
-                console.log(`[${this.id}] 明置 ${this.playerId}`);
-                yield manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(this.playerId, this.isMain, !this.isMain));
-            }
-        });
     }
 }
 exports.Skill = Skill;
@@ -13554,6 +13614,7 @@ class GameManager {
         }));
     }
     playSound(gender, soundName) {
+        //no gender -> defaults to male (for unrevealed players)
         let genderFolder = gender === 'F' ? 'female' : 'male';
         console.log('[Game Manager] Play Sound ', `audio/card/${genderFolder}/${soundName}.ogg`);
         this.broadcast(new EffectTransit_1.PlaySound(`audio/card/${genderFolder}/${soundName}.ogg`));
@@ -16549,6 +16610,7 @@ class DoTieSuo extends MultiRuse {
     doForOne(target, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             target.isChained = !target.isChained;
+            manager.broadcast(new EffectTransit_1.PlaySound(`audio/card/common/chain.ogg`));
             manager.broadcast(target, PlayerInfo_1.PlayerInfo.sanitize);
         });
     }
@@ -17094,7 +17156,7 @@ exports.default = PlaySlashOp;
 function PlaySlashOpNoCards(manager, source, targets, slashType) {
     return __awaiter(this, void 0, void 0, function* () {
         manager.broadcast(new EffectTransit_1.TextFlashEffect(source.player.id, targets.map(t => t.player.id), slashType.text));
-        manager.playSound(source.getGender(), Card_1.CardType.SLASH_FIRE.id);
+        manager.playSound(source.getGender(), slashType.cardType.id);
         manager.roundStats.slashCount++;
         yield new SlashOP(source, targets, [], 1, slashType.damageType, slashType.color).perform(manager);
     });

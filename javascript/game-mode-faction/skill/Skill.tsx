@@ -171,12 +171,12 @@ export abstract class Skill extends SkillStatus {
         }
     }
 
-    protected async revealMySelfIfNeeded(manager: GameManager) {
-        if(!this.isRevealed) {
-            console.log(`[${this.id}] 明置 ${this.playerId}`)
-            await manager.events.publish(new RevealGeneralEvent(this.playerId, this.isMain, !this.isMain))
-        }
-    }
+    // protected async revealMySelfIfNeeded(manager: GameManager) {
+    //     if(!this.isRevealed) {
+    //         console.log(`[${this.id}] 明置 ${this.playerId}`)
+    //         await manager.events.publish(new RevealGeneralEvent(this.playerId, this.isMain, !this.isMain))
+    //     }
+    // }
 }
 
 export abstract class SimpleTrigger<T> implements SkillTrigger<T> {
