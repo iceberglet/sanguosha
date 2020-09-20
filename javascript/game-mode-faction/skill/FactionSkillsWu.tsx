@@ -830,7 +830,7 @@ export class YiCheng extends SimpleConditionalSkill<SlashCompute> {
     }
 
     public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
-        return FactionPlayerInfo.factionSame(event.target, manager.context.getPlayer(this.playerId)) && 
+        return (event.target.player.id === this.playerId || FactionPlayerInfo.factionSame(event.target, manager.context.getPlayer(this.playerId))) && 
                 event.timeline === Timeline.AFTER_BECOMING_TARGET
     }
 
@@ -872,7 +872,7 @@ export class KeJi extends SimpleConditionalSkill<DropCardOp> {
     }
 
     public conditionFulfilled(event: DropCardOp, manager: GameManager): boolean {
-        return event.player.player.id === this.playerId && (this.colorsUsed.size < 2)
+        return event.player.player.id === this.playerId && (this.colorsUsed.size < 2) && event.timeline === DropTimeline.BEFORE
     }
 
     public async doInvoke(event: DropCardOp, manager: GameManager): Promise<void> {
@@ -946,7 +946,7 @@ export class DuanXie extends Skill {
         manager.roundStats.customData[this.id] = true
         this.invokeEffects(manager, [act.targets[0].player.id])
         await new DoTieSuo([], act.source, CardType.TIE_SUO, []).doForOne(act.targets[0], manager)
-        if(act.source.isChained) {
+        if(!act.source.isChained) {
             await new DoTieSuo([], act.source, CardType.TIE_SUO, []).doForOne(act.source, manager)
         }
     }

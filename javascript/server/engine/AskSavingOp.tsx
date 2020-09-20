@@ -16,13 +16,13 @@ export class AskSavingAround {
     }
 
     public async perform(manager: GameManager) {
-        let toAsk = manager.getSortedByCurr(true)
+        this.toAsk = manager.getSortedByCurr(true)
 
         //完杀?
         await manager.events.publish(this)
 
-        for(let i = 0; i < toAsk.length && this.deadman.isDying(); ++i) {
-            await new AskSavingOp(this.deadman, toAsk[i]).perform(manager)
+        for(let i = 0; i < this.toAsk.length && this.deadman.isDying(); ++i) {
+            await new AskSavingOp(this.deadman, this.toAsk[i]).perform(manager)
         }
     }
 }

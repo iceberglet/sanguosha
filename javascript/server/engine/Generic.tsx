@@ -41,7 +41,7 @@ const cardPosNames = new Map<string, CardPos>([
     ['判定区', CardPos.JUDGE],
 ])
 
-export function gatherCards(info: PlayerInfo, poses: CardPos[]): {[key: string]: Array<Card>} {
+export function gatherCards(info: PlayerInfo, poses: CardPos[], aggressor: string = null): {[key: string]: Array<Card>} {
     let count = 0
     let res: {[key: string]: Array<Card>} = {}
     for(let n of cardPosNames.keys()) {
@@ -54,7 +54,7 @@ export function gatherCards(info: PlayerInfo, poses: CardPos[]): {[key: string]:
             continue
         }
         count += cards.length
-        if(isCardPosHidden(pos)) {
+        if(isCardPosHidden(pos) && info.player.id !== aggressor) {
             res[n] = cards.map(c => Card.DUMMY)
         } else {
             res[n] = cards

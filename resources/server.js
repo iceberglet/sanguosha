@@ -7222,7 +7222,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
+exports.KuangFu = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
 const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
 const PlayerActionDriverProvider_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverProvider */ "./javascript/client/player-actions/PlayerActionDriverProvider.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
@@ -8207,6 +8207,29 @@ class XiongSuan extends Skill_1.Skill {
     }
 }
 exports.XiongSuan = XiongSuan;
+class KuangFu extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '狂斧';
+        this.displayName = '狂斧';
+        this.description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。';
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(DamageOp_2.default, this);
+    }
+    conditionFulfilled(event, manager) {
+        if (event.source.player.id === this.playerId && event.target.player.id !== this.playerId && event.timeline === DamageOp_1.DamageTimeline.DID_DAMAGE &&
+            event.damageSource === DamageOp_1.DamageSource.SLASH && event.target.getCards(CardPos_1.CardPos.EQUIP).length > 0) {
+            return true;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+        });
+    }
+}
+exports.KuangFu = KuangFu;
 // 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 // 注: 存嗣获得的勇决是不会失去的
 // 
@@ -9122,7 +9145,7 @@ class LianHuan extends Skill_1.Skill {
                 yield act.dropCardsFromSource('重铸');
             }
             else {
-                manager.sendToWorkflow(act.source.player.id, cardAndPos[1], [cardAndPos[0]], true, true);
+                manager.sendToWorkflow(act.source.player.id, cardAndPos[1], [cardAndPos[0]], true);
                 yield manager.events.publish(new Generic_1.CardBeingUsedEvent(act.source.player.id, [cardAndPos], Card_1.CardType.TIE_SUO, true, true));
             }
             yield new MultiRuseOp_1.TieSuo(act.source, act.targets, [cardAndPos[0]]).perform(manager);
@@ -11439,7 +11462,7 @@ class YiCheng extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(SlashOp_1.SlashCompute, this);
     }
     conditionFulfilled(event, manager) {
-        return FactionPlayerInfo_1.default.factionSame(event.target, manager.context.getPlayer(this.playerId)) &&
+        return (event.target.player.id === this.playerId || FactionPlayerInfo_1.default.factionSame(event.target, manager.context.getPlayer(this.playerId))) &&
             event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET;
     }
     invokeMsg(event, manager) {
@@ -11481,7 +11504,7 @@ class KeJi extends Skill_1.SimpleConditionalSkill {
         }));
     }
     conditionFulfilled(event, manager) {
-        return event.player.player.id === this.playerId && (this.colorsUsed.size < 2);
+        return event.player.player.id === this.playerId && (this.colorsUsed.size < 2) && event.timeline === DropCardOp_1.DropTimeline.BEFORE;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -11559,7 +11582,7 @@ class DuanXie extends Skill_1.Skill {
             manager.roundStats.customData[this.id] = true;
             this.invokeEffects(manager, [act.targets[0].player.id]);
             yield new MultiRuseOp_1.DoTieSuo([], act.source, Card_1.CardType.TIE_SUO, []).doForOne(act.targets[0], manager);
-            if (act.source.isChained) {
+            if (!act.source.isChained) {
                 yield new MultiRuseOp_1.DoTieSuo([], act.source, Card_1.CardType.TIE_SUO, []).doForOne(act.source, manager);
             }
         });
@@ -12241,6 +12264,7 @@ class SequenceAwareSkillPubSub {
                 if (skillTriggers.length === 0) {
                     continue;
                 }
+                //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
                 console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id));
                 let choices = [];
                 for (let s of skillTriggers) {
@@ -14066,11 +14090,11 @@ class AskSavingAround {
     }
     perform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            let toAsk = manager.getSortedByCurr(true);
+            this.toAsk = manager.getSortedByCurr(true);
             //完杀?
             yield manager.events.publish(this);
-            for (let i = 0; i < toAsk.length && this.deadman.isDying(); ++i) {
-                yield new AskSavingOp(this.deadman, toAsk[i]).perform(manager);
+            for (let i = 0; i < this.toAsk.length && this.deadman.isDying(); ++i) {
+                yield new AskSavingOp(this.deadman, this.toAsk[i]).perform(manager);
             }
         });
     }
@@ -14162,6 +14186,7 @@ const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./jav
 const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
 const Util_1 = __webpack_require__(/*! ../../common/util/Util */ "./javascript/common/util/Util.tsx");
 const CustomUIRegistry_1 = __webpack_require__(/*! ../../client/card-panel/CustomUIRegistry */ "./javascript/client/card-panel/CustomUIRegistry.tsx");
+const Generic_1 = __webpack_require__(/*! ./Generic */ "./javascript/server/engine/Generic.tsx");
 //必须有手牌
 function canCardFight(a, b, manager) {
     let me = manager.context.getPlayer(a);
@@ -14177,6 +14202,7 @@ class CardFightOp extends Operation_1.Operation {
         super();
         this.initiater = initiater;
         this.target = target;
+        this.msg = msg;
         this.sanitize = (data, playerId) => {
             let copy = new CustomUIRegistry_1.CustomUIData(data.type, {
                 cardLeft: data.data.cardLeft,
@@ -14209,6 +14235,7 @@ class CardFightOp extends Operation_1.Operation {
                     // customRequest: true
                 }).then(resp => {
                     this.initiatorCard = resp.getSingleCardAndPos()[0];
+                    this.initiatorCard.description = `${this.initiater} ${this.msg} 拼点牌`;
                     this.broadcast(manager);
                     console.log('[拼点] 发起方的牌为 ', this.initiatorCard.id);
                 }),
@@ -14220,17 +14247,20 @@ class CardFightOp extends Operation_1.Operation {
                     // customRequest: true
                 }).then(resp => {
                     this.targetCard = resp.getSingleCardAndPos()[0];
+                    this.targetCard.description = `${this.targetCard} ${this.msg} 拼点牌`;
                     this.broadcast(manager);
                     console.log('[拼点] 应战方的牌为 ', this.targetCard.id);
                 }),
             ]);
             //需要弃置这两张牌
             manager.sendToWorkflow(this.initiater.player.id, CardPos_1.CardPos.HAND, [this.initiatorCard], false);
+            yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(this.initiater.player.id, [[this.initiatorCard, CardPos_1.CardPos.HAND]]));
             manager.sendToWorkflow(this.target.player.id, CardPos_1.CardPos.HAND, [this.targetCard], false);
+            yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(this.target.player.id, [[this.targetCard, CardPos_1.CardPos.HAND]]));
             let success = this.initiatorCard.size.size > this.targetCard.size.size;
             console.log('[拼点] 结果成功?', success);
             this.broadcast(manager, false);
-            yield Util_1.delay(1000);
+            yield Util_1.delay(2000);
             manager.broadcast(new CustomUIRegistry_1.CustomUIData(CustomUIRegistry_1.CustomUIData.STOP, null));
             return success;
         });
@@ -14300,13 +14330,21 @@ var DamageType;
 })(DamageType = exports.DamageType || (exports.DamageType = {}));
 var DamageTimeline;
 (function (DamageTimeline) {
-    //造成伤害时
+    /**
+     * 造成伤害时
+     */
     DamageTimeline[DamageTimeline["DOING_DAMAGE"] = 0] = "DOING_DAMAGE";
-    //受到伤害时
+    /**
+     * 受到伤害时
+     */
     DamageTimeline[DamageTimeline["TAKING_DAMAGE"] = 1] = "TAKING_DAMAGE";
-    //造成伤害后
+    /**
+     * 造成伤害后
+     */
     DamageTimeline[DamageTimeline["DID_DAMAGE"] = 2] = "DID_DAMAGE";
-    //受到伤害后
+    /**
+     * 受到伤害后
+     */
     DamageTimeline[DamageTimeline["TAKEN_DAMAGE"] = 3] = "TAKEN_DAMAGE";
 })(DamageTimeline = exports.DamageTimeline || (exports.DamageTimeline = {}));
 var DamageSource;
@@ -14799,7 +14837,7 @@ class DropOthersCardRequest {
     perform(manager, source, target, title, poses) {
         return __awaiter(this, void 0, void 0, function* () {
             let targetPlayer = target;
-            let cards = Generic_1.gatherCards(targetPlayer, poses);
+            let cards = Generic_1.gatherCards(targetPlayer, poses, source.player.id);
             if (!cards) {
                 console.error('[弃牌] 无法弃置, 此玩家没有牌可以弃置');
                 return null;
@@ -15081,18 +15119,9 @@ class QingGang extends Weapon {
 }
 exports.QingGang = QingGang;
 class ZhuQue extends Equipment {
-    onEquipped() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.manager.equipmentRegistry.on(SlashOp_1.SlashOP, this.player, this.performEffect);
-        });
-    }
-    onDropped() {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.manager.equipmentRegistry.off(SlashOp_1.SlashOP, this.player, this.performEffect);
-        });
-    }
-    performEffect(op) {
-        return __awaiter(this, void 0, void 0, function* () {
+    constructor() {
+        super(...arguments);
+        this.performEffect = (op) => __awaiter(this, void 0, void 0, function* () {
             if (op.damageType === DamageOp_1.DamageType.NORMAL) {
                 if (op.cards.length > 1 || (op.cards.length === 1 && op.cards[0].as)) {
                     console.log('[装备] 此牌已经被转化, 无法再来一次朱雀羽扇');
@@ -15111,6 +15140,16 @@ class ZhuQue extends Equipment {
                     op.damageType = DamageOp_1.DamageType.FIRE;
                 }
             }
+        });
+    }
+    onEquipped() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.manager.equipmentRegistry.on(SlashOp_1.SlashOP, this.player, this.performEffect);
+        });
+    }
+    onDropped() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.manager.equipmentRegistry.off(SlashOp_1.SlashOP, this.player, this.performEffect);
         });
     }
 }
@@ -15652,7 +15691,7 @@ const cardPosNames = new Map([
     ['装备区', CardPos_1.CardPos.EQUIP],
     ['判定区', CardPos_1.CardPos.JUDGE],
 ]);
-function gatherCards(info, poses) {
+function gatherCards(info, poses, aggressor = null) {
     let count = 0;
     let res = {};
     for (let n of cardPosNames.keys()) {
@@ -15665,7 +15704,7 @@ function gatherCards(info, poses) {
             continue;
         }
         count += cards.length;
-        if (CardPos_1.isCardPosHidden(pos)) {
+        if (CardPos_1.isCardPosHidden(pos) && info.player.id !== aggressor) {
             res[n] = cards.map(c => Card_1.default.DUMMY);
         }
         else {

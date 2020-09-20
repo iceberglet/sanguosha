@@ -111,7 +111,7 @@ export class ZhuQue extends Equipment {
         this.manager.equipmentRegistry.off<SlashOP>(SlashOP, this.player, this.performEffect)
     }
 
-    async performEffect(op: SlashOP) {
+    performEffect = async (op: SlashOP): Promise<void> => {
         if(op.damageType === DamageType.NORMAL) {
             if(op.cards.length > 1 || (op.cards.length === 1 && op.cards[0].as)) {
                 console.log('[装备] 此牌已经被转化, 无法再来一次朱雀羽扇')

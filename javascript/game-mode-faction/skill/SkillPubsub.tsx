@@ -84,6 +84,8 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                 continue
             }
             
+            //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
+
             console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id))
             let choices: Button[] = []
             for(let s of skillTriggers) {

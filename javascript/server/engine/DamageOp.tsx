@@ -30,13 +30,21 @@ export enum DamageType {
 }
 
 export enum DamageTimeline {
-    //造成伤害时
+    /**
+     * 造成伤害时
+     */
     DOING_DAMAGE, 
-    //受到伤害时
+    /**
+     * 受到伤害时
+     */
     TAKING_DAMAGE, 
-    //造成伤害后
+    /** 
+     * 造成伤害后
+     */
     DID_DAMAGE, 
-    //受到伤害后
+    /**
+     * 受到伤害后
+     */
     TAKEN_DAMAGE, 
 }
 

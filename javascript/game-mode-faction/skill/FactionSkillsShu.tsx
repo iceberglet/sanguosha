@@ -844,7 +844,7 @@ export class LianHuan extends Skill {
             //铁索重铸算作弃置
             await act.dropCardsFromSource('重铸')
         } else {
-            manager.sendToWorkflow(act.source.player.id, cardAndPos[1], [cardAndPos[0]], true, true)
+            manager.sendToWorkflow(act.source.player.id, cardAndPos[1], [cardAndPos[0]], true)
             await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [cardAndPos], CardType.TIE_SUO, true, true))
         }
         await new TieSuo(act.source, act.targets, [cardAndPos[0]]).perform(manager)

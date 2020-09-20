@@ -45,7 +45,7 @@ export default class DropCardOp extends Operation<void> {
 export class DropOthersCardRequest {
     public async perform(manager: GameManager, source: PlayerInfo, target: PlayerInfo, title: string, poses: CardPos[]): Promise<[Card, CardPos]> {
         let targetPlayer = target
-        let cards = gatherCards(targetPlayer, poses)
+        let cards = gatherCards(targetPlayer, poses, source.player.id)
         if(!cards) {
             console.error('[弃牌] 无法弃置, 此玩家没有牌可以弃置')
             return null

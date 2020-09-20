@@ -952,6 +952,27 @@ export class XiongSuan extends Skill {
     }
 }
 
+export class KuangFu extends SimpleConditionalSkill<DamageOp> {
+    
+    id = '狂斧'
+    displayName = '狂斧'
+    description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+    }
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        if(event.source.player.id === this.playerId && event.target.player.id !== this.playerId && event.timeline === DamageTimeline.DID_DAMAGE &&
+            event.damageSource === DamageSource.SLASH && event.target.getCards(CardPos.EQUIP).length > 0) {
+            return true
+        }
+        return false
+    }
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+
+    }
+}
+
 // 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 
 // 注: 存嗣获得的勇决是不会失去的

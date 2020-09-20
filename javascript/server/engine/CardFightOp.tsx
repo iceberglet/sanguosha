@@ -7,6 +7,7 @@ import { CardPos } from "../../common/transit/CardPos";
 import Card from "../../common/cards/Card";
 import { delay } from "../../common/util/Util";
 import { CustomUIData, CardFightData } from "../../client/card-panel/CustomUIRegistry";
+import { CardBeingDroppedEvent } from "./Generic";
 
 //必须有手牌
 export function canCardFight(a: string, b: string, manager: GameManager) {
@@ -23,7 +24,7 @@ export default class CardFightOp extends Operation<boolean> {
     targetCard: Card
     private readonly title: string
 
-    constructor(private initiater: PlayerInfo, private target: PlayerInfo, msg: string){
+    constructor(private initiater: PlayerInfo, private target: PlayerInfo, private msg: string){
         super()
         this.title = `${this.initiater.player.id} 拼点 ${this.target}(${msg})`
         if(initiater === target) {
@@ -44,6 +45,7 @@ export default class CardFightOp extends Operation<boolean> {
                 // customRequest: true
             }).then(resp => {
                 this.initiatorCard = resp.getSingleCardAndPos()[0]
+                this.initiatorCard.description = `${this.initiater} ${this.msg} 拼点牌`
                 this.broadcast(manager)
                 console.log('[拼点] 发起方的牌为 ', this.initiatorCard.id)
             }),
@@ -56,6 +58,7 @@ export default class CardFightOp extends Operation<boolean> {
                 // customRequest: true
             }).then(resp => {
                 this.targetCard = resp.getSingleCardAndPos()[0]
+                this.targetCard.description = `${this.targetCard} ${this.msg} 拼点牌`
                 this.broadcast(manager)
                 console.log('[拼点] 应战方的牌为 ', this.targetCard.id)
             }),
@@ -63,13 +66,15 @@ export default class CardFightOp extends Operation<boolean> {
 
         //需要弃置这两张牌
         manager.sendToWorkflow(this.initiater.player.id, CardPos.HAND, [this.initiatorCard], false)
+        await manager.events.publish(new CardBeingDroppedEvent(this.initiater.player.id, [[this.initiatorCard, CardPos.HAND]]))
         manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [this.targetCard], false)
+        await manager.events.publish(new CardBeingDroppedEvent(this.target.player.id, [[this.targetCard, CardPos.HAND]]))
 
         let success = this.initiatorCard.size.size > this.targetCard.size.size
         console.log('[拼点] 结果成功?', success)
         this.broadcast(manager, false)
 
-        await delay(1000)
+        await delay(2000)
 
         manager.broadcast(new CustomUIData(CustomUIData.STOP, null))
         return success
