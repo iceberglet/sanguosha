@@ -139,6 +139,12 @@ export default class DamageOp extends Operation<void> {
             }
         }
 
+        if(wasChained) {
+            console.log('[伤害结算] 铁索连环恢复', this.target.player.id)
+            this.target.isChained = false
+            manager.broadcast(this.target, PlayerInfo.sanitize)
+        }
+
         //https://sgs.fandom.com/zh/wiki/%E4%BA%8B%E4%BB%B6%E6%B5%81%E7%A8%8B%EF%BC%9A%E4%BC%A4%E5%AE%B3
         //遗计? 反馈? 刚烈?
         //注意死亡的角色不会触发技能
@@ -149,17 +155,12 @@ export default class DamageOp extends Operation<void> {
 
         //铁索连环
         if(isElemental(this.type) && wasChained && this.doChain) {
-            console.log('[伤害结算] 触发铁索连环')
-            this.target.isChained = false
-            manager.broadcast(this.target, PlayerInfo.sanitize)
-
             let chained = manager.context.getRingFromPerspective(this.target.player.id, false).filter(p => p.isChained)
             console.log('[伤害结算] 触发铁索连环于', chained.map(c => c.player.id))
             for(let player of chained) {
                 //player might die half way...
                 if(!player.isDead) {
                     console.log('[伤害结算] 连环伤害:', player.player.id)
-                    player.isChained = false
                     await new DamageOp(this.source, player, this.amount, this.cards, this.damageSource, this.type, false).perform(manager)
                 }
             }

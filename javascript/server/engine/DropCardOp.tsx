@@ -42,6 +42,31 @@ export default class DropCardOp extends Operation<void> {
     }
 }
 
+export async function SelectACardAt(manager: GameManager, source: PlayerInfo, target: PlayerInfo, title: string, ...poses: CardPos[]): Promise<[Card, CardPos]> {
+    let targetPlayer = target
+    let cards = gatherCards(targetPlayer, poses, source.player.id)
+    if(!cards) {
+        console.error('[选牌] 选不了, 此玩家没有牌可以弃置', target.player.id, poses.map(p => CardPos[p]))
+        return null
+    }
+    
+    let hint: ServerHint = {
+        hintType: HintType.UI_PANEL,
+        hintMsg: '请选择一张牌',
+        customRequest: {
+            mode: 'choose',
+            data: {
+                rowsOfCard: cards,
+                title, // `过河拆桥 > ${this.target}`,
+                chooseSize: 1
+            }
+        }
+    }
+
+    let resp = await manager.sendHint(source.player.id, hint)
+    return resp.getSingleCardAndPos()
+} 
+
 export class DropOthersCardRequest {
     public async perform(manager: GameManager, source: PlayerInfo, target: PlayerInfo, title: string, poses: CardPos[]): Promise<[Card, CardPos]> {
         let targetPlayer = target
@@ -53,7 +78,7 @@ export class DropOthersCardRequest {
 
         let hint: ServerHint = {
             hintType: HintType.UI_PANEL,
-            hintMsg: '请选择对方一张牌',
+            hintMsg: '请选择一张牌',
             customRequest: {
                 mode: 'choose',
                 data: {

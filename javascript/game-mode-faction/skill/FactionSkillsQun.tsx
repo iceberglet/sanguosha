@@ -8,7 +8,7 @@ import FactionPlayerInfo from "../FactionPlayerInfo";
 import { all, Suits, any } from "../../common/util/Util";
 import PlayerAct from "../../server/context/PlayerAct";
 import GameManager from "../../server/GameManager";
-import { DropCardRequest, DropOthersCardRequest } from "../../server/engine/DropCardOp";
+import { DropCardRequest, DropOthersCardRequest, SelectACardAt } from "../../server/engine/DropCardOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp";
@@ -36,6 +36,7 @@ import { DodgePlayed } from "../../server/engine/DodgeOp";
 import { MaShu } from "./FactionSkillsShu";
 import { getFactionsWithLeastMembers, getFactionMembers } from "../FactionWarUtil";
 import { registerPeach } from "../../client/player-actions/PlayerActionDrivers";
+import CardFightOp from "../../server/engine/CardFightOp";
 
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
@@ -952,26 +953,208 @@ export class XiongSuan extends Skill {
     }
 }
 
-export class KuangFu extends SimpleConditionalSkill<DamageOp> {
+
+export class ShiBei extends SkillForDamageTaken {
     
-    id = '狂斧'
-    displayName = '狂斧'
-    description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。'
+    id = '矢北'
+    displayName = '矢北'
+    description = '锁定技，当你受到伤害后：若此伤害是你本回合第一次受到伤害，则你回复1点体力；若不是你本回合第一次受到伤害，则你失去1点体力。'
+    isLocked = true
+    hasTakenDamageThisRound = false
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(event)=>{
+            if(event.stage === Stage.ROUND_BEGIN) {
+                this.hasTakenDamageThisRound = false
+            }
+        })
     }
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        if(event.source.player.id === this.playerId && event.target.player.id !== this.playerId && event.timeline === DamageTimeline.DID_DAMAGE &&
-            event.damageSource === DamageSource.SLASH && event.target.getCards(CardPos.EQUIP).length > 0) {
-            return true
+        return this.isMyDamage(event)
+    }
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        let me = manager.context.getPlayer(this.playerId)
+        if(this.hasTakenDamageThisRound) {
+            await new DamageOp(me, me, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+        } else {
+            this.hasTakenDamageThisRound = true
+            await new HealOp(me, me, 1).perform(manager)
+        }
+    }
+}
+
+
+export class JianYing extends SimpleConditionalSkill<CardBeingUsedEvent> {
+    
+    id = '渐营'
+    displayName = '渐营'
+    description = '当你于出牌阶段内使用牌时，若此牌与你于此阶段内使用的上一张牌点数或花色相同，则你可以摸一张牌。'
+    lastSuit: Suit
+    lastSize: number
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<CardBeingUsedEvent>(CardBeingUsedEvent, this)
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(event)=>{
+            if(event.stage === Stage.ROUND_BEGIN) {
+                this.lastSuit = null
+                this.lastSize = -1
+            }
+        })
+    }
+
+    public conditionFulfilled(event: CardBeingUsedEvent, manager: GameManager): boolean {
+        if(manager.currEffect.player === this.playerId && manager.currEffect.stage === Stage.USE_CARD &&
+                event.player === this.playerId && event.cards.length === 1) {
+            let res = false, card = event.cards[0][0]
+            if(card.suit === this.lastSuit || event.cards[0][0].size.size === this.lastSize) {
+                res = true
+            }
+            this.lastSize = card.size.size
+            this.lastSuit = card.suit
+            return res
         }
         return false
     }
-    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
 
+    public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
     }
 }
+
+export class FengLue extends SimpleConditionalSkill<StageStartFlow> {
+    
+    id = '锋略'
+    displayName = '锋略'
+    description = '出牌阶段开始时，你可以与一名角色拼点，若你赢，该角色将其区域内的各一张牌交给你(手牌,装备,判定)；若你没赢，你交给其一张牌。拼点结算后你可以令其获得你拼点的牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+    }
+
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        return event.isFor(this.playerId, Stage.USE_CARD)
+    }
+
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let forbidden = manager.getSortedByCurr(false).filter(p => p.getCards(CardPos.HAND).length === 0).map(p => p.player.id)
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.CHOOSE_PLAYER,
+            hintMsg: '请选择锋略拼点的对象',
+            forbidden: [this.playerId, ...forbidden],
+            extraButtons: [Button.CANCEL]
+        })
+        if(resp.isCancel()) {
+            return
+        }
+        let target = resp.targets[0]
+        let me = manager.context.getPlayer(this.playerId)
+        this.invokeEffects(manager, [target.player.id])
+        let fight = new CardFightOp(me, target, this.displayName)
+        let success = fight.perform(manager)
+        if(success) {
+            for(let pos of [CardPos.HAND, CardPos.EQUIP, CardPos.JUDGE]) {
+                let c = await SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${me}`, pos)
+                if(c) {
+                    await manager.transferCards(target.player.id, me.player.id, pos, CardPos.HAND, [c[0]])
+                }
+            }
+        } else {
+            let c = await SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${target}`, CardPos.HAND, CardPos.EQUIP)
+            if(c) {
+                await manager.transferCards(target.player.id, me.player.id, c[1], CardPos.HAND, [c[0]])
+            }
+        }
+        let letHimTake = await manager.sendHint(this.playerId, {
+            hintType: HintType.MULTI_CHOICE,
+            hintMsg: `是否令${target}获得你的拼点牌${fight.initiatorCard}?`,
+            extraButtons: [Button.OK, Button.CANCEL]
+        })
+        if(letHimTake.button === Button.OK.id) {
+            await manager.takeFromWorkflow(target.player.id, CardPos.HAND, [fight.initiatorCard])
+        }
+    }
+}
+
+export class MouShi extends Skill {
+    
+    id = '谋识'
+    displayName = '谋识'
+    description = '出牌阶段限一次，你可以将一张手牌交给一名角色，若如此做，当其于其下回合的出牌阶段内对一名角色造成伤害后，若是此阶段其第一次对该角色造成伤害，你摸一张牌。'
+    
+    target: string
+    inTargetRound = false
+    damageDone: Set<PlayerInfo> = new Set<PlayerInfo>()
+
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('谋识')
+                        .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>{
+                            return id === this.id && !hint.roundStat.customData[this.id]
+                        })
+                        .expectChoose([UIPosition.MY_HAND], 1, 1, ()=>true, ()=>'(谋识)选择一张手牌')
+                        .expectChoose([UIPosition.PLAYER], 1, 1, (id)=>id !== this.playerId, ()=>'(谋识)选择一名角色交予此手牌')
+                        .expectAnyButton('点击确定发动谋识')
+                        .build(hint)
+        })
+    }
+    
+    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        manager.roundStats.customData[this.id] = true
+        this.target = act.targets[0].player.id
+        this.invokeEffects(manager, [this.target])
+        await manager.transferCards(this.playerId, this.target, CardPos.HAND, CardPos.HAND, [act.getSingleCardAndPos()[0]])
+        this.damageDone.clear()
+    }
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.onEvent<DamageOp>(DamageOp, this.playerId, async (event)=>{
+            if(event.source && event.source.player.id === this.target && event.timeline === DamageTimeline.DID_DAMAGE && this.inTargetRound) {
+                if(!this.damageDone.has(event.target)) {
+                    this.damageDone.add(event.target)
+                    this.invokeEffects(manager, [this.target])
+                    await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+                }
+            }
+        })
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async (flow)=>{
+            if(flow.isFor(this.target, Stage.USE_CARD)) {
+                this.inTargetRound = true
+            } else {
+                this.inTargetRound = false
+            }
+        })
+        skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async (flow)=>{
+            if(flow.isFor(this.target, Stage.USE_CARD)) {
+                this.target = null
+                this.inTargetRound = false
+            }
+        })
+    }
+}
+
+// export class KuangFu extends SimpleConditionalSkill<DamageOp> {
+    
+//     id = '狂斧'
+//     displayName = '狂斧'
+//     description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。'
+
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+//         skillRegistry.on<DamageOp>(DamageOp, this)
+//     }
+//     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+//         if(event.source.player.id === this.playerId && event.target.player.id !== this.playerId && event.timeline === DamageTimeline.DID_DAMAGE &&
+//             event.damageSource === DamageSource.SLASH && event.target.getCards(CardPos.EQUIP).length > 0) {
+//             return true
+//         }
+//         return false
+//     }
+//     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+
+//     }
+// }
 
 // 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 

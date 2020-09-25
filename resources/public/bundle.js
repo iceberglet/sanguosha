@@ -659,14 +659,17 @@ function GameResultPanel(p) {
         React.createElement("div", { className: 'results' },
             React.createElement("div", { key: 'heading', className: 'row heading' },
                 React.createElement("div", { className: 'player-name' }, "\u73A9\u5BB6"),
+                React.createElement("div", { className: 'col' }),
                 React.createElement("div", { className: 'col-2' }, "\u80DC\u5229\u573A\u6570"),
                 React.createElement("div", { className: 'col' }, "\u51FB\u6740"),
                 React.createElement("div", { className: 'col' }, "\u4F24\u5BB3"),
                 React.createElement("div", { className: 'col' }, "\u6CBB\u6108")),
             p.stats.map(stat => {
-                let clazz = p.winners.findIndex(w => w === stat.playerId) > -1 ? 'row winner' : 'row';
+                let isWinner = p.winners.findIndex(w => w === stat.playerId) > -1;
+                let clazz = isWinner ? 'row winner' : 'row';
                 return React.createElement("div", { className: clazz, key: stat.playerId },
                     React.createElement("div", { className: 'player-name' }, stat.playerId),
+                    React.createElement("div", { className: 'col' }, isWinner ? '胜利!' : ''),
                     React.createElement("div", { className: 'col-2' }, stat.wins),
                     React.createElement("div", { className: 'col' },
                         stat.kill,
@@ -7288,6 +7291,8 @@ doAdd('fame_fa_zheng', -25, -10, 150, 150, -50, -10, 170, 170);
 doAdd('guo_lv_fan', -5, -10, 150, 150, -40, -10, 170, 170);
 doAdd('guo_li_jue_guo_si', -15, -30, 120, 120, -45, -40, 120, 120);
 doAdd('guo_zhang_xiu', -50, -30, 150, 150, -100, -40, 170, 170);
+doAdd('fame_zu_shou', -170, -35, 300, 300, -210, -50, 350, 350);
+doAdd('guo_xun_chen', -50, -30, 150, 150, -80, -20, 170, 170);
 function toFactionWarAvatarStyle(id, isBig) {
     let render = isBig ? bigRender.get(id) : smallRender.get(id);
     return {
@@ -7378,7 +7383,7 @@ FactionWarGeneral.lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', Genera
 FactionWarGeneral.xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', General_1.Faction.WU, 2, '疑城');
 FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', General_1.Faction.WU, 2, '克己', '谋断');
 FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命');
-//13
+//15
 FactionWarGeneral.hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', General_1.Faction.QUN, 1.5, '除疠', '急救');
 FactionWarGeneral.lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', General_1.Faction.QUN, 2.5, '无双');
 FactionWarGeneral.diao_chan = new FactionWarGeneral('standard_diao_chan', '貂蝉', General_1.Faction.QUN, 1.5, '闭月', '离间').asFemale();
@@ -7392,6 +7397,8 @@ FactionWarGeneral.zhang_jiao = new FactionWarGeneral('wind_zhang_jiao', '张角'
 FactionWarGeneral.yuan_shao = new FactionWarGeneral('fire_yuan_shao', '袁绍', General_1.Faction.QUN, 2, '乱击');
 FactionWarGeneral.tian_feng = new FactionWarGeneral('guo_tian_feng', '田丰', General_1.Faction.QUN, 1.5, '死谏', '随势');
 FactionWarGeneral.li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', General_1.Faction.QUN, 2, '凶算');
+FactionWarGeneral.ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', General_1.Faction.QUN, 1.5, '矢北', '渐营');
+FactionWarGeneral.xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', General_1.Faction.QUN, 1.5, '锋略', '谋识');
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
 exports.generalPairs = new Multimap_1.Pairs();
@@ -7984,7 +7991,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.KuangFu = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
+exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
 const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
 const PlayerActionDriverProvider_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverProvider */ "./javascript/client/player-actions/PlayerActionDriverProvider.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
@@ -8020,6 +8027,7 @@ const DodgeOp_1 = __webpack_require__(/*! ../../server/engine/DodgeOp */ "./java
 const FactionSkillsShu_1 = __webpack_require__(/*! ./FactionSkillsShu */ "./javascript/game-mode-faction/skill/FactionSkillsShu.tsx");
 const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
 const PlayerActionDrivers_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDrivers */ "./javascript/client/player-actions/PlayerActionDrivers.tsx");
+const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */ "./javascript/server/engine/CardFightOp.tsx");
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
     [A]不可以，因为华佗判定【闪电】即说明华佗处于自己回合内，不符合【急救】的发动条件。同理，华佗在自己回合内被【刚烈】或者【天香】等技能影响而进入濒死状态，也不能发动【急救】技能。
@@ -8969,29 +8977,208 @@ class XiongSuan extends Skill_1.Skill {
     }
 }
 exports.XiongSuan = XiongSuan;
-class KuangFu extends Skill_1.SimpleConditionalSkill {
+class ShiBei extends FactionSkillsWei_1.SkillForDamageTaken {
     constructor() {
         super(...arguments);
-        this.id = '狂斧';
-        this.displayName = '狂斧';
-        this.description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。';
+        this.id = '矢北';
+        this.displayName = '矢北';
+        this.description = '锁定技，当你受到伤害后：若此伤害是你本回合第一次受到伤害，则你回复1点体力；若不是你本回合第一次受到伤害，则你失去1点体力。';
+        this.isLocked = true;
+        this.hasTakenDamageThisRound = false;
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DamageOp_2.default, this);
+        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
+            if (event.stage === Stage_1.Stage.ROUND_BEGIN) {
+                this.hasTakenDamageThisRound = false;
+            }
+        }));
     }
     conditionFulfilled(event, manager) {
-        if (event.source.player.id === this.playerId && event.target.player.id !== this.playerId && event.timeline === DamageOp_1.DamageTimeline.DID_DAMAGE &&
-            event.damageSource === DamageOp_1.DamageSource.SLASH && event.target.getCards(CardPos_1.CardPos.EQUIP).length > 0) {
-            return true;
+        return this.isMyDamage(event);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager);
+            let me = manager.context.getPlayer(this.playerId);
+            if (this.hasTakenDamageThisRound) {
+                yield new DamageOp_2.default(me, me, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+            }
+            else {
+                this.hasTakenDamageThisRound = true;
+                yield new HealOp_1.default(me, me, 1).perform(manager);
+            }
+        });
+    }
+}
+exports.ShiBei = ShiBei;
+class JianYing extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '渐营';
+        this.displayName = '渐营';
+        this.description = '当你于出牌阶段内使用牌时，若此牌与你于此阶段内使用的上一张牌点数或花色相同，则你可以摸一张牌。';
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(Generic_1.CardBeingUsedEvent, this);
+        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
+            if (event.stage === Stage_1.Stage.ROUND_BEGIN) {
+                this.lastSuit = null;
+                this.lastSize = -1;
+            }
+        }));
+    }
+    conditionFulfilled(event, manager) {
+        if (manager.currEffect.player === this.playerId && manager.currEffect.stage === Stage_1.Stage.USE_CARD &&
+            event.player === this.playerId && event.cards.length === 1) {
+            let res = false, card = event.cards[0][0];
+            if (card.suit === this.lastSuit || event.cards[0][0].size.size === this.lastSize) {
+                res = true;
+            }
+            this.lastSize = card.size.size;
+            this.lastSuit = card.suit;
+            return res;
         }
         return false;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager);
+            yield new TakeCardOp_1.default(manager.context.getPlayer(this.playerId), 1).perform(manager);
         });
     }
 }
-exports.KuangFu = KuangFu;
+exports.JianYing = JianYing;
+class FengLue extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '锋略';
+        this.displayName = '锋略';
+        this.description = '出牌阶段开始时，你可以与一名角色拼点，若你赢，该角色将其区域内的各一张牌交给你(手牌,装备,判定)；若你没赢，你交给其一张牌。拼点结算后你可以令其获得你拼点的牌。';
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(StageFlows_1.StageStartFlow, this);
+    }
+    conditionFulfilled(event, manager) {
+        return event.isFor(this.playerId, Stage_1.Stage.USE_CARD);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let forbidden = manager.getSortedByCurr(false).filter(p => p.getCards(CardPos_1.CardPos.HAND).length === 0).map(p => p.player.id);
+            let resp = yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.CHOOSE_PLAYER,
+                hintMsg: '请选择锋略拼点的对象',
+                forbidden: [this.playerId, ...forbidden],
+                extraButtons: [PlayerAction_1.Button.CANCEL]
+            });
+            if (resp.isCancel()) {
+                return;
+            }
+            let target = resp.targets[0];
+            let me = manager.context.getPlayer(this.playerId);
+            this.invokeEffects(manager, [target.player.id]);
+            let fight = new CardFightOp_1.default(me, target, this.displayName);
+            let success = fight.perform(manager);
+            if (success) {
+                for (let pos of [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP, CardPos_1.CardPos.JUDGE]) {
+                    let c = yield DropCardOp_1.SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${me}`, pos);
+                    if (c) {
+                        yield manager.transferCards(target.player.id, me.player.id, pos, CardPos_1.CardPos.HAND, [c[0]]);
+                    }
+                }
+            }
+            else {
+                let c = yield DropCardOp_1.SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${target}`, CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP);
+                if (c) {
+                    yield manager.transferCards(target.player.id, me.player.id, c[1], CardPos_1.CardPos.HAND, [c[0]]);
+                }
+            }
+            let letHimTake = yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                hintMsg: `是否令${target}获得你的拼点牌${fight.initiatorCard}?`,
+                extraButtons: [PlayerAction_1.Button.OK, PlayerAction_1.Button.CANCEL]
+            });
+            if (letHimTake.button === PlayerAction_1.Button.OK.id) {
+                yield manager.takeFromWorkflow(target.player.id, CardPos_1.CardPos.HAND, [fight.initiatorCard]);
+            }
+        });
+    }
+}
+exports.FengLue = FengLue;
+class MouShi extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '谋识';
+        this.displayName = '谋识';
+        this.description = '出牌阶段限一次，你可以将一张手牌交给一名角色，若如此做，当其于其下回合的出牌阶段内对一名角色造成伤害后，若是此阶段其第一次对该角色造成伤害，你摸一张牌。';
+        this.inTargetRound = false;
+        this.damageDone = new Set();
+    }
+    bootstrapClient() {
+        PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
+            return new PlayerActionDriverDefiner_1.default('谋识')
+                .expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id) => {
+                return id === this.id && !hint.roundStat.customData[this.id];
+            })
+                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, () => true, () => '(谋识)选择一张手牌')
+                .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id) => id !== this.playerId, () => '(谋识)选择一名角色交予此手牌')
+                .expectAnyButton('点击确定发动谋识')
+                .build(hint);
+        });
+    }
+    onPlayerAction(act, ignore, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            manager.roundStats.customData[this.id] = true;
+            this.target = act.targets[0].player.id;
+            this.invokeEffects(manager, [this.target]);
+            yield manager.transferCards(this.playerId, this.target, CardPos_1.CardPos.HAND, CardPos_1.CardPos.HAND, [act.getSingleCardAndPos()[0]]);
+            this.damageDone.clear();
+        });
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.onEvent(DamageOp_2.default, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
+            if (event.source && event.source.player.id === this.target && event.timeline === DamageOp_1.DamageTimeline.DID_DAMAGE && this.inTargetRound) {
+                if (!this.damageDone.has(event.target)) {
+                    this.damageDone.add(event.target);
+                    this.invokeEffects(manager, [this.target]);
+                    yield new TakeCardOp_1.default(manager.context.getPlayer(this.playerId), 1).perform(manager);
+                }
+            }
+        }));
+        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (flow) => __awaiter(this, void 0, void 0, function* () {
+            if (flow.isFor(this.target, Stage_1.Stage.USE_CARD)) {
+                this.inTargetRound = true;
+            }
+            else {
+                this.inTargetRound = false;
+            }
+        }));
+        skillRegistry.onEvent(StageFlows_1.StageEndFlow, this.playerId, (flow) => __awaiter(this, void 0, void 0, function* () {
+            if (flow.isFor(this.target, Stage_1.Stage.USE_CARD)) {
+                this.target = null;
+                this.inTargetRound = false;
+            }
+        }));
+    }
+}
+exports.MouShi = MouShi;
+// export class KuangFu extends SimpleConditionalSkill<DamageOp> {
+//     id = '狂斧'
+//     displayName = '狂斧'
+//     description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。'
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+//         skillRegistry.on<DamageOp>(DamageOp, this)
+//     }
+//     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+//         if(event.source.player.id === this.playerId && event.target.player.id !== this.playerId && event.timeline === DamageTimeline.DID_DAMAGE &&
+//             event.damageSource === DamageSource.SLASH && event.target.getCards(CardPos.EQUIP).length > 0) {
+//             return true
+//         }
+//         return false
+//     }
+//     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+//     }
+// }
 // 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 // 注: 存嗣获得的勇决是不会失去的
 // 
@@ -12569,6 +12756,10 @@ exports.FactionSkillProviders.register('随势', pid => new FactionSkillsQun_1.S
 exports.FactionSkillProviders.register('死谏', pid => new FactionSkillsQun_1.SiJian(pid));
 exports.FactionSkillProviders.register('乱击', pid => new FactionSkillsQun_1.LuanJi(pid));
 exports.FactionSkillProviders.register('凶算', pid => new FactionSkillsQun_1.XiongSuan(pid));
+exports.FactionSkillProviders.register('矢北', pid => new FactionSkillsQun_1.ShiBei(pid));
+exports.FactionSkillProviders.register('渐营', pid => new FactionSkillsQun_1.JianYing(pid));
+exports.FactionSkillProviders.register('锋略', pid => new FactionSkillsQun_1.FengLue(pid));
+exports.FactionSkillProviders.register('谋识', pid => new FactionSkillsQun_1.MouShi(pid));
 class FactionWarSkillRepo {
     constructor(manager, skillRegistry) {
         this.manager = manager;
@@ -13481,15 +13672,23 @@ ReactDOM.render(React.createElement(App_1.default, null), document.getElementByI
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const Util_1 = __webpack_require__(/*! ../common/util/Util */ "./javascript/common/util/Util.tsx");
+const GameEnding_1 = __webpack_require__(/*! ./GameEnding */ "./javascript/server/GameEnding.tsx");
 class Deck {
+    /**
+     *
+     * @param cardManager card manager
+     * @param updateCb used to notify the number of cards left in deck (not counting dropped pile)
+     */
     constructor(cardManager, updateCb) {
-        this.cardManager = cardManager;
         this.updateCb = updateCb;
         this.dropped = [];
         this.deck = cardManager.getShuffledDeck();
     }
     getCardsFromTop(amount) {
-        //todo: failure = 平局
+        //failure = 平局
+        if (amount > this.deck.length + this.dropped.length) {
+            throw new GameEnding_1.default([]);
+        }
         if (amount > this.deck.length) {
             let res = this.deck;
             this.deck = Util_1.shuffle(this.dropped);
@@ -14975,6 +15174,11 @@ class DamageOp extends Operation_1.Operation {
                     yield new DeathOp_1.default(this.target, this.source, this).perform(manager);
                 }
             }
+            if (wasChained) {
+                console.log('[伤害结算] 铁索连环恢复', this.target.player.id);
+                this.target.isChained = false;
+                manager.broadcast(this.target, PlayerInfo_1.PlayerInfo.sanitize);
+            }
             //https://sgs.fandom.com/zh/wiki/%E4%BA%8B%E4%BB%B6%E6%B5%81%E7%A8%8B%EF%BC%9A%E4%BC%A4%E5%AE%B3
             //遗计? 反馈? 刚烈?
             //注意死亡的角色不会触发技能
@@ -14984,16 +15188,12 @@ class DamageOp extends Operation_1.Operation {
             yield manager.events.publish(this);
             //铁索连环
             if (isElemental(this.type) && wasChained && this.doChain) {
-                console.log('[伤害结算] 触发铁索连环');
-                this.target.isChained = false;
-                manager.broadcast(this.target, PlayerInfo_1.PlayerInfo.sanitize);
                 let chained = manager.context.getRingFromPerspective(this.target.player.id, false).filter(p => p.isChained);
                 console.log('[伤害结算] 触发铁索连环于', chained.map(c => c.player.id));
                 for (let player of chained) {
                     //player might die half way...
                     if (!player.isDead) {
                         console.log('[伤害结算] 连环伤害:', player.player.id);
-                        player.isChained = false;
                         yield new DamageOp(this.source, player, this.amount, this.cards, this.damageSource, this.type, false).perform(manager);
                     }
                 }
@@ -15338,7 +15538,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DropCardRequest = exports.DropOthersCardRequest = exports.DropTimeline = void 0;
+exports.DropCardRequest = exports.DropOthersCardRequest = exports.SelectACardAt = exports.DropTimeline = void 0;
 const Operation_1 = __webpack_require__(/*! ../Operation */ "./javascript/server/Operation.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
@@ -15376,6 +15576,31 @@ class DropCardOp extends Operation_1.Operation {
     }
 }
 exports.default = DropCardOp;
+function SelectACardAt(manager, source, target, title, ...poses) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let targetPlayer = target;
+        let cards = Generic_1.gatherCards(targetPlayer, poses, source.player.id);
+        if (!cards) {
+            console.error('[选牌] 选不了, 此玩家没有牌可以弃置', target.player.id, poses.map(p => CardPos_1.CardPos[p]));
+            return null;
+        }
+        let hint = {
+            hintType: ServerHint_1.HintType.UI_PANEL,
+            hintMsg: '请选择一张牌',
+            customRequest: {
+                mode: 'choose',
+                data: {
+                    rowsOfCard: cards,
+                    title,
+                    chooseSize: 1
+                }
+            }
+        };
+        let resp = yield manager.sendHint(source.player.id, hint);
+        return resp.getSingleCardAndPos();
+    });
+}
+exports.SelectACardAt = SelectACardAt;
 class DropOthersCardRequest {
     perform(manager, source, target, title, poses) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -15387,7 +15612,7 @@ class DropOthersCardRequest {
             }
             let hint = {
                 hintType: ServerHint_1.HintType.UI_PANEL,
-                hintMsg: '请选择对方一张牌',
+                hintMsg: '请选择一张牌',
                 customRequest: {
                     mode: 'choose',
                     data: {

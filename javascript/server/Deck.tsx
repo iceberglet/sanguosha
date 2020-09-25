@@ -1,17 +1,26 @@
 import { shuffle, takeFromArray } from "../common/util/Util"
 import Card, {CardManager} from "../common/cards/Card"
+import GameEnding from "./GameEnding"
 
 export default class Deck {
 
     deck: Card[]
     dropped: Card[] = []
 
-    constructor(private cardManager: CardManager, private updateCb: (size: number)=>void){
+    /**
+     * 
+     * @param cardManager card manager
+     * @param updateCb used to notify the number of cards left in deck (not counting dropped pile)
+     */
+    constructor(cardManager: CardManager, private updateCb: (size: number)=>void){
         this.deck = cardManager.getShuffledDeck()
     }
 
     getCardsFromTop(amount: number): Card[] {
-        //todo: failure = 平局
+        //failure = 平局
+        if(amount > this.deck.length + this.dropped.length) {
+            throw new GameEnding([])
+        }
         if(amount > this.deck.length) {
             let res = this.deck
             this.deck = shuffle(this.dropped)

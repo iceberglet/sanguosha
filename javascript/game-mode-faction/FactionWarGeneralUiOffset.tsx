@@ -102,6 +102,8 @@ doAdd('fame_fa_zheng', -25, -10, 150, 150, -50, -10, 170, 170)
 doAdd('guo_lv_fan', -5, -10, 150, 150, -40, -10, 170, 170)
 doAdd('guo_li_jue_guo_si', -15, -30, 120, 120, -45, -40, 120, 120)
 doAdd('guo_zhang_xiu', -50, -30, 150, 150, -100, -40, 170, 170)
+doAdd('fame_zu_shou', -170, -35, 300, 300, -210, -50, 350, 350)
+doAdd('guo_xun_chen', -50, -30, 150, 150, -80, -20, 170, 170)
 
 export function toFactionWarAvatarStyle(id: string, isBig: boolean) {
     let render = isBig? bigRender.get(id) : smallRender.get(id)

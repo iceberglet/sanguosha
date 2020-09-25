@@ -17,6 +17,7 @@ export default function GameResultPanel (p: Prop) {
                 <div className='results'>
                     <div key='heading' className='row heading'>
                         <div className='player-name'>玩家</div>
+                        <div className='col'></div>
                         <div className='col-2'>胜利场数</div>
                         <div className='col'>击杀</div>
                         <div className='col'>伤害</div>
@@ -24,9 +25,11 @@ export default function GameResultPanel (p: Prop) {
                     </div>
                     {
                         p.stats.map(stat => {
-                            let clazz = p.winners.findIndex(w => w === stat.playerId) > -1? 'row winner' : 'row'
+                            let isWinner = p.winners.findIndex(w => w === stat.playerId) > -1
+                            let clazz = isWinner? 'row winner' : 'row'
                             return <div className={clazz} key={stat.playerId}>
                                 <div className='player-name'>{stat.playerId}</div>
+                                <div className='col'>{isWinner? '胜利!' : ''}</div>
                                 <div className='col-2'>{stat.wins}</div>
                                 <div className='col'>{stat.kill}({stat.thisRound.kill})</div>
                                 <div className='col'>{stat.totalDamage}({stat.thisRound.totalDamage})</div>
