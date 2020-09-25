@@ -8298,7 +8298,7 @@ class FengLue extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
     }
     conditionFulfilled(event, manager) {
-        return event.isFor(this.playerId, Stage_1.Stage.USE_CARD);
+        return event.isFor(this.playerId, Stage_1.Stage.USE_CARD) && manager.context.getPlayer(this.playerId).getCards(CardPos_1.CardPos.HAND).length > 0;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -15108,17 +15108,22 @@ class DropCardRequest {
     /**
      * 若玩家取消, 返回false, 若玩家弃置, 返回true
      * @param targetId
-     * @param amount
+     * @param amount 需要弃置的牌数. 如果没有这么多则需要全弃 (取较小值)
      * @param manager
      * @param hintMsg
      * @param cancelable
      */
     perform(targetId, amount, manager, hintMsg, positions = [PlayerAction_1.UIPosition.MY_HAND], cancelable = false) {
         return __awaiter(this, void 0, void 0, function* () {
+            let size = Math.min(amount, Generic_1.cardAmountAt(manager.context.getPlayer(targetId), positions));
+            if (size <= 0) {
+                console.error('How???');
+                return false;
+            }
             let resp = yield manager.sendHint(targetId, {
                 hintType: ServerHint_1.HintType.CHOOSE_CARD,
                 hintMsg,
-                quantity: amount,
+                quantity: size,
                 positions: positions,
                 extraButtons: cancelable ? [PlayerAction_1.Button.CANCEL] : []
             });
@@ -15141,7 +15146,7 @@ class DropCardRequest {
                     this.dropped.push(card);
                     return card;
                 });
-                manager.sendToWorkflow(targetId, p, toDrop, true);
+                manager.sendToWorkflow(targetId, p, toDrop, false);
                 yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(targetId, toDrop.map(d => [d, p])));
             }
             return true;
@@ -15354,7 +15359,7 @@ class ZhuQue extends Equipment {
     constructor() {
         super(...arguments);
         this.performEffect = (op) => __awaiter(this, void 0, void 0, function* () {
-            if (op.damageType === DamageOp_1.DamageType.NORMAL) {
+            if (op.damageType === DamageOp_1.DamageType.NORMAL && op.source.player.id === this.player) {
                 if (op.cards.length > 1 || (op.cards.length === 1 && op.cards[0].as)) {
                     console.log('[装备] 此牌已经被转化, 无法再来一次朱雀羽扇');
                     return;
@@ -15877,9 +15882,10 @@ exports.BaiYin = BaiYin;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findCard = exports.gatherCards = exports.CardObtainedEvent = exports.CardBeingTakenEvent = exports.CardBeingDroppedEvent = exports.CardBeingUsedEvent = void 0;
+exports.findCard = exports.gatherCards = exports.cardAmountAt = exports.CardObtainedEvent = exports.CardBeingTakenEvent = exports.CardBeingDroppedEvent = exports.CardBeingUsedEvent = void 0;
 const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 //使用 / 打出
 //必须是在牌出到了workflow之后publish
 class CardBeingUsedEvent {
@@ -15923,6 +15929,19 @@ const cardPosNames = new Map([
     ['装备区', CardPos_1.CardPos.EQUIP],
     ['判定区', CardPos_1.CardPos.JUDGE],
 ]);
+function cardAmountAt(info, poses) {
+    let size = 0;
+    poses.forEach(p => {
+        if (p === PlayerAction_1.UIPosition.MY_HAND) {
+            size += info.getCards(CardPos_1.CardPos.HAND).length;
+        }
+        else if (p === PlayerAction_1.UIPosition.MY_EQUIP) {
+            size += info.getCards(CardPos_1.CardPos.EQUIP).length;
+        }
+    });
+    return size;
+}
+exports.cardAmountAt = cardAmountAt;
 function gatherCards(info, poses, aggressor = null) {
     let count = 0;
     let res = {};

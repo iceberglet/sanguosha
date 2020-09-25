@@ -4,7 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, ServerHint } from "../../common/ServerHint";
-import { CardBeingDroppedEvent, gatherCards, findCard } from "./Generic";
+import { CardBeingDroppedEvent, gatherCards, findCard, cardAmountAt } from "./Generic";
 import Card from "../../common/cards/Card";
 
 export enum DropTimeline {
@@ -109,7 +109,7 @@ export class DropCardRequest {
     /**
      * 若玩家取消, 返回false, 若玩家弃置, 返回true
      * @param targetId 
-     * @param amount 
+     * @param amount 需要弃置的牌数. 如果没有这么多则需要全弃 (取较小值)
      * @param manager 
      * @param hintMsg 
      * @param cancelable 
@@ -117,10 +117,17 @@ export class DropCardRequest {
     public async perform(targetId: string, amount: number, manager: GameManager, hintMsg: string, 
                         positions: UIPosition[] = [UIPosition.MY_HAND],
                         cancelable: boolean = false): Promise<boolean> {
+
+        let size = Math.min(amount, cardAmountAt(manager.context.getPlayer(targetId), positions))
+        if(size <= 0) {
+            console.error('How???')
+            return false
+        }
+
         let resp = await manager.sendHint(targetId, {
             hintType: HintType.CHOOSE_CARD,
             hintMsg,
-            quantity: amount,
+            quantity: size,
             positions: positions,
             extraButtons: cancelable? [Button.CANCEL] : []
         })
@@ -145,7 +152,7 @@ export class DropCardRequest {
                 this.dropped.push(card)
                 return card
             })
-            manager.sendToWorkflow(targetId, p, toDrop, true)
+            manager.sendToWorkflow(targetId, p, toDrop, false)
             await manager.events.publish(new CardBeingDroppedEvent(targetId, toDrop.map(d => [d, p])))
         }
         return true

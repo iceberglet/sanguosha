@@ -1035,7 +1035,7 @@ export class FengLue extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
-        return event.isFor(this.playerId, Stage.USE_CARD)
+        return event.isFor(this.playerId, Stage.USE_CARD) && manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length > 0
     }
 
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {

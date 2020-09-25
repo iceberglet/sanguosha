@@ -33,6 +33,7 @@ export default function PregameUI(p: Prop) {
             if(hintTransit.hint.hintType !== HintType.UI_PANEL || hintTransit.hint.customRequest.mode !== 'choose') {
                 throw 'Invalid hint! ' + hintTransit
             }
+            console.log('Game Hint', hintTransit)
             setHint(hintTransit)
         })
         console.log('Subscribed to server hint')

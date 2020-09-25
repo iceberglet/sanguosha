@@ -2,6 +2,7 @@ import Card, { CardType } from "../../common/cards/Card";
 import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardSelectionResult } from "../../common/ServerHint";
+import { UIPosition } from "../../common/PlayerAction";
 
 export interface CardAwayEvent {
     player: string
@@ -40,6 +41,19 @@ const cardPosNames = new Map<string, CardPos>([
     ['装备区', CardPos.EQUIP],
     ['判定区', CardPos.JUDGE],
 ])
+
+
+export function cardAmountAt(info: PlayerInfo, poses: UIPosition[]): number {
+    let size = 0
+    poses.forEach(p => {
+        if(p === UIPosition.MY_HAND) {
+            size += info.getCards(CardPos.HAND).length
+        } else if (p === UIPosition.MY_EQUIP) {
+            size += info.getCards(CardPos.EQUIP).length
+        }
+    })
+    return size
+}
 
 export function gatherCards(info: PlayerInfo, poses: CardPos[], aggressor: string = null): {[key: string]: Array<Card>} {
     let count = 0

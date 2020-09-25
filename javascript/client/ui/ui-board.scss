@@ -143,13 +143,17 @@
                         color: #ffffff;
                         opacity: 0.5;
                         transition: 0.2s;
+                        border: 1px solid white;
 
                         &.enabled {
                             opacity: 1;
+                            filter: drop-shadow(3px 3px 1px black);
                         }
 
                         &.selectable {
                             cursor: pointer;
+                            border: 1px solid gold;
+                            background: #d29557;
                         }
 
                         &.selectable:hover {
