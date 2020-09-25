@@ -549,6 +549,7 @@ export class KanPo extends Skill {
     id = '看破'
     displayName = '看破'
     description = '你可以将一张黑色手牌当【无懈可击】使用。'//'出牌阶段，你可以明置此武将牌。'
+    hiddenType = HiddenType.NONE
     
     bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.WU_XIE, (hint)=>{
@@ -568,7 +569,7 @@ export class KanPo extends Skill {
     }
 
     public doProcess = async (resp: PlayerAct, manager: GameManager) => {
-        
+        await this.revealMySelfIfNeeded(manager)
         let card = resp.getSingleCardAndPos()[0]
         console.log(`[无懈的结算] (看破) 打出了${card.id}作为无懈`)
         card.description = `${resp.source.player.id} 看破`

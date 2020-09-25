@@ -139,7 +139,7 @@ export default class DamageOp extends Operation<void> {
             }
         }
 
-        if(wasChained) {
+        if(isElemental(this.type) && wasChained) {
             console.log('[伤害结算] 铁索连环恢复', this.target.player.id)
             this.target.isChained = false
             manager.broadcast(this.target, PlayerInfo.sanitize)

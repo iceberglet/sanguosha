@@ -9776,6 +9776,7 @@ class KanPo extends Skill_1.Skill {
         this.id = '看破';
         this.displayName = '看破';
         this.description = '你可以将一张黑色手牌当【无懈可击】使用。'; //'出牌阶段，你可以明置此武将牌。'
+        this.hiddenType = Skill_1.HiddenType.NONE;
         this.canStillProcess = (manager) => {
             return manager.context.getPlayer(this.playerId)
                 .getCards(CardPos_1.CardPos.HAND)
@@ -9783,6 +9784,7 @@ class KanPo extends Skill_1.Skill {
                 .length > 0;
         };
         this.doProcess = (resp, manager) => __awaiter(this, void 0, void 0, function* () {
+            yield this.revealMySelfIfNeeded(manager);
             let card = resp.getSingleCardAndPos()[0];
             console.log(`[无懈的结算] (看破) 打出了${card.id}作为无懈`);
             card.description = `${resp.source.player.id} 看破`;
@@ -12918,6 +12920,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GeneralSkillStatusUpdate = exports.SimpleConditionalSkill = exports.SimpleTrigger = exports.Skill = exports.invocable = exports.SkillStatus = exports.HiddenType = void 0;
 const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
+const FactionWarInitializer_1 = __webpack_require__(/*! ../FactionWarInitializer */ "./javascript/game-mode-faction/FactionWarInitializer.tsx");
 //what action to do when clicked on while being hidden?
 var HiddenType;
 (function (HiddenType) {
@@ -12972,12 +12975,6 @@ class Skill extends SkillStatus {
         this.disabledForMain = false;
         this.disabledForSub = false;
         this.description = '暂无 (Please override this field)';
-        // protected async revealMySelfIfNeeded(manager: GameManager) {
-        //     if(!this.isRevealed) {
-        //         console.log(`[${this.id}] 明置 ${this.playerId}`)
-        //         await manager.events.publish(new RevealGeneralEvent(this.playerId, this.isMain, !this.isMain))
-        //     }
-        // }
     }
     toStatus() {
         let s = new SkillStatus(this.playerId);
@@ -13034,6 +13031,14 @@ class Skill extends SkillStatus {
         else {
             manager.log(`${this.playerId} 对 ${targets} 发动了 ${this.displayName}`);
         }
+    }
+    revealMySelfIfNeeded(manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.isRevealed) {
+                console.log(`[${this.id}] 明置 ${this.playerId}`);
+                yield manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(this.playerId, this.isMain, !this.isMain));
+            }
+        });
     }
 }
 exports.Skill = Skill;
@@ -15174,7 +15179,7 @@ class DamageOp extends Operation_1.Operation {
                     yield new DeathOp_1.default(this.target, this.source, this).perform(manager);
                 }
             }
-            if (wasChained) {
+            if (isElemental(this.type) && wasChained) {
                 console.log('[伤害结算] 铁索连环恢复', this.target.player.id);
                 this.target.isChained = false;
                 manager.broadcast(this.target, PlayerInfo_1.PlayerInfo.sanitize);
