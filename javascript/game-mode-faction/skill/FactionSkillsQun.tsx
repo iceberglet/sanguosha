@@ -1043,6 +1043,7 @@ export class FengLue extends SimpleConditionalSkill<StageStartFlow> {
         let resp = await manager.sendHint(this.playerId, {
             hintType: HintType.CHOOSE_PLAYER,
             hintMsg: '请选择锋略拼点的对象',
+            minQuantity: 1, quantity: 1,
             forbidden: [this.playerId, ...forbidden],
             extraButtons: [Button.CANCEL]
         })
@@ -1083,6 +1084,7 @@ export class MouShi extends Skill {
     id = '谋识'
     displayName = '谋识'
     description = '出牌阶段限一次，你可以将一张手牌交给一名角色，若如此做，当其于其下回合的出牌阶段内对一名角色造成伤害后，若是此阶段其第一次对该角色造成伤害，你摸一张牌。'
+    hiddenType = HiddenType.NONE
     
     target: string
     inTargetRound = false

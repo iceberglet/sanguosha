@@ -9068,6 +9068,7 @@ class FengLue extends Skill_1.SimpleConditionalSkill {
             let resp = yield manager.sendHint(this.playerId, {
                 hintType: ServerHint_1.HintType.CHOOSE_PLAYER,
                 hintMsg: '请选择锋略拼点的对象',
+                minQuantity: 1, quantity: 1,
                 forbidden: [this.playerId, ...forbidden],
                 extraButtons: [PlayerAction_1.Button.CANCEL]
             });
@@ -9111,6 +9112,7 @@ class MouShi extends Skill_1.Skill {
         this.id = '谋识';
         this.displayName = '谋识';
         this.description = '出牌阶段限一次，你可以将一张手牌交给一名角色，若如此做，当其于其下回合的出牌阶段内对一名角色造成伤害后，若是此阶段其第一次对该角色造成伤害，你摸一张牌。';
+        this.hiddenType = Skill_1.HiddenType.NONE;
         this.inTargetRound = false;
         this.damageDone = new Set();
     }
