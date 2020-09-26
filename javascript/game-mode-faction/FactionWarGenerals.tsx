@@ -19,7 +19,7 @@ export default class FactionWarGeneral extends General {
     public static soldier_male = new FactionWarGeneral('guo_soldier_male', '士兵', Faction.UNKNOWN, 0)
     public static soldier_female = new FactionWarGeneral('guo_soldier_female', '士兵', Faction.UNKNOWN, 0)
 
-    //16
+    //15
     public static cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', Faction.WEI, 2, '奸雄')
     public static si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', Faction.WEI, 1.5, '反馈', '鬼才')
     public static xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', Faction.WEI, 2, '刚烈')

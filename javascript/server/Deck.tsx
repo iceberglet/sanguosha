@@ -19,6 +19,7 @@ export default class Deck {
     getCardsFromTop(amount: number): Card[] {
         //failure = 平局
         if(amount > this.deck.length + this.dropped.length) {
+            console.log('牌堆被拿光光了...平局')
             throw new GameEnding([])
         }
         if(amount > this.deck.length) {

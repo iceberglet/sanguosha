@@ -23,7 +23,7 @@ import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
 import { CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
 import PlayerAct from "./context/PlayerAct";
 import { Gender } from "../common/General";
-import DeathOp, { EventualDeath } from "./engine/DeathOp";
+import { EventualDeath } from "./engine/DeathOp";
 
 
 //Manages the rounds

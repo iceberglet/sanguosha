@@ -417,7 +417,9 @@ const UIButton_1 = __webpack_require__(/*! ../ui/UIButton */ "./javascript/clien
  */
 function GameResultPanel(p) {
     return React.createElement("div", { className: 'game-result' },
-        React.createElement("div", { className: 'title center' }, "\u724C\u5C40\u7ED3\u675F"),
+        React.createElement("div", { className: 'title center' },
+            "\u724C\u5C40\u7ED3\u675F",
+            p.winners.length === 0 ? '(平局)' : ''),
         React.createElement("div", { className: 'results' },
             React.createElement("div", { key: 'heading', className: 'row heading' },
                 React.createElement("div", { className: 'player-name' }, "\u73A9\u5BB6"),
@@ -6404,9 +6406,27 @@ class FactionWarGameHoster {
         if (equalSize < 3) {
             throw 'Not enough generals! ' + gs.length + ' ' + playerNo;
         }
-        console.log('[牌局] 每人选将', equalSize);
+        console.log('[牌局] 每人选将', gs.length, equalSize);
         for (let i = 0; i < playerNo; ++i) {
-            choices.push(gs.splice(0, equalSize));
+            //old method: random
+            // choices.push(gs.splice(0, equalSize))
+            //new method: make sure there's no 4th faction
+            let facs = new Set();
+            let choice = [];
+            let cursor = 0;
+            while (choice.length < equalSize && cursor < gs.length) {
+                let candidate = gs[cursor];
+                if (facs.size === 3 && !facs.has(candidate.faction)) {
+                    cursor++;
+                    continue;
+                }
+                facs.add(candidate.faction);
+                choice.push(gs.splice(cursor, 1)[0]);
+            }
+            if (choice.length < equalSize) {
+                choice.push(...gs.splice(0, equalSize - choice.length));
+            }
+            choices.push(choice);
         }
         return choices;
     }
@@ -6592,7 +6612,7 @@ exports.default = FactionWarGeneral;
 //when soldier is used to replace people the hp and factions are already set so no worries
 FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', '士兵', General_1.Faction.UNKNOWN, 0);
 FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', '士兵', General_1.Faction.UNKNOWN, 0);
-//16
+//15
 FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2, '奸雄');
 FactionWarGeneral.si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', General_1.Faction.WEI, 1.5, '反馈', '鬼才');
 FactionWarGeneral.xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', General_1.Faction.WEI, 2, '刚烈');
@@ -12954,6 +12974,7 @@ class Deck {
     getCardsFromTop(amount) {
         //failure = 平局
         if (amount > this.deck.length + this.dropped.length) {
+            console.log('牌堆被拿光光了...平局');
             throw new GameEnding_1.default([]);
         }
         if (amount > this.deck.length) {

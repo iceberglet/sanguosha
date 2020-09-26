@@ -15,6 +15,7 @@ import GameStatsCollector from "../server/GameStatsCollector";
 import { SequenceAwareSkillPubSub } from "./skill/SkillPubsub";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import { SkillStatus } from "./skill/Skill";
+import { Faction } from "../common/General";
 
 const myMode = GameModeEnum.FactionWarGame
 const generalsToPickFrom = 7
@@ -163,9 +164,28 @@ export default class FactionWarGameHoster implements GameHoster {
         if(equalSize < 3) {
             throw 'Not enough generals! ' + gs.length + ' ' + playerNo
         }
-        console.log('[牌局] 每人选将', equalSize)
+        console.log('[牌局] 每人选将', gs.length, equalSize)
         for(let i = 0; i < playerNo; ++i) {
-            choices.push(gs.splice(0, equalSize))
+            //old method: random
+            // choices.push(gs.splice(0, equalSize))
+
+            //new method: make sure there's no 4th faction
+            let facs = new Set<Faction>()
+            let choice: FactionWarGeneral[] = []
+            let cursor = 0
+            while(choice.length < equalSize && cursor < gs.length) {
+                let candidate = gs[cursor]
+                if(facs.size === 3 && !facs.has(candidate.faction)) {
+                    cursor++
+                    continue
+                }
+                facs.add(candidate.faction)
+                choice.push(gs.splice(cursor, 1)[0])
+            }
+            if(choice.length < equalSize) {
+                choice.push(...gs.splice(0, equalSize - choice.length))
+            }
+            choices.push(choice)
         }
         return choices
     }

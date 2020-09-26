@@ -13,7 +13,7 @@ type Prop = GameStats & {
 export default function GameResultPanel (p: Prop) {
 
     return <div className='game-result'>
-                <div className='title center'>牌局结束</div>
+                <div className='title center'>牌局结束{p.winners.length === 0? '(平局)': ''}</div>
                 <div className='results'>
                     <div key='heading' className='row heading'>
                         <div className='player-name'>玩家</div>
