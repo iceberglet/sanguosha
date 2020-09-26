@@ -171,7 +171,8 @@ export default class FactionWarActionResolver extends ActionResolver {
         }
         switch(choice) {
             case 'main':
-                console.log(`(先驱) ${source} 选择观看了 ${target} 的主将`)
+                manager.log(`(先驱) ${source} 选择观看了 ${target} 的主将`)
+                // console.log(`(先驱) ${source} 选择观看了 ${target} 的主将`)
                 await manager.sendHint(source.player.id, {
                     hintType: HintType.UI_PANEL,
                     hintMsg: `${target} 的主将`,
@@ -186,7 +187,8 @@ export default class FactionWarActionResolver extends ActionResolver {
                 })
                 break;
             case 'sub':
-                console.log(`${source} 选择观看了 ${target} 的副将`)
+                manager.log(`(先驱) ${source} 选择观看了 ${target} 的副将`)
+                // console.log(`${source} 选择观看了 ${target} 的副将`)
                 await manager.sendHint(source.player.id, {
                     hintType: HintType.UI_PANEL,
                     hintMsg: `${target} 的副将`,
@@ -201,7 +203,8 @@ export default class FactionWarActionResolver extends ActionResolver {
                 })
                 break;
             default: 
-                console.log(`(先驱) ${source} 选择不观看`)
+                manager.log(`(先驱) ${source} 选择不观看`)
+                // console.log(`(先驱) ${source} 选择不观看`)
         }
     }
 }
@@ -260,7 +263,7 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
 
         switch(b) {
             case ZhiJiZhiBi.ZHU_JIANG:
-                console.log(`${this.source} 选择观看了 ${this.target} 的主将`)
+                manager.log(`${this.source} 选择观看了 ${this.target} 的主将`)
                 await manager.sendHint(this.source.player.id, {
                     hintType: HintType.UI_PANEL,
                     hintMsg: `${this.target} 的主将`,
@@ -275,7 +278,7 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
                 })
                 break;
             case ZhiJiZhiBi.FU_JIANG:
-                console.log(`${this.source} 选择观看了 ${this.target} 的副将`)
+                manager.log(`${this.source} 选择观看了 ${this.target} 的副将`)
                 await manager.sendHint(this.source.player.id, {
                     hintType: HintType.UI_PANEL,
                     hintMsg: `${this.target} 的副将`,
@@ -290,7 +293,7 @@ export class ZhiJiZhiBi extends SingleRuse<void> {
                 })
                 break;
             case ZhiJiZhiBi.SHOU_PAI:
-                console.log(`${this.source} 选择观看了 ${this.target} 的手牌`)
+                manager.log(`${this.source} 选择观看了 ${this.target} 的手牌`)
                 await manager.sendHint(this.source.player.id, {
                     hintType: HintType.UI_PANEL,
                     hintMsg: `${this.target} 的手牌`,

@@ -6457,7 +6457,8 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
             }
             switch (choice) {
                 case 'main':
-                    console.log(`(先驱) ${source} 选择观看了 ${target} 的主将`);
+                    manager.log(`(先驱) ${source} 选择观看了 ${target} 的主将`);
+                    // console.log(`(先驱) ${source} 选择观看了 ${target} 的主将`)
                     yield manager.sendHint(source.player.id, {
                         hintType: ServerHint_1.HintType.UI_PANEL,
                         hintMsg: `${target} 的主将`,
@@ -6472,7 +6473,8 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
                     });
                     break;
                 case 'sub':
-                    console.log(`${source} 选择观看了 ${target} 的副将`);
+                    manager.log(`(先驱) ${source} 选择观看了 ${target} 的副将`);
+                    // console.log(`${source} 选择观看了 ${target} 的副将`)
                     yield manager.sendHint(source.player.id, {
                         hintType: ServerHint_1.HintType.UI_PANEL,
                         hintMsg: `${target} 的副将`,
@@ -6487,7 +6489,8 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
                     });
                     break;
                 default:
-                    console.log(`(先驱) ${source} 选择不观看`);
+                    manager.log(`(先驱) ${source} 选择不观看`);
+                // console.log(`(先驱) ${source} 选择不观看`)
             }
         });
     }
@@ -6539,7 +6542,7 @@ class ZhiJiZhiBi extends SingleRuseOp_1.SingleRuse {
             let b = resp.button;
             switch (b) {
                 case ZhiJiZhiBi.ZHU_JIANG:
-                    console.log(`${this.source} 选择观看了 ${this.target} 的主将`);
+                    manager.log(`${this.source} 选择观看了 ${this.target} 的主将`);
                     yield manager.sendHint(this.source.player.id, {
                         hintType: ServerHint_1.HintType.UI_PANEL,
                         hintMsg: `${this.target} 的主将`,
@@ -6554,7 +6557,7 @@ class ZhiJiZhiBi extends SingleRuseOp_1.SingleRuse {
                     });
                     break;
                 case ZhiJiZhiBi.FU_JIANG:
-                    console.log(`${this.source} 选择观看了 ${this.target} 的副将`);
+                    manager.log(`${this.source} 选择观看了 ${this.target} 的副将`);
                     yield manager.sendHint(this.source.player.id, {
                         hintType: ServerHint_1.HintType.UI_PANEL,
                         hintMsg: `${this.target} 的副将`,
@@ -6569,7 +6572,7 @@ class ZhiJiZhiBi extends SingleRuseOp_1.SingleRuse {
                     });
                     break;
                 case ZhiJiZhiBi.SHOU_PAI:
-                    console.log(`${this.source} 选择观看了 ${this.target} 的手牌`);
+                    manager.log(`${this.source} 选择观看了 ${this.target} 的手牌`);
                     yield manager.sendHint(this.source.player.id, {
                         hintType: ServerHint_1.HintType.UI_PANEL,
                         hintMsg: `${this.target} 的手牌`,
@@ -10572,8 +10575,10 @@ class FanKui extends SkillForDamageTaken {
         skillRegistry.on(DamageOp_1.default, this);
     }
     conditionFulfilled(event, manager) {
-        return this.isMyDamage(event) && this.damageFromOthers(event) &&
-            (event.source.getCards(CardPos_1.CardPos.HAND).length > 0 || event.source.getCards(CardPos_1.CardPos.EQUIP).length > 0);
+        return this.isMyDamage(event) && this.damageFromOthers(event) && event.source.hasOwnCards();
+    }
+    invokeMsg(event) {
+        return `对 ${event.source} 发动 ${this.displayName}`;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -10658,6 +10663,9 @@ class GangLie extends SkillForDamageTaken {
     }
     conditionFulfilled(event, manager) {
         return this.isMyDamage(event) && this.damageHasSource(event);
+    }
+    invokeMsg(event) {
+        return `对 ${event.source} 发动 ${this.displayName}`;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -13114,7 +13122,7 @@ class SimpleConditionalSkill extends Skill {
         return false;
     }
     invokeMsg(event, manager) {
-        return '发动' + this.id;
+        return '发动' + this.displayName;
     }
     /**
      * Is this event condition met?

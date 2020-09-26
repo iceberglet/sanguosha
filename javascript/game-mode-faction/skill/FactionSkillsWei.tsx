@@ -75,10 +75,15 @@ export class FanKui extends SkillForDamageTaken {
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
     }
+
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        return this.isMyDamage(event) && this.damageFromOthers(event) &&
-                (event.source.getCards(CardPos.HAND).length > 0 || event.source.getCards(CardPos.EQUIP).length > 0)
+        return this.isMyDamage(event) && this.damageFromOthers(event) && event.source.hasOwnCards()
     }
+
+    public invokeMsg(event: DamageOp): string {
+        return `对 ${event.source} 发动 ${this.displayName}` 
+    }
+
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         
         let targetPlayer = event.source
@@ -160,6 +165,11 @@ export class GangLie extends SkillForDamageTaken {
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
         return this.isMyDamage(event) && this.damageHasSource(event)
     }
+
+    public invokeMsg(event: DamageOp): string {
+        return `对 ${event.source} 发动 ${this.displayName}` 
+    }
+
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)

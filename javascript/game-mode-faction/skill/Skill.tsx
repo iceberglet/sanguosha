@@ -220,7 +220,7 @@ export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTr
     }
 
     public invokeMsg(event: T, manager: GameManager) {
-        return '发动' + this.id
+        return '发动' + this.displayName
     }
 
     /**
