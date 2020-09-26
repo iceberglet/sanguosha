@@ -407,6 +407,10 @@ export class WeiMu extends SimpleConditionalSkill<RuseOp<any>> {
                 deriveColor(event.cards.map(c => manager.interpret(this.playerId, c).suit)) === 'black'
     }
 
+    invokeMsg(event: RuseOp<any>, manager: GameManager) {
+        return `发动帷幕使 ${event.ruseType.name} 对你无效`
+    }
+
     async doInvoke(event: RuseOp<any>, manager: GameManager): Promise<void> {
         this.invokeEffects(manager, [], `${this.playerId} 发动了 ${this.displayName} 使 ${event.ruseType.name} 失效`)
         event.abort = true
@@ -424,7 +428,10 @@ export class ZhenDu extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     invokeMsg(event: StageStartFlow, manager: GameManager) {
-        return `对${event.info}发动鸩毒`
+        if(event.info.player.id !== this.playerId) {
+            return `对${event.info}发动鸩毒, 对其造成一点伤害并视为其使用一张【酒】`
+        }
+        return `发动鸩毒弃置一张牌, 视为使用一张【酒】`
     }
 
     conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
@@ -855,6 +862,9 @@ export class SuiShiDying extends SimpleTrigger<EnterDyingEvent> {
         this.skill.invokeEffects(manager)
         await new TakeCardOp(this.player, 1).perform(manager)
     }
+    invokeMsg(event: EnterDyingEvent, manager: GameManager): string {
+        return '发动' + this.getSkill().displayName + '获得一张牌'
+    }
 }
 
 export class SuiShiDeath extends SimpleTrigger<DeathOp> {
@@ -870,6 +880,9 @@ export class SuiShiDeath extends SimpleTrigger<DeathOp> {
     async doInvoke(event: DeathOp, manager: GameManager): Promise<void> {
         this.skill.invokeEffects(manager)
         await new DamageOp(this.player, this.player, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+    }
+    invokeMsg(event: DeathOp, manager: GameManager): string {
+        return '发动' + this.getSkill().displayName + '失去一点体力'
     }
 }
 

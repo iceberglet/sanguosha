@@ -192,7 +192,7 @@ export abstract class SimpleTrigger<T> implements SkillTrigger<T> {
         return this.skill
     }
     invokeMsg(event: T, manager: GameManager): string {
-        return '发动' + this.getSkill().id
+        return '发动' + this.getSkill().displayName
     }
 }
 

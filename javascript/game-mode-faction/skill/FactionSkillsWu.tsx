@@ -835,7 +835,7 @@ export class YiCheng extends SimpleConditionalSkill<SlashCompute> {
     }
 
     invokeMsg(event: SlashCompute, manager: GameManager): string {
-        return `对${event.target}发动疑城`
+        return `对${event.target}发动疑城令其摸一张牌然后弃置一张牌`
     }
 
     public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
@@ -925,7 +925,7 @@ export class MouDuan extends SimpleConditionalSkill<StageStartFlow> {
 export class DuanXie extends Skill {
     id = '断绁'
     displayName = '断绁'
-    description = '出牌阶段限一次，你可以令一名其他角色横置，然后你横置。'
+    description = '出牌阶段限一次，你可以令一名其他角色进入连环状态(横置)，然后你若未横置进入连环状态(横置)。'
     hiddenType = HiddenType.NONE
 
     bootstrapClient() {
@@ -955,7 +955,7 @@ export class DuanXie extends Skill {
 export class FenMing extends SimpleConditionalSkill<StageStartFlow> {
     id = '奋命'
     displayName = '奋命'
-    description = '结束阶段，若你处于连环状态，则你可以弃置所有处于连环状态的角色的各一张牌。'
+    description = '结束阶段，若你处于连环(横置)状态，则你可以弃置所有处于连环(横置)状态的角色的各一张牌。'
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<StageStartFlow>(StageStartFlow, this)

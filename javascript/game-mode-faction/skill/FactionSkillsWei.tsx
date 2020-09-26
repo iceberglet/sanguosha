@@ -638,6 +638,11 @@ export class XingShang extends SimpleConditionalSkill<DeathOp> {
     public conditionFulfilled(event: DeathOp, manager: GameManager): boolean {
         return event.deceased.player.id !== this.id
     }
+
+    public invokeMsg(event: DeathOp): string {
+        return `发动 ${this.displayName} 获得 ${event.deceased} 的所有手牌/装备牌`
+    }
+
     public async doInvoke(event: DeathOp, manager: GameManager): Promise<void> {
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)
@@ -662,7 +667,6 @@ export class XingShang extends SimpleConditionalSkill<DeathOp> {
         return
     }
 }
-// this.isMyDamage(event) && this.damageHasSource(event)
 
 export class FangZhu extends SkillForDamageTaken {
     id = '放逐'
@@ -673,9 +677,11 @@ export class FangZhu extends SkillForDamageTaken {
         skillRegistry.on<DamageOp>(DamageOp, this)
         
     }
+    
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
         return this.isMyDamage(event)
     }
+
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
         let resp = await manager.sendHint(this.playerId, {
             hintType: HintType.CHOOSE_PLAYER,

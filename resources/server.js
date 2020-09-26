@@ -7669,6 +7669,9 @@ class WeiMu extends Skill_1.SimpleConditionalSkill {
         return event.timeline === Operation_1.Timeline.BECOME_TARGET && event.target.player.id === this.playerId &&
             ICard_1.deriveColor(event.cards.map(c => manager.interpret(this.playerId, c).suit)) === 'black';
     }
+    invokeMsg(event, manager) {
+        return `发动帷幕使 ${event.ruseType.name} 对你无效`;
+    }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             this.invokeEffects(manager, [], `${this.playerId} 发动了 ${this.displayName} 使 ${event.ruseType.name} 失效`);
@@ -7688,7 +7691,10 @@ class ZhenDu extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
     }
     invokeMsg(event, manager) {
-        return `对${event.info}发动鸩毒`;
+        if (event.info.player.id !== this.playerId) {
+            return `对${event.info}发动鸩毒, 对其造成一点伤害并视为其使用一张【酒】`;
+        }
+        return `发动鸩毒弃置一张牌, 视为使用一张【酒】`;
     }
     conditionFulfilled(event, manager) {
         return event.stage === Stage_1.Stage.USE_CARD &&
@@ -8142,6 +8148,9 @@ class SuiShiDying extends Skill_1.SimpleTrigger {
             yield new TakeCardOp_1.default(this.player, 1).perform(manager);
         });
     }
+    invokeMsg(event, manager) {
+        return '发动' + this.getSkill().displayName + '获得一张牌';
+    }
 }
 exports.SuiShiDying = SuiShiDying;
 class SuiShiDeath extends Skill_1.SimpleTrigger {
@@ -8158,6 +8167,9 @@ class SuiShiDeath extends Skill_1.SimpleTrigger {
             this.skill.invokeEffects(manager);
             yield new DamageOp_2.default(this.player, this.player, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
         });
+    }
+    invokeMsg(event, manager) {
+        return '发动' + this.getSkill().displayName + '失去一点体力';
     }
 }
 exports.SuiShiDeath = SuiShiDeath;
@@ -10379,6 +10391,9 @@ class XingShang extends Skill_1.SimpleConditionalSkill {
     conditionFulfilled(event, manager) {
         return event.deceased.player.id !== this.id;
     }
+    invokeMsg(event) {
+        return `发动 ${this.displayName} 获得 ${event.deceased} 的所有手牌/装备牌`;
+    }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             this.playSound(manager, 2);
@@ -10407,7 +10422,6 @@ class XingShang extends Skill_1.SimpleConditionalSkill {
     }
 }
 exports.XingShang = XingShang;
-// this.isMyDamage(event) && this.damageHasSource(event)
 class FangZhu extends SkillForDamageTaken {
     constructor() {
         super(...arguments);
@@ -11684,7 +11698,7 @@ class YiCheng extends Skill_1.SimpleConditionalSkill {
             event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET;
     }
     invokeMsg(event, manager) {
-        return `对${event.target}发动疑城`;
+        return `对${event.target}发动疑城令其摸一张牌然后弃置一张牌`;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -11779,7 +11793,7 @@ class DuanXie extends Skill_1.Skill {
         super(...arguments);
         this.id = '断绁';
         this.displayName = '断绁';
-        this.description = '出牌阶段限一次，你可以令一名其他角色横置，然后你横置。';
+        this.description = '出牌阶段限一次，你可以令一名其他角色进入连环状态(横置)，然后你若未横置进入连环状态(横置)。';
         this.hiddenType = Skill_1.HiddenType.NONE;
     }
     bootstrapClient() {
@@ -11812,7 +11826,7 @@ class FenMing extends Skill_1.SimpleConditionalSkill {
         super(...arguments);
         this.id = '奋命';
         this.displayName = '奋命';
-        this.description = '结束阶段，若你处于连环状态，则你可以弃置所有处于连环状态的角色的各一张牌。';
+        this.description = '结束阶段，若你处于连环(横置)状态，则你可以弃置所有处于连环(横置)状态的角色的各一张牌。';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -12318,7 +12332,7 @@ class SimpleTrigger {
         return this.skill;
     }
     invokeMsg(event, manager) {
-        return '发动' + this.getSkill().id;
+        return '发动' + this.getSkill().displayName;
     }
 }
 exports.SimpleTrigger = SimpleTrigger;
