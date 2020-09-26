@@ -13922,7 +13922,7 @@ class GameManager {
                 catch (err) {
                     if (err instanceof Operation_1.PlayerDeadInHisRound) {
                         console.log('Player died in his round. Proceeding to next player...');
-                        return;
+                        continue;
                     }
                     if (err instanceof GameEnding_1.default) {
                         console.log('The Game has ended', err.winners);

@@ -115,7 +115,7 @@ export default class GameManager {
             } catch (err) {
                 if(err instanceof PlayerDeadInHisRound) {
                     console.log('Player died in his round. Proceeding to next player...')
-                    return;
+                    continue;
                 }
                 if(err instanceof GameEnding) {
                     console.log('The Game has ended', err.winners)
