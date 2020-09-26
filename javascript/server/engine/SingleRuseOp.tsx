@@ -75,7 +75,12 @@ export class JueDou extends SingleRuse<void> {
         while(true) {
             let curr = this.targetLost? targetPlayer : me
             let issuer = this.targetLost? me: targetPlayer
-            let slashed = await new AskForSlashOp(curr, issuer, `${issuer.player.id}和你决斗, 请出杀`, this.slashCountDecider(issuer, curr)).perform(manager)
+            let amount = this.slashCountDecider(issuer, curr)
+            let msg = `${issuer.player.id}和你决斗, 请出杀`
+            if(amount > 1) {
+                msg += `(需出${amount}张)`
+            }
+            let slashed = await new AskForSlashOp(curr, issuer, msg, amount).perform(manager)
             if(!slashed) {
                 console.log('玩家决斗放弃出杀, 掉血')
                 await manager.events.publish(this)
