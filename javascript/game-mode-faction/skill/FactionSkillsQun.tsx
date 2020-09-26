@@ -9,7 +9,7 @@ import { all, Suits, any } from "../../common/util/Util";
 import PlayerAct from "../../server/context/PlayerAct";
 import GameManager from "../../server/GameManager";
 import { DropCardRequest, DropOthersCardRequest, SelectACardAt } from "../../server/engine/DropCardOp";
-import { CardPos } from "../../common/transit/CardPos";
+import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp";
 import AskSavingOp, { AskSavingAround } from "../../server/engine/AskSavingOp";
@@ -408,7 +408,7 @@ export class WeiMu extends SimpleConditionalSkill<RuseOp<any>> {
     }
 
     async doInvoke(event: RuseOp<any>, manager: GameManager): Promise<void> {
-        this.invokeEffects(manager)
+        this.invokeEffects(manager, [], `${this.playerId} 发动了 ${this.displayName} 使 ${event.ruseType.name} 失效`)
         event.abort = true
     }
 }
@@ -1035,7 +1035,9 @@ export class FengLue extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
-        return event.isFor(this.playerId, Stage.USE_CARD) && manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length > 0
+        return event.isFor(this.playerId, Stage.USE_CARD) && 
+                manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length > 0 &&
+                !manager.roundStats.skipStages.get(Stage.USE_CARD)
     }
 
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
@@ -1054,18 +1056,20 @@ export class FengLue extends SimpleConditionalSkill<StageStartFlow> {
         let me = manager.context.getPlayer(this.playerId)
         this.invokeEffects(manager, [target.player.id])
         let fight = new CardFightOp(me, target, this.displayName)
-        let success = fight.perform(manager)
+        let success = await fight.perform(manager)
         if(success) {
             for(let pos of [CardPos.HAND, CardPos.EQUIP, CardPos.JUDGE]) {
                 let c = await SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${me}`, pos)
                 if(c) {
+                    manager.log(`(锋略) ${target} 交给了 ${me} ${isCardPosHidden(c[1])? '一张手牌' : c[0]}`)
                     await manager.transferCards(target.player.id, me.player.id, pos, CardPos.HAND, [c[0]])
                 }
             }
         } else {
-            let c = await SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${target}`, CardPos.HAND, CardPos.EQUIP)
+            let c = await SelectACardAt(manager, me, me, `(锋略)请选择一张牌交给${target}`, CardPos.HAND, CardPos.EQUIP)
             if(c) {
-                await manager.transferCards(target.player.id, me.player.id, c[1], CardPos.HAND, [c[0]])
+                manager.log(`(锋略) ${me} 交给了 ${target} ${isCardPosHidden(c[1])? '一张手牌' : c[0]}`)
+                await manager.transferCards(me.player.id, target.player.id, c[1], CardPos.HAND, [c[0]])
             }
         }
         let letHimTake = await manager.sendHint(this.playerId, {
@@ -1074,6 +1078,7 @@ export class FengLue extends SimpleConditionalSkill<StageStartFlow> {
             extraButtons: [Button.OK, Button.CANCEL]
         })
         if(letHimTake.button === Button.OK.id) {
+            manager.log(`(锋略) ${target} 获得了 ${me} 的拼点牌 ${fight.initiatorCard}`)
             await manager.takeFromWorkflow(target.player.id, CardPos.HAND, [fight.initiatorCard])
         }
     }

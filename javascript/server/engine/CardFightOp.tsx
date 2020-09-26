@@ -58,7 +58,7 @@ export default class CardFightOp extends Operation<boolean> {
                 // customRequest: true
             }).then(resp => {
                 this.targetCard = resp.getSingleCardAndPos()[0]
-                this.targetCard.description = `${this.targetCard} ${this.msg} 拼点牌`
+                this.targetCard.description = `${this.target} ${this.msg} 拼点牌`
                 this.broadcast(manager)
                 console.log('[拼点] 应战方的牌为 ', this.targetCard.id)
             }),

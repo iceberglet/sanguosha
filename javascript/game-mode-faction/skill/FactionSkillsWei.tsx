@@ -481,7 +481,7 @@ export class DuanLiang extends Skill {
     id = '断粮'
     displayName = '断粮'
     description = '出牌阶段，你可以明置此武将牌；你可以将一张黑色基本牌或黑色装备牌当【兵粮寸断】使用；你可以对距离为2的角色使用【兵粮寸断】。'
-    hiddenType = HiddenType.NONE
+    hiddenType = HiddenType.REVEAL_IN_MY_USE_CARD
 
     public bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{

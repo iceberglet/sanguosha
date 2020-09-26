@@ -8436,7 +8436,7 @@ class WeiMu extends Skill_1.SimpleConditionalSkill {
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.invokeEffects(manager);
+            this.invokeEffects(manager, [], `${this.playerId} 发动了 ${this.displayName} 使 ${event.ruseType.name} 失效`);
             event.abort = true;
         });
     }
@@ -9085,7 +9085,9 @@ class FengLue extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
     }
     conditionFulfilled(event, manager) {
-        return event.isFor(this.playerId, Stage_1.Stage.USE_CARD) && manager.context.getPlayer(this.playerId).getCards(CardPos_1.CardPos.HAND).length > 0;
+        return event.isFor(this.playerId, Stage_1.Stage.USE_CARD) &&
+            manager.context.getPlayer(this.playerId).getCards(CardPos_1.CardPos.HAND).length > 0 &&
+            !manager.roundStats.skipStages.get(Stage_1.Stage.USE_CARD);
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -9104,19 +9106,21 @@ class FengLue extends Skill_1.SimpleConditionalSkill {
             let me = manager.context.getPlayer(this.playerId);
             this.invokeEffects(manager, [target.player.id]);
             let fight = new CardFightOp_1.default(me, target, this.displayName);
-            let success = fight.perform(manager);
+            let success = yield fight.perform(manager);
             if (success) {
                 for (let pos of [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP, CardPos_1.CardPos.JUDGE]) {
                     let c = yield DropCardOp_1.SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${me}`, pos);
                     if (c) {
+                        manager.log(`(锋略) ${target} 交给了 ${me} ${CardPos_1.isCardPosHidden(c[1]) ? '一张手牌' : c[0]}`);
                         yield manager.transferCards(target.player.id, me.player.id, pos, CardPos_1.CardPos.HAND, [c[0]]);
                     }
                 }
             }
             else {
-                let c = yield DropCardOp_1.SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${target}`, CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP);
+                let c = yield DropCardOp_1.SelectACardAt(manager, me, me, `(锋略)请选择一张牌交给${target}`, CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP);
                 if (c) {
-                    yield manager.transferCards(target.player.id, me.player.id, c[1], CardPos_1.CardPos.HAND, [c[0]]);
+                    manager.log(`(锋略) ${me} 交给了 ${target} ${CardPos_1.isCardPosHidden(c[1]) ? '一张手牌' : c[0]}`);
+                    yield manager.transferCards(me.player.id, target.player.id, c[1], CardPos_1.CardPos.HAND, [c[0]]);
                 }
             }
             let letHimTake = yield manager.sendHint(this.playerId, {
@@ -9125,6 +9129,7 @@ class FengLue extends Skill_1.SimpleConditionalSkill {
                 extraButtons: [PlayerAction_1.Button.OK, PlayerAction_1.Button.CANCEL]
             });
             if (letHimTake.button === PlayerAction_1.Button.OK.id) {
+                manager.log(`(锋略) ${target} 获得了 ${me} 的拼点牌 ${fight.initiatorCard}`);
                 yield manager.takeFromWorkflow(target.player.id, CardPos_1.CardPos.HAND, [fight.initiatorCard]);
             }
         });
@@ -10979,7 +10984,7 @@ class DuanLiang extends Skill_1.Skill {
         this.id = '断粮';
         this.displayName = '断粮';
         this.description = '出牌阶段，你可以明置此武将牌；你可以将一张黑色基本牌或黑色装备牌当【兵粮寸断】使用；你可以对距离为2的角色使用【兵粮寸断】。';
-        this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hiddenType = Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD;
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -13050,7 +13055,7 @@ class Skill extends SkillStatus {
         this.playSound(manager, 2);
         manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, targets, this.id));
         if (msg) {
-            manager.log(`${this.playerId} 发动了 ${this.displayName}`);
+            manager.log(msg);
         }
         else if (targets.length === 0) {
             manager.log(`${this.playerId} 发动了 ${this.displayName}`);
@@ -15022,7 +15027,7 @@ class CardFightOp extends Operation_1.Operation {
                     // customRequest: true
                 }).then(resp => {
                     this.targetCard = resp.getSingleCardAndPos()[0];
-                    this.targetCard.description = `${this.targetCard} ${this.msg} 拼点牌`;
+                    this.targetCard.description = `${this.target} ${this.msg} 拼点牌`;
                     this.broadcast(manager);
                     console.log('[拼点] 应战方的牌为 ', this.targetCard.id);
                 }),
@@ -15416,12 +15421,18 @@ class JudgeDelayedRuseOp extends Operation_1.Operation {
                             manager.log(`${p} 的乐不思蜀生效`);
                             manager.roundStats.skipStages.set(Stage_1.Stage.USE_CARD, true);
                         }
+                        else {
+                            manager.log(`${p} 的乐不思蜀失效`);
+                        }
                         break;
                     case Card_1.CardType.BING_LIANG:
                         if (icard.suit !== 'club') {
                             console.log(`[延迟锦囊] 兵粮寸断生效 ${p} ${card.id} > ${icard.suit}`);
                             manager.log(`${p} 的兵粮寸断生效`);
                             manager.roundStats.skipStages.set(Stage_1.Stage.TAKE_CARD, true);
+                        }
+                        else {
+                            manager.log(`${p} 的兵粮寸断失效`);
                         }
                         break;
                     case Card_1.CardType.SHAN_DIAN:
@@ -15436,6 +15447,7 @@ class JudgeDelayedRuseOp extends Operation_1.Operation {
                         else {
                             let candidates = manager.getSortedByCurr(false).filter(p => !p.hasJudgeCard(Card_1.CardType.SHAN_DIAN));
                             let next = candidates.length > 0 ? candidates[0] : this.player;
+                            manager.log(`${p} 的闪电失效`);
                             console.log(`[延迟锦囊] 闪电失效, 移给 ${next.player.id}`);
                             yield new UseDelayedRuseOp(this.card, this.player, CardPos_1.CardPos.JUDGE, next).perform(manager);
                         }
@@ -15609,6 +15621,14 @@ class DropCardOp extends Operation_1.Operation {
     }
 }
 exports.default = DropCardOp;
+/**
+ *
+ * @param manager
+ * @param source player to select card
+ * @param target player whose card to be selected
+ * @param title hint title
+ * @param poses where to select cards
+ */
 function SelectACardAt(manager, source, target, title, ...poses) {
     return __awaiter(this, void 0, void 0, function* () {
         let targetPlayer = target;
@@ -15630,7 +15650,10 @@ function SelectACardAt(manager, source, target, title, ...poses) {
             }
         };
         let resp = yield manager.sendHint(source.player.id, hint);
-        return resp.getSingleCardAndPos();
+        let res = resp.customData;
+        let cardAndPos = Generic_1.findCard(targetPlayer, res)[0];
+        let card = cardAndPos[0], pos = cardAndPos[1];
+        return [card, pos];
     });
 }
 exports.SelectACardAt = SelectACardAt;

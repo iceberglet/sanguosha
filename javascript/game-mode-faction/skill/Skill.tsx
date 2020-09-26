@@ -163,7 +163,7 @@ export abstract class Skill extends SkillStatus {
         this.playSound(manager, 2)
         manager.broadcast(new TextFlashEffect(this.playerId, targets, this.id))
         if(msg) {
-            manager.log(`${this.playerId} 发动了 ${this.displayName}`)
+            manager.log(msg)
         } else if(targets.length === 0) {
             manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         } else {

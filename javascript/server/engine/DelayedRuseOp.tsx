@@ -96,6 +96,8 @@ export class JudgeDelayedRuseOp extends Operation<void> {
                         console.log(`[延迟锦囊] 乐不思蜀生效 ${p} ${card.id} > ${icard.suit}`)
                         manager.log(`${p} 的乐不思蜀生效`)
                         manager.roundStats.skipStages.set(Stage.USE_CARD, true)
+                    } else {
+                        manager.log(`${p} 的乐不思蜀失效`)
                     }
                     break;
                 case CardType.BING_LIANG: 
@@ -103,6 +105,8 @@ export class JudgeDelayedRuseOp extends Operation<void> {
                         console.log(`[延迟锦囊] 兵粮寸断生效 ${p} ${card.id} > ${icard.suit}`)
                         manager.log(`${p} 的兵粮寸断生效`)
                         manager.roundStats.skipStages.set(Stage.TAKE_CARD, true)
+                    } else {
+                        manager.log(`${p} 的兵粮寸断失效`)
                     }
                     break;
                 case CardType.SHAN_DIAN: 
@@ -116,6 +120,7 @@ export class JudgeDelayedRuseOp extends Operation<void> {
                     } else {
                         let candidates = manager.getSortedByCurr(false).filter(p => !p.hasJudgeCard(CardType.SHAN_DIAN))
                         let next = candidates.length > 0? candidates[0] : this.player
+                        manager.log(`${p} 的闪电失效`)
                         console.log(`[延迟锦囊] 闪电失效, 移给 ${next.player.id}`)
                         await new UseDelayedRuseOp(this.card, this.player, CardPos.JUDGE, next).perform(manager)
                     }

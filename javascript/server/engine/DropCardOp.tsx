@@ -42,6 +42,14 @@ export default class DropCardOp extends Operation<void> {
     }
 }
 
+/**
+ * 
+ * @param manager 
+ * @param source player to select card
+ * @param target player whose card to be selected
+ * @param title hint title
+ * @param poses where to select cards
+ */
 export async function SelectACardAt(manager: GameManager, source: PlayerInfo, target: PlayerInfo, title: string, ...poses: CardPos[]): Promise<[Card, CardPos]> {
     let targetPlayer = target
     let cards = gatherCards(targetPlayer, poses, source.player.id)
@@ -64,7 +72,10 @@ export async function SelectACardAt(manager: GameManager, source: PlayerInfo, ta
     }
 
     let resp = await manager.sendHint(source.player.id, hint)
-    return resp.getSingleCardAndPos()
+    let res = resp.customData as CardSelectionResult
+    let cardAndPos = findCard(targetPlayer, res)[0]
+    let card = cardAndPos[0], pos = cardAndPos[1]
+    return [card, pos]
 } 
 
 export class DropOthersCardRequest {
