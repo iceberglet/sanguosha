@@ -5311,11 +5311,11 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         let main = this.general ? this.general.name : '主将';
         let sub = this.subGeneral ? this.subGeneral.name : '副将';
         return [React.createElement("div", { className: clazz, key: 'pics' },
-                GeneralUI_1.wrapGeneral(this.general, React.createElement("div", { className: 'general', style: { letterSpacing: main.length > 2 ? '-2px' : '0px' } },
+                GeneralUI_1.wrapGeneral(this.general, React.createElement("div", { className: 'general', style: { letterSpacing: main.length > 2 ? '-4px' : '0px' } },
                     this.renderGeneral(this.general, false),
                     React.createElement("div", { className: 'general-name' }, main),
                     this.drawMark(this.mainMark))),
-                GeneralUI_1.wrapGeneral(this.subGeneral, React.createElement("div", { className: 'general', style: { letterSpacing: sub.length > 2 ? '-2px' : '0px' } },
+                GeneralUI_1.wrapGeneral(this.subGeneral, React.createElement("div", { className: 'general', style: { letterSpacing: sub.length > 2 ? '-4px' : '0px' } },
                     this.renderGeneral(this.subGeneral, false),
                     React.createElement("div", { className: 'general-name' }, sub),
                     this.drawMark(this.subMark))),
@@ -5329,7 +5329,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         return React.createElement("div", { className: clazz },
             GeneralUI_1.wrapGeneral(this.general, React.createElement("div", { className: 'general ' + (this.isGeneralRevealed || 'hidden') },
                 this.renderGeneral(this.general, true),
-                React.createElement("div", { className: 'general-name', style: { background: color, letterSpacing: this.general.name.length > 3 ? '-4px' : '0px' } },
+                React.createElement("div", { className: 'general-name', style: { background: color, letterSpacing: this.general.name.length > 3 ? '-2px' : '0px' } },
                     this.general.name,
                     React.createElement("div", { className: 'general-name-after', style: { borderLeft: `9px solid ${color}` } })),
                 React.createElement("div", { className: 'title' }, "\u4E3B"),
@@ -5339,7 +5339,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
                 this.drawMark(this.mainMark))),
             GeneralUI_1.wrapGeneral(this.subGeneral, React.createElement("div", { className: 'general ' + (this.isSubGeneralRevealed || 'hidden') },
                 this.renderGeneral(this.subGeneral, true),
-                React.createElement("div", { className: 'general-name', style: { background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-4px' : '0px' } },
+                React.createElement("div", { className: 'general-name', style: { background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-2px' : '0px' } },
                     this.subGeneral.name,
                     React.createElement("div", { className: 'general-name-after', style: { borderLeft: `9px solid ${color}` } })),
                 React.createElement("div", { className: 'title' }, "\u526F"),
@@ -17357,7 +17357,9 @@ class WuXieContext {
                 if (this.ruseType.genre === 'group-ruse') {
                     buttons.push(new PlayerAction_1.Button(REFUSE_ALL, `不为本次 [${this.ruseType.name}] 出无懈`));
                 }
-                this.manager.setPending(this.candidates);
+                // this.manager.setPending(this.candidates)
+                // show everyone to be doing this
+                this.manager.setPending(this.manager.getSortedByCurr(true).map(p => p.player.id));
                 let responses = this.candidates.map((candidate) => __awaiter(this, void 0, void 0, function* () {
                     let resp = yield this.manager.sendHint(candidate, {
                         hintType: ServerHint_1.HintType.WU_XIE,

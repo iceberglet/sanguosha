@@ -72,7 +72,10 @@ export class WuXieContext {
                 buttons.push(new Button(REFUSE_ALL, `不为本次 [${this.ruseType.name}] 出无懈`))
             }
 
-            this.manager.setPending(this.candidates)
+            // this.manager.setPending(this.candidates)
+            // show everyone to be doing this
+            this.manager.setPending(this.manager.getSortedByCurr(true).map(p => p.player.id))
+
             let responses = this.candidates.map(async candidate => {
                         let resp = await this.manager.sendHint(candidate, {
                             hintType: HintType.WU_XIE,

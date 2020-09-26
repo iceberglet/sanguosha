@@ -125,12 +125,12 @@ export default class FactionPlayerInfo extends PlayerInfo {
         let main = this.general? this.general.name : '主将'
         let sub = this.subGeneral? this.subGeneral.name : '副将'
         return [<div className={clazz} key={'pics'}>
-            {wrapGeneral(this.general, <div className='general' style={{letterSpacing: main.length > 2 ? '-2px' : '0px'}}>
+            {wrapGeneral(this.general, <div className='general' style={{letterSpacing: main.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.general, false)}
                 <div className='general-name'>{main}</div>
                 {this.drawMark(this.mainMark)}
             </div>)}
-            {wrapGeneral(this.subGeneral, <div className='general' style={{letterSpacing: sub.length > 2 ? '-2px' : '0px'}}>
+            {wrapGeneral(this.subGeneral, <div className='general' style={{letterSpacing: sub.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.subGeneral, false)}
                 <div className='general-name'>{sub}</div>
                 {this.drawMark(this.subMark)}
@@ -147,7 +147,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
         return <div className={clazz}>
             {wrapGeneral(this.general, <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.general, true)}
-                <div className='general-name' style={{background: color, letterSpacing: this.general.name.length > 3 ? '-4px' : '0px'}}>
+                <div className='general-name' style={{background: color, letterSpacing: this.general.name.length > 3 ? '-2px' : '0px'}}>
                     {this.general.name}
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>
@@ -161,7 +161,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
             </div>)}
             {wrapGeneral(this.subGeneral, <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.subGeneral, true)}
-                <div className='general-name' style={{background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-4px' : '0px'}}>
+                <div className='general-name' style={{background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-2px' : '0px'}}>
                     {this.subGeneral.name}
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>
