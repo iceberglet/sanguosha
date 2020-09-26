@@ -320,6 +320,9 @@ export class LuanWu extends Skill {
         manager.broadcast(act.source, PlayerInfo.sanitize)
         let toAsk = manager.getSortedByCurr(false)
         for(let t of toAsk) {
+            if(t.isDead) {
+                continue
+            }
             let valid = manager.context.findingNearestNeighbors(t.player.id)
             console.log(`【乱武】离${t}最近的邻居为${valid}`)
             valid = valid.filter(p => {

@@ -36,7 +36,7 @@ export default class GameContext {
     findingNearestNeighbors(player: string): PlayerInfo[] {
         let min = Infinity, targets: PlayerInfo[] = []
         this.playerInfos.forEach(p => {
-            if(p.player.id === player) {
+            if(p.player.id === player || p.isDead) {
                 return
             }
             let dist = this.computeDistance(player, p.player.id)

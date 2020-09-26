@@ -4078,7 +4078,7 @@ class GameContext {
     findingNearestNeighbors(player) {
         let min = Infinity, targets = [];
         this.playerInfos.forEach(p => {
-            if (p.player.id === player) {
+            if (p.player.id === player || p.isDead) {
                 return;
             }
             let dist = this.computeDistance(player, p.player.id);
@@ -8345,6 +8345,9 @@ class LuanWu extends Skill_1.Skill {
             manager.broadcast(act.source, PlayerInfo_1.PlayerInfo.sanitize);
             let toAsk = manager.getSortedByCurr(false);
             for (let t of toAsk) {
+                if (t.isDead) {
+                    continue;
+                }
                 let valid = manager.context.findingNearestNeighbors(t.player.id);
                 console.log(`【乱武】离${t}最近的邻居为${valid}`);
                 valid = valid.filter(p => {
