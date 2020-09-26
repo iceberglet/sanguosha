@@ -1,9 +1,11 @@
 import { CardType } from "../../common/cards/Card"
 
+const images = []
 function preloadCard(...types: CardType[]) {
     types.forEach(p => {
         let image = new Image()
         image.src = window.location + '/cards/' + p.id + '.png'
+        images.push(image)
     })
 }
 

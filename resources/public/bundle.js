@@ -2178,10 +2178,12 @@ class FactionSelector {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
+const images = [];
 function preloadCard(...types) {
     types.forEach(p => {
         let image = new Image();
         image.src = window.location + '/cards/' + p.id + '.png';
+        images.push(image);
     });
 }
 console.log('Setting up Preloader!');
