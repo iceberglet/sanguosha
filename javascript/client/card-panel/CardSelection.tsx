@@ -39,7 +39,7 @@ export default function CardSelection (p: Prop) {
                     p.rowsOfCard[rowName].map((c: Card, i: number) => {
                         let idx = chosen.findIndex(ri => ri[0]===rowName && ri[1]===i)
                         return <div className='card-wrapper' key={i}>
-                            <UICard card={c} isShown={true} elementStatus={idx > -1? ElementStatus.SELECTED : ElementStatus.UNSELECTED} 
+                            <UICard card={c} isShown={true} elementStatus={idx > -1? ElementStatus.SELECTED : ElementStatus.UNSELECTED} nodescript={true}
                                     onMouseClick={()=>setChosen(arr => {
                                         if(idx > -1) {
                                             arr.splice(idx, 1)

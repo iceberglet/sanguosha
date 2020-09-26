@@ -161,7 +161,7 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
                 }
                 return <div className='ui-card-wrapper' style={myStyle} key={c.card.id} >
                     <UICard key={c.card.id} card={c.card} isShown={isShown} onPos={this.settingRef}
-                                    elementStatus={status} nodescript={true}
+                                    elementStatus={status} nodescript={true} noAs={true}
                                     onMouseLeave={()=>{if(hover===i){this.setState({hover: -1})}}}
                                     onMouseEnter={()=>this.setState({hover: i})}
                                     onMouseClick={(cc)=>status.isSelectable && checker.onClicked(cc.id)}/>

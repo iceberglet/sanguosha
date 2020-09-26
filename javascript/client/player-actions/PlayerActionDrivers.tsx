@@ -256,15 +256,6 @@ export function registerPeachPlayHand(peachStepper: (definer: PlayerActionDriver
 }
 
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
-    return new PlayerActionDriverDefiner('出牌阶段喝酒')
-            .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
-                return hint.roundStat.customData[WINE_TAKEN] && context.interpret(id).type === CardType.WINE
-            })
-            .expectAnyButton('点击确定喝酒')
-            .build(hint)
-})
-
-playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段穿戴装备')
             .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>{
                 return context.myself.hp < context.myself.maxHp && context.interpret(id).type.isEquipment()

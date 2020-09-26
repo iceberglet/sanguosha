@@ -292,7 +292,7 @@ export class WanSha extends SimpleConditionalSkill<AskSavingAround> {
 
     public async doInvoke(event: AskSavingAround, manager: GameManager): Promise<void> {
         this.invokeEffects(manager, [event.deadman.player.id])
-        event.toAsk.filter(p => p.player.id === this.playerId || p.player.id === event.deadman.player.id)
+        event.toAsk = event.toAsk.filter(p => p.player.id === this.playerId || p.player.id === event.deadman.player.id)
     }
 }
 
@@ -851,7 +851,7 @@ export class SuiShi extends Skill {
 export class SuiShiDying extends SimpleTrigger<EnterDyingEvent> {
 
     conditionFulfilled(event: EnterDyingEvent, manager: GameManager): boolean {
-        if(event.damage.target.player.id !== this.skill.playerId && event.damage.source) {
+        if(event.damage.target.player.id !== this.skill.playerId && event.damage.source && event.damage.type !== DamageType.ENERGY) {
             let hisFac = event.damage.source.getFaction()
             let meFac = this.player.getFaction()
             return factionsSame(hisFac, meFac)

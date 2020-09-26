@@ -650,7 +650,7 @@ export class TianXiang extends SimpleConditionalSkill<DamageOp> {
             return new PlayerActionDriverDefiner('天香')
                         .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>context.interpret(id).suit === 'heart', ()=>'选择一张红桃手牌')
                         .expectChoose([UIPosition.PLAYER], 1, 1, (id)=>id !== this.playerId, ()=>'(天香)选择一名其他角色')
-                        .expectAnyButton('选择一项')
+                        .expectAnyButton(`选择发动天香令其...`)
                         .build(hint, [])
         })
     }
@@ -969,7 +969,7 @@ export class FenMing extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
-        let targets = manager.getSortedByCurr(true).filter(p => p.hasOwnCards())
+        let targets = manager.getSortedByCurr(true).filter(p => p.hasOwnCards() && p.isChained)
         this.invokeEffects(manager, targets.map(t => t.player.id))
         for(let t of targets) {
             await new DropOthersCardRequest().perform(manager, event.info, t, `(奋命)弃置${t}一张牌`, [CardPos.HAND, CardPos.EQUIP])

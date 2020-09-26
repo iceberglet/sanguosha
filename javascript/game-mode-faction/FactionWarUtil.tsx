@@ -78,7 +78,7 @@ export async function askAbandonBasicCard(manager: GameManager, target: PlayerIn
     if(resp.isCancel()) {
         return false
     }
-    await resp.dropCardsFromSource(this.playerId + ' 弃置')
+    await resp.dropCardsFromSource(target + ' 弃置')
     return true
 }
 

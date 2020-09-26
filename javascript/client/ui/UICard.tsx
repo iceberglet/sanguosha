@@ -26,6 +26,7 @@ type CardProp = {
     elementStatus: ElementStatus
     className?: string
     nodescript?: boolean
+    noAs?: boolean
 }
 
 export function UICardHolder() {
@@ -48,7 +49,7 @@ export default function UICard(prop: CardProp) {
         }
     }, [])
 
-    let {elementStatus, card, isShown, nodescript} = prop
+    let {elementStatus, card, isShown, nodescript, noAs} = prop
     let clazz = new ClassFormatter('ui-card ' + prop.className)
                 .and(elementStatus.isSelectable, 'selectable')
                 .and(elementStatus === ElementStatus.SELECTED, 'selected')
@@ -79,7 +80,7 @@ export default function UICard(prop: CardProp) {
             </div>
             <div className={'suit ' + card.suit}>{Suits[card.suit]}</div>
         </div>
-        {!nodescript && card.as && <div className='as center'>{card.as.name}</div>}
+        {!noAs && card.as && <div className='as center'>{card.as.name}</div>}
         {!nodescript && card.description && <div className='description'>{card.description}</div>}
     </div>)
 }

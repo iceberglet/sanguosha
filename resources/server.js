@@ -174,7 +174,7 @@ function CardSelection(p) {
                 React.createElement("div", { className: 'row-of-cards' }, p.rowsOfCard[rowName].map((c, i) => {
                     let idx = chosen.findIndex(ri => ri[0] === rowName && ri[1] === i);
                     return React.createElement("div", { className: 'card-wrapper', key: i },
-                        React.createElement(UICard_1.default, { card: c, isShown: true, elementStatus: idx > -1 ? UIBoard_1.ElementStatus.SELECTED : UIBoard_1.ElementStatus.UNSELECTED, onMouseClick: () => setChosen(arr => {
+                        React.createElement(UICard_1.default, { card: c, isShown: true, elementStatus: idx > -1 ? UIBoard_1.ElementStatus.SELECTED : UIBoard_1.ElementStatus.UNSELECTED, nodescript: true, onMouseClick: () => setChosen(arr => {
                                 if (idx > -1) {
                                     arr.splice(idx, 1);
                                 }
@@ -381,7 +381,7 @@ const GeneralUI_1 = __webpack_require__(/*! ./GeneralUI */ "./javascript/client/
 function DisplayPanel(p) {
     let toDisplay = p.items.map((item, idx) => {
         if (p.mode === 'card')
-            return React.createElement(UICard_1.default, { card: item, key: idx, isShown: true, elementStatus: UIBoard_1.ElementStatus.NORMAL });
+            return React.createElement(UICard_1.default, { card: item, key: idx, isShown: true, elementStatus: UIBoard_1.ElementStatus.NORMAL, nodescript: true });
         return React.createElement(GeneralUI_1.default, { key: idx, general: item });
     });
     let style = p.mode === 'general' ? {
@@ -1622,14 +1622,6 @@ function registerPeachPlayHand(peachStepper) {
 }
 exports.registerPeachPlayHand = registerPeachPlayHand;
 PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
-    return new PlayerActionDriverDefiner_1.default('出牌阶段喝酒')
-        .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => {
-        return hint.roundStat.customData[RoundStat_1.WINE_TAKEN] && context.interpret(id).type === Card_1.CardType.WINE;
-    })
-        .expectAnyButton('点击确定喝酒')
-        .build(hint);
-});
-PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
     return new PlayerActionDriverDefiner_1.default('出牌阶段穿戴装备')
         .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => {
         return context.myself.hp < context.myself.maxHp && context.interpret(id).type.isEquipment();
@@ -2256,7 +2248,7 @@ function UICard(prop) {
             prop.onPos && prop.onPos(prop.card.id, null);
         };
     }, []);
-    let { elementStatus, card, isShown, nodescript } = prop;
+    let { elementStatus, card, isShown, nodescript, noAs } = prop;
     let clazz = new Togglable_1.ClassFormatter('ui-card ' + prop.className)
         .and(elementStatus.isSelectable, 'selectable')
         .and(elementStatus === UIBoard_1.ElementStatus.SELECTED, 'selected')
@@ -2272,7 +2264,7 @@ function UICard(prop) {
         React.createElement("div", { className: 'top-left-container' },
             React.createElement("div", { className: 'number ' + card.suit }, card.size.symbol),
             React.createElement("div", { className: 'suit ' + card.suit }, Util_1.Suits[card.suit])),
-        !nodescript && card.as && React.createElement("div", { className: 'as center' }, card.as.name),
+        !noAs && card.as && React.createElement("div", { className: 'as center' }, card.as.name),
         !nodescript && card.description && React.createElement("div", { className: 'description' }, card.description)));
 }
 exports.default = UICard;
@@ -2432,7 +2424,7 @@ class UICardRow extends React.Component {
                 myStyle.transitionDuration = c.animDuration + 'ms';
             }
             return React.createElement("div", { className: 'ui-card-wrapper', style: myStyle, key: c.card.id },
-                React.createElement(UICard_1.default, { key: c.card.id, card: c.card, isShown: isShown, onPos: this.settingRef, elementStatus: status, nodescript: true, onMouseLeave: () => { if (hover === i) {
+                React.createElement(UICard_1.default, { key: c.card.id, card: c.card, isShown: isShown, onPos: this.settingRef, elementStatus: status, nodescript: true, noAs: true, onMouseLeave: () => { if (hover === i) {
                         this.setState({ hover: -1 });
                     } }, onMouseEnter: () => this.setState({ hover: i }), onMouseClick: (cc) => status.isSelectable && checker.onClicked(cc.id) }));
         }));
@@ -5319,11 +5311,11 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         let main = this.general ? this.general.name : '主将';
         let sub = this.subGeneral ? this.subGeneral.name : '副将';
         return [React.createElement("div", { className: clazz, key: 'pics' },
-                GeneralUI_1.wrapGeneral(this.general, React.createElement("div", { className: 'general', style: { letterSpacing: main.length > 2 ? '-4px' : '0px' } },
+                GeneralUI_1.wrapGeneral(this.general, React.createElement("div", { className: 'general', style: { letterSpacing: main.length > 2 ? '-2px' : '0px' } },
                     this.renderGeneral(this.general, false),
                     React.createElement("div", { className: 'general-name' }, main),
                     this.drawMark(this.mainMark))),
-                GeneralUI_1.wrapGeneral(this.subGeneral, React.createElement("div", { className: 'general', style: { letterSpacing: sub.length > 2 ? '-4px' : '0px' } },
+                GeneralUI_1.wrapGeneral(this.subGeneral, React.createElement("div", { className: 'general', style: { letterSpacing: sub.length > 2 ? '-2px' : '0px' } },
                     this.renderGeneral(this.subGeneral, false),
                     React.createElement("div", { className: 'general-name' }, sub),
                     this.drawMark(this.subMark))),
@@ -6529,8 +6521,8 @@ doAdd('forest_sun_jian', -120, -80, 240, 240, -140, -70, 250, 250);
 doAdd('wind_xiao_qiao', -50, 0, 150, 150, -100, -0, 200, 200);
 doAdd('fire_tai_shi_ci', -65, -40, 170, 170, -80, -50, 170, 170);
 doAdd('wind_zhou_tai', -55, -20, 170, 170, -80, -20, 170, 170);
-doAdd('forest_lu_su', -55, -20, 170, 170, -80, -20, 170, 170);
-doAdd('mountain_er_zhang', -55, -20, 150, 150, -40, -70, 170, 170);
+doAdd('forest_lu_su', -70, -20, 170, 170, -80, -20, 170, 170);
+doAdd('mountain_er_zhang', -35, -20, 150, 150, -40, -70, 170, 170);
 doAdd('guo_ding_feng', -25, -50, 150, 150, -40, -50, 170, 170);
 doAdd('standard_hua_tuo', -50, -5, 150, 150, -90, -10, 170, 170);
 doAdd('standard_lv_bu', -20, -25, 150, 150, -50, -20, 170, 170);
@@ -6613,7 +6605,7 @@ exports.default = FactionWarGeneral;
 FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', '士兵', General_1.Faction.UNKNOWN, 0);
 FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', '士兵', General_1.Faction.UNKNOWN, 0);
 //15
-FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2, '奸雄');
+FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2.5, '奸雄');
 FactionWarGeneral.si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', General_1.Faction.WEI, 1.5, '反馈', '鬼才');
 FactionWarGeneral.xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', General_1.Faction.WEI, 2, '刚烈');
 FactionWarGeneral.zhang_liao = new FactionWarGeneral('standard_zhang_liao', '张辽', General_1.Faction.WEI, 2, '突袭');
@@ -7192,7 +7184,7 @@ function askAbandonBasicCard(manager, target, msg, canCancel) {
         if (resp.isCancel()) {
             return false;
         }
-        yield resp.dropCardsFromSource(this.playerId + ' 弃置');
+        yield resp.dropCardsFromSource(target + ' 弃置');
         return true;
     });
 }
@@ -7555,7 +7547,7 @@ class WanSha extends Skill_1.SimpleConditionalSkill {
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             this.invokeEffects(manager, [event.deadman.player.id]);
-            event.toAsk.filter(p => p.player.id === this.playerId || p.player.id === event.deadman.player.id);
+            event.toAsk = event.toAsk.filter(p => p.player.id === this.playerId || p.player.id === event.deadman.player.id);
         });
     }
 }
@@ -8135,7 +8127,7 @@ class SuiShi extends Skill_1.Skill {
 exports.SuiShi = SuiShi;
 class SuiShiDying extends Skill_1.SimpleTrigger {
     conditionFulfilled(event, manager) {
-        if (event.damage.target.player.id !== this.skill.playerId && event.damage.source) {
+        if (event.damage.target.player.id !== this.skill.playerId && event.damage.source && event.damage.type !== DamageOp_1.DamageType.ENERGY) {
             let hisFac = event.damage.source.getFaction();
             let meFac = this.player.getFaction();
             return General_1.factionsSame(hisFac, meFac);
@@ -9055,7 +9047,6 @@ class KanPo extends Skill_1.Skill {
         this.id = '看破';
         this.displayName = '看破';
         this.description = '你可以将一张黑色手牌当【无懈可击】使用。'; //'出牌阶段，你可以明置此武将牌。'
-        this.hiddenType = Skill_1.HiddenType.NONE;
         this.canStillProcess = (manager) => {
             return manager.context.getPlayer(this.playerId)
                 .getCards(CardPos_1.CardPos.HAND)
@@ -9073,6 +9064,7 @@ class KanPo extends Skill_1.Skill {
             yield manager.events.publish(new Generic_1.CardBeingUsedEvent(resp.source.player.id, [[card, CardPos_1.CardPos.HAND]], card.type, true));
         });
     }
+    // hiddenType = HiddenType.FOREWARNABLE
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.WU_XIE, (hint) => {
             return new PlayerActionDriverDefiner_1.default('看破')
@@ -11517,7 +11509,7 @@ class TianXiang extends Skill_1.SimpleConditionalSkill {
             return new PlayerActionDriverDefiner_1.default('天香')
                 .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).suit === 'heart', () => '选择一张红桃手牌')
                 .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id) => id !== this.playerId, () => '(天香)选择一名其他角色')
-                .expectAnyButton('选择一项')
+                .expectAnyButton(`选择发动天香令其...`)
                 .build(hint, []);
         });
     }
@@ -11839,7 +11831,7 @@ class FenMing extends Skill_1.SimpleConditionalSkill {
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            let targets = manager.getSortedByCurr(true).filter(p => p.hasOwnCards());
+            let targets = manager.getSortedByCurr(true).filter(p => p.hasOwnCards() && p.isChained);
             this.invokeEffects(manager, targets.map(t => t.player.id));
             for (let t of targets) {
                 yield new DropCardOp_1.DropOthersCardRequest().perform(manager, event.info, t, `(奋命)弃置${t}一张牌`, [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP]);

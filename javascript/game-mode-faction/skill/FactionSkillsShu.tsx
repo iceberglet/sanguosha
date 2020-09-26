@@ -549,7 +549,7 @@ export class KanPo extends Skill {
     id = '看破'
     displayName = '看破'
     description = '你可以将一张黑色手牌当【无懈可击】使用。'//'出牌阶段，你可以明置此武将牌。'
-    hiddenType = HiddenType.NONE
+    // hiddenType = HiddenType.FOREWARNABLE
     
     bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.WU_XIE, (hint)=>{

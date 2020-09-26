@@ -20,7 +20,7 @@ export default function DisplayPanel (p: Prop) {
 
     let toDisplay = p.items.map((item: Card | General, idx) => {
         if(p.mode === 'card')
-            return <UICard card={item as Card} key={idx} isShown={true} elementStatus={ElementStatus.NORMAL} />
+            return <UICard card={item as Card} key={idx} isShown={true} elementStatus={ElementStatus.NORMAL} nodescript={true}/>
         return <GeneralUI key={idx} general={item as FactionWarGeneral}/>
     })
 
