@@ -5591,7 +5591,9 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
                 let skill = yield this.getSkillAndRevealIfNeeded(act, manager);
                 yield skill.onPlayerAction(act, event, manager);
             }
-            throw 'what?';
+            else {
+                throw 'what?';
+            }
         });
     }
     onSignAction(act, event, manager) {

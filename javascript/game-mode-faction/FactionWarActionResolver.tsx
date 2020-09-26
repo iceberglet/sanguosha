@@ -45,8 +45,9 @@ export default class FactionWarActionResolver extends ActionResolver {
             //武将技能
             let skill = await this.getSkillAndRevealIfNeeded(act, manager)
             await skill.onPlayerAction(act, event, manager)
+        } else {
+            throw 'what?'
         }
-        throw 'what?'
     }
     
     public async onSignAction(act: PlayerAct, event: AskSavingOp, manager: GameManager): Promise<void> {
