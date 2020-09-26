@@ -11,7 +11,7 @@ import { HintType } from "../common/ServerHint";
 import { MultiRuse } from "../server/engine/MultiRuseOp";
 import { PlayerInfo } from "../common/PlayerInfo";
 import { DropCardRequest } from "../server/engine/DropCardOp";
-import { Faction } from "../common/General";
+import { Faction, factionsSame } from "../common/General";
 import { EquipOp } from "../server/engine/EquipOp";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import { Skill } from "./skill/Skill";
@@ -214,15 +214,10 @@ export class YiYiDaiLao extends MultiRuse {
 
 
     public static async do(cards: Card[], player: PlayerInfo, manager: GameManager) {
-        if(player.getFaction() === Faction.UNKNOWN || player.getFaction() === Faction.YE) {
-            //just yourself
-            await new YiYiDaiLao(cards, player, CardType.YI_YI, [player]).perform(manager)
-        } else {
-            let impact = manager.getSortedByCurr(false).filter(p => {
-                player.getFaction().name === p.getFaction().name
-            })
-            await new YiYiDaiLao(cards, player, CardType.YI_YI, [player, ...impact]).perform(manager)
-        }
+        let impact = manager.getSortedByCurr(false).filter(p => {
+            return factionsSame(player.getFaction(), p.getFaction())
+        })
+        await new YiYiDaiLao(cards, player, CardType.YI_YI, [player, ...impact]).perform(manager)
     }
 
     public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {

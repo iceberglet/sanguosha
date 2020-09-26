@@ -112,11 +112,11 @@ export default class FactionWarGameHoster implements GameHoster {
         if(!this.statsCollector) {
             this.statsCollector = new GameStatsCollector(this.circus.statuses.map(s => s.player))
         }
-        let context = new GameServerContext(this.circus.statuses.map(s => {
+        let context = new GameServerContext(shuffle(this.circus.statuses.map(s => {
                                                 let info = new FactionPlayerInfo(s.player, s.chosenGeneral, s.chosenSubGeneral)
                                                 info.init()
                                                 return info
-                                            }), 
+                                            })), 
                                             myMode, 
                                             (size)=>{
                                                 this.manager.setDeckRemain(size)

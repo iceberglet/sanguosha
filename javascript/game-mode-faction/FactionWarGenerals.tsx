@@ -40,7 +40,7 @@ export default class FactionWarGeneral extends General {
 
     //16
     public static liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', Faction.SHU, 2, '仁德')  
-    public static guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', Faction.SHU, 2, '武圣')
+    public static guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', Faction.SHU, 2.5, '武圣')
     public static zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', Faction.SHU, 2, '咆哮')
     public static zhao_yun = new FactionWarGeneral('standard_zhao_yun', '赵云', Faction.SHU, 2, '龙胆')
     public static ma_chao = new FactionWarGeneral('standard_ma_chao', '马超', Faction.SHU, 2, '马术', '铁骑')
@@ -89,6 +89,12 @@ export default class FactionWarGeneral extends General {
     public static li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', Faction.QUN, 2, '凶算')
     public static ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', Faction.QUN, 1.5, '矢北', '渐营')
     public static xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', Faction.QUN, 1.5, '锋略', '谋识')
+
+
+
+
+
+
     
     // public static zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', Faction.SHU, 1.5, '观星', '空城')
     // public static zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', Faction.WU, 2, '不屈', '奋激')

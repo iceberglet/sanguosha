@@ -6499,16 +6499,10 @@ exports.default = FactionWarActionResolver;
 class YiYiDaiLao extends MultiRuseOp_1.MultiRuse {
     static do(cards, player, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (player.getFaction() === General_1.Faction.UNKNOWN || player.getFaction() === General_1.Faction.YE) {
-                //just yourself
-                yield new YiYiDaiLao(cards, player, Card_1.CardType.YI_YI, [player]).perform(manager);
-            }
-            else {
-                let impact = manager.getSortedByCurr(false).filter(p => {
-                    player.getFaction().name === p.getFaction().name;
-                });
-                yield new YiYiDaiLao(cards, player, Card_1.CardType.YI_YI, [player, ...impact]).perform(manager);
-            }
+            let impact = manager.getSortedByCurr(false).filter(p => {
+                return General_1.factionsSame(player.getFaction(), p.getFaction());
+            });
+            yield new YiYiDaiLao(cards, player, Card_1.CardType.YI_YI, [player, ...impact]).perform(manager);
         });
     }
     doForOne(target, manager) {
@@ -7105,11 +7099,11 @@ class FactionWarGameHoster {
         if (!this.statsCollector) {
             this.statsCollector = new GameStatsCollector_1.default(this.circus.statuses.map(s => s.player));
         }
-        let context = new GameServerContext_1.default(this.circus.statuses.map(s => {
+        let context = new GameServerContext_1.default(Util_1.shuffle(this.circus.statuses.map(s => {
             let info = new FactionPlayerInfo_1.default(s.player, s.chosenGeneral, s.chosenSubGeneral);
             info.init();
             return info;
-        }), myMode, (size) => {
+        })), myMode, (size) => {
             this.manager.setDeckRemain(size);
         });
         this.initializer = new FactionWarInitializer_1.default();
@@ -7372,7 +7366,7 @@ FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃'
 // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
 //16
 FactionWarGeneral.liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', General_1.Faction.SHU, 2, '仁德');
-FactionWarGeneral.guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', General_1.Faction.SHU, 2, '武圣');
+FactionWarGeneral.guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', General_1.Faction.SHU, 2.5, '武圣');
 FactionWarGeneral.zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', General_1.Faction.SHU, 2, '咆哮');
 FactionWarGeneral.zhao_yun = new FactionWarGeneral('standard_zhao_yun', '赵云', General_1.Faction.SHU, 2, '龙胆');
 FactionWarGeneral.ma_chao = new FactionWarGeneral('standard_ma_chao', '马超', General_1.Faction.SHU, 2, '马术', '铁骑');
@@ -16907,12 +16901,6 @@ class MultiRuse extends Operation_1.UseEventOperation {
                     continue;
                 }
                 yield this.beforeWuXie(manager, t);
-                // this.skipThisRound = false
-                // await manager.events.publish(this)
-                // if(this.skipThisRound) {
-                //     console.log(`[MultiRuseOp] ${this.ruseType.name} 跳过对 ${t.player.id} 的结算`)
-                //     continue //帷幕, 祸首, 等等
-                // }
                 if (yield context.doOneRound(t)) {
                     console.log(`[MultiRuseOp] 针对${t.player.id}的锦囊牌被无懈掉了了`);
                     continue;
@@ -17223,7 +17211,6 @@ class JueDou extends SingleRuse {
                 let slashed = yield new SlashOp_1.AskForSlashOp(curr, issuer, msg, amount).perform(manager);
                 if (!slashed) {
                     console.log('玩家决斗放弃出杀, 掉血');
-                    yield manager.events.publish(this);
                     yield new DamageOp_1.default(issuer, curr, this.damage, this.cards, DamageOp_1.DamageSource.DUEL, DamageOp_1.DamageType.NORMAL).perform(manager);
                     break;
                 }
@@ -17535,7 +17522,7 @@ class SlashOP extends Operation_1.Operation {
     }
     perform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            manager.events.publish(this);
+            yield manager.events.publish(this);
             //醒酒
             if (this.source.isDrunk) {
                 this.damageAmount += 1;

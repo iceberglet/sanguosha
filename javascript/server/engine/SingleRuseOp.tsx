@@ -83,7 +83,6 @@ export class JueDou extends SingleRuse<void> {
             let slashed = await new AskForSlashOp(curr, issuer, msg, amount).perform(manager)
             if(!slashed) {
                 console.log('玩家决斗放弃出杀, 掉血')
-                await manager.events.publish(this)
                 await new DamageOp(issuer, curr, this.damage, this.cards, DamageSource.DUEL, DamageType.NORMAL).perform(manager)
                 break
             } else {

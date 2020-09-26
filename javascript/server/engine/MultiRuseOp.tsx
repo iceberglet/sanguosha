@@ -44,12 +44,6 @@ export abstract class MultiRuse extends UseEventOperation<void> {
             }
 
             await this.beforeWuXie(manager, t)
-            // this.skipThisRound = false
-            // await manager.events.publish(this)
-            // if(this.skipThisRound) {
-            //     console.log(`[MultiRuseOp] ${this.ruseType.name} 跳过对 ${t.player.id} 的结算`)
-            //     continue //帷幕, 祸首, 等等
-            // }
 
             if(await context.doOneRound(t)) {
                 console.log(`[MultiRuseOp] 针对${t.player.id}的锦囊牌被无懈掉了了`)
