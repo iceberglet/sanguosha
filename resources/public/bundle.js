@@ -14152,6 +14152,7 @@ class GameManager {
             console.log(`[Game Manager] Enter ${info.player.id} ${stage.name} 场上卡牌数 ${this.countAllCards()}`);
             this.checkDeath();
             yield new StageFlows_1.StageStartFlow(info, stage).perform(this);
+            this.checkDeath();
             if (!this.roundStats.skipStages.get(stage)) {
                 this.setPlayerAndStage(this.currPlayer().player.id, stage);
                 this.broadcast(this.currEffect);
@@ -14159,6 +14160,7 @@ class GameManager {
                     yield midProcessor();
                 }
             }
+            this.checkDeath();
             yield new StageFlows_1.StageEndFlow(info, stage).perform(this);
             this.context.dropWorkflowCards();
             console.log(`[Game Manager] Leave ${info.player.id} ${stage.name}`);
