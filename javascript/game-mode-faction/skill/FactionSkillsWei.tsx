@@ -19,7 +19,7 @@ import Card, { CardType, cleanDescription } from "../../common/cards/Card";
 import { SlashCompute, SlashOP } from "../../server/engine/SlashOp";
 import { EquipOp } from "../../server/engine/EquipOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
-import DeathOp from "../../server/engine/DeathOp";
+import DeathOp, { DeathTimeline } from "../../server/engine/DeathOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import PlayerAct from "../../server/context/PlayerAct";
 import CardFightOp from "../../server/engine/CardFightOp";
@@ -275,7 +275,7 @@ export class LuoYi extends SimpleConditionalSkill<TakeCardStageOp> {
 
     endEffect = async (stageEnd: StageEndFlow): Promise<void> => {
         console.log('某人的回合结束了')
-        if(stageEnd.stage === Stage.ROUND_END && stageEnd.info.player.id === this.playerId) {
+        if(stageEnd.isFor(this.playerId, Stage.ROUND_END)) {
             console.log('[裸衣] 穿回去...')
             this.isTriggered = false
         }
@@ -646,7 +646,7 @@ export class XingShang extends SimpleConditionalSkill<DeathOp> {
     }
 
     public conditionFulfilled(event: DeathOp, manager: GameManager): boolean {
-        return event.deceased.player.id !== this.id
+        return event.deceased.player.id !== this.id && event.timeline === DeathTimeline.IN_DEATH
     }
 
     public invokeMsg(event: DeathOp): string {
@@ -657,15 +657,16 @@ export class XingShang extends SimpleConditionalSkill<DeathOp> {
         this.playSound(manager, 2)
         manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
+
         let hand: Card[] = [], equip: Card[] = []
-        event.toDrop.forEach(d => {
+        event.deceased.getAllCards().forEach(d => {
             if(d[1] === CardPos.HAND){
                 hand.push(d[0])
             } else if(d[1] === CardPos.EQUIP){
                 equip.push(d[0])
             }
         })
-        event.toDrop = event.toDrop.filter(d => d[1] !== CardPos.HAND && d[1] !== CardPos.EQUIP)
+
         if(hand.length > 0) {
             console.log('[行殇] 行殇拿手牌...', hand.length)
             await manager.transferCards(event.deceased.player.id, this.playerId, CardPos.HAND, CardPos.HAND, hand)
@@ -674,7 +675,6 @@ export class XingShang extends SimpleConditionalSkill<DeathOp> {
             console.log('[行殇] 行殇拿装备牌...', equip.length)
             await manager.transferCards(event.deceased.player.id, this.playerId, CardPos.EQUIP, CardPos.HAND, equip)
         }
-        return
     }
 }
 

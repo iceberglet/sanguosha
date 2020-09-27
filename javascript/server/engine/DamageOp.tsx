@@ -148,10 +148,14 @@ export default class DamageOp extends Operation<void> {
         //https://sgs.fandom.com/zh/wiki/%E4%BA%8B%E4%BB%B6%E6%B5%81%E7%A8%8B%EF%BC%9A%E4%BC%A4%E5%AE%B3
         //遗计? 反馈? 刚烈?
         //注意死亡的角色不会触发技能
-        this.timeline = DamageTimeline.DID_DAMAGE
-        await manager.events.publish(this)
-        this.timeline = DamageTimeline.TAKEN_DAMAGE
-        await manager.events.publish(this)
+        if(!this.source.isDead) {
+            this.timeline = DamageTimeline.DID_DAMAGE
+            await manager.events.publish(this)
+        }
+        if(!this.target.isDead) {
+            this.timeline = DamageTimeline.TAKEN_DAMAGE
+            await manager.events.publish(this)
+        }
 
         //铁索连环
         if(isElemental(this.type) && wasChained && this.doChain) {

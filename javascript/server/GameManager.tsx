@@ -4,7 +4,7 @@ import { PlayerInfo } from "../common/PlayerInfo"
 import { PlayerDeadInHisRound } from "./Operation";
 import RoundStat from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
-import { ServerHint, HintType, Rescind } from "../common/ServerHint";
+import { ServerHint, HintType } from "../common/ServerHint";
 import { SequenceAwarePubSub, EventRegistry, GameEventListener, CompositeListener } from "../common/util/PubSub";
 import { Button } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
@@ -23,7 +23,6 @@ import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
 import { CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
 import PlayerAct from "./context/PlayerAct";
 import { Gender } from "../common/General";
-import { EventualDeath } from "./engine/DeathOp";
 
 
 //Manages the rounds
@@ -66,9 +65,6 @@ export default class GameManager {
 
         this.statsCollector.subscribeTo(adminRegistry)
         adminRegistry.onGeneral<CardBeingUsedEvent>(CardBeingUsedEvent, this.processCardEvent)
-        adminRegistry.onGeneral<EventualDeath>(EventualDeath, async (death) => {
-            skillRegistry.onPlayerDead(death.deceased.player.id)
-        })
     }
 
     processCardEvent = async (event: CardBeingUsedEvent): Promise<void> => {
@@ -115,6 +111,8 @@ export default class GameManager {
             } catch (err) {
                 if(err instanceof PlayerDeadInHisRound) {
                     console.log('Player died in his round. Proceeding to next player...')
+                    //为了发动戚乱尚需要最后来这么一下
+                    await this.events.publish(new StageEndFlow(this.currPlayer(), Stage.ROUND_END))
                     continue;
                 }
                 if(err instanceof GameEnding) {
@@ -133,7 +131,8 @@ export default class GameManager {
                     return this.context.playerInfos.map(p => p.player.id)
                 }
                 console.error(err)
-                throw err
+                //try continue
+                // throw err
             }
         }
     }
@@ -335,6 +334,7 @@ export default class GameManager {
 
     private async processUseCardStage() {
         while(true) {
+            this.checkDeath()
             let resp = await this.sendHint(this.currPlayer().player.id, {
                 hintType: HintType.PLAY_HAND,
                 hintMsg: '请出牌',
@@ -349,7 +349,7 @@ export default class GameManager {
             await this.resolver.on(resp, this)
         }
         if(this.currPlayer().isDrunk) {
-            //醒酒
+            //即使没出杀也需要醒酒
             this.currPlayer().isDrunk = false
             this.broadcast(this.currPlayer(), PlayerInfo.sanitize)
         }
@@ -361,6 +361,7 @@ export default class GameManager {
 
     private async processStage(info: PlayerInfo, stage: Stage, midProcessor: () => Promise<void> = null) {
         console.log(`[Game Manager] Enter ${info.player.id} ${stage.name} 场上卡牌数 ${this.countAllCards()}`)
+        this.checkDeath()
         await new StageStartFlow(info, stage).perform(this)
         if(!this.roundStats.skipStages.get(stage)) {
             this.setPlayerAndStage(this.currPlayer().player.id, stage)
@@ -372,6 +373,12 @@ export default class GameManager {
         await new StageEndFlow(info, stage).perform(this)
         this.context.dropWorkflowCards()
         console.log(`[Game Manager] Leave ${info.player.id} ${stage.name}`)
+    }
+
+    private checkDeath() {
+        if(this.currPlayer().isDead) {
+            throw new PlayerDeadInHisRound()
+        }
     }
 
     private goToNextPlayer() {

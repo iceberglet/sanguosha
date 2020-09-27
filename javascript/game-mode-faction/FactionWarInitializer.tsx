@@ -9,7 +9,7 @@ import { Button } from "../common/PlayerAction";
 import { StageStartFlow } from "../server/engine/StageFlows";
 import { Faction, factionsSame } from "../common/General";
 import { Stage } from "../common/Stage";
-import DeathOp from "../server/engine/DeathOp";
+import DeathOp, { DeathTimeline } from "../server/engine/DeathOp";
 import GameEnding from "../server/GameEnding";
 import TakeCardOp from "../server/engine/TakeCardOp";
 import initializeEquipments from "./FactionWarEquipmentInitializer";
@@ -121,18 +121,24 @@ export default class FactionWarInitializer implements Initializer {
         manager.adminRegistry.onGeneral<DeathOp>(DeathOp, async (death)=>{
             let deceased = death.deceased as FactionPlayerInfo
             let killer = death.killer as FactionPlayerInfo
-            if(!deceased.isRevealed()) {
-                console.log(`[牌局] ${deceased.player.id} 未亮明身份, 强行翻开`)
-                deceased.isDead = true
-                //亮明
-                deceased.isGeneralRevealed = true
-                deceased.isSubGeneralRevealed = true
-                this.computeFactionForPlayer(deceased, manager)
+            if(death.timeline === DeathTimeline.AFTER_REVEAL) {
+                if(!deceased.isRevealed()) {
+                    console.log(`[牌局] ${deceased.player.id} 未亮明身份, 强行翻开`)
+                    deceased.isDead = true
+                    //亮明
+                    deceased.isGeneralRevealed = true
+                    deceased.isSubGeneralRevealed = true
+                    this.computeFactionForPlayer(deceased, manager)
+                }
+                this.checkGameEndingCondition(manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id) as FactionPlayerInfo[], manager)
+                return
             }
 
-            this.checkGameEndingCondition(manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id) as FactionPlayerInfo[], manager)
+            if(death.timeline !== DeathTimeline.AFTER_DEATH) {
+                return
+            }
 
-            //奖惩
+            //执行奖惩
             if(!killer) {
                 console.log('[牌局] 天谴死亡, 不计奖惩...')
                 return

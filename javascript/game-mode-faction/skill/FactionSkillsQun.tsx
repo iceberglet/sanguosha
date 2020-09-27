@@ -28,7 +28,7 @@ import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
 import { DoTieSuo, MultiRuse, WanJian, NanMan, WuGu, TaoYuan } from "../../server/engine/MultiRuseOp";
 import { YiYiDaiLao, ZhiJiZhiBi, YuanJiao } from "../FactionWarActionResolver";
 import WineOp from "../../server/engine/WineOp";
-import DeathOp from "../../server/engine/DeathOp";
+import DeathOp, { DeathTimeline } from "../../server/engine/DeathOp";
 import { SkillForDamageTaken } from "./FactionSkillsWei";
 import {Faction} from '../../common/General'
 import DamageOp from "../../server/engine/DamageOp";
@@ -466,12 +466,15 @@ export class QiLuan extends SimpleConditionalSkill<StageEndFlow> {
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<StageEndFlow>(StageEndFlow, this)
-        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(op)=>{
-            if(op.stage === Stage.ROUND_BEGIN) {
-                this.bounty = 0
-            }
-        })
+        // skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(op)=>{
+        //     if(op.stage === Stage.ROUND_BEGIN) {
+        //         this.bounty = 0
+        //     }
+        // })
         skillRegistry.onEvent<DeathOp>(DeathOp, this.playerId, async(op)=>{
+            if(op.timeline !== DeathTimeline.BEFORE_REVEAL) {
+                return
+            }
             if(op.killer.player.id === this.playerId) {
                 this.bounty += 3
             } else {
@@ -873,7 +876,7 @@ export class SuiShiDying extends SimpleTrigger<EnterDyingEvent> {
 export class SuiShiDeath extends SimpleTrigger<DeathOp> {
     
     conditionFulfilled(event: DeathOp, manager: GameManager): boolean {
-        if(event.deceased.player.id !== this.skill.playerId) {
+        if(event.deceased.player.id !== this.skill.playerId && event.timeline === DeathTimeline.IN_DEATH) {
             let hisFac = event.deceased.getFaction()
             let meFac = this.player.getFaction()
             return factionsSame(hisFac, meFac)

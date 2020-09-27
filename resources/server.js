@@ -6849,16 +6849,22 @@ class FactionWarInitializer {
         manager.adminRegistry.onGeneral(DeathOp_1.default, (death) => __awaiter(this, void 0, void 0, function* () {
             let deceased = death.deceased;
             let killer = death.killer;
-            if (!deceased.isRevealed()) {
-                console.log(`[牌局] ${deceased.player.id} 未亮明身份, 强行翻开`);
-                deceased.isDead = true;
-                //亮明
-                deceased.isGeneralRevealed = true;
-                deceased.isSubGeneralRevealed = true;
-                this.computeFactionForPlayer(deceased, manager);
+            if (death.timeline === DeathOp_1.DeathTimeline.AFTER_REVEAL) {
+                if (!deceased.isRevealed()) {
+                    console.log(`[牌局] ${deceased.player.id} 未亮明身份, 强行翻开`);
+                    deceased.isDead = true;
+                    //亮明
+                    deceased.isGeneralRevealed = true;
+                    deceased.isSubGeneralRevealed = true;
+                    this.computeFactionForPlayer(deceased, manager);
+                }
+                this.checkGameEndingCondition(manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id), manager);
+                return;
             }
-            this.checkGameEndingCondition(manager.getSortedByCurr(true).filter(p => p.player.id !== deceased.player.id), manager);
-            //奖惩
+            if (death.timeline !== DeathOp_1.DeathTimeline.AFTER_DEATH) {
+                return;
+            }
+            //执行奖惩
             if (!killer) {
                 console.log('[牌局] 天谴死亡, 不计奖惩...');
                 return;
@@ -7718,12 +7724,15 @@ class QiLuan extends Skill_1.SimpleConditionalSkill {
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageEndFlow, this);
-        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (op) => __awaiter(this, void 0, void 0, function* () {
-            if (op.stage === Stage_1.Stage.ROUND_BEGIN) {
-                this.bounty = 0;
-            }
-        }));
+        // skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(op)=>{
+        //     if(op.stage === Stage.ROUND_BEGIN) {
+        //         this.bounty = 0
+        //     }
+        // })
         skillRegistry.onEvent(DeathOp_1.default, this.playerId, (op) => __awaiter(this, void 0, void 0, function* () {
+            if (op.timeline !== DeathOp_1.DeathTimeline.BEFORE_REVEAL) {
+                return;
+            }
             if (op.killer.player.id === this.playerId) {
                 this.bounty += 3;
             }
@@ -8147,7 +8156,7 @@ class SuiShiDying extends Skill_1.SimpleTrigger {
 exports.SuiShiDying = SuiShiDying;
 class SuiShiDeath extends Skill_1.SimpleTrigger {
     conditionFulfilled(event, manager) {
-        if (event.deceased.player.id !== this.skill.playerId) {
+        if (event.deceased.player.id !== this.skill.playerId && event.timeline === DeathOp_1.DeathTimeline.IN_DEATH) {
             let hisFac = event.deceased.getFaction();
             let meFac = this.player.getFaction();
             return General_1.factionsSame(hisFac, meFac);
@@ -9984,7 +9993,7 @@ class LuoYi extends Skill_1.SimpleConditionalSkill {
         });
         this.endEffect = (stageEnd) => __awaiter(this, void 0, void 0, function* () {
             console.log('某人的回合结束了');
-            if (stageEnd.stage === Stage_1.Stage.ROUND_END && stageEnd.info.player.id === this.playerId) {
+            if (stageEnd.isFor(this.playerId, Stage_1.Stage.ROUND_END)) {
                 console.log('[裸衣] 穿回去...');
                 this.isTriggered = false;
             }
@@ -10386,7 +10395,7 @@ class XingShang extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(DeathOp_1.default, this);
     }
     conditionFulfilled(event, manager) {
-        return event.deceased.player.id !== this.id;
+        return event.deceased.player.id !== this.id && event.timeline === DeathOp_1.DeathTimeline.IN_DEATH;
     }
     invokeMsg(event) {
         return `发动 ${this.displayName} 获得 ${event.deceased} 的所有手牌/装备牌`;
@@ -10397,7 +10406,7 @@ class XingShang extends Skill_1.SimpleConditionalSkill {
             manager.log(`${this.playerId} 发动了 ${this.displayName}`);
             manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, [], this.id));
             let hand = [], equip = [];
-            event.toDrop.forEach(d => {
+            event.deceased.getAllCards().forEach(d => {
                 if (d[1] === CardPos_1.CardPos.HAND) {
                     hand.push(d[0]);
                 }
@@ -10405,7 +10414,6 @@ class XingShang extends Skill_1.SimpleConditionalSkill {
                     equip.push(d[0]);
                 }
             });
-            event.toDrop = event.toDrop.filter(d => d[1] !== CardPos_1.CardPos.HAND && d[1] !== CardPos_1.CardPos.EQUIP);
             if (hand.length > 0) {
                 console.log('[行殇] 行殇拿手牌...', hand.length);
                 yield manager.transferCards(event.deceased.player.id, this.playerId, CardPos_1.CardPos.HAND, CardPos_1.CardPos.HAND, hand);
@@ -10414,7 +10422,6 @@ class XingShang extends Skill_1.SimpleConditionalSkill {
                 console.log('[行殇] 行殇拿装备牌...', equip.length);
                 yield manager.transferCards(event.deceased.player.id, this.playerId, CardPos_1.CardPos.EQUIP, CardPos_1.CardPos.HAND, equip);
             }
-            return;
         });
     }
 }
@@ -13092,7 +13099,6 @@ const DelayedRuseOp_1 = __webpack_require__(/*! ./engine/DelayedRuseOp */ "./jav
 const GameEnding_1 = __webpack_require__(/*! ./GameEnding */ "./javascript/server/GameEnding.tsx");
 const Generic_1 = __webpack_require__(/*! ./engine/Generic */ "./javascript/server/engine/Generic.tsx");
 const PlayerAct_1 = __webpack_require__(/*! ./context/PlayerAct */ "./javascript/server/context/PlayerAct.tsx");
-const DeathOp_1 = __webpack_require__(/*! ./engine/DeathOp */ "./javascript/server/engine/DeathOp.tsx");
 //Manages the rounds
 class GameManager {
     constructor(context, registry, resolver, statsCollector) {
@@ -13136,9 +13142,6 @@ class GameManager {
         this.events = new PubSub_1.CompositeListener([adminRegistry, skillRegistry, equipmentRegistry]);
         this.statsCollector.subscribeTo(adminRegistry);
         adminRegistry.onGeneral(Generic_1.CardBeingUsedEvent, this.processCardEvent);
-        adminRegistry.onGeneral(DeathOp_1.EventualDeath, (death) => __awaiter(this, void 0, void 0, function* () {
-            skillRegistry.onPlayerDead(death.deceased.player.id);
-        }));
     }
     playSound(gender, soundName) {
         //no gender -> defaults to male (for unrevealed players)
@@ -13171,6 +13174,8 @@ class GameManager {
                 catch (err) {
                     if (err instanceof Operation_1.PlayerDeadInHisRound) {
                         console.log('Player died in his round. Proceeding to next player...');
+                        //为了发动戚乱尚需要最后来这么一下
+                        yield this.events.publish(new StageFlows_1.StageEndFlow(this.currPlayer(), Stage_1.Stage.ROUND_END));
                         continue;
                     }
                     if (err instanceof GameEnding_1.default) {
@@ -13189,7 +13194,8 @@ class GameManager {
                         return this.context.playerInfos.map(p => p.player.id);
                     }
                     console.error(err);
-                    throw err;
+                    //try continue
+                    // throw err
                 }
             }
         });
@@ -13370,6 +13376,7 @@ class GameManager {
     processUseCardStage() {
         return __awaiter(this, void 0, void 0, function* () {
             while (true) {
+                this.checkDeath();
                 let resp = yield this.sendHint(this.currPlayer().player.id, {
                     hintType: ServerHint_1.HintType.PLAY_HAND,
                     hintMsg: '请出牌',
@@ -13384,7 +13391,7 @@ class GameManager {
                 yield this.resolver.on(resp, this);
             }
             if (this.currPlayer().isDrunk) {
-                //醒酒
+                //即使没出杀也需要醒酒
                 this.currPlayer().isDrunk = false;
                 this.broadcast(this.currPlayer(), PlayerInfo_1.PlayerInfo.sanitize);
             }
@@ -13398,6 +13405,7 @@ class GameManager {
     processStage(info, stage, midProcessor = null) {
         return __awaiter(this, void 0, void 0, function* () {
             console.log(`[Game Manager] Enter ${info.player.id} ${stage.name} 场上卡牌数 ${this.countAllCards()}`);
+            this.checkDeath();
             yield new StageFlows_1.StageStartFlow(info, stage).perform(this);
             if (!this.roundStats.skipStages.get(stage)) {
                 this.setPlayerAndStage(this.currPlayer().player.id, stage);
@@ -13410,6 +13418,11 @@ class GameManager {
             this.context.dropWorkflowCards();
             console.log(`[Game Manager] Leave ${info.player.id} ${stage.name}`);
         });
+    }
+    checkDeath() {
+        if (this.currPlayer().isDead) {
+            throw new Operation_1.PlayerDeadInHisRound();
+        }
     }
     goToNextPlayer() {
         do {
@@ -13456,7 +13469,7 @@ class GameStatsCollector {
         this.players = players;
         this.stats = new Map();
         this.onDeath = (deathOp) => __awaiter(this, void 0, void 0, function* () {
-            if (deathOp.killer) {
+            if (deathOp.killer && deathOp.timeline === DeathOp_1.DeathTimeline.BEFORE_REVEAL) {
                 this.stats.get(deathOp.killer.player.id).thisRound.kill += 1;
                 this.stats.get(deathOp.killer.player.id).kill += 1;
             }
@@ -14685,10 +14698,14 @@ class DamageOp extends Operation_1.Operation {
             //https://sgs.fandom.com/zh/wiki/%E4%BA%8B%E4%BB%B6%E6%B5%81%E7%A8%8B%EF%BC%9A%E4%BC%A4%E5%AE%B3
             //遗计? 反馈? 刚烈?
             //注意死亡的角色不会触发技能
-            this.timeline = DamageTimeline.DID_DAMAGE;
-            yield manager.events.publish(this);
-            this.timeline = DamageTimeline.TAKEN_DAMAGE;
-            yield manager.events.publish(this);
+            if (!this.source.isDead) {
+                this.timeline = DamageTimeline.DID_DAMAGE;
+                yield manager.events.publish(this);
+            }
+            if (!this.target.isDead) {
+                this.timeline = DamageTimeline.TAKEN_DAMAGE;
+                yield manager.events.publish(this);
+            }
             //铁索连环
             if (isElemental(this.type) && wasChained && this.doChain) {
                 let chained = manager.context.getRingFromPerspective(this.target.player.id, false).filter(p => p.isChained);
@@ -14728,8 +14745,27 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EventualDeath = void 0;
+exports.DeathTimeline = void 0;
 const Operation_1 = __webpack_require__(/*! ../Operation */ "./javascript/server/Operation.tsx");
+var DeathTimeline;
+(function (DeathTimeline) {
+    /**
+     * 显示身份前
+     */
+    DeathTimeline[DeathTimeline["BEFORE_REVEAL"] = 0] = "BEFORE_REVEAL";
+    /**
+     * 显示身份后
+     */
+    DeathTimeline[DeathTimeline["AFTER_REVEAL"] = 1] = "AFTER_REVEAL";
+    /**
+     * 死亡时
+     */
+    DeathTimeline[DeathTimeline["IN_DEATH"] = 2] = "IN_DEATH";
+    /**
+     * 死亡后
+     */
+    DeathTimeline[DeathTimeline["AFTER_DEATH"] = 3] = "AFTER_DEATH";
+})(DeathTimeline = exports.DeathTimeline || (exports.DeathTimeline = {}));
 //this player is surely dead
 //will send event for processing
 class DeathOp extends Operation_1.Operation {
@@ -14738,38 +14774,35 @@ class DeathOp extends Operation_1.Operation {
         this.deceased = deceased;
         this.killer = killer;
         this.dmanageOp = dmanageOp;
-        this.toDrop = this.deceased.getAllCards();
+        this.timeline = DeathTimeline.BEFORE_REVEAL;
     }
     perform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            //行殇在此
             yield manager.events.publish(this);
-            //physically transfer everything
-            this.toDrop.forEach(cardAndPos => {
-                cardAndPos[0].description = `${this.deceased.player.id} 阵亡弃牌`;
-                manager.sendToWorkflow(this.deceased.player.id, cardAndPos[1], [cardAndPos[0]]);
-            });
             //show player death. no need to sanitize anymore
             this.deceased.declareDeath();
             manager.broadcast(this.deceased);
             manager.log(this.killer ? `${this.killer} 击杀了 ${this.deceased}` : `${this.deceased} 阵亡`);
-            if (manager.currPlayer().player.id === this.deceased.player.id) {
-                throw new Operation_1.PlayerDeadInHisRound();
-            }
-            yield manager.events.publish(new EventualDeath(this.deceased));
+            //检查是否满足游戏结束条件
+            this.timeline = DeathTimeline.AFTER_REVEAL;
+            yield manager.events.publish(this);
+            //行殇在此
+            this.timeline = DeathTimeline.IN_DEATH;
+            yield manager.events.publish(this);
+            //physically discard everything
+            this.deceased.getAllCards().forEach(cardAndPos => {
+                cardAndPos[0].description = `${this.deceased.player.id} 阵亡弃牌`;
+                manager.sendToWorkflow(this.deceased.player.id, cardAndPos[1], [cardAndPos[0]]);
+            });
+            //处理奖惩
+            this.timeline = DeathTimeline.AFTER_DEATH;
+            yield manager.events.publish(this);
+            //删除此武将的技能listeners
+            manager.skillRegistry.onPlayerDead(this.deceased.player.id);
         });
     }
 }
 exports.default = DeathOp;
-/**
- * Used for cleanup
- */
-class EventualDeath {
-    constructor(deceased) {
-        this.deceased = deceased;
-    }
-}
-exports.EventualDeath = EventualDeath;
 
 
 /***/ }),

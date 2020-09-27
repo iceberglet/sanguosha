@@ -1,6 +1,6 @@
 import { Serde } from "../common/util/Serializer";
 import { Player } from "../common/Player";
-import DeathOp from "./engine/DeathOp";
+import DeathOp, { DeathTimeline } from "./engine/DeathOp";
 import { SequenceAwarePubSub } from "../common/util/PubSub";
 import DamageOp, { DamageTimeline } from "./engine/DamageOp";
 import HealOp, { HealTimeline } from "./engine/HealOp";
@@ -53,7 +53,7 @@ export default class GameStatsCollector {
     }
 
     onDeath = async (deathOp: DeathOp) => {
-        if(deathOp.killer) {
+        if(deathOp.killer && deathOp.timeline === DeathTimeline.BEFORE_REVEAL) {
             this.stats.get(deathOp.killer.player.id).thisRound.kill += 1
             this.stats.get(deathOp.killer.player.id).kill += 1
         }
