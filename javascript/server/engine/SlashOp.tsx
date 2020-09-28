@@ -71,7 +71,11 @@ export default class PlaySlashOp extends Operation<void> {
         }
         
         manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), this.slashType.text))
-        manager.roundStats.slashCount++;
+
+        //借刀杀人的话是别人出杀跟我们无关
+        if(this.source === manager.currPlayer()) {
+            manager.roundStats.slashCount++;
+        }
 
         //todo: 
         // 可以无效化 (将自己从target中移除)
