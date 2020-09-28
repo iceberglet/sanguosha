@@ -13983,7 +13983,7 @@ class GameManager {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('[Game Manager] 开始发牌, 进入游戏!');
             //cards for everyone
-            yield Promise.all(this.context.playerInfos.map((p) => __awaiter(this, void 0, void 0, function* () { return yield new TakeCardOp_1.default(p, 14).perform(this); })));
+            yield Promise.all(this.context.playerInfos.map((p) => __awaiter(this, void 0, void 0, function* () { return yield new TakeCardOp_1.default(p, 4).perform(this); })));
             while (true) {
                 try {
                     yield this.doOneRound();
