@@ -68,7 +68,8 @@ export default class DodgeOp extends Operation<boolean> {
                     if(cards.length !== 1) {
                         throw `Player played dodge cards but not one card!!!! ${this.dodgeResp.source.player.id} ${cards}`
                     }
-                    manager.log(`${this.dodgeResp.source} 打出了 ${cards}`)            
+                    manager.log(`${this.dodgeResp.source} 打出了 ${cards}`)
+                    cards[0].description = `${this.dodgeResp.source} 打出`
                     manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [cards[0]])
                     await manager.events.publish(new CardBeingUsedEvent(this.dodgeResp.source.player.id, cards.map(c => [c, CardPos.HAND]), CardType.DODGE, false, false))
                 }

@@ -17,6 +17,22 @@
     align-items: center;
 }
 
+.ui-my-row-card-wrapper {
+    // transition-duration: 0.3s;
+    z-index: 2;
+    flex-grow: 1;
+    max-width: 115px;
+    margin: 6px;
+    margin-right: 0px;
+    width: 0px;
+    transition: width 0.3s;
+
+    &:hover {
+        //this will grow a bit
+        width: 40px;
+    }
+}
+
 .ui-card-wrapper {
     position: absolute;
     //this can be overriden by styling the individual cards

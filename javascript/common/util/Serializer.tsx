@@ -18,6 +18,7 @@ import { GameStats } from "../../server/GameStatsCollector"
 import { PlayerPrepChoice, Circus } from '../../game-mode-faction/FactionWarGameHoster'
 import { SkillStatus } from "../../game-mode-faction/skill/Skill"
 import Multimap from "./Multimap"
+import { CardPosChangeEvent, CardRearrangeRequest } from "../transit/CardPos"
 
 
 export type Payload = {
@@ -160,6 +161,7 @@ Serde.register(GameContext)
 Serde.register(PlayerInfo)
 Serde.register(CardType)
 Serde.register(Card)
+Serde.register(CardRearrangeRequest)
 Serde.register(FWCard)
 Serde.register(CardSize)
 Serde.register(IdentityWarGeneral)
@@ -222,5 +224,6 @@ Serde.register(Array, {
 Serde.register(GameStats)
 Serde.register(PlayerPrepChoice)
 Serde.register(Circus)
+Serde.register(CardPosChangeEvent)
 Serde.register(SkillStatus)
 Serde.register(PlaySound)

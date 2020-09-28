@@ -90,7 +90,7 @@ export default class GameManager {
     public async startGame(): Promise<string[]> {
         console.log('[Game Manager] 开始发牌, 进入游戏!')
         //cards for everyone
-        await Promise.all(this.context.playerInfos.map(async p => await new TakeCardOp(p, 4).perform(this)))
+        await Promise.all(this.context.playerInfos.map(async p => await new TakeCardOp(p, 14).perform(this)))
         
         while(true) {
             try {

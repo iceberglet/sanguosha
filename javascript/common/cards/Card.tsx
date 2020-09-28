@@ -155,6 +155,28 @@ export class CardType {
     }
 }
 
+export function cardSorter(a: Card, b: Card) {
+    return cardWeight(a) - cardWeight(b)
+}
+
+function cardWeight(icard: ICard) {
+    let weight = 0
+    if(icard.type.isRuse()) {
+        weight += 200
+    }
+    if(icard.type.isEquipment()) {
+        weight += 100
+    }
+    weight += icard.size.size * 4
+    switch(icard.suit) {
+        case 'heart': weight += 0
+        case 'spade': weight += 1
+        case 'diamond': weight += 2
+        case 'club': weight += 3
+    }
+    return weight
+}
+
 export function cleanDescription(...cards: Card[]) {
     cards.forEach(c => delete c.description)
 }

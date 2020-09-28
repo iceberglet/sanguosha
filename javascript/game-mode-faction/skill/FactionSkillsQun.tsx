@@ -779,7 +779,7 @@ export class LuanJi extends Skill {
                                 return true
                             }
                             return !prev.has(context.interpret(id).suit)
-                        })
+                        }, ()=>'(乱击)请选择两张手牌(不能使用本回合乱击用过的花色)')
                         .expectAnyButton('点击确定发动乱击')
                         .build(hint)
         })

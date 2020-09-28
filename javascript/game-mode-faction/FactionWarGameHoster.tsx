@@ -8,7 +8,7 @@ import { Player } from "../common/Player";
 import GameServerContext from "../server/context/GameServerContext";
 import FactionWarActionResolver from "./FactionWarActionResolver";
 import { GameModeEnum } from "../common/GameModeEnum";
-import { shuffle, flattenMap, delay } from "../common/util/Util";
+import { shuffle, flattenMap, delay, reorder } from "../common/util/Util";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { HintType, GeneralSelectionResult } from "../common/ServerHint";
 import GameStatsCollector from "../server/GameStatsCollector";
@@ -16,6 +16,9 @@ import { SequenceAwareSkillPubSub } from "./skill/SkillPubsub";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import { SkillStatus } from "./skill/Skill";
 import { Faction } from "../common/General";
+import { CardPos, CardPosChangeEvent, CardRearrangeRequest } from "../common/transit/CardPos";
+import { UIPosition } from "../common/PlayerAction";
+import { cardSorter } from "../common/cards/Card";
 
 const myMode = GameModeEnum.FactionWarGame
 const generalsToPickFrom = 7
@@ -31,6 +34,16 @@ export default class FactionWarGameHoster implements GameHoster {
 
     constructor(private registry: PlayerRegistry, private numberOfPlayer: number) {
         registry.pubsub.on<SkillStatus>(SkillStatus, this.onSkillStatusUpate)
+        registry.pubsub.on<CardPosChangeEvent>(CardPosChangeEvent, this.shiftCard)
+        registry.pubsub.on<CardRearrangeRequest>(CardRearrangeRequest, p => {
+            if(!this.manager) {
+                return
+            }
+            console.log('整理手牌: ', p.requester)
+            let player = this.manager.context.getPlayer(p.requester)
+            player.getCards(CardPos.HAND).sort(cardSorter)
+            this.manager.send(p.requester, player)
+        })
     }
 
     init(): void {
@@ -188,6 +201,14 @@ export default class FactionWarGameHoster implements GameHoster {
             choices.push(choice)
         }
         return choices
+    }
+
+    private shiftCard = (event: CardPosChangeEvent) => {
+        if(this.manager && event.pos === UIPosition.MY_HAND) {
+            console.log('Player shifting his cards', event.player)
+            let hand = this.manager.context.getPlayer(event.player).getCards(CardPos.HAND)
+            reorder(hand, event.from, event.to)
+        }
     }
 }
 

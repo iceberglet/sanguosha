@@ -24,6 +24,7 @@ import { SkillStatus } from '../../game-mode-faction/skill/Skill'
 import { UIRollingLogger, UILogger } from './UILogger'
 import { audioManager } from '../audio-manager/AudioManager'
 import RuleModal from './UIRuleModal'
+import { CardPos, CardRearrangeRequest } from '../../common/transit/CardPos'
 
 type UIBoardProp = {
     myId: string
@@ -108,7 +109,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                             return {
                                 skill,
                                 skillChecker, statusUpdater:(s)=>{
-                                    context.sendSkillStatus(s)
+                                    context.sendToServer(s)
                                 }
                             }
                         })
@@ -253,7 +254,9 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 <UIMyPlayerCard info={playerInfo} elementStatus={playerChecker.getStatus(myId)} 
                                 onSelect={(s)=>playerChecker.onClicked(s)} pubsub={pubsub} skillButtons={skillButtons}/>
                 <UIMyCards info={playerInfo} equipChecker={equipChecker} cardsChecker={cardsChecker} signsChecker={signsChecker}
-                            hideCards={hideCards} cardTransitManager={cardTransitManager}/>
+                            hideCards={hideCards} cardTransitManager={cardTransitManager} onCardsShifted={shift => {
+                                this.props.context.sendToServer(shift)
+                            }}/>
                 <div className='player-buttons'>
                     <div className='server-hint-msg'>{context.getMsg()}</div>
                     {context.getButtons().map(b => {

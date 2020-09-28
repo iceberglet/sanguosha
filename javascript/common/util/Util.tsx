@@ -108,6 +108,18 @@ export function any<T>(arr: Iterable<T>, predicate: (t: T)=>boolean) {
   return false
 }
 
+/**
+ * move item from fromIdx to toIdx
+ * @param list list
+ * @param fromIdx 
+ * @param toIdx 
+ */
+export function reorder<T>(list: Array<T>, fromIdx: number, toIdx: number): Array<T> {
+    const [removed] = list.splice(fromIdx, 1);
+    list.splice(toIdx, 0, removed);
+    return list
+};
+
 export function promiseAny<T>(iterable: Iterable<T | PromiseLike<T>>): Promise<T> {
   return Promise.all(
     [...iterable].map(promise => {

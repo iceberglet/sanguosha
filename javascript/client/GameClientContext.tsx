@@ -93,8 +93,8 @@ export default class GameClientContext extends GameContext {
         this.socket.send(Serde.serialize(new PlayerActionTransit(this.serverHint.hintId, action)))
     }
 
-    public sendSkillStatus(skillStatus: SkillStatus) {
-        console.warn('[Client] Submitting Skill Status To Server', skillStatus)
-        this.socket.send(Serde.serialize(skillStatus))
+    public sendToServer(obj: any) {
+        console.warn('[Client] Submitting Stuff To Server', obj)
+        this.socket.send(Serde.serialize(obj))
     }
 }

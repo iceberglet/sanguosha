@@ -2,7 +2,7 @@ import UICardRow, { UIMarkRow } from "./UICardRow";
 import UIEquipGrid from "./UIEquipGrid";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import * as React from 'react'
-import { CardPos } from "../../common/transit/CardPos";
+import { CardPos, CardPosChangeEvent } from "../../common/transit/CardPos";
 import { Checker, ElementStatus } from "./UIBoard";
 import CardTransitManager, { CardAndCoor, CardEndpoint, InCardAndCoor, getCardCoor } from "./CardTransitManager";
 import Card from "../../common/cards/Card";
@@ -17,7 +17,8 @@ type Prop = {
     equipChecker: Checker,
     cardsChecker: Checker,
     signsChecker: Checker,
-    cardTransitManager: CardTransitManager
+    cardTransitManager: CardTransitManager,
+    onCardsShifted: (shift: CardPosChangeEvent)=>void
 }
 
 export default class UIMyCards extends React.Component<Prop, object> {
@@ -82,7 +83,7 @@ export default class UIMyCards extends React.Component<Prop, object> {
     }
 
     render() {
-        let {info, hideCards, equipChecker, cardsChecker, signsChecker} = this.props
+        let {info, hideCards, equipChecker, cardsChecker, signsChecker, onCardsShifted } = this.props
         return <div className='my-cards'>
             <div className='mid' ref={this.dom}>
                 {/* 标记 */}
@@ -114,7 +115,7 @@ export default class UIMyCards extends React.Component<Prop, object> {
             </div>
             {/* 手牌 */}
             <div className='my-cards'>
-                <UICardRow isShown={!hideCards} checker={cardsChecker} ref={r => this.cardRow = r}/>
+                <UICardRow isShown={!hideCards} checker={cardsChecker} ref={r => this.cardRow = r} myName={info.player.id} onCardsShifted={onCardsShifted}/>
             </div>
         </div>
     }

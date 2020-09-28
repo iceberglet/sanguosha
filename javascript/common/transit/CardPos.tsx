@@ -1,3 +1,4 @@
+import { UIPosition } from "../PlayerAction"
 
 export enum CardPos {
     //手牌？ 判定？ 装备？ 
@@ -27,4 +28,20 @@ export function isCardPosHidden(pos: CardPos) {
     return pos !== null && pos !== undefined && 
             (pos === CardPos.DECK_TOP || pos === CardPos.DECK_BTM || 
                 pos === CardPos.HAND)
+}
+
+/**
+ * 当玩家把牌搞来搞去的时候发射
+ */
+export class CardPosChangeEvent {
+
+    public constructor(public readonly pos: UIPosition,
+                        public readonly player: string,
+                        public readonly from: number,
+                        public readonly to: number) {}
+
+}
+
+export class CardRearrangeRequest {
+    public constructor(public readonly requester: string){}
 }

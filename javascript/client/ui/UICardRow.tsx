@@ -1,11 +1,14 @@
 import * as React from 'react'
 import Card, { CardType } from '../../common/cards/Card'
 import UICard, { wrapCard } from './UICard'
-import { Checker } from './UIBoard'
-import { InCardAndCoor, CardWidth, CardEndpoint, CardAndCoor } from './CardTransitManager'
+import { Checker, ElementStatus } from './UIBoard'
+import { InCardAndCoor, CardEndpoint, CardAndCoor } from './CardTransitManager'
 import { Coor } from './ScreenPosObtainer'
 import ArrayList from '../../common/util/ArrayList'
-import { CardPos } from '../../common/transit/CardPos'
+import { CardPos, CardPosChangeEvent } from '../../common/transit/CardPos'
+import { reorder } from '../../common/util/Util'
+import { DragDropContext, Draggable, Droppable, DropResult, ResponderProvided } from 'react-beautiful-dnd'
+import { UIPosition } from '../../common/PlayerAction'
 
 /**
  * Only renders the cards that are in the prop
@@ -15,7 +18,9 @@ import { CardPos } from '../../common/transit/CardPos'
  */
 type CardRowProp = {
     isShown: boolean,
-    checker: Checker
+    checker: Checker,
+    myName: string,
+    onCardsShifted: (shift: CardPosChangeEvent)=>void
 }
 
 type State = {
@@ -29,11 +34,9 @@ type Renderable = InCardAndCoor & {
     entered: 'begin' | 'starting' | 'end'
 }
 
-const leftOffset = 15
-
 export default class UICardRow extends React.Component<CardRowProp, State> implements CardEndpoint {
 
-    containerRef: React.RefObject<HTMLDivElement>
+    containerRef: HTMLDivElement
     myRefs = new Map<string, React.RefObject<HTMLDivElement>>()
 
     constructor(p: CardRowProp) {
@@ -42,19 +45,28 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
             hover: -1,
             cards: new ArrayList<Renderable>()
         }
-        this.containerRef = React.createRef()
+        // this.containerRef = React.createRef()
     }
 
     performAddAnimation = (cards: InCardAndCoor[]): void => {
         // this.props.info.removeCard()
         let rs: Renderable[] = []
         this.setState(s => {
-            let rect = this.containerRef.current.getBoundingClientRect()
+            let rect = this.containerRef.getBoundingClientRect()
+            let offsetX = rect.left, offsetY = rect.top
+            if(this.containerRef.lastElementChild) {
+                let myBrother = this.containerRef.lastElementChild
+                offsetX = myBrother.getBoundingClientRect().left// + myBrother.clientWidth)
+            }
             cards.forEach(c =>{
                 let r: Renderable = {...c, entered: 'begin'}
                 if(r.coor) {
-                    r.coor.x -= rect.left,
-                    r.coor.y -= rect.top
+                    r.coor.x -= offsetX
+                    r.coor.y -= offsetY
+                } else {
+                    r.coor = {
+                        x: 20, y: 0
+                    }
                 }
                 rs.push(r)
                 delete r.card.description
@@ -69,7 +81,7 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
             this.forceUpdate()
         }, 10)
         setTimeout(()=>{
-            //set those cards to true and kick them into movement!
+            //settle the card!
             rs.forEach(r => r.entered = 'end')
             this.forceUpdate()
         }, cards[0].animDuration)
@@ -88,23 +100,6 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
         })
         this.forceUpdate()
         return ret
-    }
-
-    getSep=(numberOfCards: number): number=>{
-        let {hover} = this.state
-        let count = numberOfCards - 1 //minus the edge
-        let con = this.containerRef.current
-        let width = con? con.getBoundingClientRect().width - CardWidth - leftOffset * 2 : 700
-        let sep: number
-
-        if(count > 2 && hover >= 0 && hover < count) {
-            //only if there is some hover and *not* on the last card
-            sep = (width - CardWidth) / (count - 1)
-        } else {
-            sep = width / count
-        }
-        sep = Math.min(CardWidth, sep)  //if cards are few, back to cardWidth
-        return sep
     }
 
     /**
@@ -131,43 +126,66 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
         }
     }
 
+    onDragEnd=(result: DropResult, provided: ResponderProvided)=>{
+        // dropped outside the list
+        if (!result.destination) {
+            return;
+        }
+
+        reorder(
+            this.state.cards._data,
+            result.source.index,
+            result.destination.index
+        );
+
+        //notify server
+        this.props.onCardsShifted(new CardPosChangeEvent(UIPosition.MY_HAND, this.props.myName, result.source.index, result.destination.index))
+
+        this.forceUpdate()
+    }
+
     render() {
         let {isShown, checker} = this.props
         let {hover, cards} = this.state
-        let sep = this.getSep(this.state.cards.size())
 
-        return <div className='ui-card-row' ref={this.containerRef}>
-            {cards.map((c, i) => {
-                let status = checker.getStatus(c.card.id)
-                
-                let x: number, y: number = 0
-                if(c.entered !== 'begin') {
-                    //use calculated coordinates
-                    x = i * sep + leftOffset
-                    if(hover >= 0 && i > hover) {
-                        x += CardWidth - sep
-                    }
-                } else if(c.coor) {
-                    //use original coordinates
-                    x = c.coor.x
-                    y = c.coor.y
-                } else {
-                    //cards with no origin
-                    x = i * sep + leftOffset + CardWidth
-                }
-                let myStyle: any = {left: x + 'px', top: y + 'px'}
-                if(c.entered === 'starting') {
-                    myStyle.transitionDuration = c.animDuration + 'ms'
-                }
-                return <div className='ui-card-wrapper' style={myStyle} key={c.card.id} >
-                    <UICard key={c.card.id} card={c.card} isShown={isShown} onPos={this.settingRef}
-                                    elementStatus={status} nodescript={true} noAs={true}
-                                    onMouseLeave={()=>{if(hover===i){this.setState({hover: -1})}}}
-                                    onMouseEnter={()=>this.setState({hover: i})}
-                                    onMouseClick={(cc)=>status.isSelectable && checker.onClicked(cc.id)}/>
+        return <DragDropContext onDragEnd={this.onDragEnd}>
+            <Droppable droppableId="droppable" direction="horizontal">
+            {(provided, snapshot) => (
+                <div ref={r => {provided.innerRef(r); this.containerRef = r}} style={getListStyle(snapshot.isDraggingOver)} {...provided.droppableProps}>
+                {/* <div ref={this.containerRef} > */}
+                    {cards.map((c, i) => {
+                        let status = checker.getStatus(c.card.id)
+                    
+                        let style: any = {}
+                        if(c.entered === 'begin') {
+                            style.transform = `translate(${c.coor.x}px, ${c.coor.y}px)`
+                        }
+                        if(c.entered === 'starting') {
+                            style.transition = c.animDuration + 'ms'
+                        }
+
+                        return <Draggable key={c.card.id} draggableId={c.card.id} index={i} /*isDragDisabled={status !== ElementStatus.NORMAL}*/>
+                        {(provided, snapshot) => (
+                            <div ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                style={{...getItemStyle(snapshot.isDragging, provided.draggableProps.style), ...style}}
+                                className='ui-my-row-card-wrapper'>
+                                <UICard key={c.card.id} card={c.card} isShown={isShown} onPos={this.settingRef}
+                                            elementStatus={status} nodescript={true} noAs={true}
+                                            onMouseLeave={()=>{if(hover===i){this.setState({hover: -1})}}}
+                                            onMouseEnter={()=>this.setState({hover: i})}
+                                            onMouseClick={(cc)=>status.isSelectable && checker.onClicked(cc.id)}/>
+                            </div>
+                        )}
+                        </Draggable>
+                    })}
+                    {provided.placeholder}
+                {/* </div> */}
                 </div>
-            })}
-        </div>
+            )}
+            </Droppable>
+        </DragDropContext>
     }
 }
 
@@ -184,3 +202,24 @@ export function UIMarkRow(p: MarkProp) {
         })}
     </div>
 }
+
+
+const getItemStyle = (isDragging: boolean, draggableStyle: any) : React.CSSProperties => {
+    let style = {
+        // some basic styles to make the items look a bit nicer
+        pointerEvents: 'none',
+        // styles we need to apply on draggables
+        ...draggableStyle
+    }
+    return style
+}
+
+const getListStyle = (isDraggingOver: boolean) : React.CSSProperties => ({
+    // background: isDraggingOver ? 'lightblue' : 'lightgrey',
+    display: 'flex',
+    // padding: grid,
+    overflow: 'visible',
+
+    width: '100%',
+    paddingRight: '100px'
+  });
