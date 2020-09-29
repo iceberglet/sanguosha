@@ -1,7 +1,7 @@
 import FactionWarGeneral from "./FactionWarGenerals"
 import { Faction, Gender, factionsSame } from '../common/General'
 import { Player } from "../common/Player"
-import { PlayerInfo, Mark } from "../common/PlayerInfo"
+import { PlayerInfo, Mark, CardMark } from "../common/PlayerInfo"
 import * as React from "react"
 import './faction-war.scss'
 import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
@@ -105,21 +105,24 @@ export default class FactionPlayerInfo extends PlayerInfo {
     }
 
     renderGeneral(g: FactionWarGeneral, isBig: boolean) {
+
+        let ele
         if(!g) {
             //not revealed yet
-            return <div className='card-avatar' 
+            ele = <div className='img' 
                     style={{backgroundImage: `url('generals/back.png')`, backgroundPosition: '-30px -20px', filter: 'grayscale(70%)'}} />
         } else {
-            return <div className='card-avatar' style={toFactionWarAvatarStyle(g.id, isBig)} />
+            ele = <div className='img' style={toFactionWarAvatarStyle(g.id, isBig)} />
         }
+
+        return wrapGeneral(g, <div className='card-avatar'>{ele}</div>)
     }
 
     drawMark(isMain: boolean) {
         let marks: Mark = isMain? this.mainMark : this.subMark
-        let onGeneral: number = isMain? this.getCards(CardPos.ON_GENERAL).length : this.getCards(CardPos.ON_SUB_GENERAL).length
         let name = isMain? this.general.nameForCardsOnMe : this.subGeneral.nameForCardsOnMe
         return <div className='marks'>
-            {onGeneral > 0 && <div className='mark' key={'将牌上的牌'}>{`${name}[${onGeneral}]`}</div>}
+            <CardMark cards={this.getCards(isMain? CardPos.ON_GENERAL: CardPos.ON_SUB_GENERAL)} name={name}/>
             {Object.keys(marks).map(m => {
                 return <div className='mark' key={m}>{marks[m]}</div>
             })}
@@ -131,16 +134,16 @@ export default class FactionPlayerInfo extends PlayerInfo {
         let main = this.general? this.general.name : '主将'
         let sub = this.subGeneral? this.subGeneral.name : '副将'
         return [<div className={clazz} key={'pics'}>
-            {wrapGeneral(this.general, <div className='general' style={{letterSpacing: main.length > 2 ? '-4px' : '0px'}}>
+            <div className='general' style={{letterSpacing: main.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.general, false)}
                 <div className='general-name'>{main}</div>
                 {this.drawMark(true)}
-            </div>)}
-            {wrapGeneral(this.subGeneral, <div className='general' style={{letterSpacing: sub.length > 2 ? '-4px' : '0px'}}>
+            </div>
+            <div className='general' style={{letterSpacing: sub.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.subGeneral, false)}
                 <div className='general-name'>{sub}</div>
                 {this.drawMark(false)}
-            </div>)}
+            </div>
             <div className='player-name'>{this.player.id}</div>
         </div>,
         <FactionMark key={'faction-mark'} info={this}/>]
@@ -151,7 +154,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
         let color = Color[fac.image]
         let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
         return <div className={clazz}>
-            {wrapGeneral(this.general, <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
+            <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.general, true)}
                 <div className='general-name' style={{background: color, letterSpacing: this.general.name.length > 3 ? '-2px' : '0px'}}>
                     {this.general.name}
@@ -164,8 +167,8 @@ export default class FactionPlayerInfo extends PlayerInfo {
                     })}
                 </div>
                 {this.drawMark(true)}
-            </div>)}
-            {wrapGeneral(this.subGeneral, <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
+            </div>
+            <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.subGeneral, true)}
                 <div className='general-name' style={{background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-2px' : '0px'}}>
                     {this.subGeneral.name}
@@ -178,7 +181,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
                     })}
                 </div>
                 {this.drawMark(false)}
-            </div>)}
+            </div>
             
             <div className={'my-faction-mark ' + fac.image}>
                 {fac.name}

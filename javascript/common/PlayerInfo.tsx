@@ -2,12 +2,12 @@ import Card, { CardGenre, CardType } from "./cards/Card"
 import { takeFromArray } from "./util/Util"
 import {Player} from "./Player"
 import { Gender, Faction } from "./General"
-import { ICard } from "./cards/ICard"
 import { CardPos, isSharedPosition } from "./transit/CardPos"
 import { ReactElement } from "react"
 import { SkillButtonProp } from "../client/ui/UIMyPlayerCard"
-import { Skill } from "../game-mode-faction/skill/Skill"
-import { GameMode } from "./GameMode"
+import * as React from 'react'
+import { isSuitRed } from "./cards/ICard"
+import { OverlayTrigger, Tooltip } from "react-bootstrap"
 
 export class Identity {
 
@@ -250,4 +250,29 @@ export abstract class PlayerInfo {
         delete copy.cards
         return copy
     }
+}
+
+
+type CardMarkProp = {
+    cards: Card[]
+    name: string
+}
+
+export function CardMark(p: CardMarkProp) {
+    if(p.cards.length === 0) {
+        return null
+    }
+    let overlay = (props: any) => <Tooltip {...props}>
+                <div className='cards'>
+                    {p.cards.map(c => {
+                        return <div className={isSuitRed(c.suit)? 'red' : 'black'} key={c.id}>{c.toString()}</div>
+                    })}
+                </div>
+            </Tooltip>
+
+    return <OverlayTrigger placement='auto' overlay={overlay} delay={{show: 1000, hide: 200}}>
+        <div className='mark-button'>
+            {`${p.name} [${p.cards.length}]`}
+        </div>
+    </OverlayTrigger>
 }

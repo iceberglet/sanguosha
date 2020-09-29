@@ -93,7 +93,7 @@ export default class FactionWarInitializer implements Initializer {
                     }
                 }
                 //阴阳鱼
-                let hp1 = p.general.hp, hp2 = p.subGeneral.hp
+                let hp1 = p.general.resolveHp(true), hp2 = p.subGeneral.resolveHp(false)
                 if(Math.round(2 * (hp1 + hp2 - Math.floor(hp2 + hp1))) === 1) {
                     if(p.signs['鱼']) {
                         console.error('已经有了阴阳鱼了，咋回事？？', p, reveal)
