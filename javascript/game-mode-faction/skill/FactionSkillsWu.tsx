@@ -29,6 +29,8 @@ import GameClientContext from "../../client/GameClientContext"
 import FactionPlayerInfo from "../FactionPlayerInfo"
 import { MoveCardOnField } from "../../server/engine/MoveCardOp"
 import { DoTieSuo } from "../../server/engine/MultiRuseOp"
+import AskSavingOp from "../../server/engine/AskSavingOp"
+import { PlayerInfo } from "../../common/PlayerInfo"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -983,41 +985,64 @@ export class FenMing extends SimpleConditionalSkill<StageStartFlow> {
  * 新版【不屈】的周泰则会经历濒死状态，一路求桃到周泰本人时锁定发动，成功则脱离濒死并回复至1体力，失败则继续向后求桃。
  * 旧版【不屈】是按周泰受到伤害的点数翻不屈牌的，而新版【不屈】则是按次。
  */
-// export class BuQu extends SimpleConditionalSkill<AskSavingOp> {
+export class BuQu extends SimpleConditionalSkill<AskSavingOp> {
     
-//     id = '不屈'
-//     displayName = '不屈'
-//     description = '锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。'
-//     //by card sizes
-//     wounds = new Set<number>()
+    id = '不屈'
+    displayName = '不屈'
+    description = '锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。'
+    isLocked = true
+    //by card sizes
+    wounds = new Set<number>()
 
-//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-//         skillRegistry.on<AskSavingOp>(AskSavingOp, this)
-//         skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async (useOp)=>{
-//             //你的出牌阶段,你用的牌
-//             if(manager.currEffect.stage === Stage.USE_CARD && manager.currPlayer().player.id === this.playerId && 
-//                 useOp.player === this.playerId) {
-//                 useOp.cards.forEach(c => {
-//                     this.suitsUsed.add(c[0].suit)
-//                     this.typesUsed.add(c[0].type.getSuperGenre())
-//                 })
-//             }
-//         })
-//     }
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<AskSavingOp>(AskSavingOp, this)
+    }
 
-//     public conditionFulfilled(event: AskSavingOp, manager: GameManager): boolean {
-//         //趁机重置state
-//         return event.deadman.player.id === this.playerId
-//     }
+    public conditionFulfilled(event: AskSavingOp, manager: GameManager): boolean {
+        return event.deadman.player.id === this.playerId && event.goodman.player.id === this.playerId
+    }
 
-//     public async doInvoke(event: AskSavingOp, manager: GameManager): Promise<void> {
-//         await MoveCardOnField(manager, event.info, this.displayName)
-//     }
-// }
+    public async doInvoke(event: AskSavingOp, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        let card = manager.context.deck.getCardsFromTop(1)[0]
+        card.description = this.playerId + ' > 不屈判定'
+        let size = card.size.size
+        let transit = CardTransit.deckToWorkflow([card])
+        transit.specialEffect = 'flip'
+        manager.broadcast(transit)
+        manager.context.workflowCards.add(card)
+        if(!this.wounds.has(size)) {
+            //加入创
+            await manager.takeFromWorkflow(this.playerId, this.isMain? CardPos.ON_GENERAL: CardPos.ON_SUB_GENERAL, [card])
+            this.wounds.add(size)
+            event.deadman.hp = 1
+            manager.broadcast(event.deadman, PlayerInfo.sanitize)
+        }
+    }
+}
 
 
-// 不屈 锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。
-// 奋激 一名角色的结束阶段开始时，若其没有手牌，你可令其摸两张牌。若如此做，你失去1点体力。
+export class FenJi extends SimpleConditionalSkill<StageStartFlow> {
+    
+    id = '奋激'
+    displayName = '奋激'
+    description = '一名角色的结束阶段开始时，若其没有手牌，你可令其摸两张牌。若如此做，你失去1点体力。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+    }
+
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        return event.stage === Stage.ROUND_END && event.info.getCards(CardPos.HAND).length === 0
+    }
+
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        await new TakeCardOp(event.info, 2).perform(manager)
+        let me = manager.context.getPlayer(this.playerId)
+        await new DamageOp(me, me, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+    }
+}
 
 // 短兵 你使用【杀】可以多选择一名距离为1的角色为目标。
 // 奋迅 出牌阶段限一次，你可以弃置一张牌并选择一名其他角色，然后本回合你计算与其的距离视为1。

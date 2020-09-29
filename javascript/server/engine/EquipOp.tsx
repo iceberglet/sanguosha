@@ -16,10 +16,7 @@ export class EquipOp {
 
     public async perform(manager: GameManager) {
 
-        await manager.events.publish(this)
-
-        let currEquips = this.beneficiary.getCards(CardPos.EQUIP)
-        let replace = currEquips.find(c => c.type.genre === this.card.type.genre)
+        let replace = this.beneficiary.findCardAt(CardPos.EQUIP, this.card.type.genre)
 
         if(replace) {
             //need to remove this first
@@ -32,6 +29,8 @@ export class EquipOp {
             manager.broadcast(new PlaySound('audio/card/common/equipment.ogg'))
         }
         await manager.transferCards(this.source.player.id, this.beneficiary.player.id, this.sourcePos, CardPos.EQUIP, [this.card])
+
+        await manager.events.publish(this)
         // newOwner.addCard(this.card, CardPos.EQUIP)
         // manager.broadcast(newOwner, PlayerInfo.sanitize)
 

@@ -17,6 +17,7 @@ export default class PlayerAct {
     public readonly serverHint: ServerHint
     public readonly signChosen: string
     public readonly customData: CardSelectionResult | GeneralSelectionResult | string
+    public readonly cardsOnGeneral: Card[] = []
 
     public constructor(action: PlayerAction, private manager: GameManager) {
         this.serverHint = action.serverHint
@@ -37,6 +38,12 @@ export default class PlayerAct {
         if(action.actionData[UIPosition.PLAYER]) {
             this.targets = action.actionData[UIPosition.PLAYER].map(p => manager.context.getPlayer(p))
         }
+
+        [UIPosition.ON_MY_GENERAL, UIPosition.ON_MY_SUB_GENERAL].forEach((uiPos: UIPosition) => {
+            if(action.actionData[uiPos] && action.actionData[uiPos].length > 0) {
+                this.cardsOnGeneral.push(...action.actionData[uiPos].map(c => manager.getCard(c)))
+            }
+        });
         
         [UIPosition.MY_EQUIP, UIPosition.MY_HAND, UIPosition.MY_JUDGE].forEach((uiPos: UIPosition) => {
             if(action.actionData[uiPos] && action.actionData[uiPos].length > 0) {

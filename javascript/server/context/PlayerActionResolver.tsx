@@ -2,7 +2,7 @@ import GameManager from "../GameManager";
 import { CardType } from "../../common/cards/Card";
 import PlaySlashOp, { AskForSlashOp } from "../engine/SlashOp";
 import { CardPos } from "../../common/transit/CardPos";
-import { TextFlashEffect, PlaySound, LogTransit } from "../../common/transit/EffectTransit";
+import { TextFlashEffect, LogTransit } from "../../common/transit/EffectTransit";
 import { CardBeingDroppedEvent, CardBeingUsedEvent } from "../engine/Generic";
 import { checkThat } from "../../common/util/Util";
 import { EquipOp } from "../engine/EquipOp";

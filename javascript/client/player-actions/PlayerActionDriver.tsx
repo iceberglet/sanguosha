@@ -1,6 +1,6 @@
 // export type Action = '摸排'
 import GameClientContext from "../GameClientContext"
-import { PlayerUIAction, Button } from "../../common/PlayerAction"
+import { PlayerUIAction, Button, UIPosition } from "../../common/PlayerAction"
 
 export enum Clickability {
     CLICKABLE,
@@ -46,6 +46,7 @@ export abstract class PlayerActionDriver {
      */
     abstract getUsableButtons(): Button[]
     abstract getHintMsg(context: GameClientContext): string
+    abstract getAllAreas(): Set<UIPosition>
 }
 
 export class NoActionDriver extends PlayerActionDriver {
@@ -71,6 +72,9 @@ export class NoActionDriver extends PlayerActionDriver {
     }
     getHintMsg(context: GameClientContext): string {
         return ''
+    }
+    getAllAreas(): Set<UIPosition> {
+        return new Set<UIPosition>()
     }
 }
 
@@ -166,5 +170,12 @@ export class CompositePlayerActionDriver extends PlayerActionDriver {
         } else {
             return context.serverHint.hint.hintMsg
         }
+    }
+
+    getAllAreas(): Set<UIPosition> {
+        if(this.theOne) {
+            return this.theOne.getAllAreas()
+        }
+        return new Set<UIPosition>()
     }
 }

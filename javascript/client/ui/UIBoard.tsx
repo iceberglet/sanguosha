@@ -83,6 +83,8 @@ type State = {
     buttonChecker: Checker,
     equipChecker: Checker,
     signsChecker: Checker,
+    onGeneralChecker: Checker,
+    onSubGeneralChecker: Checker,
     skillButtons: SkillButtonProp[],
     uiRequest?: CustomRequest,
     uiData?: CustomUIData<any>,
@@ -101,18 +103,6 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         let {myId, context} = p
         let screenPosObtainer = new ScreenPosObtainer()
         let skillChecker = new CheckerImpl(UIPosition.MY_SKILL, context, this.refresh)
-        let skillButtons: SkillButtonProp[] = context.getPlayer(myId)
-                        .getSkills(GameMode.get(context.gameMode))
-                        .map(skill => {
-                            console.log('Boostrapping Skill', skill.playerId, skill.id)
-                            skill.bootstrapClient(context, context.getPlayer(myId))
-                            return {
-                                skill,
-                                skillChecker, statusUpdater:(s)=>{
-                                    context.sendToServer(s)
-                                }
-                            }
-                        })
         this.state = {
             hideCards: false,
             showDistance: false,
@@ -122,10 +112,12 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             buttonChecker: new CheckerImpl(UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new CheckerImpl(UIPosition.MY_EQUIP, context, this.refresh),
             signsChecker: new CheckerImpl(UIPosition.SIGNS, context, this.refresh),
+            onGeneralChecker: new CheckerImpl(UIPosition.ON_MY_GENERAL, context, this.refresh),
+            onSubGeneralChecker: new CheckerImpl(UIPosition.ON_MY_SUB_GENERAL, context, this.refresh),
             cardTransitManager: new CardTransitManager(context.cardManager),
             uiRequest: null,
             uiData: null,
-            skillButtons,
+            skillButtons: [],
             others: context.getRingFromPerspective(myId, false, true),
             audioPlaying: true
         }
@@ -138,12 +130,20 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                     return prop.skill.id === s.id && prop.skill.playerId === s.playerId
                 })
                 if(!match) {
-                    console.error('Cannot find skill. Unable to process status update', s, state.skillButtons)
-                    throw 'Cannot find skill. Unable to process status update'
+                    console.info('Received a new skill!', s)
+                    let skill = GameMode.get(context.gameMode).skillProvider(s.id, myId)
+                    skill.isMain = s.isMain
+                    skill.bootstrapClient(context, context.getPlayer(myId))
+                    state.skillButtons.push({
+                        skill,
+                        skillChecker, statusUpdater:(s)=>{
+                            context.sendToServer(s)
+                        }
+                    })
+                } else {
+                    Object.assign(match.skill, s)
+                    console.log('Updated skill', match.skill.isRevealed, s, match.skill)
                 }
-                Object.assign(match.skill, s)
-                console.log('Updated skill', match.skill.isRevealed, s, match.skill)
-                // match.skill.onStatusUpdated(context)
                 return state
             })
         })
@@ -215,7 +215,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
 
     render() {
         let {myId, context, pubsub} = this.props
-        let {showDistance, hideCards, screenPosObtainer, others, skillButtons, signsChecker,
+        let {showDistance, hideCards, screenPosObtainer, others, skillButtons, signsChecker, onGeneralChecker, onSubGeneralChecker,
             playerChecker, cardsChecker, buttonChecker, equipChecker, cardTransitManager} = this.state
         let playerInfo = context.getPlayer(myId)
         let mode = GameMode.get(context.gameMode)
@@ -230,6 +230,9 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                                     
                     <UIMounter customRequest={this.state.uiRequest} 
                         commonUI={this.state.uiData}
+                        context={context}
+                        onGeneralChecker={onGeneralChecker}
+                        onSubGeneralChecker={onSubGeneralChecker}
                         consumer={res => {context.submitAction({
                             actionData: null,
                             actionSource: myId,

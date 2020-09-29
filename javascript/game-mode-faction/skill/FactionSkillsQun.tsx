@@ -37,6 +37,8 @@ import { MaShu } from "./FactionSkillsShu";
 import { getFactionsWithLeastMembers, getFactionMembers } from "../FactionWarUtil";
 import { registerPeach } from "../../client/player-actions/PlayerActionDrivers";
 import CardFightOp from "../../server/engine/CardFightOp";
+import { EquipOp } from "../../server/engine/EquipOp";
+import { CardTransit } from "../../common/transit/EffectTransit";
 
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
@@ -1161,26 +1163,47 @@ export class MouShi extends Skill {
     }
 }
 
-// export class KuangFu extends SimpleConditionalSkill<DamageOp> {
+export class KuangFu extends SimpleConditionalSkill<DamageOp> {
     
-//     id = '狂斧'
-//     displayName = '狂斧'
-//     description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。'
+    id = '狂斧'
+    displayName = '狂斧'
+    description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。'
 
-//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-//         skillRegistry.on<DamageOp>(DamageOp, this)
-//     }
-//     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-//         if(event.source.player.id === this.playerId && event.target.player.id !== this.playerId && event.timeline === DamageTimeline.DID_DAMAGE &&
-//             event.damageSource === DamageSource.SLASH && event.target.getCards(CardPos.EQUIP).length > 0) {
-//             return true
-//         }
-//         return false
-//     }
-//     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
-
-//     }
-// }
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+    }
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        if(event.source && event.source.player.id === this.playerId && event.target.player.id !== this.playerId && 
+            event.timeline === DamageTimeline.DID_DAMAGE &&
+            event.damageSource === DamageSource.SLASH && event.target.getCards(CardPos.EQUIP).length > 0) {
+            return true
+        }
+        return false
+    }
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        //选择一张装备牌
+        let card = (await SelectACardAt(manager, event.source, event.target, '(狂斧)选择对方一张装备牌', CardPos.EQUIP))[0]
+        //选择弃置还是拿过来
+        let choices = [new Button('take', '装备之'), new Button('drop', '弃置之')]
+        if(event.source.findCardAt(CardPos.EQUIP, card.type.genre)) {
+            choices[0].disable()
+        }
+        let choice = await manager.sendHint(this.playerId, {
+            hintType: HintType.MULTI_CHOICE,
+            hintMsg: '(狂斧)选择弃置还是获得' + card,
+            extraButtons: choices
+        })
+        this.invokeEffects(manager, [event.target.player.id])
+        if(choice.button === 'take') {
+            await new EquipOp(event.source, card, CardPos.EQUIP, event.target).perform(manager)
+        } else {
+            manager.log(`${event.source} 弃置了 ${event.target} 的 ${card}`)
+            card.description = `${event.target} 被弃置`
+            manager.sendToWorkflow(event.target.player.id, CardPos.EQUIP, [card])
+            await manager.events.publish(new CardBeingDroppedEvent(event.target.player.id, [[card, CardPos.EQUIP]]))
+        }
+    }
+}
 
 // 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 

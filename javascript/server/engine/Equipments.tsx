@@ -265,11 +265,11 @@ export class Qilin extends Equipment {
         if(!op.source || op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
             return
         }
-        let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === CardType.QI_LIN)
-        if(!potential) {
-            throw `不可能! 我登记过的就应该有这个武器! 麒麟弓 ${this.player}`
-        }
         if(op.timeline === DamageTimeline.DOING_DAMAGE) {
+            let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === CardType.QI_LIN)
+            if(!potential) {
+                throw `不可能! 我登记过的就应该有这个武器! 麒麟弓 ${this.player}`
+            }
             let horses = op.target.getCards(CardPos.EQUIP).filter(c => c.type.isHorse())
             if(horses.length === 0) {
                 console.log('[装备] 麒麟弓发现没啥好射的')

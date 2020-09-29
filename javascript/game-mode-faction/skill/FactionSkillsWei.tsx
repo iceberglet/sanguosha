@@ -3,7 +3,7 @@ import { SimpleConditionalSkill, EventRegistryForSkills, HiddenType, Skill } fro
 import GameManager from "../../server/GameManager";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, DuoCardSelectionHint, DuoCardSelectionResult } from "../../common/ServerHint";
-import { gatherCards, findCard, CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingTakenEvent, CardObtainedEvent } from "../../server/engine/Generic";
+import { gatherCards, findCard, CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingTakenEvent, CardObtainedEvent, CardAwayEvent } from "../../server/engine/Generic";
 import JudgeOp, {JudgeTimeline} from "../../server/engine/JudgeOp";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { getRandom, checkThat, any } from "../../common/util/Util";
@@ -15,7 +15,7 @@ import DodgeOp from "../../server/engine/DodgeOp";
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { isSuitBlack } from "../../common/cards/ICard";
-import Card, { CardType, cleanDescription } from "../../common/cards/Card";
+import Card, { CardType } from "../../common/cards/Card";
 import { SlashCompute, SlashOP } from "../../server/engine/SlashOp";
 import { EquipOp } from "../../server/engine/EquipOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
@@ -26,6 +26,8 @@ import CardFightOp from "../../server/engine/CardFightOp";
 import { DropCardRequest } from "../../server/engine/DropCardOp";
 import { getNumberOfFactions, askAbandonBasicCard, askAbandonEquip } from "../FactionWarUtil";
 import { MoveCardOnField } from "../../server/engine/MoveCardOp";
+import { factionsSame } from "../../common/General";
+import { ShunShou } from "../../server/engine/SingleRuseOp";
 
 export abstract class SkillForDamageTaken extends SimpleConditionalSkill<DamageOp> {
 
@@ -563,7 +565,7 @@ export class JuShou extends SimpleConditionalSkill<StageStartFlow> {
         })
 
         let card = resp.getCardsAtPos(CardPos.HAND)[0]
-        console.log('[据守] 弃置', card)
+        console.log('[据守] 弃置' + card)
         if(card.type.isEquipment()) {
             //装备
             await new EquipOp(myself, card).perform(manager)
@@ -1004,6 +1006,129 @@ export class XiaoGuo extends SimpleConditionalSkill<StageStartFlow> {
     }
 }
 
+export class TunTian extends SimpleConditionalSkill<CardAwayEvent> {
+
+    id='屯田'
+    displayName = '屯田'
+    description = '当你于回合外失去牌后，你可以进行判定，若结果不为红桃，你可将此牌置于武将牌上，称为“田”；你计算与其他角色的距离-X（X为“田”的数量）。）'
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<CardBeingUsedEvent>(CardBeingUsedEvent, this)
+        skillRegistry.on<CardBeingTakenEvent>(CardBeingTakenEvent, this)
+        skillRegistry.on<CardBeingDroppedEvent>(CardBeingDroppedEvent, this)
+    }
+
+    public conditionFulfilled(event: CardAwayEvent, manager: GameManager): boolean {
+        //其他角色的结束阶段
+        return manager.currPlayer().player.id !== this.playerId && event.isCardFrom(this.playerId)
+    }
+
+    public async doInvoke(event: CardAwayEvent, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        let card = await new JudgeOp(this.playerId + ' 屯田判定', this.playerId).perform(manager)
+        if(manager.stillInWorkflow(card) && manager.interpret(this.playerId, card).suit !== 'heart') {
+            let resp = await manager.sendHint(this.playerId, {
+                hintType: HintType.MULTI_CHOICE,
+                hintMsg: `你是否将${card}作为田置于你武将牌上?`,
+                extraButtons: [Button.OK, Button.CANCEL]
+            })
+            if(!resp.isCancel()) {
+                let me = manager.context.getPlayer(this.playerId)
+                me.distanceModTargetingOthers -= 1
+                manager.broadcast(me, PlayerInfo.sanitize)
+                await manager.takeFromWorkflow(this.playerId, this.isMain? CardPos.ON_GENERAL : CardPos.ON_SUB_GENERAL, [card])
+            }
+        }
+    }
+}
+
+export class ZiLiang extends SimpleConditionalSkill<DamageOp> {
+
+    id='资粮'
+    displayName = '资粮'
+    description = '副将技，当与你势力相同的一名角色受到伤害后，你可以将一张“田”交给该角色。'
+    disabledForMain = true
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+    }
+
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        let me = manager.context.getPlayer(this.playerId)
+        //当与你势力相同的一名角色受到伤害后
+        return (event.target.player.id === this.playerId || factionsSame(event.target.getFaction(), me.getFaction())) && 
+                    event.timeline === DamageTimeline.TAKEN_DAMAGE && 
+                    event.type !== DamageType.ENERGY && !event.target.isDead && me.getCards(CardPos.ON_SUB_GENERAL).length > 0
+    }
+
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+
+        let me = manager.context.getPlayer(this.playerId)
+        let candidates = me.getCards(CardPos.ON_SUB_GENERAL)
+
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.UI_PANEL,
+            hintMsg: '(资粮)请选择要交给对方的田',
+            customRequest: {
+                data: {
+                    rowsOfCard: {
+                        '田': candidates
+                    },
+                    title: '(资粮)请选择要交给对方的田',
+                    chooseSize: 1
+                },
+                mode: 'choose'
+            }
+        })
+        me.distanceModTargetingOthers += 1
+        manager.broadcast(me, PlayerInfo.sanitize)
+        let res = resp.customData as CardSelectionResult
+        let card = candidates[res[0].idx]
+        this.invokeEffects(manager)
+        await manager.transferCards(this.playerId, event.target.player.id, CardPos.ON_SUB_GENERAL, CardPos.HAND, [card])
+    }
+}
+
+export class JiXi extends Skill {
+
+    id='急袭'
+    displayName = '急袭'
+    description = '主将技，此武将牌减少半个阴阳鱼；你可以将一张“田”当【顺手牵羊】使用。'
+    disabledForSub = true
+    hiddenType = HiddenType.NONE
+    
+    public bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('急袭')
+                    .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id &&
+                                    context.getPlayer(this.playerId).getCards(CardPos.ON_GENERAL).length > 0) //有田才能急袭~
+                    .expectChoose([UIPosition.ON_MY_GENERAL], 1, 1, (id)=>true, ()=>'选择要使用的田')
+                    .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>
+                                            id !== context.myself.player.id &&   // 不能是自己
+                                            context.getPlayer(id).hasCards() &&         // 必须有牌能拿
+                                            (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.shunshouReach)),
+                                    ()=>'选择急袭的对象')
+                    .expectAnyButton('点击确定发动急袭')
+                    .build(hint)
+        })
+    }
+
+    async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+        let card = act.cardsOnGeneral[0]
+        card.as = CardType.SHUN_SHOU
+        card.description = `${act.source} 急袭`
+
+        let me = manager.context.getPlayer(this.playerId)
+        me.distanceModTargetingOthers += 1
+        manager.broadcast(me, PlayerInfo.sanitize)
+
+        this.invokeEffects(manager, [act.targets[0].player.id])
+        manager.sendToWorkflow(act.source.player.id, CardPos.ON_GENERAL, [card], true)
+        await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [[card, CardPos.ON_GENERAL]], CardType.SHUN_SHOU, true))
+        await new ShunShou(act.source, act.targets[0], [card]).perform(manager)
+    }
+}
+
 // export class XunYou extends Skill {
 //     id = '奇策'
 //     displayName = '奇策'
@@ -1037,23 +1162,6 @@ export class XiaoGuo extends SimpleConditionalSkill<StageStartFlow> {
 // }
 
 /*
-export class TunTian extends Skill<DamageOp> {
-
-    displayName = '屯田'
-    description = '当你于回合外失去牌后，你可以进行判定，若结果不为红桃，你可将此牌置于武将牌上，称为“田”；你计算与其他角色的距离-X（X为“田”的数量）。）'
-}
-
-export class ZiLiang extends Skill<DamageOp> {
-
-    displayName = '资粮'
-    description = '副将技，当与你势力相同的一名角色受到伤害后，你可以将一张“田”交给该角色。'
-}
-
-export class JiXi extends Skill<DamageOp> {
-
-    displayName = '急袭'
-    description = '主将技，此武将牌减少半个阴阳鱼；你可以将一张“田”当【顺手牵羊】使用。'
-}
 
 export class HuYuan extends Skill<DamageOp> {
 

@@ -1,4 +1,4 @@
-import { SimpleConditionalSkill, EventRegistryForSkills, Skill, GeneralSkillStatusUpdate, HiddenType, SkillStatus } from "./Skill"
+import { SimpleConditionalSkill, EventRegistryForSkills, Skill, GeneralSkillStatusUpdate, HiddenType } from "./Skill"
 import GameManager from "../../server/GameManager"
 import DamageOp, { DamageSource, DamageTimeline, DamageType } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
@@ -33,7 +33,6 @@ import { askAbandonBasicCard } from "../FactionWarUtil";
 import { TieSuo, NanMan } from "../../server/engine/MultiRuseOp"
 import AskSavingOp from "../../server/engine/AskSavingOp"
 import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp"
-import { factionsSame } from "../../common/General"
 
 const REN_DE_SLASH = [SlashType.RED, SlashType.BLACK, SlashType.FIRE, SlashType.THUNDER]
 

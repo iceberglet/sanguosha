@@ -4,29 +4,39 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardSelectionResult } from "../../common/ServerHint";
 import { UIPosition } from "../../common/PlayerAction";
 
-export interface CardAwayEvent {
+export abstract class CardAwayEvent {
     player: string
     cards: Array<[Card, CardPos]>
+
+    isCardFrom(playerId: string) {
+        return this.player === playerId && (this.cards[0][1] === CardPos.HAND || this.cards[0][1] === CardPos.EQUIP)
+    }
 }
 
 //使用 / 打出
 //必须是在牌出到了workflow之后publish
-export class CardBeingUsedEvent implements CardAwayEvent {
+export class CardBeingUsedEvent extends CardAwayEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>, 
                 public readonly as: CardType, public readonly isFromSkill: boolean = false,
-                public readonly isUse: boolean = true) {}
+                public readonly isUse: boolean = true) {
+                    super()
+                }
 }
 
 //弃置
 //必须是在牌出到了workflow之后publish
-export class CardBeingDroppedEvent implements CardAwayEvent {
-    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
+export class CardBeingDroppedEvent extends CardAwayEvent {
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {
+        super()
+    }
 }
 
 //拿走
 //必须是在牌出到了workflow之后publish
-export class CardBeingTakenEvent implements CardAwayEvent {
-    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
+export class CardBeingTakenEvent extends CardAwayEvent {
+    constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {
+        super()
+    }
 }
 
 //获得

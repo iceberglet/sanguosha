@@ -201,9 +201,17 @@ export class StepDataLoose extends AbstractStep {
 
 export class StepByStepActionDriver extends PlayerActionDriver {
     curr: number = 0
+    allAreas: Set<UIPosition> = new Set<UIPosition>()
 
     constructor(private name: string, private steps: Step[], private buttons: Button[]) {
         super()
+        steps.forEach(s => {
+            s.areas.forEach(a => this.allAreas.add(a))
+        })
+    }
+    
+    getAllAreas(): Set<UIPosition> {
+        return this.allAreas
     }
 
     getUsableButtons() {

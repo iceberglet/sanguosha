@@ -87,7 +87,7 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
             //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
 
             console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id))
-            let choices: Button[] = []
+            let choices: Array<[SkillTrigger<any>, Button]> = []
             for(let s of skillTriggers) {
                 let skill = s.getSkill()
                 //将明置 & 锁定技 -> 直接触发
@@ -102,17 +102,17 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                     if(!skill.isRevealed) {
                         invokeMsg += `并明置${skill.isMain?'主将':'副将'}`
                     }
-                    choices.push(new Button(skill.id, invokeMsg))
+                    choices.push([s, new Button(skill.id, invokeMsg)])
                 }
             }
             
-            choices.push(Button.CANCEL)
+            choices.push([null, Button.CANCEL])
             let resp: PlayerAct
             while(choices.length > 1) {
                 resp = await this.manager.sendHint(player, {
                     hintType: HintType.MULTI_CHOICE,
                     hintMsg: '请选择发动技能或取消',
-                    extraButtons: choices
+                    extraButtons: choices.map(c => c[1])
                 })
                 if(!resp.isCancel()) {
                     let skillId = resp.button
@@ -126,10 +126,11 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                     }
                     await skill.doInvoke(obj, this.manager)
                     count++
-                    let removedButton = takeFromArray(choices, c => c.id === skillId)
+                    let removedButton = takeFromArray(choices, c => c[1].id === skillId)
                     if(!removedButton) {
                         throw 'Failed to remove button! ' + skillId
                     }
+                    choices.filter(c => !c[0] || invocable(c[0], obj, this.manager))
                 } else {
                     console.log('[技能驱动] 玩家放弃发动技能')
                     break

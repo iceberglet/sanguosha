@@ -9,7 +9,7 @@ import { HintType } from "../common/ServerHint";
 import { Button } from "../common/PlayerAction";
 import FactionPlayerInfo from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
-import { RevealGeneralEvent, RevealPlayerEvent } from "./FactionWarInitializer";
+import { RevealPlayerEvent } from "./FactionWarInitializer";
 import { factionsSame } from "../common/General";
 
 const playerAndEquipments = new Map<string, Equipment>()

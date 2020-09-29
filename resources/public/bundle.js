@@ -266,6 +266,9 @@ class GameClientContext extends GameContext_1.default {
             this.currentDriver = PlayerActionDriverProvider_1.playerActionDriverProvider.getDriver(hint.hint, this);
         }
     }
+    getCurrentDriver() {
+        return this.currentDriver;
+    }
     //-------- Player UI Interactions ----------
     canBeClicked(actionArea, itemId) {
         return this.currentDriver.canBeClicked({ actionArea, itemId }, this);
@@ -764,6 +767,10 @@ const CardSelection_1 = __webpack_require__(/*! ./CardSelection */ "./javascript
 const CustomUIRegistry_1 = __webpack_require__(/*! ./CustomUIRegistry */ "./javascript/client/card-panel/CustomUIRegistry.tsx");
 const DisplayPanel_1 = __webpack_require__(/*! ./DisplayPanel */ "./javascript/client/card-panel/DisplayPanel.tsx");
 const GameResultPanel_1 = __webpack_require__(/*! ./GameResultPanel */ "./javascript/client/card-panel/GameResultPanel.tsx");
+const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
+const AccordionContext_1 = __webpack_require__(/*! react-bootstrap/esm/AccordionContext */ "./node_modules/react-bootstrap/esm/AccordionContext.js");
+const UICard_1 = __webpack_require__(/*! ../ui/UICard */ "./javascript/client/ui/UICard.tsx");
 class UIMounter extends React.Component {
     renderSelection() {
         let hint = this.props.customRequest;
@@ -780,48 +787,39 @@ class UIMounter extends React.Component {
         console.log(commonUI, customRequest);
         return CustomUIRegistry_1.customUIRegistry.get(commonUI.type, commonUI.data, customRequest === null || customRequest === void 0 ? void 0 : customRequest.data, consumer);
     }
-    // renderTest() {
-    //     return customUIRegistry.get('card-fight', {
-    //         cardLeft: new FWCard('club', CardSize.QUEEN, CardType.JIE_DAO),
-    //         cardRight: new FWCard('club', CardSize.FOUR, CardType.JIE_DAO),
-    //         title: '青青子吟 > 驱虎'
-    //     }, true, what=>{})
-    // }
-    // renderTest() {
-    //     return <DuoCardSelection {...{
-    //         title: 'Test',
-    //         titleLeft: '青青子吟',
-    //         titleRight: '欧阳挠挠',
-    //         rowsOfCard: {
-    //             '试试看': [[
-    //                 new FWCard('club', CardSize.THREE, CardType.JIE_DAO),
-    //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO),
-    //                 new FWCard('heart', CardSize.THREE, CardType.JIE_DAO),
-    //                 new FWCard('club', CardSize.FOUR, CardType.JIE_DAO),
-    //             ],[
-    //                 new FWCard('club', CardSize.THREE, CardType.JIE_DAO),
-    //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO),
-    //             ]],
-    //             '去你的': [[
-    //             ],[
-    //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO)
-    //             ]],
-    //         },
-    //         mode: 'choose',
-    //         chooseSize: 1,
-    //         canCancel: true
-    //     }} onSelectionDone={this.props.consumer} />
-    // }
     render() {
-        // return this.renderTest()
-        let { customRequest, commonUI } = this.props;
-        if (!customRequest && (!commonUI || commonUI.type === CustomUIRegistry_1.CustomUIData.STOP)) {
-            return null;
+        let { customRequest, commonUI, context } = this.props;
+        //everyone can see such
+        if (commonUI && commonUI.type !== CustomUIRegistry_1.CustomUIData.STOP) {
+            return React.createElement("div", { className: 'occupy ui-mounter center' }, this.renderCommonUI());
         }
-        return React.createElement("div", { className: 'occupy ui-mounter center' }, commonUI && commonUI.type !== CustomUIRegistry_1.CustomUIData.STOP ? this.renderCommonUI() : this.renderSelection());
+        //custom requests
+        if (customRequest) {
+            return React.createElement("div", { className: 'occupy ui-mounter center' }, this.renderSelection());
+        }
+        let driver = context.getCurrentDriver();
+        if (driver.getAllAreas().has(PlayerAction_1.UIPosition.ON_MY_GENERAL)) {
+            return React.createElement("div", { className: 'occupy ui-mounter center' },
+                React.createElement(OnGeneralCardSelector, { context: context, target: CardPos_1.CardPos.ON_GENERAL, checker: this.props.onGeneralChecker }));
+        }
+        if (driver.getAllAreas().has(PlayerAction_1.UIPosition.ON_MY_SUB_GENERAL)) {
+            return React.createElement("div", { className: 'occupy ui-mounter center' },
+                React.createElement(OnGeneralCardSelector, { context: context, target: CardPos_1.CardPos.ON_SUB_GENERAL, checker: this.props.onSubGeneralChecker }));
+        }
+        return null;
     }
 }
 exports.default = UIMounter;
+function OnGeneralCardSelector(p) {
+    return React.createElement("div", { className: 'card-selection-container' },
+        React.createElement("div", { className: 'card-selection-hint center' }, p.context.getCurrentDriver().getHintMsg(AccordionContext_1.default)),
+        React.createElement("div", { className: 'card-selection-row' },
+            React.createElement("div", { className: 'row-of-cards' }, p.context.myself.getCards(p.target).map(c => {
+                let s = p.checker.getStatus(c.id);
+                return React.createElement("div", { className: 'card-wrapper', key: c.id },
+                    React.createElement(UICard_1.default, { card: c, isShown: true, elementStatus: s, nodescript: true, onMouseClick: () => s.isSelectable && p.checker.onClicked(c.id) }));
+            }))));
+}
 
 
 /***/ }),
@@ -1186,6 +1184,9 @@ class NoActionDriver extends PlayerActionDriver {
     getHintMsg(context) {
         return '';
     }
+    getAllAreas() {
+        return new Set();
+    }
 }
 exports.NoActionDriver = NoActionDriver;
 NoActionDriver.INSTANCE = new NoActionDriver();
@@ -1279,6 +1280,12 @@ class CompositePlayerActionDriver extends PlayerActionDriver {
         else {
             return context.serverHint.hint.hintMsg;
         }
+    }
+    getAllAreas() {
+        if (this.theOne) {
+            return this.theOne.getAllAreas();
+        }
+        return new Set();
     }
 }
 exports.CompositePlayerActionDriver = CompositePlayerActionDriver;
@@ -1462,6 +1469,7 @@ class StepByStepActionDriver extends PlayerActionDriver_1.PlayerActionDriver {
         this.steps = steps;
         this.buttons = buttons;
         this.curr = 0;
+        this.allAreas = new Set();
         this.onClicked = (action, context) => {
             console.log('[Player Action] Clicked on', action);
             //if we clicked on abort:
@@ -1580,6 +1588,12 @@ class StepByStepActionDriver extends PlayerActionDriver_1.PlayerActionDriver {
             }
             throw `Step not found/reached yet!! ${action.actionArea} ${action.itemId} ${this.constructor.name}`;
         };
+        steps.forEach(s => {
+            s.areas.forEach(a => this.allAreas.add(a));
+        });
+    }
+    getAllAreas() {
+        return this.allAreas;
     }
     getUsableButtons() {
         return this.buttons;
@@ -2561,18 +2575,6 @@ class UIBoard extends React.Component {
         let { myId, context } = p;
         let screenPosObtainer = new ScreenPosObtainer_1.ScreenPosObtainer();
         let skillChecker = new CheckerImpl(PlayerAction_1.UIPosition.MY_SKILL, context, this.refresh);
-        let skillButtons = context.getPlayer(myId)
-            .getSkills(GameMode_1.GameMode.get(context.gameMode))
-            .map(skill => {
-            console.log('Boostrapping Skill', skill.playerId, skill.id);
-            skill.bootstrapClient(context, context.getPlayer(myId));
-            return {
-                skill,
-                skillChecker, statusUpdater: (s) => {
-                    context.sendToServer(s);
-                }
-            };
-        });
         this.state = {
             hideCards: false,
             showDistance: false,
@@ -2582,10 +2584,12 @@ class UIBoard extends React.Component {
             buttonChecker: new CheckerImpl(PlayerAction_1.UIPosition.BUTTONS, context, this.refresh),
             equipChecker: new CheckerImpl(PlayerAction_1.UIPosition.MY_EQUIP, context, this.refresh),
             signsChecker: new CheckerImpl(PlayerAction_1.UIPosition.SIGNS, context, this.refresh),
+            onGeneralChecker: new CheckerImpl(PlayerAction_1.UIPosition.ON_MY_GENERAL, context, this.refresh),
+            onSubGeneralChecker: new CheckerImpl(PlayerAction_1.UIPosition.ON_MY_SUB_GENERAL, context, this.refresh),
             cardTransitManager: new CardTransitManager_1.default(context.cardManager),
             uiRequest: null,
             uiData: null,
-            skillButtons,
+            skillButtons: [],
             others: context.getRingFromPerspective(myId, false, true),
             audioPlaying: true
         };
@@ -2597,12 +2601,21 @@ class UIBoard extends React.Component {
                     return prop.skill.id === s.id && prop.skill.playerId === s.playerId;
                 });
                 if (!match) {
-                    console.error('Cannot find skill. Unable to process status update', s, state.skillButtons);
-                    throw 'Cannot find skill. Unable to process status update';
+                    console.info('Received a new skill!', s);
+                    let skill = GameMode_1.GameMode.get(context.gameMode).skillProvider(s.id, myId);
+                    skill.isMain = s.isMain;
+                    skill.bootstrapClient(context, context.getPlayer(myId));
+                    state.skillButtons.push({
+                        skill,
+                        skillChecker, statusUpdater: (s) => {
+                            context.sendToServer(s);
+                        }
+                    });
                 }
-                Object.assign(match.skill, s);
-                console.log('Updated skill', match.skill.isRevealed, s, match.skill);
-                // match.skill.onStatusUpdated(context)
+                else {
+                    Object.assign(match.skill, s);
+                    console.log('Updated skill', match.skill.isRevealed, s, match.skill);
+                }
                 return state;
             });
         });
@@ -2657,7 +2670,7 @@ class UIBoard extends React.Component {
     }
     render() {
         let { myId, context, pubsub } = this.props;
-        let { showDistance, hideCards, screenPosObtainer, others, skillButtons, signsChecker, playerChecker, cardsChecker, buttonChecker, equipChecker, cardTransitManager } = this.state;
+        let { showDistance, hideCards, screenPosObtainer, others, skillButtons, signsChecker, onGeneralChecker, onSubGeneralChecker, playerChecker, cardsChecker, buttonChecker, equipChecker, cardTransitManager } = this.state;
         let playerInfo = context.getPlayer(myId);
         let mode = GameMode_1.GameMode.get(context.gameMode);
         // console.log(context.playerInfos, myId, playerInfo)
@@ -2665,7 +2678,7 @@ class UIBoard extends React.Component {
             React.createElement("div", { className: 'top' },
                 React.createElement("div", { className: 'playground' },
                     React.createElement(UIPlayGround_1.default, { players: others, distanceComputer: context.getMyDistanceTo, pubsub: pubsub, screenPosObtainer: screenPosObtainer, showDist: showDistance, cardTransitManager: cardTransitManager, checker: playerChecker, cardManager: context.cardManager }),
-                    React.createElement(UIMounter_1.default, { customRequest: this.state.uiRequest, commonUI: this.state.uiData, consumer: res => {
+                    React.createElement(UIMounter_1.default, { customRequest: this.state.uiRequest, commonUI: this.state.uiData, context: context, onGeneralChecker: onGeneralChecker, onSubGeneralChecker: onSubGeneralChecker, consumer: res => {
                             context.submitAction({
                                 actionData: null,
                                 actionSource: myId,
@@ -4398,14 +4411,13 @@ var UIPosition;
     // MY_TOP,
     // 玩家 或 其他玩家
     UIPosition[UIPosition["PLAYER"] = 4] = "PLAYER";
-    // 其他玩家标记牌
-    // PLAYER_TOP,
-    // 任意 （诸葛观星）
-    UIPosition[UIPosition["AD_HOC"] = 5] = "AD_HOC";
+    // 置于你武将牌上的牌
+    UIPosition[UIPosition["ON_MY_GENERAL"] = 5] = "ON_MY_GENERAL";
+    UIPosition[UIPosition["ON_MY_SUB_GENERAL"] = 6] = "ON_MY_SUB_GENERAL";
     // 确定 / 取消 / 技能选项
-    UIPosition[UIPosition["BUTTONS"] = 6] = "BUTTONS";
+    UIPosition[UIPosition["BUTTONS"] = 7] = "BUTTONS";
     // 标记 （阴阳鱼，先驱，珠联璧合）
-    UIPosition[UIPosition["SIGNS"] = 7] = "SIGNS";
+    UIPosition[UIPosition["SIGNS"] = 8] = "SIGNS";
 })(UIPosition = exports.UIPosition || (exports.UIPosition = {}));
 function isPositionForCard(ui) {
     return ui !== UIPosition.MY_SKILL && ui !== UIPosition.PLAYER && ui !== UIPosition.BUTTONS;
@@ -5081,10 +5093,9 @@ var CardPos;
     CardPos[CardPos["HAND"] = 4] = "HAND";
     CardPos[CardPos["EQUIP"] = 5] = "EQUIP";
     CardPos[CardPos["JUDGE"] = 6] = "JUDGE";
-    //田, 创, 空城牌等等
-    CardPos[CardPos["ON_GENERAL_CARD"] = 7] = "ON_GENERAL_CARD";
-    //额外的因ability的地方: 田？ 权？ 七星？
-    CardPos[CardPos["TIAN"] = 8] = "TIAN";
+    //田, 创, 空城, 千幻牌
+    CardPos[CardPos["ON_GENERAL"] = 7] = "ON_GENERAL";
+    CardPos[CardPos["ON_SUB_GENERAL"] = 8] = "ON_SUB_GENERAL";
 })(CardPos = exports.CardPos || (exports.CardPos = {}));
 function isSharedPosition(pos) {
     return pos < CardPos.HAND;
@@ -6025,6 +6036,7 @@ const FactionWarGeneralUiOffset_1 = __webpack_require__(/*! ./FactionWarGeneralU
 const Togglable_1 = __webpack_require__(/*! ../common/util/Togglable */ "./javascript/common/util/Togglable.tsx");
 const UIMyPlayerCard_1 = __webpack_require__(/*! ../client/ui/UIMyPlayerCard */ "./javascript/client/ui/UIMyPlayerCard.tsx");
 const GeneralUI_1 = __webpack_require__(/*! ../client/card-panel/GeneralUI */ "./javascript/client/card-panel/GeneralUI.tsx");
+const CardPos_1 = __webpack_require__(/*! ../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
     constructor(player, general, subGeneral) {
         super(player);
@@ -6032,6 +6044,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         this.subGeneral = subGeneral;
         this.isGeneralRevealed = false;
         this.isSubGeneralRevealed = false;
+        //铁骑, 潜袭之类的标识
         this.mainMark = {};
         this.subMark = {};
     }
@@ -6060,7 +6073,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         if (this.general.faction.name !== this.subGeneral.faction.name) {
             throw `WTF?? Factions don't match leh`;
         }
-        this.hp = Math.floor(this.general.hp + this.subGeneral.hp);
+        this.hp = Math.floor(this.general.resolveHp(true) + this.subGeneral.resolveHp(false));
         this.maxHp = this.hp;
         this.faction = this.general.faction;
         return this;
@@ -6112,10 +6125,15 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
             return React.createElement("div", { className: 'card-avatar', style: FactionWarGeneralUiOffset_1.toFactionWarAvatarStyle(g.id, isBig) });
         }
     }
-    drawMark(marks) {
-        return React.createElement("div", { className: 'marks' }, Object.keys(marks).map(m => {
-            return React.createElement("div", { className: 'mark', key: m }, marks[m]);
-        }));
+    drawMark(isMain) {
+        let marks = isMain ? this.mainMark : this.subMark;
+        let onGeneral = isMain ? this.getCards(CardPos_1.CardPos.ON_GENERAL).length : this.getCards(CardPos_1.CardPos.ON_SUB_GENERAL).length;
+        let name = isMain ? this.general.nameForCardsOnMe : this.subGeneral.nameForCardsOnMe;
+        return React.createElement("div", { className: 'marks' },
+            onGeneral > 0 && React.createElement("div", { className: 'mark', key: '将牌上的牌' }, `${name}[${onGeneral}]`),
+            Object.keys(marks).map(m => {
+                return React.createElement("div", { className: 'mark', key: m }, marks[m]);
+            }));
     }
     draw() {
         let clazz = new Togglable_1.ClassFormatter('faction-war').and(this.isDead, 'dead').done();
@@ -6125,11 +6143,11 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
                 GeneralUI_1.wrapGeneral(this.general, React.createElement("div", { className: 'general', style: { letterSpacing: main.length > 2 ? '-4px' : '0px' } },
                     this.renderGeneral(this.general, false),
                     React.createElement("div", { className: 'general-name' }, main),
-                    this.drawMark(this.mainMark))),
+                    this.drawMark(true))),
                 GeneralUI_1.wrapGeneral(this.subGeneral, React.createElement("div", { className: 'general', style: { letterSpacing: sub.length > 2 ? '-4px' : '0px' } },
                     this.renderGeneral(this.subGeneral, false),
                     React.createElement("div", { className: 'general-name' }, sub),
-                    this.drawMark(this.subMark))),
+                    this.drawMark(false))),
                 React.createElement("div", { className: 'player-name' }, this.player.id)),
             React.createElement(FactionMark, { key: 'faction-mark', info: this })];
     }
@@ -6147,7 +6165,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
                 React.createElement("div", { className: 'skill-buttons' }, skillButtons.filter(b => b.skill.isMain).map(b => {
                     return React.createElement(UIMyPlayerCard_1.SkillButton, Object.assign({}, b, { key: b.skill.id, className: this.general.faction.image }));
                 })),
-                this.drawMark(this.mainMark))),
+                this.drawMark(true))),
             GeneralUI_1.wrapGeneral(this.subGeneral, React.createElement("div", { className: 'general ' + (this.isSubGeneralRevealed || 'hidden') },
                 this.renderGeneral(this.subGeneral, true),
                 React.createElement("div", { className: 'general-name', style: { background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-2px' : '0px' } },
@@ -6157,7 +6175,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
                 React.createElement("div", { className: 'skill-buttons' }, skillButtons.filter(b => !b.skill.isMain).map(b => {
                     return React.createElement(UIMyPlayerCard_1.SkillButton, Object.assign({}, b, { key: b.skill.id, className: this.general.faction.image }));
                 })),
-                this.drawMark(this.subMark))),
+                this.drawMark(false))),
             React.createElement("div", { className: 'my-faction-mark ' + fac.image }, fac.name));
         // <div className={'faction-mark myself' + this.faction.image}>
         //     {this.faction.name}
@@ -7134,11 +7152,14 @@ class FactionWarGameHoster {
                 }
             }
             else {
-                this.manager.onPlayerReconnected(playerId);
-                this.skillRepo.getSkills(playerId).forEach(s => {
-                    this.manager.send(playerId, s.toStatus());
-                });
+                this.resendGameToPlayer(playerId);
             }
+        });
+    }
+    resendGameToPlayer(playerId) {
+        this.manager.onPlayerReconnected(playerId);
+        this.skillRepo.getSkills(playerId).forEach(s => {
+            this.manager.send(playerId, s.toStatus());
         });
     }
     addNewPlayer(player) {
@@ -7197,12 +7218,13 @@ class FactionWarGameHoster {
         this.manager = new GameManager_1.default(context, this.registry, resolver, this.statsCollector);
         let skillRegistry = new SkillPubsub_1.SequenceAwareSkillPubSub(this.manager, (ids) => context.sortFromPerspective(this.manager.currPlayer().player.id, ids).map(p => p.player.id));
         this.manager.init(skillRegistry);
+        //instantiate all skill objects
         this.skillRepo = new FactionWarSkillRepo_1.default(this.manager, skillRegistry);
         resolver.register(this.skillRepo);
         this.initializer.init(this.manager);
         //强制广播context
-        this.circus.statuses.forEach(s => {
-            this.manager.onPlayerReconnected(s.player.id);
+        this.circus.statuses.forEach(status => {
+            this.resendGameToPlayer(status.player.id);
         });
         //1. display results (by sending a server hint to all ppl)
         //2. wait till all are okay to proceed
@@ -7423,16 +7445,31 @@ exports.allGenerals = new Map();
 class FactionWarGeneral extends General_1.General {
     constructor(id, name, faction, hp, ...abilities) {
         super(id, name, faction, hp, abilities);
+        this.hpAsMainDelta = 0;
+        this.hpAsSubDelta = 0;
+        this.nameForCardsOnMe = '未知';
         if (id !== 'guo_soldier_female' && id !== 'guo_soldier_male') {
             exports.allGenerals.set(id, this);
         }
+    }
+    hpDelta(hpAsMainDelta, hpAsSubDelta) {
+        this.hpAsMainDelta = hpAsMainDelta;
+        this.hpAsSubDelta = hpAsSubDelta;
+        return this;
+    }
+    resolveHp(isMain) {
+        return this.hp + (isMain ? this.hpAsMainDelta : this.hpAsSubDelta);
+    }
+    setCardName(str) {
+        this.nameForCardsOnMe = str;
+        return this;
     }
 }
 exports.default = FactionWarGeneral;
 //when soldier is used to replace people the hp and factions are already set so no worries
 FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', '士兵', General_1.Faction.UNKNOWN, 0);
 FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', '士兵', General_1.Faction.UNKNOWN, 0);
-//15
+//16
 FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2.5, '奸雄');
 FactionWarGeneral.si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', General_1.Faction.WEI, 1.5, '反馈', '鬼才');
 FactionWarGeneral.xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', General_1.Faction.WEI, 2, '刚烈');
@@ -7448,6 +7485,7 @@ FactionWarGeneral.xun_yu = new FactionWarGeneral('fire_xun_yu', '荀彧', Genera
 FactionWarGeneral.cao_pi = new FactionWarGeneral('forest_cao_pi', '曹丕', General_1.Faction.WEI, 1.5, '行殇', '放逐');
 FactionWarGeneral.yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', General_1.Faction.WEI, 2, '骁果');
 FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', General_1.Faction.WEI, 2, '巧变');
+FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', General_1.Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田');
 // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
 //16
 FactionWarGeneral.liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', General_1.Faction.SHU, 2, '仁德');
@@ -7466,7 +7504,7 @@ FactionWarGeneral.zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', 
 FactionWarGeneral.pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', General_1.Faction.SHU, 1.5, '连环', '涅槃');
 FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', General_1.Faction.SHU, 1.5, '淑慎', '神智').asFemale();
 FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成');
-//15
+//16
 FactionWarGeneral.sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', General_1.Faction.WU, 2, '制衡');
 FactionWarGeneral.gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', General_1.Faction.WU, 2, '奇袭');
 FactionWarGeneral.huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', General_1.Faction.WU, 2, '苦肉');
@@ -7482,7 +7520,8 @@ FactionWarGeneral.lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', Genera
 FactionWarGeneral.xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', General_1.Faction.WU, 2, '疑城');
 FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', General_1.Faction.WU, 2, '克己', '谋断');
 FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命');
-//15
+FactionWarGeneral.zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', General_1.Faction.WU, 2, '不屈', '奋激').setCardName('创');
+// //16
 FactionWarGeneral.hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', General_1.Faction.QUN, 1.5, '除疠', '急救');
 FactionWarGeneral.lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', General_1.Faction.QUN, 2.5, '无双');
 FactionWarGeneral.diao_chan = new FactionWarGeneral('standard_diao_chan', '貂蝉', General_1.Faction.QUN, 1.5, '闭月', '离间').asFemale();
@@ -7498,6 +7537,7 @@ FactionWarGeneral.tian_feng = new FactionWarGeneral('guo_tian_feng', '田丰', G
 FactionWarGeneral.li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', General_1.Faction.QUN, 2, '凶算');
 FactionWarGeneral.ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', General_1.Faction.QUN, 1.5, '矢北', '渐营');
 FactionWarGeneral.xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', General_1.Faction.QUN, 1.5, '锋略', '谋识');
+FactionWarGeneral.pan_feng = new FactionWarGeneral('guo_pan_feng', '潘凤', General_1.Faction.QUN, 2, '狂斧');
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
 exports.generalPairs = new Multimap_1.Pairs();
@@ -8096,7 +8136,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
+exports.KuangFu = exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
 const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
 const PlayerActionDriverProvider_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverProvider */ "./javascript/client/player-actions/PlayerActionDriverProvider.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
@@ -8133,6 +8173,7 @@ const FactionSkillsShu_1 = __webpack_require__(/*! ./FactionSkillsShu */ "./java
 const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
 const PlayerActionDrivers_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDrivers */ "./javascript/client/player-actions/PlayerActionDrivers.tsx");
 const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */ "./javascript/server/engine/CardFightOp.tsx");
+const EquipOp_1 = __webpack_require__(/*! ../../server/engine/EquipOp */ "./javascript/server/engine/EquipOp.tsx");
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
     [A]不可以，因为华佗判定【闪电】即说明华佗处于自己回合内，不符合【急救】的发动条件。同理，华佗在自己回合内被【刚烈】或者【天香】等技能影响而进入濒死状态，也不能发动【急救】技能。
@@ -9292,23 +9333,52 @@ class MouShi extends Skill_1.Skill {
     }
 }
 exports.MouShi = MouShi;
-// export class KuangFu extends SimpleConditionalSkill<DamageOp> {
-//     id = '狂斧'
-//     displayName = '狂斧'
-//     description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。'
-//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-//         skillRegistry.on<DamageOp>(DamageOp, this)
-//     }
-//     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-//         if(event.source.player.id === this.playerId && event.target.player.id !== this.playerId && event.timeline === DamageTimeline.DID_DAMAGE &&
-//             event.damageSource === DamageSource.SLASH && event.target.getCards(CardPos.EQUIP).length > 0) {
-//             return true
-//         }
-//         return false
-//     }
-//     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
-//     }
-// }
+class KuangFu extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '狂斧';
+        this.displayName = '狂斧';
+        this.description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。';
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(DamageOp_2.default, this);
+    }
+    conditionFulfilled(event, manager) {
+        if (event.source && event.source.player.id === this.playerId && event.target.player.id !== this.playerId &&
+            event.timeline === DamageOp_1.DamageTimeline.DID_DAMAGE &&
+            event.damageSource === DamageOp_1.DamageSource.SLASH && event.target.getCards(CardPos_1.CardPos.EQUIP).length > 0) {
+            return true;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            //选择一张装备牌
+            let card = (yield DropCardOp_1.SelectACardAt(manager, event.source, event.target, '(狂斧)选择对方一张装备牌', CardPos_1.CardPos.EQUIP))[0];
+            //选择弃置还是拿过来
+            let choices = [new PlayerAction_1.Button('take', '装备之'), new PlayerAction_1.Button('drop', '弃置之')];
+            if (event.source.findCardAt(CardPos_1.CardPos.EQUIP, card.type.genre)) {
+                choices[0].disable();
+            }
+            let choice = yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                hintMsg: '(狂斧)选择弃置还是获得' + card,
+                extraButtons: choices
+            });
+            this.invokeEffects(manager, [event.target.player.id]);
+            if (choice.button === 'take') {
+                yield new EquipOp_1.EquipOp(event.source, card, CardPos_1.CardPos.EQUIP, event.target).perform(manager);
+            }
+            else {
+                manager.log(`${event.source} 弃置了 ${event.target} 的 ${card}`);
+                card.description = `${event.target} 被弃置`;
+                manager.sendToWorkflow(event.target.player.id, CardPos_1.CardPos.EQUIP, [card]);
+                yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(event.target.player.id, [[card, CardPos_1.CardPos.EQUIP]]));
+            }
+        });
+    }
+}
+exports.KuangFu = KuangFu;
 // 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 // 注: 存嗣获得的勇决是不会失去的
 // 
@@ -10590,7 +10660,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.XiaoGuo = exports.QiaoBian = exports.YiJi = exports.JieMing = exports.QuHu = exports.FangZhu = exports.XingShang = exports.QiangXi = exports.JuShou = exports.DuanLiang = exports.ShenSu = exports.LuoShen = exports.QinGuo = exports.TianDu = exports.LuoYi = exports.TuXi = exports.GangLie = exports.GuiCai = exports.FanKui = exports.JianXiong = exports.SkillForDamageTaken = void 0;
+exports.JiXi = exports.ZiLiang = exports.TunTian = exports.XiaoGuo = exports.QiaoBian = exports.YiJi = exports.JieMing = exports.QuHu = exports.FangZhu = exports.XingShang = exports.QiangXi = exports.JuShou = exports.DuanLiang = exports.ShenSu = exports.LuoShen = exports.QinGuo = exports.TianDu = exports.LuoYi = exports.TuXi = exports.GangLie = exports.GuiCai = exports.FanKui = exports.JianXiong = exports.SkillForDamageTaken = void 0;
 const DamageOp_1 = __webpack_require__(/*! ../../server/engine/DamageOp */ "./javascript/server/engine/DamageOp.tsx");
 const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
@@ -10616,6 +10686,8 @@ const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */
 const DropCardOp_1 = __webpack_require__(/*! ../../server/engine/DropCardOp */ "./javascript/server/engine/DropCardOp.tsx");
 const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
 const MoveCardOp_1 = __webpack_require__(/*! ../../server/engine/MoveCardOp */ "./javascript/server/engine/MoveCardOp.tsx");
+const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
+const SingleRuseOp_1 = __webpack_require__(/*! ../../server/engine/SingleRuseOp */ "./javascript/server/engine/SingleRuseOp.tsx");
 class SkillForDamageTaken extends Skill_1.SimpleConditionalSkill {
     isMyDamage(event) {
         return event.target.player.id === this.playerId && event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE
@@ -11158,7 +11230,7 @@ class JuShou extends Skill_1.SimpleConditionalSkill {
                 positions: [PlayerAction_1.UIPosition.MY_HAND]
             });
             let card = resp.getCardsAtPos(CardPos_1.CardPos.HAND)[0];
-            console.log('[据守] 弃置', card);
+            console.log('[据守] 弃置' + card);
             if (card.type.isEquipment()) {
                 //装备
                 yield new EquipOp_1.EquipOp(myself, card).perform(manager);
@@ -11612,6 +11684,127 @@ class XiaoGuo extends Skill_1.SimpleConditionalSkill {
     }
 }
 exports.XiaoGuo = XiaoGuo;
+class TunTian extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '屯田';
+        this.displayName = '屯田';
+        this.description = '当你于回合外失去牌后，你可以进行判定，若结果不为红桃，你可将此牌置于武将牌上，称为“田”；你计算与其他角色的距离-X（X为“田”的数量）。）';
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(Generic_1.CardBeingUsedEvent, this);
+        skillRegistry.on(Generic_1.CardBeingTakenEvent, this);
+        skillRegistry.on(Generic_1.CardBeingDroppedEvent, this);
+    }
+    conditionFulfilled(event, manager) {
+        //其他角色的结束阶段
+        return manager.currPlayer().player.id !== this.playerId && event.isCardFrom(this.playerId);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager);
+            let card = yield new JudgeOp_1.default(this.playerId + ' 屯田判定', this.playerId).perform(manager);
+            if (manager.stillInWorkflow(card) && manager.interpret(this.playerId, card).suit !== 'heart') {
+                let resp = yield manager.sendHint(this.playerId, {
+                    hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                    hintMsg: `你是否将${card}作为田置于你武将牌上?`,
+                    extraButtons: [PlayerAction_1.Button.OK, PlayerAction_1.Button.CANCEL]
+                });
+                if (!resp.isCancel()) {
+                    let me = manager.context.getPlayer(this.playerId);
+                    me.distanceModTargetingOthers -= 1;
+                    manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
+                    yield manager.takeFromWorkflow(this.playerId, this.isMain ? CardPos_1.CardPos.ON_GENERAL : CardPos_1.CardPos.ON_SUB_GENERAL, [card]);
+                }
+            }
+        });
+    }
+}
+exports.TunTian = TunTian;
+class ZiLiang extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '资粮';
+        this.displayName = '资粮';
+        this.description = '副将技，当与你势力相同的一名角色受到伤害后，你可以将一张“田”交给该角色。';
+        this.disabledForMain = true;
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(DamageOp_1.default, this);
+    }
+    conditionFulfilled(event, manager) {
+        let me = manager.context.getPlayer(this.playerId);
+        //当与你势力相同的一名角色受到伤害后
+        return (event.target.player.id === this.playerId || General_1.factionsSame(event.target.getFaction(), me.getFaction())) &&
+            event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE &&
+            event.type !== DamageOp_1.DamageType.ENERGY && !event.target.isDead && me.getCards(CardPos_1.CardPos.ON_SUB_GENERAL).length > 0;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let me = manager.context.getPlayer(this.playerId);
+            let candidates = me.getCards(CardPos_1.CardPos.ON_SUB_GENERAL);
+            let resp = yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.UI_PANEL,
+                hintMsg: '(资粮)请选择要交给对方的田',
+                customRequest: {
+                    data: {
+                        rowsOfCard: {
+                            '田': candidates
+                        },
+                        title: '(资粮)请选择要交给对方的田',
+                        chooseSize: 1
+                    },
+                    mode: 'choose'
+                }
+            });
+            me.distanceModTargetingOthers += 1;
+            manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
+            let res = resp.customData;
+            let card = candidates[res[0].idx];
+            this.invokeEffects(manager);
+            yield manager.transferCards(this.playerId, event.target.player.id, CardPos_1.CardPos.ON_SUB_GENERAL, CardPos_1.CardPos.HAND, [card]);
+        });
+    }
+}
+exports.ZiLiang = ZiLiang;
+class JiXi extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '急袭';
+        this.displayName = '急袭';
+        this.description = '主将技，此武将牌减少半个阴阳鱼；你可以将一张“田”当【顺手牵羊】使用。';
+        this.disabledForSub = true;
+        this.hiddenType = Skill_1.HiddenType.NONE;
+    }
+    bootstrapClient() {
+        PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
+            return new PlayerActionDriverDefiner_1.default('急袭')
+                .expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id, context) => id === this.id &&
+                context.getPlayer(this.playerId).getCards(CardPos_1.CardPos.ON_GENERAL).length > 0) //有田才能急袭~
+                .expectChoose([PlayerAction_1.UIPosition.ON_MY_GENERAL], 1, 1, (id) => true, () => '选择要使用的田')
+                .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id, context) => id !== context.myself.player.id && // 不能是自己
+                context.getPlayer(id).hasCards() && // 必须有牌能拿
+                (context.getMyDistanceTo(id) <= (context.serverHint.hint.roundStat.shunshouReach)), () => '选择急袭的对象')
+                .expectAnyButton('点击确定发动急袭')
+                .build(hint);
+        });
+    }
+    onPlayerAction(act, ignore, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let card = act.cardsOnGeneral[0];
+            card.as = Card_1.CardType.SHUN_SHOU;
+            card.description = `${act.source} 急袭`;
+            let me = manager.context.getPlayer(this.playerId);
+            me.distanceModTargetingOthers += 1;
+            manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
+            this.invokeEffects(manager, [act.targets[0].player.id]);
+            manager.sendToWorkflow(act.source.player.id, CardPos_1.CardPos.ON_GENERAL, [card], true);
+            yield manager.events.publish(new Generic_1.CardBeingUsedEvent(act.source.player.id, [[card, CardPos_1.CardPos.ON_GENERAL]], Card_1.CardType.SHUN_SHOU, true));
+            yield new SingleRuseOp_1.ShunShou(act.source, act.targets[0], [card]).perform(manager);
+        });
+    }
+}
+exports.JiXi = JiXi;
 // export class XunYou extends Skill {
 //     id = '奇策'
 //     displayName = '奇策'
@@ -11641,23 +11834,6 @@ exports.XiaoGuo = XiaoGuo;
 //     description = '当你受到伤害后，你可以摸一张牌，然后展示所有手牌，若颜色均相同，伤害来源弃置一张手牌。'
 // }
 /*
-export class TunTian extends Skill<DamageOp> {
-
-    displayName = '屯田'
-    description = '当你于回合外失去牌后，你可以进行判定，若结果不为红桃，你可将此牌置于武将牌上，称为“田”；你计算与其他角色的距离-X（X为“田”的数量）。）'
-}
-
-export class ZiLiang extends Skill<DamageOp> {
-
-    displayName = '资粮'
-    description = '副将技，当与你势力相同的一名角色受到伤害后，你可以将一张“田”交给该角色。'
-}
-
-export class JiXi extends Skill<DamageOp> {
-
-    displayName = '急袭'
-    description = '主将技，此武将牌减少半个阴阳鱼；你可以将一张“田”当【顺手牵羊】使用。'
-}
 
 export class HuYuan extends Skill<DamageOp> {
 
@@ -11713,7 +11889,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FenMing = exports.DuanXie = exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
+exports.FenJi = exports.BuQu = exports.FenMing = exports.DuanXie = exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
 const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const PlayerActionDriverDefiner_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverDefiner */ "./javascript/client/player-actions/PlayerActionDriverDefiner.tsx");
@@ -11741,6 +11917,8 @@ const EquipOp_1 = __webpack_require__(/*! ../../server/engine/EquipOp */ "./java
 const FactionPlayerInfo_1 = __webpack_require__(/*! ../FactionPlayerInfo */ "./javascript/game-mode-faction/FactionPlayerInfo.tsx");
 const MoveCardOp_1 = __webpack_require__(/*! ../../server/engine/MoveCardOp */ "./javascript/server/engine/MoveCardOp.tsx");
 const MultiRuseOp_1 = __webpack_require__(/*! ../../server/engine/MultiRuseOp */ "./javascript/server/engine/MultiRuseOp.tsx");
+const AskSavingOp_1 = __webpack_require__(/*! ../../server/engine/AskSavingOp */ "./javascript/server/engine/AskSavingOp.tsx");
+const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
 class ZhiHeng extends Skill_1.Skill {
     constructor() {
         super(...arguments);
@@ -12706,35 +12884,66 @@ exports.FenMing = FenMing;
  * 新版【不屈】的周泰则会经历濒死状态，一路求桃到周泰本人时锁定发动，成功则脱离濒死并回复至1体力，失败则继续向后求桃。
  * 旧版【不屈】是按周泰受到伤害的点数翻不屈牌的，而新版【不屈】则是按次。
  */
-// export class BuQu extends SimpleConditionalSkill<AskSavingOp> {
-//     id = '不屈'
-//     displayName = '不屈'
-//     description = '锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。'
-//     //by card sizes
-//     wounds = new Set<number>()
-//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-//         skillRegistry.on<AskSavingOp>(AskSavingOp, this)
-//         skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async (useOp)=>{
-//             //你的出牌阶段,你用的牌
-//             if(manager.currEffect.stage === Stage.USE_CARD && manager.currPlayer().player.id === this.playerId && 
-//                 useOp.player === this.playerId) {
-//                 useOp.cards.forEach(c => {
-//                     this.suitsUsed.add(c[0].suit)
-//                     this.typesUsed.add(c[0].type.getSuperGenre())
-//                 })
-//             }
-//         })
-//     }
-//     public conditionFulfilled(event: AskSavingOp, manager: GameManager): boolean {
-//         //趁机重置state
-//         return event.deadman.player.id === this.playerId
-//     }
-//     public async doInvoke(event: AskSavingOp, manager: GameManager): Promise<void> {
-//         await MoveCardOnField(manager, event.info, this.displayName)
-//     }
-// }
-// 不屈 锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。
-// 奋激 一名角色的结束阶段开始时，若其没有手牌，你可令其摸两张牌。若如此做，你失去1点体力。
+class BuQu extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '不屈';
+        this.displayName = '不屈';
+        this.description = '锁定技，当你处于濒死状态时，你将牌堆顶的一张牌置于你的武将牌上，称为"创"：若此牌点数与已有的"创"点数均不同，你将体力回复至1点；若点数相同，将此牌置入弃牌堆。';
+        this.isLocked = true;
+        //by card sizes
+        this.wounds = new Set();
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(AskSavingOp_1.default, this);
+    }
+    conditionFulfilled(event, manager) {
+        return event.deadman.player.id === this.playerId && event.goodman.player.id === this.playerId;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager);
+            let card = manager.context.deck.getCardsFromTop(1)[0];
+            card.description = this.playerId + ' > 不屈判定';
+            let size = card.size.size;
+            let transit = EffectTransit_1.CardTransit.deckToWorkflow([card]);
+            transit.specialEffect = 'flip';
+            manager.broadcast(transit);
+            manager.context.workflowCards.add(card);
+            if (!this.wounds.has(size)) {
+                //加入创
+                yield manager.takeFromWorkflow(this.playerId, this.isMain ? CardPos_1.CardPos.ON_GENERAL : CardPos_1.CardPos.ON_SUB_GENERAL, [card]);
+                this.wounds.add(size);
+                event.deadman.hp = 1;
+                manager.broadcast(event.deadman, PlayerInfo_1.PlayerInfo.sanitize);
+            }
+        });
+    }
+}
+exports.BuQu = BuQu;
+class FenJi extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '奋激';
+        this.displayName = '奋激';
+        this.description = '一名角色的结束阶段开始时，若其没有手牌，你可令其摸两张牌。若如此做，你失去1点体力。';
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(StageFlows_1.StageStartFlow, this);
+    }
+    conditionFulfilled(event, manager) {
+        return event.stage === Stage_1.Stage.ROUND_END && event.info.getCards(CardPos_1.CardPos.HAND).length === 0;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager);
+            yield new TakeCardOp_1.default(event.info, 2).perform(manager);
+            let me = manager.context.getPlayer(this.playerId);
+            yield new DamageOp_1.default(me, me, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+        });
+    }
+}
+exports.FenJi = FenJi;
 // 短兵 你使用【杀】可以多选择一名距离为1的角色为目标。
 // 奋迅 出牌阶段限一次，你可以弃置一张牌并选择一名其他角色，然后本回合你计算与其的距离视为1。
 // 尚义 出牌阶段限一次，你可以令一名其他角色观看你的手牌。若如此做，你选择一项：1.观看其手牌并可以弃置其中的一张黑色牌；2.观看其所有暗置的武将牌。
@@ -12820,6 +13029,9 @@ exports.FactionSkillProviders.register('节命', pid => new FactionSkillsWei_1.J
 exports.FactionSkillProviders.register('驱虎', pid => new FactionSkillsWei_1.QuHu(pid));
 exports.FactionSkillProviders.register('巧变', pid => new FactionSkillsWei_1.QiaoBian(pid));
 exports.FactionSkillProviders.register('骁果', pid => new FactionSkillsWei_1.XiaoGuo(pid));
+exports.FactionSkillProviders.register('屯田', pid => new FactionSkillsWei_1.TunTian(pid));
+exports.FactionSkillProviders.register('急袭', pid => new FactionSkillsWei_1.JiXi(pid));
+exports.FactionSkillProviders.register('资粮', pid => new FactionSkillsWei_1.ZiLiang(pid));
 exports.FactionSkillProviders.register('龙胆', pid => new FactionSkillsShu_1.LongDan(pid));
 exports.FactionSkillProviders.register('仁德', pid => new FactionSkillsShu_1.Rende(pid));
 exports.FactionSkillProviders.register('武圣', pid => new FactionSkillsShu_1.WuSheng(pid));
@@ -12870,6 +13082,8 @@ exports.FactionSkillProviders.register('克己', pid => new FactionSkillsWu_1.Ke
 exports.FactionSkillProviders.register('谋断', pid => new FactionSkillsWu_1.MouDuan(pid));
 exports.FactionSkillProviders.register('奋命', pid => new FactionSkillsWu_1.FenMing(pid));
 exports.FactionSkillProviders.register('断绁', pid => new FactionSkillsWu_1.DuanXie(pid));
+exports.FactionSkillProviders.register('不屈', pid => new FactionSkillsWu_1.BuQu(pid));
+exports.FactionSkillProviders.register('奋激', pid => new FactionSkillsWu_1.FenJi(pid));
 exports.FactionSkillProviders.register('除疠', pid => new FactionSkillsQun_1.ChuLi(pid));
 exports.FactionSkillProviders.register('急救', pid => new FactionSkillsQun_1.JiJiu(pid));
 exports.FactionSkillProviders.register('无双', pid => new FactionSkillsQun_1.WuShuang(pid));
@@ -12897,6 +13111,7 @@ exports.FactionSkillProviders.register('矢北', pid => new FactionSkillsQun_1.S
 exports.FactionSkillProviders.register('渐营', pid => new FactionSkillsQun_1.JianYing(pid));
 exports.FactionSkillProviders.register('锋略', pid => new FactionSkillsQun_1.FengLue(pid));
 exports.FactionSkillProviders.register('谋识', pid => new FactionSkillsQun_1.MouShi(pid));
+exports.FactionSkillProviders.register('狂斧', pid => new FactionSkillsQun_1.KuangFu(pid));
 class FactionWarSkillRepo {
     constructor(manager, skillRegistry) {
         this.manager = manager;
@@ -13119,6 +13334,7 @@ class Skill extends SkillStatus {
         s.id = this.id;
         s.displayName = this.displayName;
         s.hiddenType = this.hiddenType;
+        s.isMain = this.isMain;
         return s;
     }
     /**
@@ -13375,16 +13591,16 @@ class SequenceAwareSkillPubSub {
                         if (!skill.isRevealed) {
                             invokeMsg += `并明置${skill.isMain ? '主将' : '副将'}`;
                         }
-                        choices.push(new PlayerAction_1.Button(skill.id, invokeMsg));
+                        choices.push([s, new PlayerAction_1.Button(skill.id, invokeMsg)]);
                     }
                 }
-                choices.push(PlayerAction_1.Button.CANCEL);
+                choices.push([null, PlayerAction_1.Button.CANCEL]);
                 let resp;
                 while (choices.length > 1) {
                     resp = yield this.manager.sendHint(player, {
                         hintType: ServerHint_1.HintType.MULTI_CHOICE,
                         hintMsg: '请选择发动技能或取消',
-                        extraButtons: choices
+                        extraButtons: choices.map(c => c[1])
                     });
                     if (!resp.isCancel()) {
                         let skillId = resp.button;
@@ -13398,10 +13614,11 @@ class SequenceAwareSkillPubSub {
                         }
                         yield skill.doInvoke(obj, this.manager);
                         count++;
-                        let removedButton = Util_1.takeFromArray(choices, c => c.id === skillId);
+                        let removedButton = Util_1.takeFromArray(choices, c => c[1].id === skillId);
                         if (!removedButton) {
                             throw 'Failed to remove button! ' + skillId;
                         }
+                        choices.filter(c => !c[0] || Skill_1.invocable(c[0], obj, this.manager));
                     }
                     else {
                         console.log('[技能驱动] 玩家放弃发动技能');
@@ -14663,6 +14880,7 @@ const Generic_1 = __webpack_require__(/*! ../engine/Generic */ "./javascript/ser
 class PlayerAct {
     constructor(action, manager) {
         this.manager = manager;
+        this.cardsOnGeneral = [];
         this.serverHint = action.serverHint;
         this.customData = action.customData;
         this.source = manager.context.getPlayer(action.actionSource);
@@ -14680,6 +14898,11 @@ class PlayerAct {
         if (action.actionData[PlayerAction_1.UIPosition.PLAYER]) {
             this.targets = action.actionData[PlayerAction_1.UIPosition.PLAYER].map(p => manager.context.getPlayer(p));
         }
+        [PlayerAction_1.UIPosition.ON_MY_GENERAL, PlayerAction_1.UIPosition.ON_MY_SUB_GENERAL].forEach((uiPos) => {
+            if (action.actionData[uiPos] && action.actionData[uiPos].length > 0) {
+                this.cardsOnGeneral.push(...action.actionData[uiPos].map(c => manager.getCard(c)));
+            }
+        });
         [PlayerAction_1.UIPosition.MY_EQUIP, PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_JUDGE].forEach((uiPos) => {
             if (action.actionData[uiPos] && action.actionData[uiPos].length > 0) {
                 let cards = action.actionData[uiPos].map(c => manager.getCard(c));
@@ -15915,9 +16138,7 @@ class EquipOp {
     }
     perform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield manager.events.publish(this);
-            let currEquips = this.beneficiary.getCards(CardPos_1.CardPos.EQUIP);
-            let replace = currEquips.find(c => c.type.genre === this.card.type.genre);
+            let replace = this.beneficiary.findCardAt(CardPos_1.CardPos.EQUIP, this.card.type.genre);
             if (replace) {
                 //need to remove this first
                 yield new UnequipOp(this.beneficiary, replace, this.source).perform(manager);
@@ -15929,6 +16150,7 @@ class EquipOp {
                 manager.broadcast(new EffectTransit_1.PlaySound('audio/card/common/equipment.ogg'));
             }
             yield manager.transferCards(this.source.player.id, this.beneficiary.player.id, this.sourcePos, CardPos_1.CardPos.EQUIP, [this.card]);
+            yield manager.events.publish(this);
             // newOwner.addCard(this.card, CardPos.EQUIP)
             // manager.broadcast(newOwner, PlayerInfo.sanitize)
         });
@@ -16242,11 +16464,11 @@ class Qilin extends Equipment {
             if (!op.source || op.source.player.id !== this.player || op.damageSource !== DamageOp_1.DamageSource.SLASH) {
                 return;
             }
-            let potential = op.source.getCards(CardPos_1.CardPos.EQUIP).find(c => c.type === Card_1.CardType.QI_LIN);
-            if (!potential) {
-                throw `不可能! 我登记过的就应该有这个武器! 麒麟弓 ${this.player}`;
-            }
             if (op.timeline === DamageOp_1.DamageTimeline.DOING_DAMAGE) {
+                let potential = op.source.getCards(CardPos_1.CardPos.EQUIP).find(c => c.type === Card_1.CardType.QI_LIN);
+                if (!potential) {
+                    throw `不可能! 我登记过的就应该有这个武器! 麒麟弓 ${this.player}`;
+                }
                 let horses = op.target.getCards(CardPos_1.CardPos.EQUIP).filter(c => c.type.isHorse());
                 if (horses.length === 0) {
                     console.log('[装备] 麒麟弓发现没啥好射的');
@@ -16606,14 +16828,21 @@ exports.BaiYin = BaiYin;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findCard = exports.gatherCards = exports.cardAmountAt = exports.CardObtainedEvent = exports.CardBeingTakenEvent = exports.CardBeingDroppedEvent = exports.CardBeingUsedEvent = void 0;
+exports.findCard = exports.gatherCards = exports.cardAmountAt = exports.CardObtainedEvent = exports.CardBeingTakenEvent = exports.CardBeingDroppedEvent = exports.CardBeingUsedEvent = exports.CardAwayEvent = void 0;
 const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
+class CardAwayEvent {
+    isCardFrom(playerId) {
+        return this.player === playerId && (this.cards[0][1] === CardPos_1.CardPos.HAND || this.cards[0][1] === CardPos_1.CardPos.EQUIP);
+    }
+}
+exports.CardAwayEvent = CardAwayEvent;
 //使用 / 打出
 //必须是在牌出到了workflow之后publish
-class CardBeingUsedEvent {
+class CardBeingUsedEvent extends CardAwayEvent {
     constructor(player, cards, as, isFromSkill = false, isUse = true) {
+        super();
         this.player = player;
         this.cards = cards;
         this.as = as;
@@ -16624,8 +16853,9 @@ class CardBeingUsedEvent {
 exports.CardBeingUsedEvent = CardBeingUsedEvent;
 //弃置
 //必须是在牌出到了workflow之后publish
-class CardBeingDroppedEvent {
+class CardBeingDroppedEvent extends CardAwayEvent {
     constructor(player, cards) {
+        super();
         this.player = player;
         this.cards = cards;
     }
@@ -16633,8 +16863,9 @@ class CardBeingDroppedEvent {
 exports.CardBeingDroppedEvent = CardBeingDroppedEvent;
 //拿走
 //必须是在牌出到了workflow之后publish
-class CardBeingTakenEvent {
+class CardBeingTakenEvent extends CardAwayEvent {
     constructor(player, cards) {
+        super();
         this.player = player;
         this.cards = cards;
     }
@@ -21797,7 +22028,7 @@ var getBox = function getBox(el) {
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".ui-mounter {\n  z-index: 99; }\n\n.duo-card-selection-container {\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .duo-card-selection-container .duo-card-selection-hint {\n    height: 30px; }\n  .duo-card-selection-container .row-name {\n    width: 40px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    letter-spacing: 2px;\n    text-align: center; }\n  .duo-card-selection-container .title {\n    text-align: center; }\n  .duo-card-selection-container .row-of-cards {\n    display: flex;\n    flex: 1 1 0;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    margin: 5px;\n    border: 1px solid white;\n    border-radius: 6px;\n    min-height: 160px;\n    min-width: 150px; }\n  .duo-card-selection-container .button-container {\n    height: 28px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.card-selection-container {\n  width: 60%;\n  max-width: 640px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .card-selection-container .card-selection-hint {\n    height: 30px; }\n  .card-selection-container .card-selection-row {\n    display: flex;\n    margin-top: 8px; }\n    .card-selection-container .card-selection-row .row-name {\n      width: 40px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      letter-spacing: 2px; }\n    .card-selection-container .card-selection-row .row-of-cards {\n      display: flex;\n      flex-grow: 1;\n      padding: 7px;\n      height: 155px;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      border-radius: 5px;\n      border: 1px solid #b9b9b9; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper {\n        width: 0px;\n        height: 0px;\n        max-width: 120px;\n        flex-grow: 1;\n        position: relative;\n        pointer-events: none;\n        transition: 0.2s; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper:not(:last-child):hover {\n        width: 40px; }\n      .card-selection-container .card-selection-row .row-of-cards .as {\n        position: absolute;\n        height: 20px;\n        top: 80px;\n        background: #d6d696;\n        color: black;\n        border: 1px solid black;\n        border-radius: 3px;\n        text-shadow: 0px 0px 2px #794c4c;\n        width: 80%;\n        left: 7%; }\n  .card-selection-container .button-container {\n    height: 28px;\n    margin-top: 10px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.game-result {\n  min-width: 500px;\n  background-image: url(\"ui/bak.png\");\n  background-repeat: repeat;\n  border-radius: 3px;\n  box-shadow: 0px 0px 5px black; }\n  .game-result .title {\n    padding: 10px; }\n  .game-result .results .winner {\n    color: #1ec91e; }\n  .game-result .results .row {\n    display: flex; }\n    .game-result .results .row .player-name {\n      flex-grow: 1; }\n    .game-result .results .row .col {\n      width: 70px; }\n    .game-result .results .row .col-2 {\n      width: 100px; }\n  .game-result .button-container {\n    padding: 20px; }\n\n.wugu-container {\n  width: 500px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .wugu-container .wugu-title {\n    height: 30px; }\n  .wugu-container .wugu-cards {\n    display: flex;\n    flex-wrap: wrap;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    border: 1px solid gray;\n    border-radius: 4px; }\n\n.cf-container {\n  width: 300px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cf-container .cf-title {\n    height: 30px; }\n  .cf-container .cf-cards {\n    display: flex;\n    justify-content: space-around;\n    align-items: center; }\n  .cf-container .left {\n    position: relative; }\n    .cf-container .left .win-lose {\n      background-size: contain;\n      background-repeat: no-repeat;\n      background-position: center;\n      animation: symbol-enter 0.5s forwards; }\n    .cf-container .left .win {\n      background-image: url(\"icons/win.png\"); }\n    .cf-container .left .lose {\n      background-image: url(\"icons/lose.png\"); }\n\n@keyframes symbol-enter {\n  0% {\n    transform: scale(3);\n    filter: opacity(0); }\n  100% {\n    transform: scale(1);\n    filter: opacity(1); } }\n", ""]);
+exports.push([module.i, ".ui-mounter {\n  z-index: 99;\n  pointer-events: none; }\n\n.duo-card-selection-container {\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .duo-card-selection-container .duo-card-selection-hint {\n    height: 30px; }\n  .duo-card-selection-container .row-name {\n    width: 40px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    letter-spacing: 2px;\n    text-align: center; }\n  .duo-card-selection-container .title {\n    text-align: center; }\n  .duo-card-selection-container .row-of-cards {\n    display: flex;\n    flex: 1 1 0;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    margin: 5px;\n    border: 1px solid white;\n    border-radius: 6px;\n    min-height: 160px;\n    min-width: 150px; }\n  .duo-card-selection-container .button-container {\n    height: 28px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.card-selection-container {\n  width: 60%;\n  max-width: 640px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .card-selection-container .card-selection-hint {\n    height: 30px; }\n  .card-selection-container .card-selection-row {\n    display: flex;\n    margin-top: 8px; }\n    .card-selection-container .card-selection-row .row-name {\n      width: 40px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      letter-spacing: 2px; }\n    .card-selection-container .card-selection-row .row-of-cards {\n      display: flex;\n      flex-grow: 1;\n      padding: 7px;\n      height: 155px;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      border-radius: 5px;\n      border: 1px solid #b9b9b9; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper {\n        width: 0px;\n        height: 0px;\n        max-width: 120px;\n        flex-grow: 1;\n        position: relative;\n        pointer-events: none;\n        transition: 0.2s; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper:not(:last-child):hover {\n        width: 40px; }\n      .card-selection-container .card-selection-row .row-of-cards .as {\n        position: absolute;\n        height: 20px;\n        top: 80px;\n        background: #d6d696;\n        color: black;\n        border: 1px solid black;\n        border-radius: 3px;\n        text-shadow: 0px 0px 2px #794c4c;\n        width: 80%;\n        left: 7%; }\n  .card-selection-container .button-container {\n    height: 28px;\n    margin-top: 10px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.game-result {\n  min-width: 500px;\n  background-image: url(\"ui/bak.png\");\n  background-repeat: repeat;\n  border-radius: 3px;\n  box-shadow: 0px 0px 5px black; }\n  .game-result .title {\n    padding: 10px; }\n  .game-result .results .winner {\n    color: #1ec91e; }\n  .game-result .results .row {\n    display: flex; }\n    .game-result .results .row .player-name {\n      flex-grow: 1; }\n    .game-result .results .row .col {\n      width: 70px; }\n    .game-result .results .row .col-2 {\n      width: 100px; }\n  .game-result .button-container {\n    padding: 20px; }\n\n.wugu-container {\n  width: 500px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .wugu-container .wugu-title {\n    height: 30px; }\n  .wugu-container .wugu-cards {\n    display: flex;\n    flex-wrap: wrap;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    border: 1px solid gray;\n    border-radius: 4px; }\n\n.cf-container {\n  width: 300px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cf-container .cf-title {\n    height: 30px; }\n  .cf-container .cf-cards {\n    display: flex;\n    justify-content: space-around;\n    align-items: center; }\n  .cf-container .left {\n    position: relative; }\n    .cf-container .left .win-lose {\n      background-size: contain;\n      background-repeat: no-repeat;\n      background-position: center;\n      animation: symbol-enter 0.5s forwards; }\n    .cf-container .left .win {\n      background-image: url(\"icons/win.png\"); }\n    .cf-container .left .lose {\n      background-image: url(\"icons/lose.png\"); }\n\n@keyframes symbol-enter {\n  0% {\n    transform: scale(3);\n    filter: opacity(0); }\n  100% {\n    transform: scale(1);\n    filter: opacity(1); } }\n", ""]);
 
 
 

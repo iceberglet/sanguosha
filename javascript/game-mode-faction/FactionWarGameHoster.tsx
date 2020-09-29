@@ -70,11 +70,15 @@ export default class FactionWarGameHoster implements GameHoster {
                 this.registry.onPlayerReconnected(playerId)
             }
         } else {
-            this.manager.onPlayerReconnected(playerId)
-            this.skillRepo.getSkills(playerId).forEach(s => {
-                this.manager.send(playerId, s.toStatus())
-            })
+            this.resendGameToPlayer(playerId)
         }
+    }
+
+    private resendGameToPlayer(playerId: string) {
+        this.manager.onPlayerReconnected(playerId)
+        this.skillRepo.getSkills(playerId).forEach(s => {
+            this.manager.send(playerId, s.toStatus())
+        })
     }
 
     async addNewPlayer(player: PlayerPrepChoice): Promise<void> {
@@ -144,13 +148,14 @@ export default class FactionWarGameHoster implements GameHoster {
                 (ids: string[])=>context.sortFromPerspective(this.manager.currPlayer().player.id, ids).map(p => p.player.id))
         this.manager.init(skillRegistry)
 
+        //instantiate all skill objects
         this.skillRepo = new FactionWarSkillRepo(this.manager, skillRegistry)
         resolver.register(this.skillRepo)
 
         this.initializer.init(this.manager)
         //强制广播context
-        this.circus.statuses.forEach(s => {
-            this.manager.onPlayerReconnected(s.player.id)
+        this.circus.statuses.forEach(status => {
+            this.resendGameToPlayer(status.player.id)
         })
         
         //1. display results (by sending a server hint to all ppl)

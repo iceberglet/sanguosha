@@ -5,14 +5,22 @@ import { CustomUIData, customUIRegistry } from './CustomUIRegistry'
 import DisplayPanel from './DisplayPanel'
 import { GameStats } from '../../server/GameStatsCollector'
 import GameResultPanel from './GameResultPanel'
-import { FWCard } from '../../game-mode-faction/FactionWarCardSet'
-import { CardSize, CardType } from '../../common/cards/Card'
+import GameClientContext from '../GameClientContext'
+import { CardPos } from '../../common/transit/CardPos'
+import { UIPosition } from '../../common/PlayerAction'
+import context from 'react-bootstrap/esm/AccordionContext'
+import UICard from '../ui/UICard'
+import { Checker } from '../ui/UIBoard'
+import Card from '../../common/cards/Card'
 
 
 type Prop = {
+    onGeneralChecker: Checker,
+    onSubGeneralChecker: Checker,
     customRequest: CustomRequest,
     commonUI: CustomUIData<any>,
-    consumer: (res: any) => void
+    consumer: (res: any) => void,
+    context: GameClientContext
 }
 
 export default class UIMounter extends React.Component<Prop, any> {
@@ -34,50 +42,61 @@ export default class UIMounter extends React.Component<Prop, any> {
         return customUIRegistry.get(commonUI.type, commonUI.data, customRequest?.data, consumer)
     }
 
-    // renderTest() {
-    //     return customUIRegistry.get('card-fight', {
-    //         cardLeft: new FWCard('club', CardSize.QUEEN, CardType.JIE_DAO),
-    //         cardRight: new FWCard('club', CardSize.FOUR, CardType.JIE_DAO),
-    //         title: '青青子吟 > 驱虎'
-    //     }, true, what=>{})
-    // }
-    // renderTest() {
-    //     return <DuoCardSelection {...{
-    //         title: 'Test',
-    //         titleLeft: '青青子吟',
-    //         titleRight: '欧阳挠挠',
-    //         rowsOfCard: {
-    //             '试试看': [[
-    //                 new FWCard('club', CardSize.THREE, CardType.JIE_DAO),
-    //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO),
-    //                 new FWCard('heart', CardSize.THREE, CardType.JIE_DAO),
-    //                 new FWCard('club', CardSize.FOUR, CardType.JIE_DAO),
-    //             ],[
-    //                 new FWCard('club', CardSize.THREE, CardType.JIE_DAO),
-    //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO),
-    //             ]],
-    //             '去你的': [[
-    //             ],[
-    //                 new FWCard('diamond', CardSize.THREE, CardType.JIE_DAO)
-    //             ]],
-    //         },
-    //         mode: 'choose',
-    //         chooseSize: 1,
-    //         canCancel: true
-    //     }} onSelectionDone={this.props.consumer} />
-    // }
-
-
     render() {
-        // return this.renderTest()
-        let {customRequest, commonUI} = this.props
-        if(!customRequest && (!commonUI || commonUI.type === CustomUIData.STOP)) {
-            return null
+        let {customRequest, commonUI, context} = this.props
+
+        //everyone can see such
+        if(commonUI && commonUI.type !== CustomUIData.STOP) {
+            return <div className='occupy ui-mounter center'>
+                {this.renderCommonUI()}
+            </div>
         }
-        return <div className='occupy ui-mounter center'>
-            {
-                commonUI && commonUI.type !== CustomUIData.STOP? this.renderCommonUI() : this.renderSelection()
-            }
-        </div>
+
+        //custom requests
+        if(customRequest) {
+            return <div className='occupy ui-mounter center'>
+                {this.renderSelection()}
+            </div>
+        }
+        
+        let driver = context.getCurrentDriver()
+        if(driver.getAllAreas().has(UIPosition.ON_MY_GENERAL)) {
+            return <div className='occupy ui-mounter center'>
+                <OnGeneralCardSelector context={context} target={CardPos.ON_GENERAL} checker={this.props.onGeneralChecker}/>
+            </div>
+        }
+        if(driver.getAllAreas().has(UIPosition.ON_MY_SUB_GENERAL)) {
+            return <div className='occupy ui-mounter center'>
+                <OnGeneralCardSelector context={context} target={CardPos.ON_SUB_GENERAL} checker={this.props.onSubGeneralChecker}/>
+            </div>
+        }
+        return null
     }
+}
+
+
+type SelectorProp = {
+    checker: Checker,
+    context: GameClientContext,
+    target: CardPos,
+    // cardName: string, //田, 空城, 创, 等等
+}
+
+function OnGeneralCardSelector(p: SelectorProp) {
+    
+    return  <div className='card-selection-container'>
+                <div className='card-selection-hint center'>{p.context.getCurrentDriver().getHintMsg(context)}</div>
+                <div className='card-selection-row'>
+                    {/* <div className='row-name center'>{p.cardName}</div> */}
+                    <div className='row-of-cards'>
+                    {p.context.myself.getCards(p.target).map(c => {
+                        let s = p.checker.getStatus(c.id)
+                        return <div className='card-wrapper' key={c.id}>
+                            <UICard card={c} isShown={true} elementStatus={s} nodescript={true}
+                                onMouseClick={()=>s.isSelectable && p.checker.onClicked(c.id)} />
+                        </div>
+                    })}
+                    </div>
+                </div>
+            </div>
 }

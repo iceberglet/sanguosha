@@ -81,10 +81,6 @@ export abstract class PlayerInfo {
     }
 
     /**
-     * skillid & isMain
-     */
-    abstract getSkills(mode: GameMode): Array<Skill>
-    /**
      * Called once at game start only, by server
      */
     abstract init(): PlayerInfo

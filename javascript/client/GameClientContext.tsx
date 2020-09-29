@@ -51,6 +51,10 @@ export default class GameClientContext extends GameContext {
         }
     }
 
+    public getCurrentDriver(): PlayerActionDriver {
+        return this.currentDriver
+    }
+ 
     public getMyDistanceTo=(playerId: string): number =>{
         return this.computeDistance(this.myself.player.id, playerId)
     }

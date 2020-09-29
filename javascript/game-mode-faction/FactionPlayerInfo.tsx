@@ -10,6 +10,7 @@ import { SkillButtonProp, SkillButton } from "../client/ui/UIMyPlayerCard"
 import { GameMode } from "../common/GameMode"
 import { Skill } from "./skill/Skill"
 import { wrapGeneral } from "../client/card-panel/GeneralUI"
+import { CardPos } from "../common/transit/CardPos"
 
 
 export default class FactionPlayerInfo extends PlayerInfo {
@@ -18,6 +19,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
     public isSubGeneralRevealed = false
     //can be overriden, e.g. as 野心家
     public faction: Faction
+    //铁骑, 潜袭之类的标识
     public mainMark: Mark = {}
     public subMark: Mark = {}
     
@@ -55,7 +57,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
         if(this.general.faction.name !== this.subGeneral.faction.name) {
             throw `WTF?? Factions don't match leh`
         }
-        this.hp = Math.floor(this.general.hp + this.subGeneral.hp)
+        this.hp = Math.floor(this.general.resolveHp(true) + this.subGeneral.resolveHp(false))
         this.maxHp = this.hp
         this.faction = this.general.faction
         return this
@@ -112,8 +114,12 @@ export default class FactionPlayerInfo extends PlayerInfo {
         }
     }
 
-    drawMark(marks: Mark) {
+    drawMark(isMain: boolean) {
+        let marks: Mark = isMain? this.mainMark : this.subMark
+        let onGeneral: number = isMain? this.getCards(CardPos.ON_GENERAL).length : this.getCards(CardPos.ON_SUB_GENERAL).length
+        let name = isMain? this.general.nameForCardsOnMe : this.subGeneral.nameForCardsOnMe
         return <div className='marks'>
+            {onGeneral > 0 && <div className='mark' key={'将牌上的牌'}>{`${name}[${onGeneral}]`}</div>}
             {Object.keys(marks).map(m => {
                 return <div className='mark' key={m}>{marks[m]}</div>
             })}
@@ -128,12 +134,12 @@ export default class FactionPlayerInfo extends PlayerInfo {
             {wrapGeneral(this.general, <div className='general' style={{letterSpacing: main.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.general, false)}
                 <div className='general-name'>{main}</div>
-                {this.drawMark(this.mainMark)}
+                {this.drawMark(true)}
             </div>)}
             {wrapGeneral(this.subGeneral, <div className='general' style={{letterSpacing: sub.length > 2 ? '-4px' : '0px'}}>
                 {this.renderGeneral(this.subGeneral, false)}
                 <div className='general-name'>{sub}</div>
-                {this.drawMark(this.subMark)}
+                {this.drawMark(false)}
             </div>)}
             <div className='player-name'>{this.player.id}</div>
         </div>,
@@ -157,7 +163,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
                         return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
                     })}
                 </div>
-                {this.drawMark(this.mainMark)}
+                {this.drawMark(true)}
             </div>)}
             {wrapGeneral(this.subGeneral, <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
                 {this.renderGeneral(this.subGeneral, true)}
@@ -171,7 +177,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
                         return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
                     })}
                 </div>
-                {this.drawMark(this.subMark)}
+                {this.drawMark(false)}
             </div>)}
             
             <div className={'my-faction-mark ' + fac.image}>

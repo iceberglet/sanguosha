@@ -16,10 +16,9 @@ export enum UIPosition {
     // 玩家 或 其他玩家
     PLAYER,
 
-    // 其他玩家标记牌
-    // PLAYER_TOP,
-    // 任意 （诸葛观星）
-    AD_HOC,
+    // 置于你武将牌上的牌
+    ON_MY_GENERAL,
+    ON_MY_SUB_GENERAL,
     // 确定 / 取消 / 技能选项
     BUTTONS,
     // 标记 （阴阳鱼，先驱，珠联璧合）

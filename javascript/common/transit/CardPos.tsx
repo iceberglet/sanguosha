@@ -10,10 +10,9 @@ export enum CardPos {
     EQUIP,
     JUDGE,
 
-    //田, 创, 空城牌等等
-    ON_GENERAL_CARD,
-    //额外的因ability的地方: 田？ 权？ 七星？
-    TIAN,
+    //田, 创, 空城, 千幻牌
+    ON_GENERAL,
+    ON_SUB_GENERAL
 }
 
 export function isSharedPosition(pos: CardPos) {

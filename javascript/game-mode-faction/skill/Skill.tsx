@@ -29,6 +29,11 @@ export class SkillStatus {
     id: string
 
     /**
+     * isMain?
+     */
+    isMain: boolean
+
+    /**
      * 技能名称
      */
     displayName: string
@@ -96,7 +101,6 @@ export interface SkillTrigger<T> {
 export abstract class Skill extends SkillStatus {
     
     hiddenType: HiddenType = HiddenType.FOREWARNABLE
-    isMain: boolean
     /**
      * 是否是锁定技
      */
@@ -118,6 +122,7 @@ export abstract class Skill extends SkillStatus {
         s.id = this.id
         s.displayName = this.displayName
         s.hiddenType = this.hiddenType
+        s.isMain = this.isMain
         return s
     }
 
