@@ -19195,6 +19195,7 @@ class WuXieContext {
                 // this.manager.setPending(this.candidates)
                 // show everyone to be doing this
                 this.manager.setPending(this.manager.getSortedByCurr(true).map(p => p.player.id));
+                this.manager.log(msg);
                 let responses = this.candidates.map((candidate) => __awaiter(this, void 0, void 0, function* () {
                     let resp = yield this.manager.sendHint(candidate, {
                         hintType: ServerHint_1.HintType.WU_XIE,

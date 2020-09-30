@@ -75,6 +75,7 @@ export class WuXieContext {
             // this.manager.setPending(this.candidates)
             // show everyone to be doing this
             this.manager.setPending(this.manager.getSortedByCurr(true).map(p => p.player.id))
+            this.manager.log(msg)
 
             let responses = this.candidates.map(async candidate => {
                         let resp = await this.manager.sendHint(candidate, {
