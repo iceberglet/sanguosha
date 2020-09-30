@@ -133,6 +133,8 @@ export default class GameManager {
                 console.error(err)
                 //try continue
                 // throw err
+            } finally {
+                this.goToNextPlayer()
             }
         }
     }
