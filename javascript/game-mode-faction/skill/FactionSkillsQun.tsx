@@ -1243,6 +1243,7 @@ export class DuanChange extends SimpleConditionalSkill<DeathOp> {
     }
 }
 
+// 注: 存嗣获得的勇决是不会失去的
 export class BeiGe extends SimpleConditionalSkill<DamageOp> {
     
     id = '悲歌'
@@ -1284,11 +1285,7 @@ export class BeiGe extends SimpleConditionalSkill<DamageOp> {
     }
 }
 
-// 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 
-// 注: 存嗣获得的勇决是不会失去的
-// 
-// 断肠 锁定技，当你死亡时，你令杀死你的角色失去一张武将牌的所有技能。
 
 // 名士 锁定技，当你受到伤害时，若伤害来源有暗置的武将牌，此伤害-1。
 // 礼让 当你的牌因弃置而置入弃牌堆时，你可以将其中的任意张牌交给其他角色。

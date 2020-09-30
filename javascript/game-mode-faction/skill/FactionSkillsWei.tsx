@@ -577,8 +577,7 @@ export class JuShou extends SimpleConditionalSkill<StageStartFlow> {
         }
         if(x > 2) {
             console.log('[据守] 翻面', x)
-            myself.isTurnedOver = !myself.isTurnedOver
-            manager.broadcast(myself, PlayerInfo.sanitize)
+            await turnOver(myself, myself, this.displayName, manager)
         }
         return
     }
@@ -711,7 +710,7 @@ export class FangZhu extends SkillForDamageTaken {
         let target = resp.targets[0]
         console.log('[放逐] 结果', resp, target.player.id)
         
-        await turnOver(manager.context.getPlayer(this.playerId), event.source, this.displayName, manager)
+        await turnOver(manager.context.getPlayer(this.playerId), target, this.displayName, manager)
 
         await new TakeCardOp(target, resp.source.maxHp - resp.source.hp).perform(manager)
         return
