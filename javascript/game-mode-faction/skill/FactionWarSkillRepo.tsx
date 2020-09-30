@@ -12,7 +12,7 @@ import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, K
 import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng, KeJi, MouDuan, FenMing, DuanXie, BuQu, FenJi, YingYang, JiAng, HunShang, YingZiCe, YingHunCe } from "./FactionSkillsWu";
 import { Stage } from "../../common/Stage";
 import { Mark, PlayerInfo } from "../../common/PlayerInfo";
-import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan, MaShuPang, MaShuTeng, LeiJi, GuiDao, SuiShi, SiJian, LuanJi, XiongYi, JianChu, XiongSuan, MouShi, FengLue, JianYing, ShiBei, KuangFu } from "./FactionSkillsQun";
+import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan, MaShuPang, MaShuTeng, LeiJi, GuiDao, SuiShi, SiJian, LuanJi, XiongYi, JianChu, XiongSuan, MouShi, FengLue, JianYing, ShiBei, KuangFu, DuanChange, BeiGe } from "./FactionSkillsQun";
 
 
 class FactionSkillProvider {
@@ -157,6 +157,8 @@ FactionSkillProviders.register('渐营', pid => new JianYing(pid))
 FactionSkillProviders.register('锋略', pid => new FengLue(pid))
 FactionSkillProviders.register('谋识', pid => new MouShi(pid))
 FactionSkillProviders.register('狂斧', pid => new KuangFu(pid))
+FactionSkillProviders.register('悲歌', pid => new BeiGe(pid))
+FactionSkillProviders.register('断肠', pid => new DuanChange(pid))
 
 export default class FactionWarSkillRepo implements SkillRepo {
     
@@ -196,7 +198,7 @@ export default class FactionWarSkillRepo implements SkillRepo {
                 this.manager.currPlayer().player.id === skill.playerId &&
                 this.manager.currEffect.stage === Stage.USE_CARD) {
                 console.log('[技能] 想要reveal??', skill.id, skill.playerId, ss.isRevealed)
-                await this.manager.events.publish(new RevealGeneralEvent(skill.playerId, skill.isMain, !skill.isMain))
+                await this.manager.events.publish(new RevealGeneralEvent(skill.playerId, skill.position === 'main', skill.position === 'sub'))
                 //会通过Reveal Event 来 update skill
                 // await skill.onStatusUpdated(this.manager)
             } else {
@@ -225,10 +227,9 @@ export default class FactionWarSkillRepo implements SkillRepo {
     }
 
     private onGeneralSkillUpdate = async (update: GeneralSkillStatusUpdate): Promise<void> => {
-        let abilities = (update.isMain? update.target.general : update.target.subGeneral).abilities
-        let marks = update.isMain? update.target.mainMark : update.target.subMark
+        let marks = update.position === 'main'? update.target.mainMark : update.target.subMark
         //只有武将牌上的受到影响
-        let skills = this.allSkills.getArr(update.target.player.id).filter(s => abilities.find(a => a === s.id))
+        let skills = this.allSkills.getArr(update.target.player.id).filter(s => s.position === update.position)
         if(!update.includeLocked) {
             skills = skills.filter(s => !s.isLocked)
         }
@@ -285,10 +286,10 @@ export default class FactionWarSkillRepo implements SkillRepo {
     private onRevealEvent= async (e: RevealGeneralEvent): Promise<void> => {
         let skills = this.allSkills.getArr(e.playerId)
         for(let skill of skills) {
-            if(skill.isMain && e.mainReveal) {
+            if(skill.position === 'main' && e.mainReveal) {
                 skill.isRevealed = true
             }
-            if(!skill.isMain && e.subReveal) {
+            if(skill.position === 'sub' && e.subReveal) {
                 skill.isRevealed = true
             }
             console.log('[技能] 有武将明置, 技能展示', e.playerId, skill.id, skill.isRevealed)

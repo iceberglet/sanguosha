@@ -36,14 +36,14 @@ export default class FactionPlayerInfo extends PlayerInfo {
         this.general.abilities.forEach(a => {
             let skill = mode.skillProvider(a, this.player.id)
             if(!skill.disabledForMain) {
-                skill.isMain = true
+                skill.position = 'main'
                 res.push(skill)
             }
         })
         this.subGeneral.abilities.forEach(a => {
             let skill = mode.skillProvider(a, this.player.id)
             if(!skill.disabledForSub) {
-                skill.isMain = false
+                skill.position = 'sub'
                 res.push(skill)
             }
         })
@@ -162,7 +162,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
                 </div>
                 <div className='title'>主</div>
                 <div className='skill-buttons'>
-                    {skillButtons.filter(b=>b.skill.isMain).map(b=>{
+                    {skillButtons.filter(b=>b.skill.position === 'main' || b.skill.position === 'player').map(b=>{
                         return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
                     })}
                 </div>
@@ -176,7 +176,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
                 </div>
                 <div className='title'>副</div>
                 <div className='skill-buttons'>
-                    {skillButtons.filter(b=>!b.skill.isMain).map(b=>{
+                    {skillButtons.filter(b=>b.skill.position === 'sub').map(b=>{
                         return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
                     })}
                 </div>

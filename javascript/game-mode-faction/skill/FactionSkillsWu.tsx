@@ -1014,7 +1014,7 @@ export class BuQu extends SimpleConditionalSkill<AskSavingOp> {
         manager.context.workflowCards.add(card)
         if(!this.wounds.has(size)) {
             //加入创
-            await manager.takeFromWorkflow(this.playerId, this.isMain? CardPos.ON_GENERAL: CardPos.ON_SUB_GENERAL, [card])
+            await manager.takeFromWorkflow(this.playerId, this.position === 'main'? CardPos.ON_GENERAL: CardPos.ON_SUB_GENERAL, [card])
             this.wounds.add(size)
             event.deadman.hp = 1
             manager.broadcast(event.deadman, PlayerInfo.sanitize)

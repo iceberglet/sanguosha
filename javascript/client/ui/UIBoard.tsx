@@ -141,7 +141,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 if(matchIdx < 0) {
                     console.info('Received a new skill!', s)
                     let skill = GameMode.get(context.gameMode).skillProvider(s.id, myId)
-                    skill.isMain = s.isMain
+                    skill.position = s.position
                     skill.bootstrapClient(context, context.getPlayer(myId))
                     state.skillButtons.push({
                         skill,

@@ -3,7 +3,7 @@ import { SimpleConditionalSkill, EventRegistryForSkills, HiddenType, Skill } fro
 import GameManager from "../../server/GameManager";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, DuoCardSelectionHint, DuoCardSelectionResult } from "../../common/ServerHint";
-import { gatherCards, findCard, CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingTakenEvent, CardObtainedEvent, CardAwayEvent } from "../../server/engine/Generic";
+import { gatherCards, findCard, CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingTakenEvent, CardObtainedEvent, CardAwayEvent, turnOver } from "../../server/engine/Generic";
 import JudgeOp, {JudgeTimeline} from "../../server/engine/JudgeOp";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { getRandom, checkThat, any } from "../../common/util/Util";
@@ -709,11 +709,10 @@ export class FangZhu extends SkillForDamageTaken {
         }
         this.playSound(manager, 2)
         let target = resp.targets[0]
-        manager.log(`${this.playerId} 发动了 ${this.displayName} 将${target} 翻面`)
         console.log('[放逐] 结果', resp, target.player.id)
-        manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], this.id))
-        target.isTurnedOver = !target.isTurnedOver
-        manager.broadcast(target, PlayerInfo.sanitize)
+        
+        await turnOver(manager.context.getPlayer(this.playerId), event.source, this.displayName, manager)
+
         await new TakeCardOp(target, resp.source.maxHp - resp.source.hp).perform(manager)
         return
 
@@ -1036,7 +1035,7 @@ export class TunTian extends SimpleConditionalSkill<CardAwayEvent> {
                 let me = manager.context.getPlayer(this.playerId)
                 me.distanceModTargetingOthers -= 1
                 manager.broadcast(me, PlayerInfo.sanitize)
-                await manager.takeFromWorkflow(this.playerId, this.isMain? CardPos.ON_GENERAL : CardPos.ON_SUB_GENERAL, [card])
+                await manager.takeFromWorkflow(this.playerId, this.position === 'main'? CardPos.ON_GENERAL : CardPos.ON_SUB_GENERAL, [card])
             }
         }
     }

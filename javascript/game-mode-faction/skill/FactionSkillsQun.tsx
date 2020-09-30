@@ -1,4 +1,4 @@
-import { Skill, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger, SimpleTrigger } from "../../common/Skill";
+import { Skill, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger, SimpleTrigger, SkillRepo, GeneralSkillStatusUpdate, SkillPosition } from "../../common/Skill";
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
 import { HintType } from "../../common/ServerHint";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
@@ -16,7 +16,7 @@ import AskSavingOp, { AskSavingAround } from "../../server/engine/AskSavingOp";
 import HealOp from "../../server/engine/HealOp";
 import { isSuitRed, isSuitBlack, deriveColor } from "../../common/cards/ICard"
 import { CardType, Color, Suit } from "../../common/cards/Card";
-import { CardBeingUsedEvent, CardAwayEvent, CardBeingDroppedEvent, CardBeingTakenEvent } from "../../server/engine/Generic";
+import { CardBeingUsedEvent, CardAwayEvent, CardBeingDroppedEvent, CardBeingTakenEvent, turnOver } from "../../server/engine/Generic";
 import { SlashCompute } from "../../server/engine/SlashOp";
 import { Timeline, RuseOp } from "../../server/Operation";
 import { JueDou, ShunShou, GuoHe, WuZhong, JieDao, HuoGong } from "../../server/engine/SingleRuseOp";
@@ -351,7 +351,7 @@ export class LuanWu extends Skill {
             enabled: true,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain? 'main' : 'sub'
+            owner: this.position
         }
     }
 }
@@ -730,7 +730,7 @@ export class XiongYi extends Skill {
             enabled: false,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain? 'main' : 'sub'
+            owner: this.position
         }
         manager.broadcast(act.source, PlayerInfo.sanitize)
         let me = act.source
@@ -756,7 +756,7 @@ export class XiongYi extends Skill {
             enabled: true,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain? 'main' : 'sub'
+            owner: this.position
         }
     }
 }
@@ -960,7 +960,7 @@ export class XiongSuan extends Skill {
             enabled: true,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain? 'main' : 'sub'
+            owner: this.position
         }
         skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async (flow) => {
             if(flow.info.player.id === this.playerId && this.toRestore) {
@@ -1201,6 +1201,85 @@ export class KuangFu extends SimpleConditionalSkill<DamageOp> {
             card.description = `${event.target} 被弃置`
             manager.sendToWorkflow(event.target.player.id, CardPos.EQUIP, [card])
             await manager.events.publish(new CardBeingDroppedEvent(event.target.player.id, [[card, CardPos.EQUIP]]))
+        }
+    }
+}
+
+export class DuanChange extends SimpleConditionalSkill<DeathOp> {
+    
+    id = '断肠'
+    displayName = '断肠'
+    description = '锁定技，当你死亡时，你令杀死你的角色失去一张武将牌的所有技能。'
+    isLocked = true
+    skillRepo: SkillRepo
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
+        skillRegistry.on<DeathOp>(DeathOp, this)
+        this.skillRepo = repo
+    }
+
+    public conditionFulfilled(event: DeathOp, manager: GameManager): boolean {
+        if(event.deceased.player.id === this.playerId && event.timeline === DeathTimeline.IN_DEATH && event.killer) {
+            return true
+        }
+        return false
+    }
+
+    public async doInvoke(event: DeathOp, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager, [event.killer.player.id])
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.MULTI_CHOICE,
+            hintMsg: `请选择令${event.killer}失去哪一张武将牌的技能`,
+            extraButtons: [new Button('main', '主将'), new Button('sub', '副将')]
+        })
+        let position = resp.button
+        //set isGone = true so client side does not have them any more
+        for(let s of this.skillRepo.getSkills(event.killer.player.id)) {
+            s.isGone = true
+        }
+
+        //disable the abilities
+        manager.events.publish(new GeneralSkillStatusUpdate(this.displayName, event.killer as FactionPlayerInfo, position as SkillPosition, false, true))
+    }
+}
+
+export class BeiGe extends SimpleConditionalSkill<DamageOp> {
+    
+    id = '悲歌'
+    displayName = '悲歌'
+    description = '当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+    }
+
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        if(event.damageSource === DamageSource.SLASH && event.timeline === DamageTimeline.TAKEN_DAMAGE &&
+            manager.context.getPlayer(this.playerId).hasOwnCards()) {
+            return true
+        }
+        return false
+    }
+
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        let resp = await new DropCardRequest().perform(this.playerId, 1, manager, '(悲歌)请弃置一张牌', [UIPosition.MY_HAND, UIPosition.MY_EQUIP], false)
+        if(!resp) {
+            console.error('??????')
+            return
+        }
+        this.invokeEffects(manager, [event.target.player.id])
+        let card = await new JudgeOp(this.displayName + ' 判定', event.target.player.id).perform(manager)
+        let icard = manager.interpret(event.target.player.id, card)
+        if(icard.suit === 'heart') {
+            await new HealOp(event.target, event.target, 1).perform(manager)
+        } else if (icard.suit === 'diamond') {
+            await new TakeCardOp(event.target, 2).perform(manager)
+        } else if (icard.suit === 'club') {
+            if(event.source.hasOwnCards()) {
+                await new DropCardRequest().perform(event.source.player.id, 2, manager, '(悲歌)请弃置两张牌', [UIPosition.MY_HAND, UIPosition.MY_EQUIP], false)
+            }
+        } else {
+            await turnOver(manager.context.getPlayer(this.playerId), event.source, this.displayName, manager)
         }
     }
 }

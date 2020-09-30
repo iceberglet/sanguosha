@@ -1,4 +1,4 @@
-import { SimpleConditionalSkill, EventRegistryForSkills, Skill, GeneralSkillStatusUpdate, HiddenType, SkillTrigger, SkillRepo } from "../../common/Skill"
+import { SimpleConditionalSkill, EventRegistryForSkills, Skill, GeneralSkillStatusUpdate, HiddenType, SkillTrigger, SkillRepo, SkillPosition } from "../../common/Skill"
 import GameManager from "../../server/GameManager"
 import DamageOp, { DamageSource, DamageTimeline, DamageType } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
@@ -429,10 +429,10 @@ export class TieQi extends SimpleConditionalSkill<SlashCompute> {
             console.log('[铁骑] 选择将要失效的武将牌')
             let choice: Button[] = []
             if(target.isGeneralRevealed) {
-                choice.push(new Button(target.general.id, '封禁主将技能: ' + target.general.name))
+                choice.push(new Button('main', '封禁主将技能: ' + target.general.name))
             }
             if(target.isSubGeneralRevealed) {
-                choice.push(new Button(target.subGeneral.id, '封禁副将技能: ' + target.subGeneral.name))
+                choice.push(new Button('sub', '封禁副将技能: ' + target.subGeneral.name))
             }
             let resp = await manager.sendHint(this.playerId, {
                 hintType: HintType.MULTI_CHOICE,
@@ -441,8 +441,8 @@ export class TieQi extends SimpleConditionalSkill<SlashCompute> {
             })
             //封禁技能??
             console.log('[铁骑] 封禁', target.player.id, resp.button)
-            manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === target.general.id? '主将' : '副将'} 的非锁定技`)
-            let u = new GeneralSkillStatusUpdate(this.id, target, target.general.id === resp.button, false)
+            manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === 'main'? '主将' : '副将'} 的非锁定技`)
+            let u = new GeneralSkillStatusUpdate(this.id, target, resp.button as SkillPosition, false)
             this.cache.add(u)
             await manager.events.publish(u)
         }
@@ -864,7 +864,7 @@ export class NiePan extends SimpleConditionalSkill<AskSavingOp> {
             enabled: true,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain? 'main' : 'sub'
+            owner: this.position
         }
         skillRegistry.on<AskSavingOp>(AskSavingOp, this)
     }
@@ -1345,7 +1345,7 @@ export class YiZhi extends Skill {
 
             try {
                 let teacher = repo.getSkill(this.playerId, '观星')
-                if(teacher.isMain) {
+                if(teacher.position === 'main') {
                     console.log(`[${this.id}] 生效改变观星描述为5`);
                     (teacher as GuanXing).xDeterminer = ()=>5
                 } else {
@@ -1384,7 +1384,7 @@ export class TianFu extends Skill {
             console.log(`[${this.id}] 生效增加姜维的看破技能`)
             this.myKanPo = new KanPoJiangWei(this.playerId)
             this.myKanPo.isRevealed = true
-            this.myKanPo.isMain = true
+            this.myKanPo.position = 'main'
             repo.addSkill(this.playerId, this.myKanPo)
 
             //check disabled ness
@@ -1408,7 +1408,7 @@ export class TianFu extends Skill {
             if(!this.myKanPo) {
                 return
             }
-            if(areInFormation(this.playerId, event.info.player.id, manager.context)) {
+            if(areInFormation(this.playerId, event.info.player.id, manager.context) && manager.getSortedByCurr(true).length >= 4) {
                 if(this.myKanPo.isDisabled) {
                     console.log(`${this.displayName} 使看破生效`)
                     await repo.changeSkillDisabledness(this.myKanPo, false, this.displayName, null)

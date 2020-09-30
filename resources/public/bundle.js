@@ -2742,7 +2742,7 @@ class UIBoard extends React.Component {
                 if (matchIdx < 0) {
                     console.info('Received a new skill!', s);
                     let skill = GameMode_1.GameMode.get(context.gameMode).skillProvider(s.id, myId);
-                    skill.isMain = s.isMain;
+                    skill.position = s.position;
                     skill.bootstrapClient(context, context.getPlayer(myId));
                     state.skillButtons.push({
                         skill,
@@ -4994,6 +4994,10 @@ class SkillStatus {
     constructor(playerId) {
         this.playerId = playerId;
         /**
+         * isMain?
+         */
+        this.position = 'sub';
+        /**
          * 是否出于任何原因(穿心, 断肠, 铁骑)被disable了?
          */
         this.isDisabled = false;
@@ -5046,7 +5050,7 @@ class Skill extends SkillStatus {
         s.id = this.id;
         s.displayName = this.displayName;
         s.hiddenType = this.hiddenType;
-        s.isMain = this.isMain;
+        s.position = this.position;
         s.isGone = this.isGone;
         return s;
     }
@@ -5100,7 +5104,7 @@ class Skill extends SkillStatus {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.isRevealed) {
                 console.log(`[${this.id}] 明置 ${this.playerId}`);
-                yield manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(this.playerId, this.isMain, !this.isMain));
+                yield manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(this.playerId, this.position === 'main', this.position === 'sub'));
             }
         });
     }
@@ -5181,13 +5185,13 @@ exports.SimpleConditionalSkill = SimpleConditionalSkill;
 class GeneralSkillStatusUpdate {
     constructor(reason, //缘由: (断肠/铁骑)
     target, //对象
-    isMain, //主将还是副将?
+    position, //主将还是副将?
     enable, //是失效还是有效(恢复有效?)
     includeLocked = false //包含此武将的锁定技否?
     ) {
         this.reason = reason;
         this.target = target;
-        this.isMain = isMain;
+        this.position = position;
         this.enable = enable;
         this.includeLocked = includeLocked;
     }
@@ -6560,14 +6564,14 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         this.general.abilities.forEach(a => {
             let skill = mode.skillProvider(a, this.player.id);
             if (!skill.disabledForMain) {
-                skill.isMain = true;
+                skill.position = 'main';
                 res.push(skill);
             }
         });
         this.subGeneral.abilities.forEach(a => {
             let skill = mode.skillProvider(a, this.player.id);
             if (!skill.disabledForSub) {
-                skill.isMain = false;
+                skill.position = 'sub';
                 res.push(skill);
             }
         });
@@ -6670,7 +6674,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
                     this.general.name,
                     React.createElement("div", { className: 'general-name-after', style: { borderLeft: `9px solid ${color}` } })),
                 React.createElement("div", { className: 'title' }, "\u4E3B"),
-                React.createElement("div", { className: 'skill-buttons' }, skillButtons.filter(b => b.skill.isMain).map(b => {
+                React.createElement("div", { className: 'skill-buttons' }, skillButtons.filter(b => b.skill.position === 'main' || b.skill.position === 'player').map(b => {
                     return React.createElement(UIMyPlayerCard_1.SkillButton, Object.assign({}, b, { key: b.skill.id, className: this.general.faction.image }));
                 })),
                 this.drawMark(true)),
@@ -6680,7 +6684,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
                     this.subGeneral.name,
                     React.createElement("div", { className: 'general-name-after', style: { borderLeft: `9px solid ${color}` } })),
                 React.createElement("div", { className: 'title' }, "\u526F"),
-                React.createElement("div", { className: 'skill-buttons' }, skillButtons.filter(b => !b.skill.isMain).map(b => {
+                React.createElement("div", { className: 'skill-buttons' }, skillButtons.filter(b => b.skill.position === 'sub').map(b => {
                     return React.createElement(UIMyPlayerCard_1.SkillButton, Object.assign({}, b, { key: b.skill.id, className: this.general.faction.image }));
                 })),
                 this.drawMark(false)),
@@ -6910,7 +6914,7 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
             let skillId = act.skill;
             let skill = this.skillRepo.getSkill(act.source.player.id, skillId);
             if (!skill.isRevealed) {
-                yield manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(act.source.player.id, skill.isMain, !skill.isMain));
+                yield manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(act.source.player.id, skill.position === 'main', skill.position === 'sub'));
             }
             return skill;
         });
@@ -7978,60 +7982,78 @@ exports.default = FactionWarGeneral;
 FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', '士兵', General_1.Faction.UNKNOWN, 0);
 FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', '士兵', General_1.Faction.UNKNOWN, 0);
 //16
-// public static cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', Faction.WEI, 2.5, '奸雄')
-// public static si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', Faction.WEI, 1.5, '反馈', '鬼才')
-// public static xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', Faction.WEI, 2, '刚烈')
-// public static zhang_liao = new FactionWarGeneral('standard_zhang_liao', '张辽', Faction.WEI, 2, '突袭')
-// public static xu_chu = new FactionWarGeneral('standard_xu_chu', '许褚', Faction.WEI, 2, '裸衣')
-// public static guo_jia = new FactionWarGeneral('standard_guo_jia', '郭嘉', Faction.WEI, 1.5, '天妒', '遗计')
-// public static zhen_ji = new FactionWarGeneral('standard_zhen_ji', '甄姬', Faction.WEI, 1.5, '洛神', '倾国').asFemale() as FactionWarGeneral
-// public static xia_hou_yuan = new FactionWarGeneral('wind_xia_hou_yuan', '夏侯渊', Faction.WEI, 2, '神速')
-// public static xu_huang = new FactionWarGeneral('forest_xu_huang', '徐晃', Faction.WEI, 2, '断粮')
-// public static dian_wei = new FactionWarGeneral('fire_dian_wei', '典韦', Faction.WEI, 2, '强袭')
-// public static cao_ren = new FactionWarGeneral('wind_cao_ren', '曹仁', Faction.WEI, 2, '据守')
-// public static xun_yu = new FactionWarGeneral('fire_xun_yu', '荀彧', Faction.WEI, 1.5, '驱虎', '节命')
-// public static cao_pi = new FactionWarGeneral('forest_cao_pi', '曹丕', Faction.WEI, 1.5, '行殇', '放逐')
-// public static yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', Faction.WEI, 2, '骁果')
-// public static zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', Faction.WEI, 2, '巧变')
-// public static deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田')
-// // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
-// //16
-// public static liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', Faction.SHU, 2, '仁德')  
-// public static guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', Faction.SHU, 2.5, '武圣')
-// public static zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', Faction.SHU, 2, '咆哮')
-// public static zhao_yun = new FactionWarGeneral('standard_zhao_yun', '赵云', Faction.SHU, 2, '龙胆')
-// public static ma_chao = new FactionWarGeneral('standard_ma_chao', '马超', Faction.SHU, 2, '马术', '铁骑')
-// public static huang_zhong = new FactionWarGeneral('standard_huang_zhong', '黄忠', Faction.SHU, 2, '烈弓')
-// public static wei_yan = new FactionWarGeneral('wind_wei_yan', '魏延', Faction.SHU, 2, '狂骨')
-// public static wo_long = new FactionWarGeneral('fire_zhu_ge_liang', '诸葛亮', Faction.SHU, 1.5, '八阵', '火计', '看破')
-// public static sha_mo_ke = new FactionWarGeneral('guo_sha_mo_ke', '沙摩柯', Faction.SHU, 2, '蒺藜')
-// public static liu_shan = new FactionWarGeneral('mountain_liu_shan', '刘禅', Faction.SHU, 1.5, '享乐', '放权')
-// public static huang_yue_ying = new FactionWarGeneral('standard_huang_yue_ying', '黄月英', Faction.SHU, 1.5, '集智', '奇才').asFemale() as FactionWarGeneral
-// public static meng_huo = new FactionWarGeneral('forest_meng_huo', '孟获', Faction.SHU, 2, '祸首', '再起')
-// public static zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', Faction.SHU, 2, '巨象', '烈刃').asFemale() as FactionWarGeneral
-// public static pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', Faction.SHU, 1.5, '连环', '涅槃')
-// public static gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', Faction.SHU, 1.5, '淑慎', '神智').asFemale() as FactionWarGeneral
-// public static jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', Faction.SHU, 1.5, '生息', '守成')
-// public static zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', Faction.SHU, 1.5, '观星', '空城')
-// public static jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', Faction.SHU, 2, '挑衅', '遗志', '天覆').hpDelta(0, -0.5)
-// //16
-// public static sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', Faction.WU, 2, '制衡')
-// public static gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', Faction.WU, 2, '奇袭')
-// public static huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', Faction.WU, 2, '苦肉')
+FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2.5, '奸雄');
+FactionWarGeneral.si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', General_1.Faction.WEI, 1.5, '反馈', '鬼才');
+FactionWarGeneral.xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', General_1.Faction.WEI, 2, '刚烈');
+FactionWarGeneral.zhang_liao = new FactionWarGeneral('standard_zhang_liao', '张辽', General_1.Faction.WEI, 2, '突袭');
+FactionWarGeneral.xu_chu = new FactionWarGeneral('standard_xu_chu', '许褚', General_1.Faction.WEI, 2, '裸衣');
+FactionWarGeneral.guo_jia = new FactionWarGeneral('standard_guo_jia', '郭嘉', General_1.Faction.WEI, 1.5, '天妒', '遗计');
+FactionWarGeneral.zhen_ji = new FactionWarGeneral('standard_zhen_ji', '甄姬', General_1.Faction.WEI, 1.5, '洛神', '倾国').asFemale();
+FactionWarGeneral.xia_hou_yuan = new FactionWarGeneral('wind_xia_hou_yuan', '夏侯渊', General_1.Faction.WEI, 2, '神速');
+FactionWarGeneral.xu_huang = new FactionWarGeneral('forest_xu_huang', '徐晃', General_1.Faction.WEI, 2, '断粮');
+FactionWarGeneral.dian_wei = new FactionWarGeneral('fire_dian_wei', '典韦', General_1.Faction.WEI, 2, '强袭');
+FactionWarGeneral.cao_ren = new FactionWarGeneral('wind_cao_ren', '曹仁', General_1.Faction.WEI, 2, '据守');
+FactionWarGeneral.xun_yu = new FactionWarGeneral('fire_xun_yu', '荀彧', General_1.Faction.WEI, 1.5, '驱虎', '节命');
+FactionWarGeneral.cao_pi = new FactionWarGeneral('forest_cao_pi', '曹丕', General_1.Faction.WEI, 1.5, '行殇', '放逐');
+FactionWarGeneral.yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', General_1.Faction.WEI, 2, '骁果');
+FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', General_1.Faction.WEI, 2, '巧变');
+FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', General_1.Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田');
+// public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
+//16
+FactionWarGeneral.liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', General_1.Faction.SHU, 2, '仁德');
+FactionWarGeneral.guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', General_1.Faction.SHU, 2.5, '武圣');
+FactionWarGeneral.zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', General_1.Faction.SHU, 2, '咆哮');
+FactionWarGeneral.zhao_yun = new FactionWarGeneral('standard_zhao_yun', '赵云', General_1.Faction.SHU, 2, '龙胆');
+FactionWarGeneral.ma_chao = new FactionWarGeneral('standard_ma_chao', '马超', General_1.Faction.SHU, 2, '马术', '铁骑');
+FactionWarGeneral.huang_zhong = new FactionWarGeneral('standard_huang_zhong', '黄忠', General_1.Faction.SHU, 2, '烈弓');
+FactionWarGeneral.wei_yan = new FactionWarGeneral('wind_wei_yan', '魏延', General_1.Faction.SHU, 2, '狂骨');
+FactionWarGeneral.wo_long = new FactionWarGeneral('fire_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '八阵', '火计', '看破');
+FactionWarGeneral.sha_mo_ke = new FactionWarGeneral('guo_sha_mo_ke', '沙摩柯', General_1.Faction.SHU, 2, '蒺藜');
+FactionWarGeneral.liu_shan = new FactionWarGeneral('mountain_liu_shan', '刘禅', General_1.Faction.SHU, 1.5, '享乐', '放权');
+FactionWarGeneral.huang_yue_ying = new FactionWarGeneral('standard_huang_yue_ying', '黄月英', General_1.Faction.SHU, 1.5, '集智', '奇才').asFemale();
+FactionWarGeneral.meng_huo = new FactionWarGeneral('forest_meng_huo', '孟获', General_1.Faction.SHU, 2, '祸首', '再起');
+FactionWarGeneral.zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', General_1.Faction.SHU, 2, '巨象', '烈刃').asFemale();
+FactionWarGeneral.pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', General_1.Faction.SHU, 1.5, '连环', '涅槃');
+FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', General_1.Faction.SHU, 1.5, '淑慎', '神智').asFemale();
+FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成');
+FactionWarGeneral.zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '观星', '空城');
+FactionWarGeneral.jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', General_1.Faction.SHU, 2, '挑衅', '遗志', '天覆').hpDelta(0, -0.5);
+//16
+FactionWarGeneral.sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', General_1.Faction.WU, 2, '制衡');
+FactionWarGeneral.gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', General_1.Faction.WU, 2, '奇袭');
+FactionWarGeneral.huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', General_1.Faction.WU, 2, '苦肉');
 FactionWarGeneral.tai_shi_ci = new FactionWarGeneral('fire_tai_shi_ci', '太史慈', General_1.Faction.WU, 2, '天义');
-// public static lu_xun = new FactionWarGeneral('standard_lu_xun', '陆逊', Faction.WU, 1.5, '谦逊', '度势')
-// public static sun_shang_xiang = new FactionWarGeneral('standard_sun_shang_xiang', '孙尚香', Faction.WU, 1.5, '枭姬', '结姻').asFemale() as FactionWarGeneral
-// public static er_zhang = new FactionWarGeneral('mountain_er_zhang', '张昭张纮', Faction.WU, 1.5, '直谏', '固政')
-// public static zhou_yu = new FactionWarGeneral('standard_zhou_yu', '周瑜', Faction.WU, 1.5, '英姿', '反间')
-// public static da_qiao = new FactionWarGeneral('standard_da_qiao', '大乔', Faction.WU, 1.5, '国色', '流离').asFemale() as FactionWarGeneral
-// public static sun_jian = new FactionWarGeneral('forest_sun_jian', '孙坚', Faction.WU, 2.5, '英魂')
-// public static xiao_qiao = new FactionWarGeneral('wind_xiao_qiao', '小乔', Faction.WU, 1.5, '天香', '红颜').asFemale() as FactionWarGeneral
-// public static lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', Faction.WU, 1.5, '好施', '缔盟')
+FactionWarGeneral.lu_xun = new FactionWarGeneral('standard_lu_xun', '陆逊', General_1.Faction.WU, 1.5, '谦逊', '度势');
+FactionWarGeneral.sun_shang_xiang = new FactionWarGeneral('standard_sun_shang_xiang', '孙尚香', General_1.Faction.WU, 1.5, '枭姬', '结姻').asFemale();
+FactionWarGeneral.er_zhang = new FactionWarGeneral('mountain_er_zhang', '张昭张纮', General_1.Faction.WU, 1.5, '直谏', '固政');
+FactionWarGeneral.zhou_yu = new FactionWarGeneral('standard_zhou_yu', '周瑜', General_1.Faction.WU, 1.5, '英姿', '反间');
+FactionWarGeneral.da_qiao = new FactionWarGeneral('standard_da_qiao', '大乔', General_1.Faction.WU, 1.5, '国色', '流离').asFemale();
+FactionWarGeneral.sun_jian = new FactionWarGeneral('forest_sun_jian', '孙坚', General_1.Faction.WU, 2.5, '英魂');
+FactionWarGeneral.xiao_qiao = new FactionWarGeneral('wind_xiao_qiao', '小乔', General_1.Faction.WU, 1.5, '天香', '红颜').asFemale();
+FactionWarGeneral.lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', General_1.Faction.WU, 1.5, '好施', '缔盟');
 FactionWarGeneral.xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', General_1.Faction.WU, 2, '疑城');
 FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', General_1.Faction.WU, 2, '克己', '谋断');
 FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命');
 FactionWarGeneral.zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', General_1.Faction.WU, 2, '不屈', '奋激').setCardName('创');
 FactionWarGeneral.sun_ce = new FactionWarGeneral('guo_sun_ce', '孙策', General_1.Faction.WU, 2, '激昂', '鹰扬', '魂殇').hpDelta(0, -0.5);
+// //16
+FactionWarGeneral.hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', General_1.Faction.QUN, 1.5, '除疠', '急救');
+FactionWarGeneral.lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', General_1.Faction.QUN, 2.5, '无双');
+FactionWarGeneral.diao_chan = new FactionWarGeneral('standard_diao_chan', '貂蝉', General_1.Faction.QUN, 1.5, '闭月', '离间').asFemale();
+FactionWarGeneral.yan_liang_wen_chou = new FactionWarGeneral('fire_yan_liang_wen_chou', '颜良文丑', General_1.Faction.QUN, 2, '双雄');
+FactionWarGeneral.jia_xu = new FactionWarGeneral('forest_jia_xu', '贾诩', General_1.Faction.QUN, 1.5, '完杀', '乱武', '帷幕');
+FactionWarGeneral.he_tai_hou = new FactionWarGeneral('guo_he_tai_hou', '何太后', General_1.Faction.QUN, 1.5, '鸩毒', '戚乱').asFemale();
+FactionWarGeneral.zhang_xiu = new FactionWarGeneral('guo_zhang_xiu', '张绣', General_1.Faction.QUN, 2, '附敌', '从谏');
+FactionWarGeneral.pang_de = new FactionWarGeneral('fire_pang_de', '庞德', General_1.Faction.QUN, 2, '马术(庞)', '鞬出');
+FactionWarGeneral.ma_teng = new FactionWarGeneral('guo_ma_teng', '马腾', General_1.Faction.QUN, 2, '马术(腾)', '雄异');
+FactionWarGeneral.zhang_jiao = new FactionWarGeneral('wind_zhang_jiao', '张角', General_1.Faction.QUN, 1.5, '雷击', '鬼道');
+FactionWarGeneral.yuan_shao = new FactionWarGeneral('fire_yuan_shao', '袁绍', General_1.Faction.QUN, 2, '乱击');
+FactionWarGeneral.tian_feng = new FactionWarGeneral('guo_tian_feng', '田丰', General_1.Faction.QUN, 1.5, '死谏', '随势');
+FactionWarGeneral.li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', General_1.Faction.QUN, 2, '凶算');
+FactionWarGeneral.ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', General_1.Faction.QUN, 1.5, '矢北', '渐营');
+FactionWarGeneral.xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', General_1.Faction.QUN, 1.5, '锋略', '谋识');
+FactionWarGeneral.pan_feng = new FactionWarGeneral('guo_pan_feng', '潘凤', General_1.Faction.QUN, 2, '狂斧');
+FactionWarGeneral.cai_wen_ji = new FactionWarGeneral('mountain_cai_wen_ji', '蔡文姬', General_1.Faction.QUN, 1.5, '悲歌', '断肠').asFemale();
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
 exports.generalPairs = new Multimap_1.Pairs();
@@ -8438,7 +8460,13 @@ const choices = {
         React.createElement("ul", null,
             React.createElement("li", null, "\u5148\u9A71: \u5F53\u6709\u4E94\u540D\u4EE5\u4E0A\u7684\u73A9\u5BB6\u65F6\uFF0C\u7B2C\u4E00\u4E2A\u660E\u786E\u52BF\u529B\u7684\u73A9\u5BB6\u83B7\u5F97\u6B64\u6807\u8BB0\u3002 \u51FA\u724C\u9636\u6BB5\u65F6\uFF0C\u4F60\u53EF\u4EE5\u5F03\u7F6E\u6807\u8BB0\uFF0C\u5C06\u624B\u724C\u8865\u81F34\u5F20\u5E76\u89C2\u770B\u4E00\u4E2A\u6697\u7F6E\u7684\u6B66\u5C06\u724C\u3002"),
             React.createElement("li", null, "\u9634\u9633\u9C7C: \u4F60\u7684\u6B66\u5C06\u724C\u8840\u91CF\u82E5\u6709\u591A\u4F59\u7684\u534A\u8840\u9634\u9633\u9C7C\uFF0C\u5219\u5728\u4F60\u9996\u6B21\u660E\u7F6E\u4E24\u5F20\u6B66\u5C06\u724C\u65F6\u83B7\u5F97\u6B64\u6807\u8BB0\u3002 \u4F60\u53EF\u4EE5\uFF1A1.\u51FA\u724C\u9636\u6BB5\u65F6\uFF0C\u5F03\u7F6E\u6807\u8BB0\u6478\u4E00\u5F20\u724C\u3002 2.\u5F03\u724C\u9636\u6BB5\u5F03\u7F6E\u6807\u8BB0\u4EE4\u624B\u724C\u4E0A\u9650+2\u3002"),
-            React.createElement("li", null, "\u73E0\u8054\u74A7\u5408: \u82E5\u4F60\u9009\u62E9\u4E86\u7279\u6B8A\u7684\u6B66\u5C06\u7EC4\u5408(\u5982\u590F\u4FAF\u6E0A+\u590F\u4FAF\u60C7)\uFF0C\u5219\u5728\u4F60\u9996\u6B21\u660E\u7F6E\u4E24\u5F20\u6B66\u5C06\u724C\u65F6\u83B7\u5F97\u6B64\u6807\u8BB0\u3002 \u4F60\u53EF\u4EE5\uFF1A1.\u51FA\u724C\u9636\u6BB5\u6216\u5176\u4ED6\u89D2\u8272\u6FD2\u6B7B\u65F6\u53EF\u4EE5\u5F03\u7F6E\u6B64\u6807\u8BB0\uFF0C\u89C6\u4E3A\u4F7F\u7528\u4E00\u5F20\u6843 2.\u51FA\u724C\u9636\u6BB5\u53EF\u4EE5\u5F03\u7F6E\u6B64\u6807\u8BB0\uFF0C\u64782\u5F20\u724C\u3002")))
+            React.createElement("li", null, "\u73E0\u8054\u74A7\u5408: \u82E5\u4F60\u9009\u62E9\u4E86\u7279\u6B8A\u7684\u6B66\u5C06\u7EC4\u5408(\u5982\u590F\u4FAF\u6E0A+\u590F\u4FAF\u60C7)\uFF0C\u5219\u5728\u4F60\u9996\u6B21\u660E\u7F6E\u4E24\u5F20\u6B66\u5C06\u724C\u65F6\u83B7\u5F97\u6B64\u6807\u8BB0\u3002 \u4F60\u53EF\u4EE5\uFF1A1.\u51FA\u724C\u9636\u6BB5\u6216\u5176\u4ED6\u89D2\u8272\u6FD2\u6B7B\u65F6\u53EF\u4EE5\u5F03\u7F6E\u6B64\u6807\u8BB0\uFF0C\u89C6\u4E3A\u4F7F\u7528\u4E00\u5F20\u6843 2.\u51FA\u724C\u9636\u6BB5\u53EF\u4EE5\u5F03\u7F6E\u6B64\u6807\u8BB0\uFF0C\u64782\u5F20\u724C\u3002"))),
+    '阵法，相邻，围攻，队列': React.createElement("div", null,
+        React.createElement("p", null, "\u9635\u6CD5\u6280: \u5728\u5168\u573A\u5B58\u6D3B\u89D2\u8272\u6570\u81F3\u5C11\u4E3A4\u65F6\u9501\u5B9A\u751F\u6548\u7684\u6280\u80FD\u3002\u62E5\u6709\u9635\u6CD5\u6280\u7684\u89D2\u8272\u53EF\u5728\u51C6\u5907\u9636\u6BB5\u6216\u8005\u51FA\u724C\u9636\u6BB5\u53D1\u8D77\u2018\u9635\u6CD5\u53EC\u5524\u2019"),
+        React.createElement("p", null, "\u9635\u6CD5\u53EC\u5524: \u7531\u62E5\u6709\u9635\u6CD5\u6280\u7684\u89D2\u8272\u53D1\u8D77\uFF0C\u6EE1\u8DB3\u9635\u6CD5\u6280\u6761\u4EF6\u7684\u672A\u660E\u786E\u52BF\u529B\uFF08\u5373\u672A\u660E\u7F6E\u6B66\u5C06\uFF09\u7684\u73A9\u5BB6\u53EF\u987A\u5E8F\u4F9D\u6B21\u660E\u7F6E\u4E00\u5F20\u6B66\u5C06\u724C\uFF08\u54CD\u5E94\u9635\u6CD5\u53EC\u5524\uFF09\uFF0C\u4EE5\u53D1\u6325\u9635\u6CD5\u6280\u7684\u6548\u679C"),
+        React.createElement("p", null, "\u76F8\u90BB: \u4E24\u540D\u89D2\u8272\u4E4B\u95F4\u6CA1\u6709\u5176\u4ED6\u5B58\u6D3B\u7684\u89D2\u8272\uFF0C\u89C6\u4E3A\u2018\u76F8\u90BB\u2019"),
+        React.createElement("p", null, "\u56F4\u653B: \u4E00\u540D\u89D2\u8272\u7684\u4E0A\u5BB6\u548C\u4E0B\u5BB6\u4E3A\u53E6\u5916\u4E24\u540D\u52BF\u529B\u76F8\u540C\u7684\u89D2\u8272\uFF08\u4E14\u4E0E\u8BE5\u89D2\u8272\u52BF\u529B\u4E0D\u540C\uFF09\u65F6\uFF0C\u8BE5\u89D2\u8272\u88AB\u201C\u56F4\u653B\u201D\uFF0C\u79F0\u4E3A\u201C\u88AB\u56F4\u653B\u89D2\u8272\u201D\uFF1B\u8BE5\u89D2\u8272\u7684\u4E0A\u5BB6\u548C\u4E0B\u5BB6\u79F0\u4E3A\u201C\u56F4\u653B\u89D2\u8272\u201D\uFF1B\u201C\u56F4\u653B\u89D2\u8272\u201D\u548C\u201C\u88AB\u56F4\u653B\u89D2\u8272\u201D\u5904\u4E8E\u540C\u4E00\u201C\u56F4\u653B\u5173\u7CFB\u201D\u3002"),
+        React.createElement("p", null, "\u961F\u5217\uFF1A\u8FDE\u7EED\u76F8\u90BB\u7684\u82E5\u5E72\u540D\uFF08\u81F3\u5C112\u540D\uFF09\u52BF\u529B\u76F8\u540C\u7684\u89D2\u8272\u79F0\u4E3A\u540C\u4E00\u201C\u961F\u5217\u201D\u3002"))
 };
 function FactionWarRuleBook() {
     let [choice, setChoice] = React.useState('选将与势力');
@@ -8704,7 +8732,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.KuangFu = exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
+exports.BeiGe = exports.DuanChange = exports.KuangFu = exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const PlayerActionDriverProvider_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverProvider */ "./javascript/client/player-actions/PlayerActionDriverProvider.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
@@ -9069,7 +9097,7 @@ class LuanWu extends Skill_1.Skill {
             enabled: true,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain ? 'main' : 'sub'
+            owner: this.position
         };
     }
 }
@@ -9462,7 +9490,7 @@ class XiongYi extends Skill_1.Skill {
                 enabled: false,
                 type: 'limit-skill',
                 displayName: this.displayName,
-                owner: this.isMain ? 'main' : 'sub'
+                owner: this.position
             };
             manager.broadcast(act.source, PlayerInfo_1.PlayerInfo.sanitize);
             let me = act.source;
@@ -9489,7 +9517,7 @@ class XiongYi extends Skill_1.Skill {
             enabled: true,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain ? 'main' : 'sub'
+            owner: this.position
         };
     }
 }
@@ -9695,7 +9723,7 @@ class XiongSuan extends Skill_1.Skill {
             enabled: true,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain ? 'main' : 'sub'
+            owner: this.position
         };
         skillRegistry.onEvent(StageFlows_1.StageEndFlow, this.playerId, (flow) => __awaiter(this, void 0, void 0, function* () {
             if (flow.info.player.id === this.playerId && this.toRestore) {
@@ -9947,6 +9975,88 @@ class KuangFu extends Skill_1.SimpleConditionalSkill {
     }
 }
 exports.KuangFu = KuangFu;
+class DuanChange extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '断肠';
+        this.displayName = '断肠';
+        this.description = '锁定技，当你死亡时，你令杀死你的角色失去一张武将牌的所有技能。';
+        this.isLocked = true;
+    }
+    bootstrapServer(skillRegistry, manager, repo) {
+        skillRegistry.on(DeathOp_1.default, this);
+        this.skillRepo = repo;
+    }
+    conditionFulfilled(event, manager) {
+        if (event.deceased.player.id === this.playerId && event.timeline === DeathOp_1.DeathTimeline.IN_DEATH && event.killer) {
+            return true;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager, [event.killer.player.id]);
+            let resp = yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                hintMsg: `请选择令${event.killer}失去哪一张武将牌的技能`,
+                extraButtons: [new PlayerAction_1.Button('main', '主将'), new PlayerAction_1.Button('sub', '副将')]
+            });
+            let position = resp.button;
+            //set isGone = true so client side does not have them any more
+            for (let s of this.skillRepo.getSkills(event.killer.player.id)) {
+                s.isGone = true;
+            }
+            //disable the abilities
+            manager.events.publish(new Skill_1.GeneralSkillStatusUpdate(this.displayName, event.killer, position, false, true));
+        });
+    }
+}
+exports.DuanChange = DuanChange;
+class BeiGe extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '悲歌';
+        this.displayName = '悲歌';
+        this.description = '当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。';
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(DamageOp_2.default, this);
+    }
+    conditionFulfilled(event, manager) {
+        if (event.damageSource === DamageOp_1.DamageSource.SLASH && event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE &&
+            manager.context.getPlayer(this.playerId).hasOwnCards()) {
+            return true;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let resp = yield new DropCardOp_1.DropCardRequest().perform(this.playerId, 1, manager, '(悲歌)请弃置一张牌', [PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP], false);
+            if (!resp) {
+                console.error('??????');
+                return;
+            }
+            this.invokeEffects(manager, [event.target.player.id]);
+            let card = yield new JudgeOp_1.default(this.displayName + ' 判定', event.target.player.id).perform(manager);
+            let icard = manager.interpret(event.target.player.id, card);
+            if (icard.suit === 'heart') {
+                yield new HealOp_1.default(event.target, event.target, 1).perform(manager);
+            }
+            else if (icard.suit === 'diamond') {
+                yield new TakeCardOp_1.default(event.target, 2).perform(manager);
+            }
+            else if (icard.suit === 'club') {
+                if (event.source.hasOwnCards()) {
+                    yield new DropCardOp_1.DropCardRequest().perform(event.source.player.id, 2, manager, '(悲歌)请弃置两张牌', [PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP], false);
+                }
+            }
+            else {
+                yield Generic_1.turnOver(manager.context.getPlayer(this.playerId), event.source, this.displayName, manager);
+            }
+        });
+    }
+}
+exports.BeiGe = BeiGe;
 // 悲歌 当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。
 // 注: 存嗣获得的勇决是不会失去的
 // 
@@ -10416,10 +10526,10 @@ class TieQi extends Skill_1.SimpleConditionalSkill {
                 console.log('[铁骑] 选择将要失效的武将牌');
                 let choice = [];
                 if (target.isGeneralRevealed) {
-                    choice.push(new PlayerAction_1.Button(target.general.id, '封禁主将技能: ' + target.general.name));
+                    choice.push(new PlayerAction_1.Button('main', '封禁主将技能: ' + target.general.name));
                 }
                 if (target.isSubGeneralRevealed) {
-                    choice.push(new PlayerAction_1.Button(target.subGeneral.id, '封禁副将技能: ' + target.subGeneral.name));
+                    choice.push(new PlayerAction_1.Button('sub', '封禁副将技能: ' + target.subGeneral.name));
                 }
                 let resp = yield manager.sendHint(this.playerId, {
                     hintType: ServerHint_1.HintType.MULTI_CHOICE,
@@ -10428,8 +10538,8 @@ class TieQi extends Skill_1.SimpleConditionalSkill {
                 });
                 //封禁技能??
                 console.log('[铁骑] 封禁', target.player.id, resp.button);
-                manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === target.general.id ? '主将' : '副将'} 的非锁定技`);
-                let u = new Skill_1.GeneralSkillStatusUpdate(this.id, target, target.general.id === resp.button, false);
+                manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === 'main' ? '主将' : '副将'} 的非锁定技`);
+                let u = new Skill_1.GeneralSkillStatusUpdate(this.id, target, resp.button, false);
                 this.cache.add(u);
                 yield manager.events.publish(u);
             }
@@ -10887,7 +10997,7 @@ class NiePan extends Skill_1.SimpleConditionalSkill {
             enabled: true,
             type: 'limit-skill',
             displayName: this.displayName,
-            owner: this.isMain ? 'main' : 'sub'
+            owner: this.position
         };
         skillRegistry.on(AskSavingOp_1.default, this);
     }
@@ -11393,7 +11503,7 @@ class YiZhi extends Skill_1.Skill {
                 this.isGone = true;
                 try {
                     let teacher = repo.getSkill(this.playerId, '观星');
-                    if (teacher.isMain) {
+                    if (teacher.position === 'main') {
                         console.log(`[${this.id}] 生效改变观星描述为5`);
                         teacher.xDeterminer = () => 5;
                     }
@@ -11437,7 +11547,7 @@ class TianFu extends Skill_1.Skill {
                 console.log(`[${this.id}] 生效增加姜维的看破技能`);
                 this.myKanPo = new KanPoJiangWei(this.playerId);
                 this.myKanPo.isRevealed = true;
-                this.myKanPo.isMain = true;
+                this.myKanPo.position = 'main';
                 repo.addSkill(this.playerId, this.myKanPo);
                 //check disabled ness
                 if (FactionSkillsGeneric_1.areInFormation(manager.currPlayer().player.id, this.playerId, manager.context)) {
@@ -11458,7 +11568,7 @@ class TianFu extends Skill_1.Skill {
             if (!this.myKanPo) {
                 return;
             }
-            if (FactionSkillsGeneric_1.areInFormation(this.playerId, event.info.player.id, manager.context)) {
+            if (FactionSkillsGeneric_1.areInFormation(this.playerId, event.info.player.id, manager.context) && manager.getSortedByCurr(true).length >= 4) {
                 if (this.myKanPo.isDisabled) {
                     console.log(`${this.displayName} 使看破生效`);
                     yield repo.changeSkillDisabledness(this.myKanPo, false, this.displayName, null);
@@ -12222,11 +12332,8 @@ class FangZhu extends SkillForDamageTaken {
             }
             this.playSound(manager, 2);
             let target = resp.targets[0];
-            manager.log(`${this.playerId} 发动了 ${this.displayName} 将${target} 翻面`);
             console.log('[放逐] 结果', resp, target.player.id);
-            manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, [target.player.id], this.id));
-            target.isTurnedOver = !target.isTurnedOver;
-            manager.broadcast(target, PlayerInfo_1.PlayerInfo.sanitize);
+            yield Generic_1.turnOver(manager.context.getPlayer(this.playerId), event.source, this.displayName, manager);
             yield new TakeCardOp_1.default(target, resp.source.maxHp - resp.source.hp).perform(manager);
             return;
         });
@@ -12559,7 +12666,7 @@ class TunTian extends Skill_1.SimpleConditionalSkill {
                     let me = manager.context.getPlayer(this.playerId);
                     me.distanceModTargetingOthers -= 1;
                     manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
-                    yield manager.takeFromWorkflow(this.playerId, this.isMain ? CardPos_1.CardPos.ON_GENERAL : CardPos_1.CardPos.ON_SUB_GENERAL, [card]);
+                    yield manager.takeFromWorkflow(this.playerId, this.position === 'main' ? CardPos_1.CardPos.ON_GENERAL : CardPos_1.CardPos.ON_SUB_GENERAL, [card]);
                 }
             }
         });
@@ -13757,7 +13864,7 @@ class BuQu extends Skill_1.SimpleConditionalSkill {
             manager.context.workflowCards.add(card);
             if (!this.wounds.has(size)) {
                 //加入创
-                yield manager.takeFromWorkflow(this.playerId, this.isMain ? CardPos_1.CardPos.ON_GENERAL : CardPos_1.CardPos.ON_SUB_GENERAL, [card]);
+                yield manager.takeFromWorkflow(this.playerId, this.position === 'main' ? CardPos_1.CardPos.ON_GENERAL : CardPos_1.CardPos.ON_SUB_GENERAL, [card]);
                 this.wounds.add(size);
                 event.deadman.hp = 1;
                 manager.broadcast(event.deadman, PlayerInfo_1.PlayerInfo.sanitize);
@@ -14146,6 +14253,8 @@ exports.FactionSkillProviders.register('渐营', pid => new FactionSkillsQun_1.J
 exports.FactionSkillProviders.register('锋略', pid => new FactionSkillsQun_1.FengLue(pid));
 exports.FactionSkillProviders.register('谋识', pid => new FactionSkillsQun_1.MouShi(pid));
 exports.FactionSkillProviders.register('狂斧', pid => new FactionSkillsQun_1.KuangFu(pid));
+exports.FactionSkillProviders.register('悲歌', pid => new FactionSkillsQun_1.BeiGe(pid));
+exports.FactionSkillProviders.register('断肠', pid => new FactionSkillsQun_1.DuanChange(pid));
 class FactionWarSkillRepo {
     constructor(manager, skillRegistry) {
         this.manager = manager;
@@ -14155,10 +14264,9 @@ class FactionWarSkillRepo {
         //player id => skillid => disablers
         this.disablers = [];
         this.onGeneralSkillUpdate = (update) => __awaiter(this, void 0, void 0, function* () {
-            let abilities = (update.isMain ? update.target.general : update.target.subGeneral).abilities;
-            let marks = update.isMain ? update.target.mainMark : update.target.subMark;
+            let marks = update.position === 'main' ? update.target.mainMark : update.target.subMark;
             //只有武将牌上的受到影响
-            let skills = this.allSkills.getArr(update.target.player.id).filter(s => abilities.find(a => a === s.id));
+            let skills = this.allSkills.getArr(update.target.player.id).filter(s => s.position === update.position);
             if (!update.includeLocked) {
                 skills = skills.filter(s => !s.isLocked);
             }
@@ -14171,10 +14279,10 @@ class FactionWarSkillRepo {
         this.onRevealEvent = (e) => __awaiter(this, void 0, void 0, function* () {
             let skills = this.allSkills.getArr(e.playerId);
             for (let skill of skills) {
-                if (skill.isMain && e.mainReveal) {
+                if (skill.position === 'main' && e.mainReveal) {
                     skill.isRevealed = true;
                 }
-                if (!skill.isMain && e.subReveal) {
+                if (skill.position === 'sub' && e.subReveal) {
                     skill.isRevealed = true;
                 }
                 console.log('[技能] 有武将明置, 技能展示', e.playerId, skill.id, skill.isRevealed);
@@ -14210,7 +14318,7 @@ class FactionWarSkillRepo {
                     this.manager.currPlayer().player.id === skill.playerId &&
                     this.manager.currEffect.stage === Stage_1.Stage.USE_CARD) {
                     console.log('[技能] 想要reveal??', skill.id, skill.playerId, ss.isRevealed);
-                    yield this.manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(skill.playerId, skill.isMain, !skill.isMain));
+                    yield this.manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(skill.playerId, skill.position === 'main', skill.position === 'sub'));
                     //会通过Reveal Event 来 update skill
                     // await skill.onStatusUpdated(this.manager)
                 }
@@ -14398,7 +14506,7 @@ class SequenceAwareSkillPubSub {
                         console.log('[技能驱动] 可能可以发动: ', skill.id);
                         let invokeMsg = s.invokeMsg(obj, this.manager);
                         if (!skill.isRevealed) {
-                            invokeMsg += `并明置${skill.isMain ? '主将' : '副将'}`;
+                            invokeMsg += `并明置${skill.position === 'main' ? '主将' : '副将'}`;
                         }
                         choices.push([s, new PlayerAction_1.Button(skill.id, invokeMsg)]);
                     }
@@ -14419,7 +14527,7 @@ class SequenceAwareSkillPubSub {
                             throw 'Failed to find skill! ' + skillId;
                         }
                         if (!skill.getSkill().isRevealed) {
-                            yield this.manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(player, skill.getSkill().isMain, !skill.getSkill().isMain));
+                            yield this.manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(player, skill.getSkill().position === 'main', skill.getSkill().position === 'sub'));
                         }
                         yield skill.doInvoke(obj, this.manager);
                         count++;
@@ -17644,11 +17752,22 @@ exports.BaiYin = BaiYin;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findCard = exports.gatherCards = exports.cardAmountAt = exports.CardObtainedEvent = exports.CardBeingTakenEvent = exports.CardBeingDroppedEvent = exports.CardBeingUsedEvent = exports.CardAwayEvent = void 0;
+exports.turnOver = exports.findCard = exports.gatherCards = exports.cardAmountAt = exports.CardObtainedEvent = exports.CardBeingTakenEvent = exports.CardBeingDroppedEvent = exports.CardBeingUsedEvent = exports.CardAwayEvent = void 0;
 const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
+const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
 //todo: remember 之后的手牌数, 用以发动渐营 + 死谏 避免技能相互作用条件不满足无法发动
 class CardAwayEvent {
     isCardFrom(playerId) {
@@ -17746,6 +17865,15 @@ function findCard(info, res) {
     return res.map(r => [info.getCards(cardPosNames.get(r.rowName))[r.idx], cardPosNames.get(r.rowName)]);
 }
 exports.findCard = findCard;
+function turnOver(by, victim, skillName, manager) {
+    return __awaiter(this, void 0, void 0, function* () {
+        manager.log(`${by} 发动了 ${skillName} 将${by} 翻面`);
+        manager.broadcast(new EffectTransit_1.TextFlashEffect(by.player.id, [victim.player.id], skillName));
+        victim.isTurnedOver = !victim.isTurnedOver;
+        manager.broadcast(victim, PlayerInfo_1.PlayerInfo.sanitize);
+    });
+}
+exports.turnOver = turnOver;
 
 
 /***/ }),

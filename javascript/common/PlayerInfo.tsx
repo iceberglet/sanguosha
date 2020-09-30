@@ -8,6 +8,7 @@ import { SkillButtonProp } from "../client/ui/UIMyPlayerCard"
 import * as React from 'react'
 import { isSuitRed } from "./cards/ICard"
 import { OverlayTrigger, Tooltip } from "react-bootstrap"
+import { SkillPosition } from "./Skill"
 
 export class Identity {
 
@@ -34,7 +35,7 @@ export type Mark = {
 
 export type Sign = {
     enabled: boolean
-    owner: 'player' | 'main' | 'sub'
+    owner: SkillPosition
     //限定技 / 可使用标记
     type: 'limit-skill' | 'usable-sign'
     displayName: string

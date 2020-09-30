@@ -35,7 +35,7 @@ export default class FactionWarActionResolver extends ActionResolver {
         let skillId = act.skill
         let skill = this.skillRepo.getSkill(act.source.player.id, skillId)
         if(!skill.isRevealed) {
-            await manager.events.publish(new RevealGeneralEvent(act.source.player.id, skill.isMain, !skill.isMain))
+            await manager.events.publish(new RevealGeneralEvent(act.source.player.id, skill.position === 'main', skill.position === 'sub'))
         }
         return skill
     }

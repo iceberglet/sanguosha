@@ -100,7 +100,7 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                     console.log('[技能驱动] 可能可以发动: ', skill.id)
                     let invokeMsg = s.invokeMsg(obj, this.manager)
                     if(!skill.isRevealed) {
-                        invokeMsg += `并明置${skill.isMain?'主将':'副将'}`
+                        invokeMsg += `并明置${skill.position === 'main' ?'主将':'副将'}`
                     }
                     choices.push([s, new Button(skill.id, invokeMsg)])
                 }
@@ -122,7 +122,7 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                         throw 'Failed to find skill! ' + skillId
                     }
                     if(!skill.getSkill().isRevealed) {
-                        await this.manager.events.publish(new RevealGeneralEvent(player, skill.getSkill().isMain, !skill.getSkill().isMain))
+                        await this.manager.events.publish(new RevealGeneralEvent(player, skill.getSkill().position === 'main', skill.getSkill().position === 'sub'))
                     }
                     await skill.doInvoke(obj, this.manager)
                     count++

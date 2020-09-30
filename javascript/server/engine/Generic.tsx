@@ -3,6 +3,8 @@ import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardSelectionResult } from "../../common/ServerHint";
 import { UIPosition } from "../../common/PlayerAction";
+import GameManager from "../GameManager";
+import { TextFlashEffect } from "../../common/transit/EffectTransit";
 
 //todo: remember 之后的手牌数, 用以发动渐营 + 死谏 避免技能相互作用条件不满足无法发动
 export abstract class CardAwayEvent {
@@ -94,4 +96,13 @@ export function gatherCards(info: PlayerInfo, poses: CardPos[], aggressor: strin
 
 export function findCard(info: PlayerInfo, res: CardSelectionResult): Array<[Card, CardPos]> {
     return res.map(r => [info.getCards(cardPosNames.get(r.rowName))[r.idx], cardPosNames.get(r.rowName)])
+}
+
+
+export async function turnOver(by: PlayerInfo, victim: PlayerInfo, skillName: string, manager: GameManager) {
+    
+    manager.log(`${by} 发动了 ${skillName} 将${by} 翻面`)
+    manager.broadcast(new TextFlashEffect(by.player.id, [victim.player.id], skillName))
+    victim.isTurnedOver = !victim.isTurnedOver
+    manager.broadcast(victim, PlayerInfo.sanitize)
 }

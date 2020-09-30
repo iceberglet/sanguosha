@@ -21,6 +21,8 @@ export enum HiddenType {
     NONE
 }
 
+export type SkillPosition = 'main' | 'sub' | 'player'
+
 export class SkillStatus {
 
     /**
@@ -31,7 +33,7 @@ export class SkillStatus {
     /**
      * isMain?
      */
-    isMain: boolean
+    position: SkillPosition = 'sub'
 
     /**
      * 是否要删除此skill? (用于UI)
@@ -127,7 +129,7 @@ export abstract class Skill extends SkillStatus {
         s.id = this.id
         s.displayName = this.displayName
         s.hiddenType = this.hiddenType
-        s.isMain = this.isMain
+        s.position = this.position
         s.isGone = this.isGone
         return s
     }
@@ -185,7 +187,7 @@ export abstract class Skill extends SkillStatus {
     protected async revealMySelfIfNeeded(manager: GameManager) {
         if(!this.isRevealed) {
             console.log(`[${this.id}] 明置 ${this.playerId}`)
-            await manager.events.publish(new RevealGeneralEvent(this.playerId, this.isMain, !this.isMain))
+            await manager.events.publish(new RevealGeneralEvent(this.playerId, this.position === 'main', this.position === 'sub'))
         }
     }
 }
@@ -256,6 +258,7 @@ export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTr
 export interface SkillRepo {
     addSkill(p: string, skill: Skill): void
     getSkill(pid: string, skillId: string): Skill
+    getSkills(pid: string): Set<Skill>
     changeSkillDisabledness(s: Skill, enable: boolean, reason: string, marks?: Mark): Promise<void>
 }
 
@@ -280,7 +283,7 @@ export interface SkillRepo {
 
     public constructor(public reason: string,  //缘由: (断肠/铁骑)
                         public target: FactionPlayerInfo,  //对象
-                        public isMain: boolean, //主将还是副将?
+                        public position: SkillPosition, //主将还是副将?
                         public enable: boolean, //是失效还是有效(恢复有效?)
                         public includeLocked: boolean = false //包含此武将的锁定技否?
                         ){}
