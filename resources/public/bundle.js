@@ -513,11 +513,25 @@ exports.DuoCardSelection = DuoCardSelection;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.customUIRegistry = exports.CustomUIData = void 0;
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 const UICard_1 = __webpack_require__(/*! ../ui/UICard */ "./javascript/client/ui/UICard.tsx");
 const UIBoard_1 = __webpack_require__(/*! ../ui/UIBoard */ "./javascript/client/ui/UIBoard.tsx");
+const react_beautiful_dnd_1 = __webpack_require__(/*! react-beautiful-dnd */ "./node_modules/react-beautiful-dnd/dist/react-beautiful-dnd.esm.js");
+const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const UIButton_1 = __webpack_require__(/*! ../ui/UIButton */ "./javascript/client/ui/UIButton.tsx");
+const Util_1 = __webpack_require__(/*! ../../common/util/Util */ "./javascript/common/util/Util.tsx");
+const BlockingQueue_1 = __webpack_require__(/*! ../../common/util/BlockingQueue */ "./javascript/common/util/BlockingQueue.tsx");
 /**
  * Can be broadcasted to show everyone
  */
@@ -539,20 +553,20 @@ class CustomUIRegistry {
         }
         this.map.set(type, provider);
     }
-    get(type, commonUI, hint, consumer) {
+    get(type, prop) {
         if (!this.map.has(type)) {
             throw `${type} is not registered!`;
         }
-        return this.map.get(type)(commonUI, hint, consumer);
+        return this.map.get(type)(prop);
     }
 }
 exports.customUIRegistry = new CustomUIRegistry();
 class Wugu extends React.Component {
     render() {
         let { commonUI, requestData, consumer } = this.props;
-        return React.createElement("div", { className: 'wugu-container' },
-            React.createElement("div", { className: 'wugu-title center' }, commonUI.title),
-            React.createElement("div", { className: 'wugu-cards' }, commonUI.cards.map(card => {
+        return React.createElement("div", { className: 'cards-container wugu-container' },
+            React.createElement("div", { className: 'cards-container-title center' }, commonUI.title),
+            React.createElement("div", { className: 'cards' }, commonUI.cards.map(card => {
                 let elementStatus = UIBoard_1.ElementStatus.DISABLED;
                 if (!card.description) {
                     elementStatus = UIBoard_1.ElementStatus.NORMAL;
@@ -564,8 +578,117 @@ class Wugu extends React.Component {
             })));
     }
 }
-exports.customUIRegistry.register('wugu', (ui, hint, con) => {
-    return React.createElement(Wugu, { commonUI: ui, requestData: hint, consumer: con });
+exports.customUIRegistry.register('wugu', (p) => {
+    return React.createElement(Wugu, Object.assign({}, p));
+});
+const RowHeight = 192;
+class GuanXing extends React.Component {
+    constructor(p) {
+        super(p);
+        /**
+         * Only useful if this client is NOT the dragger
+         * @param event
+         */
+        this.onDragEvent = (event) => {
+            if (this.props.requestData) {
+                //this is my own movement, ignore
+                console.log('Ignoring my own movement', event);
+                return;
+            }
+            if ((event.fromPos === CardPos_1.TOP || event.fromPos === CardPos_1.BTM)) {
+                console.log('adding new event', event);
+                this.toProcess.enqueue(event);
+            }
+            else {
+                console.error('Not My Action!!!', event, this.props.requestData);
+            }
+        };
+        this.inited = false;
+        this.toProcess = new BlockingQueue_1.AsyncBlockingQueue();
+        this.sensor = (api) => __awaiter(this, void 0, void 0, function* () {
+            if (this.inited) {
+                return;
+            }
+            this.inited = true;
+            while (true) {
+                let event = yield this.toProcess.dequeue();
+                let x = 0, y = 0;
+                if (event.fromPos !== event.toPos) {
+                    y = event.fromPos === CardPos_1.TOP ? RowHeight : -RowHeight;
+                }
+                x = (event.to - event.from) * 115;
+                let lock = api.tryGetLock(event.item);
+                let drag = lock.fluidLift({ x: 0, y: 0 });
+                for (let i = 0; i < 20; i++) {
+                    yield Util_1.wait(() => drag.move({ x: x * i / 19, y: y * i / 19 }), 20);
+                }
+                drag.drop();
+            }
+        });
+        /**
+         * Only useful if this client IS the dragger
+         * @param result
+         */
+        this.onDragEnd = (result) => {
+            // dropped outside the list
+            console.log(result);
+            if (!result.destination) {
+                return;
+            }
+            let movement = new CardPos_1.CardMovementEvent(result.draggableId, result.source.droppableId, result.destination.droppableId, result.source.index, result.destination.index);
+            if (this.props.requestData) {
+                this.props.consumer(movement, true);
+            }
+            this.setState(s => {
+                movement.applyToTopBtm(s.top, s.btm);
+                return s;
+            });
+        };
+        this.style = {
+            display: 'flex',
+            width: 115 * p.commonUI.size + 'px',
+            height: '154px',
+        };
+        this.state = {
+            top: [...p.commonUI.top],
+            btm: [...p.commonUI.btm]
+        };
+    }
+    componentDidMount() {
+        this.props.pubsub.on(CardPos_1.CardMovementEvent, this.onDragEvent);
+    }
+    componentWillUnmount() {
+        this.props.pubsub.off(CardPos_1.CardMovementEvent, this.onDragEvent);
+    }
+    render() {
+        let { commonUI, consumer } = this.props;
+        let { top, btm } = this.state;
+        let enabled = commonUI.isController;
+        return React.createElement("div", { className: 'cards-container' },
+            React.createElement("div", { className: 'cards-container-title center' }, commonUI.title),
+            React.createElement(react_beautiful_dnd_1.DragDropContext, { onDragEnd: this.onDragEnd, sensors: enabled ? [] : [this.sensor], enableDefaultSensors: !!enabled },
+                React.createElement("div", { className: 'row-title center' }, "\u724C\u5806\u9876"),
+                React.createElement(react_beautiful_dnd_1.Droppable, { droppableId: CardPos_1.TOP, direction: "horizontal", type: 'guanxing' }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: provided.innerRef, style: this.style }, provided.droppableProps, { className: 'cards' }),
+                    top.map((pair, i) => {
+                        let c = pair[1];
+                        return React.createElement(react_beautiful_dnd_1.Draggable, { key: pair[0], draggableId: pair[0], index: i }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: provided.innerRef }, provided.draggableProps, provided.dragHandleProps),
+                            React.createElement(UICard_1.default, { card: c, isShown: true, elementStatus: UIBoard_1.ElementStatus.NORMAL }))));
+                    }),
+                    provided.placeholder))),
+                React.createElement("div", { className: 'row-title center' }, "\u724C\u5806\u5E95"),
+                React.createElement(react_beautiful_dnd_1.Droppable, { droppableId: CardPos_1.BTM, direction: "horizontal", type: 'guanxing' }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: provided.innerRef, style: this.style }, provided.droppableProps, { className: 'cards' }),
+                    btm.map((pair, i) => {
+                        let c = pair[1];
+                        return React.createElement(react_beautiful_dnd_1.Draggable, { key: pair[0], draggableId: pair[0], index: i }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: provided.innerRef }, provided.draggableProps, provided.dragHandleProps),
+                            React.createElement(UICard_1.default, { key: c.id, card: c, isShown: true, elementStatus: UIBoard_1.ElementStatus.NORMAL }))));
+                    }),
+                    provided.placeholder)))),
+            enabled && React.createElement("div", { className: 'center button-container' },
+                React.createElement(UIButton_1.default, { disabled: false, display: '观星完毕', onClick: () => consumer(true) })));
+    }
+}
+exports.customUIRegistry.register('guanxing', (p) => {
+    return React.createElement(GuanXing, Object.assign({}, p));
 });
 class CardFight extends React.Component {
     renderCard(c) {
@@ -593,8 +716,8 @@ class CardFight extends React.Component {
                 this.renderCard(right)));
     }
 }
-exports.customUIRegistry.register('card-fight', (ui, hint, con) => {
-    return React.createElement(CardFight, { commonUI: ui, requestData: hint, consumer: con });
+exports.customUIRegistry.register('card-fight', (p) => {
+    return React.createElement(CardFight, Object.assign({}, p));
 });
 
 
@@ -783,9 +906,14 @@ class UIMounter extends React.Component {
         }
     }
     renderCommonUI() {
-        let { customRequest, commonUI, consumer } = this.props;
+        let { customRequest, commonUI, consumer, pubsub } = this.props;
         console.log(commonUI, customRequest);
-        return CustomUIRegistry_1.customUIRegistry.get(commonUI.type, commonUI.data, customRequest === null || customRequest === void 0 ? void 0 : customRequest.data, consumer);
+        return CustomUIRegistry_1.customUIRegistry.get(commonUI.type, {
+            commonUI: commonUI.data,
+            requestData: customRequest === null || customRequest === void 0 ? void 0 : customRequest.data,
+            consumer,
+            pubsub
+        });
     }
     render() {
         let { customRequest, commonUI, context } = this.props;
@@ -2422,8 +2550,8 @@ class CardTransitManager {
             this.endpoints.set(id, endpoint);
         };
         this.onCardTransfer = (transfer) => {
-            let f = this.getEndpoint(transfer.from, transfer.fromPos);
-            let t = this.getEndpoint(transfer.to, transfer.toPos);
+            let f = this.getEndpoint(transfer.from);
+            let t = this.getEndpoint(transfer.to);
             // let e: CardEndpoint = this.endpoints.get(transfer.from)
             if (!f || !t) {
                 throw `Cannot find endpoint for id: ${transfer.from}, ${transfer.to}`;
@@ -2435,7 +2563,7 @@ class CardTransitManager {
             t.performAddAnimation(initial, transfer);
         };
     }
-    getEndpoint(id, pos) {
+    getEndpoint(id) {
         return this.endpoints.get(id);
     }
 }
@@ -2511,7 +2639,7 @@ const CardTransitManager_1 = __webpack_require__(/*! ./CardTransitManager */ "./
 const UIMyCards_1 = __webpack_require__(/*! ./UIMyCards */ "./javascript/client/ui/UIMyCards.tsx");
 const CustomUIRegistry_1 = __webpack_require__(/*! ../card-panel/CustomUIRegistry */ "./javascript/client/card-panel/CustomUIRegistry.tsx");
 const GameMode_1 = __webpack_require__(/*! ../../common/GameMode */ "./javascript/common/GameMode.tsx");
-const Skill_1 = __webpack_require__(/*! ../../game-mode-faction/skill/Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const UILogger_1 = __webpack_require__(/*! ./UILogger */ "./javascript/client/ui/UILogger.tsx");
 const AudioManager_1 = __webpack_require__(/*! ../audio-manager/AudioManager */ "./javascript/client/audio-manager/AudioManager.tsx");
 const UIRuleModal_1 = __webpack_require__(/*! ./UIRuleModal */ "./javascript/client/ui/UIRuleModal.tsx");
@@ -2597,10 +2725,20 @@ class UIBoard extends React.Component {
         p.pubsub.on(Skill_1.SkillStatus, (s) => {
             // console.log('Received Skill Status', s)
             this.setState(state => {
-                let match = state.skillButtons.find(prop => {
+                let matchIdx = state.skillButtons.findIndex(prop => {
                     return prop.skill.id === s.id && prop.skill.playerId === s.playerId;
                 });
-                if (!match) {
+                if (s.isGone) {
+                    if (matchIdx >= 0) {
+                        console.log('删除技能', s);
+                        state.skillButtons.splice(matchIdx, 1);
+                    }
+                    else {
+                        console.log('未找到技能', s);
+                    }
+                    return state;
+                }
+                if (matchIdx < 0) {
                     console.info('Received a new skill!', s);
                     let skill = GameMode_1.GameMode.get(context.gameMode).skillProvider(s.id, myId);
                     skill.isMain = s.isMain;
@@ -2613,6 +2751,7 @@ class UIBoard extends React.Component {
                     });
                 }
                 else {
+                    let match = state.skillButtons[matchIdx];
                     Object.assign(match.skill, s);
                     console.log('Updated skill', match.skill.isRevealed, s, match.skill);
                 }
@@ -2678,14 +2817,20 @@ class UIBoard extends React.Component {
             React.createElement("div", { className: 'top' },
                 React.createElement("div", { className: 'playground' },
                     React.createElement(UIPlayGround_1.default, { players: others, distanceComputer: context.getMyDistanceTo, pubsub: pubsub, screenPosObtainer: screenPosObtainer, showDist: showDistance, cardTransitManager: cardTransitManager, checker: playerChecker, cardManager: context.cardManager }),
-                    React.createElement(UIMounter_1.default, { customRequest: this.state.uiRequest, commonUI: this.state.uiData, context: context, onGeneralChecker: onGeneralChecker, onSubGeneralChecker: onSubGeneralChecker, consumer: res => {
-                            context.submitAction({
-                                actionData: null,
-                                actionSource: myId,
-                                serverHint: null,
-                                customData: res
-                            });
-                            this.setState({ uiRequest: null });
+                    React.createElement(UIMounter_1.default, { customRequest: this.state.uiRequest, commonUI: this.state.uiData, context: context, onGeneralChecker: onGeneralChecker, onSubGeneralChecker: onSubGeneralChecker, pubsub: pubsub, consumer: (res, intermittent = false) => {
+                            if (!intermittent) {
+                                context.submitAction({
+                                    actionData: null,
+                                    actionSource: myId,
+                                    serverHint: null,
+                                    customData: res
+                                });
+                                this.setState({ uiRequest: null });
+                            }
+                            else {
+                                //just send
+                                context.sendToServer(res);
+                            }
                         } }),
                     React.createElement(UILogger_1.UIRollingLogger, { pubsub: pubsub })),
                 React.createElement("div", { className: 'chat-logger' },
@@ -2930,7 +3075,7 @@ class UICardRow extends React.Component {
         let { isShown, checker } = this.props;
         let { hover, cards } = this.state;
         return React.createElement(react_beautiful_dnd_1.DragDropContext, { onDragEnd: this.onDragEnd },
-            React.createElement(react_beautiful_dnd_1.Droppable, { droppableId: "droppable", direction: "horizontal" }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: r => { provided.innerRef(r); this.containerRef = r; }, style: getListStyle(snapshot.isDraggingOver) }, provided.droppableProps),
+            React.createElement(react_beautiful_dnd_1.Droppable, { droppableId: "hand", direction: "horizontal", type: 'hand' }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: r => { provided.innerRef(r); this.containerRef = r; }, style: getListStyle(snapshot.isDraggingOver) }, provided.droppableProps),
                 cards.map((c, i) => {
                     let status = checker.getStatus(c.card.id);
                     let style = {};
@@ -3247,10 +3392,10 @@ class UIMyCards extends React.Component {
         };
         this.props.cardTransitManager.register(endpoint, this.props.info.player.id);
     }
-    componentWillUnmount() {
-        // console.log('UICardRow unsubscribing to card transit')
-        this.props.cardTransitManager.register(null, this.props.info.player.id);
-    }
+    // componentWillUnmount() {
+    //     // console.log('UICardRow unsubscribing to card transit')
+    //     this.props.cardTransitManager.register(null, this.props.info.player.id)
+    // }
     render() {
         let { info, hideCards, equipChecker, cardsChecker, signsChecker, onCardsShifted } = this.props;
         return React.createElement("div", { className: 'my-cards' },
@@ -3302,7 +3447,7 @@ const UIBoard_1 = __webpack_require__(/*! ./UIBoard */ "./javascript/client/ui/U
 const Util_1 = __webpack_require__(/*! ../../common/util/Util */ "./javascript/common/util/Util.tsx");
 const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
 const SpriteSheet_1 = __webpack_require__(/*! ../effect/SpriteSheet */ "./javascript/client/effect/SpriteSheet.tsx");
-const Skill_1 = __webpack_require__(/*! ../../game-mode-faction/skill/Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const react_bootstrap_1 = __webpack_require__(/*! react-bootstrap */ "./node_modules/react-bootstrap/esm/index.js");
 const damageDuration = 2000;
 class UIMyPlayerCard extends React.Component {
@@ -4067,6 +4212,36 @@ const PlayerInfo_1 = __webpack_require__(/*! ./PlayerInfo */ "./javascript/commo
 const CardPos_1 = __webpack_require__(/*! ./transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 const Card_1 = __webpack_require__(/*! ./cards/Card */ "./javascript/common/cards/Card.tsx");
 const Multimap_1 = __webpack_require__(/*! ./util/Multimap */ "./javascript/common/util/Multimap.tsx");
+class Cursor {
+    constructor(infos, start) {
+        this.infos = infos;
+        this.idx = infos.findIndex(p => p.player.id === start);
+        if (this.idx < 0) {
+            throw 'Unable to find this player ' + start + ' among ' + infos.map(p => p.player.id);
+        }
+    }
+    get() {
+        return this.infos[this.idx];
+    }
+    up() {
+        do {
+            this.idx--;
+            if (this.idx < 0) {
+                this.idx = this.infos.length - 1;
+            }
+        } while (this.get().isDead);
+        return this;
+    }
+    down() {
+        do {
+            this.idx++;
+            if (this.idx >= this.infos.length) {
+                this.idx = 0;
+            }
+        } while (this.get().isDead);
+        return this;
+    }
+}
 /**
  * Contains current state of the game
  * All players' situations, card holdings, hp
@@ -4152,6 +4327,9 @@ class GameContext {
     getRingFromPerspective(playerId, inclusive = false, deadAlso = false) {
         let idx = this.playerInfos.findIndex(p => p.player.id === playerId);
         return [...this.playerInfos.slice(inclusive ? idx : idx + 1), ...this.playerInfos.slice(0, idx)].filter(p => deadAlso || !p.isDead);
+    }
+    cursor(playerId) {
+        return new Cursor(this.playerInfos, playerId);
     }
     /**
      * 根据当前玩家视角排序,用以决定结算顺序
@@ -4782,6 +4960,242 @@ exports.Rescind = Rescind;
 
 /***/ }),
 
+/***/ "./javascript/common/Skill.tsx":
+/*!*************************************!*\
+  !*** ./javascript/common/Skill.tsx ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GeneralSkillStatusUpdate = exports.SimpleConditionalSkill = exports.SimpleTrigger = exports.Skill = exports.invocable = exports.SkillStatus = exports.HiddenType = void 0;
+const EffectTransit_1 = __webpack_require__(/*! ./transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
+const FactionWarInitializer_1 = __webpack_require__(/*! ../game-mode-faction/FactionWarInitializer */ "./javascript/game-mode-faction/FactionWarInitializer.tsx");
+//what action to do when clicked on while being hidden?
+var HiddenType;
+(function (HiddenType) {
+    HiddenType[HiddenType["FOREWARNABLE"] = 0] = "FOREWARNABLE";
+    HiddenType[HiddenType["REVEAL_IN_MY_USE_CARD"] = 1] = "REVEAL_IN_MY_USE_CARD";
+    HiddenType[HiddenType["NONE"] = 2] = "NONE";
+})(HiddenType = exports.HiddenType || (exports.HiddenType = {}));
+class SkillStatus {
+    constructor(playerId) {
+        this.playerId = playerId;
+        /**
+         * 是否出于任何原因(穿心, 断肠, 铁骑)被disable了?
+         */
+        this.isDisabled = false;
+        /**
+         * 相关将领是否已经展示了?
+         */
+        this.isRevealed = false;
+        /**
+         * 没有示将的话,是否开启了预亮?
+         */
+        this.isForewarned = false;
+        /**
+         * 没有明置武将时,点击按钮的效果为何?
+         */
+        this.hiddenType = HiddenType.FOREWARNABLE;
+    }
+}
+exports.SkillStatus = SkillStatus;
+function invocable(trigger, event, manager) {
+    let skill = trigger.getSkill();
+    if (skill.isDisabled) {
+        return false;
+    }
+    if ((skill.isRevealed || skill.isForewarned) && trigger.conditionFulfilled(event, manager)) {
+        return true;
+    }
+    return false;
+}
+exports.invocable = invocable;
+class Skill extends SkillStatus {
+    constructor() {
+        super(...arguments);
+        this.hiddenType = HiddenType.FOREWARNABLE;
+        /**
+         * 是否是锁定技
+         */
+        this.isLocked = false;
+        /**
+         * 主将技/副将技override
+         */
+        this.disabledForMain = false;
+        this.disabledForSub = false;
+        this.description = '暂无 (Please override this field)';
+    }
+    toStatus() {
+        let s = new SkillStatus(this.playerId);
+        s.isRevealed = this.isRevealed;
+        s.isDisabled = this.isDisabled;
+        s.isForewarned = this.isForewarned;
+        s.id = this.id;
+        s.displayName = this.displayName;
+        s.hiddenType = this.hiddenType;
+        s.isMain = this.isMain;
+        s.isGone = this.isGone;
+        return s;
+    }
+    /**
+     * load player action driver on client
+     * e.g. 红牌当杀之类的
+     */
+    bootstrapClient(context, player) {
+        //no-op by default
+    }
+    /**
+     * 进行必要的事件登记
+     * @param manager
+     */
+    bootstrapServer(skillRegistry, manager, repo) {
+    }
+    onStatusUpdated(manager, repo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            //no-op by default
+        });
+    }
+    onRemoval(skillRegistry, manager) {
+        //还原马术?
+    }
+    onPlayerAction(act, event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            throw 'Forgot to override me?';
+        });
+    }
+    playSound(manager, counts) {
+        let random = Math.ceil(Math.random() * counts);
+        if (random === 0) {
+            random = 1;
+        }
+        manager.broadcast(new EffectTransit_1.PlaySound(`audio/skill/${this.id}${random}.mp3`));
+    }
+    invokeEffects(manager, targets = [], msg = `${this.playerId} 发动了 ${this.displayName}`) {
+        this.playSound(manager, 2);
+        manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, targets, this.id));
+        if (msg) {
+            manager.log(msg);
+        }
+        else if (targets.length === 0) {
+            manager.log(`${this.playerId} 发动了 ${this.displayName}`);
+        }
+        else {
+            manager.log(`${this.playerId} 对 ${targets} 发动了 ${this.displayName}`);
+        }
+    }
+    revealMySelfIfNeeded(manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.isRevealed) {
+                console.log(`[${this.id}] 明置 ${this.playerId}`);
+                yield manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(this.playerId, this.isMain, !this.isMain));
+            }
+        });
+    }
+}
+exports.Skill = Skill;
+class SimpleTrigger {
+    constructor(skill, manager) {
+        this.skill = skill;
+        this.player = manager.context.getPlayer(skill.playerId);
+    }
+    getSkill() {
+        return this.skill;
+    }
+    invokeMsg(event, manager) {
+        return '发动' + this.getSkill().displayName;
+    }
+}
+exports.SimpleTrigger = SimpleTrigger;
+/**
+ * 一个技能的触发需要以下条件:
+ * 1. 给定event + manager满足某种条件
+ * 2. 技能不是disabled的
+ * 3. 技能已经显示, 或者开启了预亮然后玩家同意显示
+ * 4. 非锁定技需要提示玩家是否发动
+ */
+class SimpleConditionalSkill extends Skill {
+    getSkill() {
+        return this;
+    }
+    invocable(event, manager) {
+        if (this.isDisabled) {
+            return false;
+        }
+        if ((this.isRevealed || this.isForewarned) && this.conditionFulfilled(event, manager)) {
+            return true;
+        }
+        return false;
+    }
+    invokeMsg(event, manager) {
+        return '发动' + this.displayName;
+    }
+    /**
+     * Is this event condition met?
+     * @param event
+     * @param manager
+     */
+    conditionFulfilled(event, manager) {
+        return false;
+    }
+    /**
+     * 技能发动
+     * @param event 事件
+     * @param manager GameManager
+     */
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return;
+        });
+    }
+}
+exports.SimpleConditionalSkill = SimpleConditionalSkill;
+/**
+ * 技能事件:
+ * 1. 主将技,副将技的选择 (done)
+ *
+ * 2. 增加技能
+ *      a. 姜维观星
+ *      b. 游戏进行时, (暴凌)
+ *
+ * 3. 改变其他技能: (姜维观星override主将技能)
+ *
+ * 4. 失去技能 (断肠)
+ *
+ * 5. 移除武将牌
+ *
+ * 6. 减少阴阳鱼 (重新计算血量)
+ */
+class GeneralSkillStatusUpdate {
+    constructor(reason, //缘由: (断肠/铁骑)
+    target, //对象
+    isMain, //主将还是副将?
+    enable, //是失效还是有效(恢复有效?)
+    includeLocked = false //包含此武将的锁定技否?
+    ) {
+        this.reason = reason;
+        this.target = target;
+        this.isMain = isMain;
+        this.enable = enable;
+        this.includeLocked = includeLocked;
+    }
+}
+exports.GeneralSkillStatusUpdate = GeneralSkillStatusUpdate;
+
+
+/***/ }),
+
 /***/ "./javascript/common/Stage.tsx":
 /*!*************************************!*\
   !*** ./javascript/common/Stage.tsx ***!
@@ -5097,7 +5511,7 @@ exports.isSuitBlack = isSuitBlack;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CardRearrangeRequest = exports.CardPosChangeEvent = exports.isCardPosHidden = exports.isSharedPosition = exports.CardPos = void 0;
+exports.CardRearrangeRequest = exports.CardMovementEvent = exports.BTM = exports.TOP = exports.CardPosChangeEvent = exports.isCardPosHidden = exports.isSharedPosition = exports.CardPos = void 0;
 var CardPos;
 (function (CardPos) {
     //手牌？ 判定？ 装备？ 
@@ -5138,6 +5552,24 @@ class CardPosChangeEvent {
     }
 }
 exports.CardPosChangeEvent = CardPosChangeEvent;
+exports.TOP = 'top';
+exports.BTM = 'btm';
+class CardMovementEvent {
+    constructor(item, fromPos, toPos, from, to) {
+        this.item = item;
+        this.fromPos = fromPos;
+        this.toPos = toPos;
+        this.from = from;
+        this.to = to;
+    }
+    applyToTopBtm(top, btm) {
+        let leave = this.fromPos === exports.TOP ? top : btm;
+        let item = leave.splice(this.from, 1);
+        let toAdd = this.toPos === exports.TOP ? top : btm;
+        toAdd.splice(this.to, 0, item[0]);
+    }
+}
+exports.CardMovementEvent = CardMovementEvent;
 class CardRearrangeRequest {
     constructor(requester) {
         this.requester = requester;
@@ -5314,6 +5746,54 @@ exports.default = ArrayList;
 
 /***/ }),
 
+/***/ "./javascript/common/util/BlockingQueue.tsx":
+/*!**************************************************!*\
+  !*** ./javascript/common/util/BlockingQueue.tsx ***!
+  \**************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AsyncBlockingQueue = void 0;
+class AsyncBlockingQueue {
+    constructor() {
+        this._resolvers = [];
+        this._promises = [];
+    }
+    _add() {
+        this._promises.push(new Promise(resolve => {
+            this._resolvers.push(resolve);
+        }));
+    }
+    enqueue(t) {
+        if (!this._resolvers.length)
+            this._add();
+        const resolve = this._resolvers.shift();
+        resolve(t);
+    }
+    dequeue() {
+        if (!this._promises.length)
+            this._add();
+        const promise = this._promises.shift();
+        return promise;
+    }
+    isEmpty() {
+        return !this._promises.length;
+    }
+    isBlocked() {
+        return !!this._resolvers.length;
+    }
+    get length() {
+        return this._promises.length - this._resolvers.length;
+    }
+}
+exports.AsyncBlockingQueue = AsyncBlockingQueue;
+
+
+/***/ }),
+
 /***/ "./javascript/common/util/Describer.tsx":
 /*!**********************************************!*\
   !*** ./javascript/common/util/Describer.tsx ***!
@@ -5463,7 +5943,8 @@ class Pubsub {
     publish(obj) {
         let con = this._map.get(obj.constructor);
         if (!con) {
-            throw `No one is listening to this message! ${obj.constructor.name}`;
+            console.error(`No one is listening to this message! ${obj.constructor.name}`);
+            return;
         }
         con.forEach(item => item(obj));
     }
@@ -5589,7 +6070,7 @@ const RoundStat_1 = __webpack_require__(/*! ../RoundStat */ "./javascript/common
 const CustomUIRegistry_1 = __webpack_require__(/*! ../../client/card-panel/CustomUIRegistry */ "./javascript/client/card-panel/CustomUIRegistry.tsx");
 const GameStatsCollector_1 = __webpack_require__(/*! ../../server/GameStatsCollector */ "./javascript/server/GameStatsCollector.tsx");
 const FactionWarGameHoster_1 = __webpack_require__(/*! ../../game-mode-faction/FactionWarGameHoster */ "./javascript/game-mode-faction/FactionWarGameHoster.tsx");
-const Skill_1 = __webpack_require__(/*! ../../game-mode-faction/skill/Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../Skill */ "./javascript/common/Skill.tsx");
 const Multimap_1 = __webpack_require__(/*! ./Multimap */ "./javascript/common/util/Multimap.tsx");
 const CardPos_1 = __webpack_require__(/*! ../transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 class Serializer {
@@ -5713,6 +6194,7 @@ exports.Serde.register(PlayerInfo_1.PlayerInfo);
 exports.Serde.register(Card_1.CardType);
 exports.Serde.register(Card_1.default);
 exports.Serde.register(CardPos_1.CardRearrangeRequest);
+exports.Serde.register(CardPos_1.CardMovementEvent);
 exports.Serde.register(FactionWarCardSet_1.FWCard);
 exports.Serde.register(Card_1.CardSize);
 exports.Serde.register(IdentityWarGenerals_1.default);
@@ -5895,7 +6377,7 @@ exports.TogglableMap = TogglableMap;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.delay = exports.toChinese = exports.promiseAny = exports.reorder = exports.any = exports.all = exports.filterMap = exports.flattenMap = exports.getKeys = exports.checkThat = exports.checkNotNull = exports.Mask = exports.Suits = exports.getNext = exports.enumValues = exports.takeFromArray = exports.getRandom = exports.shuffle = void 0;
+exports.wait = exports.delay = exports.toChinese = exports.promiseAny = exports.reorder = exports.any = exports.all = exports.filterMap = exports.flattenMap = exports.getKeys = exports.checkThat = exports.checkNotNull = exports.Mask = exports.Suits = exports.getNext = exports.enumValues = exports.takeFromArray = exports.getRandom = exports.shuffle = void 0;
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 function shuffle(array) {
     var m = array.length, t, i;
@@ -6029,6 +6511,15 @@ function toChinese(idx) {
 }
 exports.toChinese = toChinese;
 exports.delay = (ms) => new Promise(res => setTimeout(res, ms));
+function wait(fn, ms = 1000) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            fn();
+            resolve();
+        }, ms);
+    });
+}
+exports.wait = wait;
 
 
 /***/ }),
@@ -7109,7 +7600,7 @@ const ServerHint_1 = __webpack_require__(/*! ../common/ServerHint */ "./javascri
 const GameStatsCollector_1 = __webpack_require__(/*! ../server/GameStatsCollector */ "./javascript/server/GameStatsCollector.tsx");
 const SkillPubsub_1 = __webpack_require__(/*! ./skill/SkillPubsub */ "./javascript/game-mode-faction/skill/SkillPubsub.tsx");
 const FactionWarSkillRepo_1 = __webpack_require__(/*! ./skill/FactionWarSkillRepo */ "./javascript/game-mode-faction/skill/FactionWarSkillRepo.tsx");
-const Skill_1 = __webpack_require__(/*! ./skill/Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../common/Skill */ "./javascript/common/Skill.tsx");
 const CardPos_1 = __webpack_require__(/*! ../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 const Card_1 = __webpack_require__(/*! ../common/cards/Card */ "./javascript/common/cards/Card.tsx");
@@ -7499,11 +7990,11 @@ FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', '
 // public static cao_ren = new FactionWarGeneral('wind_cao_ren', '曹仁', Faction.WEI, 2, '据守')
 // public static xun_yu = new FactionWarGeneral('fire_xun_yu', '荀彧', Faction.WEI, 1.5, '驱虎', '节命')
 // public static cao_pi = new FactionWarGeneral('forest_cao_pi', '曹丕', Faction.WEI, 1.5, '行殇', '放逐')
-FactionWarGeneral.yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', General_1.Faction.WEI, 2, '骁果');
-FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', General_1.Faction.WEI, 2, '巧变');
-FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', General_1.Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田');
-// public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
-//16
+// public static yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', Faction.WEI, 2, '骁果')
+// public static zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', Faction.WEI, 2, '巧变')
+// public static deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田')
+// // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
+// //16
 // public static liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', Faction.SHU, 2, '仁德')  
 // public static guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', Faction.SHU, 2.5, '武圣')
 // public static zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', Faction.SHU, 2, '咆哮')
@@ -7516,27 +8007,12 @@ FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', 
 // public static liu_shan = new FactionWarGeneral('mountain_liu_shan', '刘禅', Faction.SHU, 1.5, '享乐', '放权')
 // public static huang_yue_ying = new FactionWarGeneral('standard_huang_yue_ying', '黄月英', Faction.SHU, 1.5, '集智', '奇才').asFemale() as FactionWarGeneral
 // public static meng_huo = new FactionWarGeneral('forest_meng_huo', '孟获', Faction.SHU, 2, '祸首', '再起')
-// public static zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', Faction.SHU, 2, '巨象', '烈刃').asFemale() as FactionWarGeneral
-// public static pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', Faction.SHU, 1.5, '连环', '涅槃')
-// public static gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', Faction.SHU, 1.5, '淑慎', '神智').asFemale() as FactionWarGeneral
-// public static jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', Faction.SHU, 1.5, '生息', '守成')
-// //16
-// public static sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', Faction.WU, 2, '制衡')
-// public static gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', Faction.WU, 2, '奇袭')
-// public static huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', Faction.WU, 2, '苦肉')
-// public static tai_shi_ci = new FactionWarGeneral('fire_tai_shi_ci', '太史慈', Faction.WU, 2, '天义')
-// public static lu_xun = new FactionWarGeneral('standard_lu_xun', '陆逊', Faction.WU, 1.5, '谦逊', '度势')
-// public static sun_shang_xiang = new FactionWarGeneral('standard_sun_shang_xiang', '孙尚香', Faction.WU, 1.5, '枭姬', '结姻').asFemale() as FactionWarGeneral
-// public static er_zhang = new FactionWarGeneral('mountain_er_zhang', '张昭张纮', Faction.WU, 1.5, '直谏', '固政')
-// public static zhou_yu = new FactionWarGeneral('standard_zhou_yu', '周瑜', Faction.WU, 1.5, '英姿', '反间')
-// public static da_qiao = new FactionWarGeneral('standard_da_qiao', '大乔', Faction.WU, 1.5, '国色', '流离').asFemale() as FactionWarGeneral
-// public static sun_jian = new FactionWarGeneral('forest_sun_jian', '孙坚', Faction.WU, 2.5, '英魂')
-// public static xiao_qiao = new FactionWarGeneral('wind_xiao_qiao', '小乔', Faction.WU, 1.5, '天香', '红颜').asFemale() as FactionWarGeneral
-// public static lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', Faction.WU, 1.5, '好施', '缔盟')
-// public static xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', Faction.WU, 2, '疑城')
-FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', General_1.Faction.WU, 2, '克己', '谋断');
-FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命');
-FactionWarGeneral.zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', General_1.Faction.WU, 2, '不屈', '奋激').setCardName('创');
+FactionWarGeneral.zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', General_1.Faction.SHU, 2, '巨象', '烈刃').asFemale();
+FactionWarGeneral.pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', General_1.Faction.SHU, 1.5, '连环', '涅槃');
+FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', General_1.Faction.SHU, 1.5, '淑慎', '神智').asFemale();
+FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成');
+FactionWarGeneral.zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '观星', '空城');
+FactionWarGeneral.jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', General_1.Faction.SHU, 2, '挑衅', '遗志' /*, '天覆'*/).hpDelta(0, -0.5);
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
 exports.generalPairs = new Multimap_1.Pairs();
@@ -7574,6 +8050,7 @@ exports.generalPairs.registerPair('袁绍', '颜良文丑');
 exports.generalPairs.registerPair('凌统', '甘宁');
 exports.generalPairs.registerPair('贾诩', '李傕郭汜');
 exports.generalPairs.registerPair('贾诩', '邹氏');
+exports.generalPairs.registerPair('贾诩', '张绣');
 
 
 /***/ }),
@@ -8136,7 +8613,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KuangFu = exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
-const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const PlayerActionDriverProvider_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverProvider */ "./javascript/client/player-actions/PlayerActionDriverProvider.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const PlayerActionDriverDefiner_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverDefiner */ "./javascript/client/player-actions/PlayerActionDriverDefiner.tsx");
@@ -9417,8 +9894,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ShouCheng = exports.ShengXi = exports.ShenZhi = exports.ShuShen = exports.LieRen = exports.JuXiang = exports.ZaiQi = exports.HuoShou = exports.NiePan = exports.LianHuan = exports.QiCai = exports.JiZhi = exports.FangQuan = exports.XiangLe = exports.JiLi = exports.LieGong = exports.KuangGu = exports.KanPo = exports.HuoJi = exports.BaZhen = exports.MaShu = exports.TieQi = exports.LongDan = exports.PaoXiao = exports.WuSheng = exports.Rende = void 0;
-const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+exports.YiZhi = exports.GuanXingJiangWei = exports.TiaoXin = exports.KongCheng = exports.KongChengCancellor = exports.GuanXing = exports.ShouCheng = exports.ShengXi = exports.ShenZhi = exports.ShuShen = exports.LieRen = exports.JuXiang = exports.ZaiQi = exports.HuoShou = exports.NiePan = exports.LianHuan = exports.QiCai = exports.JiZhi = exports.FangQuan = exports.XiangLe = exports.JiLi = exports.LieGong = exports.KuangGu = exports.KanPo = exports.HuoJi = exports.BaZhen = exports.MaShu = exports.TieQi = exports.LongDan = exports.PaoXiao = exports.WuSheng = exports.Rende = void 0;
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const DamageOp_1 = __webpack_require__(/*! ../../server/engine/DamageOp */ "./javascript/server/engine/DamageOp.tsx");
 const StageFlows_1 = __webpack_require__(/*! ../../server/engine/StageFlows */ "./javascript/server/engine/StageFlows.tsx");
 const Stage_1 = __webpack_require__(/*! ../../common/Stage */ "./javascript/common/Stage.tsx");
@@ -9451,6 +9928,8 @@ const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascr
 const MultiRuseOp_1 = __webpack_require__(/*! ../../server/engine/MultiRuseOp */ "./javascript/server/engine/MultiRuseOp.tsx");
 const AskSavingOp_1 = __webpack_require__(/*! ../../server/engine/AskSavingOp */ "./javascript/server/engine/AskSavingOp.tsx");
 const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */ "./javascript/server/engine/CardFightOp.tsx");
+const CustomUIRegistry_1 = __webpack_require__(/*! ../../client/card-panel/CustomUIRegistry */ "./javascript/client/card-panel/CustomUIRegistry.tsx");
+const DropCardOp_1 = __webpack_require__(/*! ../../server/engine/DropCardOp */ "./javascript/server/engine/DropCardOp.tsx");
 const REN_DE_SLASH = [SlashOp_1.SlashType.RED, SlashOp_1.SlashType.BLACK, SlashOp_1.SlashType.FIRE, SlashOp_1.SlashType.THUNDER];
 class Rende extends Skill_1.Skill {
     constructor() {
@@ -10625,9 +11104,223 @@ class ShouCheng extends Skill_1.SimpleConditionalSkill {
     }
 }
 exports.ShouCheng = ShouCheng;
-// 观星 准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。
-// 空城 锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。
-// 挑衅 出牌阶段限一次，你可以选择一名攻击范围内含有你的角色，然后除非该角色对你使用一张【杀】，否则你弃置其一张牌。
+class GuanXing extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '观星';
+        this.displayName = '观星';
+        this.description = '准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。';
+        this.xDeterminer = (manager) => {
+            return Math.min(5, manager.getSortedByCurr(true).length);
+        };
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(StageFlows_1.StageStartFlow, this);
+    }
+    conditionFulfilled(event, manager) {
+        return event.isFor(this.playerId, Stage_1.Stage.ROUND_BEGIN);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let x = this.xDeterminer(manager);
+            let cards = manager.context.deck.getCardsFromTop(x);
+            this.data = new CustomUIRegistry_1.CustomUIData('guanxing', {
+                title: `${this.playerId} 观星`,
+                size: x,
+                isController: true,
+                top: cards.map((c, i) => ['guanxing' + i, c]),
+                btm: []
+            });
+            this.invokeEffects(manager);
+            let { top, btm } = this.data.data;
+            //做好update hookup
+            const onCardMoved = (event) => {
+                event.applyToTopBtm(top, btm);
+                manager.broadcast(event);
+            };
+            manager.pubsub().on(CardPos_1.CardMovementEvent, onCardMoved);
+            //发送观星的移动请求
+            this.setBroadcast(manager);
+            yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.UI_PANEL,
+                hintMsg: 'ignore',
+                customRequest: {
+                    mode: 'choose',
+                    data: true
+                }
+            });
+            //观星完毕
+            manager.context.deck.placeCardsAtTop(top.map(item => item[1]));
+            manager.context.deck.placeCardsAtBtm(btm.map(item => item[1]));
+            manager.log(`${this.playerId} 将 ${top.length}张牌置于牌堆顶, ${btm.length}张牌置于牌堆底`);
+            //扫尾
+            manager.broadcast(new CustomUIRegistry_1.CustomUIData(CustomUIRegistry_1.CustomUIData.STOP, null));
+            manager.pubsub().off(CardPos_1.CardMovementEvent, onCardMoved);
+            this.data = null;
+            manager.onReconnect = null;
+        });
+    }
+    setBroadcast(manager) {
+        manager.onReconnect = () => {
+            manager.broadcast(this.data, (data, pId) => {
+                if (pId !== this.playerId) {
+                    let copy = new CustomUIRegistry_1.CustomUIData('guanxing', {
+                        title: `${this.playerId} 观星`,
+                        size: this.data.data.size,
+                        isController: false,
+                        top: this.data.data.top.map(t => [t[0], Card_1.default.DUMMY]),
+                        btm: this.data.data.btm.map(t => [t[0], Card_1.default.DUMMY])
+                    });
+                    return copy;
+                }
+                return data;
+            });
+        };
+        manager.onReconnect();
+    }
+}
+exports.GuanXing = GuanXing;
+class KongChengCancellor {
+    constructor(skill) {
+        this.skill = skill;
+    }
+    getSkill() {
+        return this.skill;
+    }
+    invokeMsg(event, manager) {
+        return '发动' + this.skill.displayName;
+    }
+    conditionFulfilled(event, manager) {
+        if (manager.context.getPlayer(this.skill.playerId).getCards(CardPos_1.CardPos.HAND).length === 0) {
+            if (event.timeline === Operation_1.Timeline.BECOME_TARGET && event.target.player.id === this.skill.playerId) {
+                if (event instanceof Operation_1.RuseOp && event.ruseType === Card_1.CardType.JUE_DOU) {
+                    return true;
+                }
+                if (event instanceof SlashOp_1.SlashCompute) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.skill.invokeEffects(manager);
+            event.abort = true;
+        });
+    }
+}
+exports.KongChengCancellor = KongChengCancellor;
+class KongCheng extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '空城';
+        this.displayName = '空城';
+        this.description = '锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。';
+        //你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。'
+        this.isLocked = true;
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(SlashOp_1.SlashCompute, new KongChengCancellor(this));
+        skillRegistry.on(SingleRuseOp_1.JueDou, new KongChengCancellor(this));
+        const onCardAway = (away) => __awaiter(this, void 0, void 0, function* () {
+            if (this.isRevealed && !this.isDisabled && away.player === this.playerId &&
+                manager.context.getPlayer(this.playerId).getCards(CardPos_1.CardPos.HAND).length === 0) {
+                this.invokeEffects(manager);
+            }
+        });
+        skillRegistry.onEvent(Generic_1.CardBeingDroppedEvent, this.playerId, onCardAway);
+        skillRegistry.onEvent(Generic_1.CardBeingTakenEvent, this.playerId, onCardAway);
+        skillRegistry.onEvent(Generic_1.CardBeingUsedEvent, this.playerId, onCardAway);
+    }
+}
+exports.KongCheng = KongCheng;
+class TiaoXin extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '挑衅';
+        this.displayName = '挑衅';
+        this.description = '出牌阶段限一次，你可以选择一名攻击范围内含有你的角色，然后除非该角色对你使用一张【杀】，否则你弃置其一张牌。';
+        this.hiddenType = Skill_1.HiddenType.NONE;
+    }
+    bootstrapClient() {
+        PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
+            return new PlayerActionDriverDefiner_1.default('挑衅')
+                .expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id, context) => id === this.id && !hint.roundStat.customData[this.id])
+                .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id, context) => {
+                return id !== this.playerId && context.computeDistance(id, this.playerId) <= context.getPlayer(id).getReach();
+            }, () => `选择一名攻击范围内含有你的角色`)
+                .expectAnyButton('点击确定发动挑衅')
+                .build(hint);
+        });
+    }
+    onPlayerAction(act, event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            manager.roundStats.customData[this.id] = true;
+            let target = act.targets[0];
+            this.invokeEffects(manager, [target.player.id]);
+            let resp = yield manager.sendHint(target.player.id, {
+                hintType: ServerHint_1.HintType.PLAY_SLASH,
+                hintMsg: `${this.playerId} 发动 挑衅 令你对其出杀, 若你取消他将弃置你一张牌`,
+                targetPlayers: [act.source.player.id],
+                extraButtons: [new PlayerAction_1.Button(PlayerAction_1.Button.CANCEL.id, '放弃')]
+            });
+            if (resp.isCancel()) {
+                console.log('玩家放弃出杀, 弃置其一张牌');
+                yield new DropCardOp_1.DropOthersCardRequest().perform(manager, act.source, target, `(挑衅)弃置${target}一张牌`, [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP]);
+            }
+            else {
+                console.log('玩家出杀, 开始结算吧');
+                resp.targets.push(act.source);
+                yield manager.resolver.on(resp, manager);
+            }
+        });
+    }
+}
+exports.TiaoXin = TiaoXin;
+class GuanXingJiangWei extends GuanXing {
+    constructor() {
+        super(...arguments);
+        this.id = '观星(姜维)';
+    }
+}
+exports.GuanXingJiangWei = GuanXingJiangWei;
+class YiZhi extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '遗志';
+        this.displayName = '遗志';
+        this.description = '副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。';
+        this.disabledForMain = true;
+        this.hiddenType = Skill_1.HiddenType.NONE;
+    }
+    onStatusUpdated(manager, repo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.isGone && !this.isDisabled && this.isRevealed) {
+                this.isGone = true;
+                try {
+                    let teacher = repo.getSkill(this.playerId, '观星');
+                    if (teacher.isMain) {
+                        console.log(`[${this.id}] 生效改变观星描述为5`);
+                        teacher.xDeterminer = () => 5;
+                    }
+                    else {
+                        console.error('发现观星技能但不是主将技??!!', teacher.playerId, teacher.id);
+                    }
+                }
+                catch (ignore) {
+                    console.log(`[${this.id}] 生效增加姜维的观星技能`);
+                    let myNew = new GuanXingJiangWei(this.playerId);
+                    myNew.isRevealed = true;
+                    repo.addSkill(this.playerId, myNew);
+                    manager.send(this.playerId, myNew.toStatus());
+                }
+                manager.send(this.playerId, this.toStatus());
+            }
+        });
+    }
+}
+exports.YiZhi = YiZhi;
 // 遗志 副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。
 // 天覆 主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。
 // 潜袭 准备阶段，你可以进行判定，然后你选择距离为1的一名角色，直到回合结束，该角色不能使用或打出与结果颜色相同的手牌。
@@ -10661,7 +11354,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JiXi = exports.ZiLiang = exports.TunTian = exports.XiaoGuo = exports.QiaoBian = exports.YiJi = exports.JieMing = exports.QuHu = exports.FangZhu = exports.XingShang = exports.QiangXi = exports.JuShou = exports.DuanLiang = exports.ShenSu = exports.LuoShen = exports.QinGuo = exports.TianDu = exports.LuoYi = exports.TuXi = exports.GangLie = exports.GuiCai = exports.FanKui = exports.JianXiong = exports.SkillForDamageTaken = void 0;
 const DamageOp_1 = __webpack_require__(/*! ../../server/engine/DamageOp */ "./javascript/server/engine/DamageOp.tsx");
-const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const Generic_1 = __webpack_require__(/*! ../../server/engine/Generic */ "./javascript/server/engine/Generic.tsx");
@@ -11889,7 +12582,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FenJi = exports.BuQu = exports.FenMing = exports.DuanXie = exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
-const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const PlayerActionDriverDefiner_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverDefiner */ "./javascript/client/player-actions/PlayerActionDriverDefiner.tsx");
 const PlayerActionDriverProvider_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverProvider */ "./javascript/client/player-actions/PlayerActionDriverProvider.tsx");
@@ -12903,7 +13596,7 @@ class BuQu extends Skill_1.SimpleConditionalSkill {
         return __awaiter(this, void 0, void 0, function* () {
             this.invokeEffects(manager);
             let card = manager.context.deck.getCardsFromTop(1)[0];
-            card.description = this.playerId + ' > 不屈判定';
+            card.description = this.playerId + ' > 不屈牌';
             let size = card.size.size;
             let transit = EffectTransit_1.CardTransit.deckToWorkflow([card]);
             transit.specialEffect = 'flip';
@@ -12977,7 +13670,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FactionSkillProviders = void 0;
 const Multimap_1 = __webpack_require__(/*! ../../common/util/Multimap */ "./javascript/common/util/Multimap.tsx");
-const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const FactionWarInitializer_1 = __webpack_require__(/*! ../FactionWarInitializer */ "./javascript/game-mode-faction/FactionWarInitializer.tsx");
 const Describer_1 = __webpack_require__(/*! ../../common/util/Describer */ "./javascript/common/util/Describer.tsx");
 const GameMode_1 = __webpack_require__(/*! ../../common/GameMode */ "./javascript/common/GameMode.tsx");
@@ -13057,6 +13750,11 @@ exports.FactionSkillProviders.register('淑慎', pid => new FactionSkillsShu_1.S
 exports.FactionSkillProviders.register('神智', pid => new FactionSkillsShu_1.ShenZhi(pid));
 exports.FactionSkillProviders.register('生息', pid => new FactionSkillsShu_1.ShengXi(pid));
 exports.FactionSkillProviders.register('守成', pid => new FactionSkillsShu_1.ShouCheng(pid));
+exports.FactionSkillProviders.register('空城', pid => new FactionSkillsShu_1.KongCheng(pid));
+exports.FactionSkillProviders.register('观星', pid => new FactionSkillsShu_1.GuanXing(pid));
+exports.FactionSkillProviders.register('挑衅', pid => new FactionSkillsShu_1.TiaoXin(pid));
+exports.FactionSkillProviders.register('观星(姜维)', pid => new FactionSkillsShu_1.GuanXingJiangWei(pid));
+exports.FactionSkillProviders.register('遗志', pid => new FactionSkillsShu_1.YiZhi(pid));
 exports.FactionSkillProviders.register('制衡', pid => new FactionSkillsWu_1.ZhiHeng(pid));
 exports.FactionSkillProviders.register('奇袭', pid => new FactionSkillsWu_1.QiXi(pid));
 exports.FactionSkillProviders.register('苦肉', pid => new FactionSkillsWu_1.KuRou(pid));
@@ -13142,7 +13840,7 @@ class FactionWarSkillRepo {
                     if (disabler.reasons.size === 0) {
                         console.log('[技能] 恢复技能', s.playerId, s.id);
                         s.isDisabled = false;
-                        yield s.onStatusUpdated(this.manager);
+                        yield s.onStatusUpdated(this.manager, this);
                         this.manager.send(s.playerId, s.toStatus());
                     }
                 }
@@ -13156,7 +13854,7 @@ class FactionWarSkillRepo {
                         console.log('[技能] 禁止技能', s.playerId, s.id);
                         //进行disable作业
                         s.isDisabled = true;
-                        yield s.onStatusUpdated(this.manager);
+                        yield s.onStatusUpdated(this.manager, this);
                         this.manager.send(s.playerId, s.toStatus());
                     }
                     marks[update.reason] = update.reason;
@@ -13176,7 +13874,7 @@ class FactionWarSkillRepo {
                     skill.isRevealed = true;
                 }
                 console.log('[技能] 有武将明置, 技能展示', e.playerId, skill.id, skill.isRevealed);
-                yield skill.onStatusUpdated(this.manager);
+                yield skill.onStatusUpdated(this.manager, this);
                 this.manager.send(e.playerId, skill.toStatus());
             }
         });
@@ -13184,7 +13882,6 @@ class FactionWarSkillRepo {
             let facInfo = info;
             facInfo.getSkills(GameMode_1.GameMode.get(manager.context.gameMode)).forEach(skill => {
                 this.addSkill(facInfo.player.id, skill);
-                skill.bootstrapServer(this.skillRegistry, manager);
             });
         });
         manager.adminRegistry.onGeneral(FactionWarInitializer_1.RevealGeneralEvent, this.onRevealEvent);
@@ -13193,6 +13890,7 @@ class FactionWarSkillRepo {
     addSkill(p, skill) {
         console.log('[技能] 添加技能', p, skill.id);
         this.allSkills.set(p, skill);
+        skill.bootstrapServer(this.skillRegistry, this.manager, this);
     }
     onClientUpdateSkill(ss) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -13201,7 +13899,7 @@ class FactionWarSkillRepo {
             if (skill.isForewarned !== ss.isForewarned) {
                 console.log('[技能] 改变技能预亮', skill.id, skill.playerId, ss.isForewarned);
                 skill.isForewarned = ss.isForewarned;
-                yield skill.onStatusUpdated(this.manager);
+                yield skill.onStatusUpdated(this.manager, this);
             }
             if (skill.isRevealed !== ss.isRevealed && ss.isRevealed) {
                 if (skill.hiddenType === Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD &&
@@ -13248,241 +13946,6 @@ class Disabler {
 
 /***/ }),
 
-/***/ "./javascript/game-mode-faction/skill/Skill.tsx":
-/*!******************************************************!*\
-  !*** ./javascript/game-mode-faction/skill/Skill.tsx ***!
-  \******************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.GeneralSkillStatusUpdate = exports.SimpleConditionalSkill = exports.SimpleTrigger = exports.Skill = exports.invocable = exports.SkillStatus = exports.HiddenType = void 0;
-const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
-const FactionWarInitializer_1 = __webpack_require__(/*! ../FactionWarInitializer */ "./javascript/game-mode-faction/FactionWarInitializer.tsx");
-//what action to do when clicked on while being hidden?
-var HiddenType;
-(function (HiddenType) {
-    HiddenType[HiddenType["FOREWARNABLE"] = 0] = "FOREWARNABLE";
-    HiddenType[HiddenType["REVEAL_IN_MY_USE_CARD"] = 1] = "REVEAL_IN_MY_USE_CARD";
-    HiddenType[HiddenType["NONE"] = 2] = "NONE";
-})(HiddenType = exports.HiddenType || (exports.HiddenType = {}));
-class SkillStatus {
-    constructor(playerId) {
-        this.playerId = playerId;
-        /**
-         * 是否出于任何原因(穿心, 断肠, 铁骑)被disable了?
-         */
-        this.isDisabled = false;
-        /**
-         * 相关将领是否已经展示了?
-         */
-        this.isRevealed = false;
-        /**
-         * 没有示将的话,是否开启了预亮?
-         */
-        this.isForewarned = false;
-        /**
-         * 没有明置武将时,点击按钮的效果为何?
-         */
-        this.hiddenType = HiddenType.FOREWARNABLE;
-    }
-}
-exports.SkillStatus = SkillStatus;
-function invocable(trigger, event, manager) {
-    let skill = trigger.getSkill();
-    if (skill.isDisabled) {
-        return false;
-    }
-    if ((skill.isRevealed || skill.isForewarned) && trigger.conditionFulfilled(event, manager)) {
-        return true;
-    }
-    return false;
-}
-exports.invocable = invocable;
-class Skill extends SkillStatus {
-    constructor() {
-        super(...arguments);
-        this.hiddenType = HiddenType.FOREWARNABLE;
-        /**
-         * 是否是锁定技
-         */
-        this.isLocked = false;
-        /**
-         * 主将技/副将技override
-         */
-        this.disabledForMain = false;
-        this.disabledForSub = false;
-        this.description = '暂无 (Please override this field)';
-    }
-    toStatus() {
-        let s = new SkillStatus(this.playerId);
-        s.isRevealed = this.isRevealed;
-        s.isDisabled = this.isDisabled;
-        s.isForewarned = this.isForewarned;
-        s.id = this.id;
-        s.displayName = this.displayName;
-        s.hiddenType = this.hiddenType;
-        s.isMain = this.isMain;
-        return s;
-    }
-    /**
-     * load player action driver on client
-     * e.g. 红牌当杀之类的
-     */
-    bootstrapClient(context, player) {
-        //no-op by default
-    }
-    /**
-     * 进行必要的事件登记
-     * @param manager
-     */
-    bootstrapServer(skillRegistry, manager) {
-    }
-    onStatusUpdated(manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            //no-op by default
-        });
-    }
-    onRemoval(skillRegistry, manager) {
-        //还原马术?
-    }
-    onPlayerAction(act, event, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            throw 'Forgot to override me?';
-        });
-    }
-    playSound(manager, counts) {
-        let random = Math.ceil(Math.random() * counts);
-        if (random === 0) {
-            random = 1;
-        }
-        manager.broadcast(new EffectTransit_1.PlaySound(`audio/skill/${this.id}${random}.mp3`));
-    }
-    invokeEffects(manager, targets = [], msg = `${this.playerId} 发动了 ${this.displayName}`) {
-        this.playSound(manager, 2);
-        manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, targets, this.id));
-        if (msg) {
-            manager.log(msg);
-        }
-        else if (targets.length === 0) {
-            manager.log(`${this.playerId} 发动了 ${this.displayName}`);
-        }
-        else {
-            manager.log(`${this.playerId} 对 ${targets} 发动了 ${this.displayName}`);
-        }
-    }
-    revealMySelfIfNeeded(manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isRevealed) {
-                console.log(`[${this.id}] 明置 ${this.playerId}`);
-                yield manager.events.publish(new FactionWarInitializer_1.RevealGeneralEvent(this.playerId, this.isMain, !this.isMain));
-            }
-        });
-    }
-}
-exports.Skill = Skill;
-class SimpleTrigger {
-    constructor(skill, manager) {
-        this.skill = skill;
-        this.player = manager.context.getPlayer(skill.playerId);
-    }
-    getSkill() {
-        return this.skill;
-    }
-    invokeMsg(event, manager) {
-        return '发动' + this.getSkill().displayName;
-    }
-}
-exports.SimpleTrigger = SimpleTrigger;
-/**
- * 一个技能的触发需要以下条件:
- * 1. 给定event + manager满足某种条件
- * 2. 技能不是disabled的
- * 3. 技能已经显示, 或者开启了预亮然后玩家同意显示
- * 4. 非锁定技需要提示玩家是否发动
- */
-class SimpleConditionalSkill extends Skill {
-    getSkill() {
-        return this;
-    }
-    invocable(event, manager) {
-        if (this.isDisabled) {
-            return false;
-        }
-        if ((this.isRevealed || this.isForewarned) && this.conditionFulfilled(event, manager)) {
-            return true;
-        }
-        return false;
-    }
-    invokeMsg(event, manager) {
-        return '发动' + this.displayName;
-    }
-    /**
-     * Is this event condition met?
-     * @param event
-     * @param manager
-     */
-    conditionFulfilled(event, manager) {
-        return false;
-    }
-    /**
-     * 技能发动
-     * @param event 事件
-     * @param manager GameManager
-     */
-    doInvoke(event, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            return;
-        });
-    }
-}
-exports.SimpleConditionalSkill = SimpleConditionalSkill;
-/**
- * 技能事件:
- * 1. 主将技,副将技的选择 (done)
- *
- * 2. 增加技能
- *      a. 姜维观星
- *      b. 游戏进行时, (暴凌)
- *
- * 3. 改变其他技能: (姜维观星override主将技能)
- *
- * 4. 失去技能 (断肠)
- *
- * 5. 移除武将牌
- *
- * 6. 减少阴阳鱼 (重新计算血量)
- */
-class GeneralSkillStatusUpdate {
-    constructor(reason, //缘由: (断肠/铁骑)
-    target, //对象
-    isMain, //主将还是副将?
-    enable, //是失效还是有效(恢复有效?)
-    includeLocked = false //包含此武将的锁定技否?
-    ) {
-        this.reason = reason;
-        this.target = target;
-        this.isMain = isMain;
-        this.enable = enable;
-        this.includeLocked = includeLocked;
-    }
-}
-exports.GeneralSkillStatusUpdate = GeneralSkillStatusUpdate;
-
-
-/***/ }),
-
 /***/ "./javascript/game-mode-faction/skill/SkillPubsub.tsx":
 /*!************************************************************!*\
   !*** ./javascript/game-mode-faction/skill/SkillPubsub.tsx ***!
@@ -13504,7 +13967,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SequenceAwareSkillPubSub = void 0;
 const Multimap_1 = __webpack_require__(/*! ../../common/util/Multimap */ "./javascript/common/util/Multimap.tsx");
-const Skill_1 = __webpack_require__(/*! ./Skill */ "./javascript/game-mode-faction/skill/Skill.tsx");
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const Util_1 = __webpack_require__(/*! ../../common/util/Util */ "./javascript/common/util/Util.tsx");
@@ -13573,6 +14036,7 @@ class SequenceAwareSkillPubSub {
                     continue;
                 }
                 //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
+                //小心一个技能使得另一个技能无法发动 (先渐营再死谏就囧了)
                 console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id));
                 let choices = [];
                 for (let s of skillTriggers) {
@@ -14291,6 +14755,9 @@ class GameManager {
     }
     send(anyone, anything) {
         this.registry.send(anyone, anything);
+    }
+    pubsub() {
+        return this.registry.pubsub;
     }
     /**
      * Show pending effect on the players
@@ -16831,6 +17298,7 @@ exports.findCard = exports.gatherCards = exports.cardAmountAt = exports.CardObta
 const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
+//todo: remember 之后的手牌数, 用以发动渐营 + 死谏 避免技能相互作用条件不满足无法发动
 class CardAwayEvent {
     isCardFrom(playerId) {
         return this.player === playerId && (this.cards[0][1] === CardPos_1.CardPos.HAND || this.cards[0][1] === CardPos_1.CardPos.EQUIP);
@@ -22027,7 +22495,7 @@ var getBox = function getBox(el) {
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".ui-mounter {\n  z-index: 99;\n  pointer-events: none; }\n\n.duo-card-selection-container {\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .duo-card-selection-container .duo-card-selection-hint {\n    height: 30px; }\n  .duo-card-selection-container .row-name {\n    width: 40px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    letter-spacing: 2px;\n    text-align: center; }\n  .duo-card-selection-container .title {\n    text-align: center; }\n  .duo-card-selection-container .row-of-cards {\n    display: flex;\n    flex: 1 1 0;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    margin: 5px;\n    border: 1px solid white;\n    border-radius: 6px;\n    min-height: 160px;\n    min-width: 150px; }\n  .duo-card-selection-container .button-container {\n    height: 28px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.card-selection-container {\n  width: 60%;\n  max-width: 640px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .card-selection-container .card-selection-hint {\n    height: 30px; }\n  .card-selection-container .card-selection-row {\n    display: flex;\n    margin-top: 8px; }\n    .card-selection-container .card-selection-row .row-name {\n      width: 40px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      letter-spacing: 2px; }\n    .card-selection-container .card-selection-row .row-of-cards {\n      display: flex;\n      flex-grow: 1;\n      padding: 7px;\n      height: 155px;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      border-radius: 5px;\n      border: 1px solid #b9b9b9; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper {\n        width: 0px;\n        height: 0px;\n        max-width: 120px;\n        flex-grow: 1;\n        position: relative;\n        pointer-events: none;\n        transition: 0.2s; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper:not(:last-child):hover {\n        width: 40px; }\n      .card-selection-container .card-selection-row .row-of-cards .as {\n        position: absolute;\n        height: 20px;\n        top: 80px;\n        background: #d6d696;\n        color: black;\n        border: 1px solid black;\n        border-radius: 3px;\n        text-shadow: 0px 0px 2px #794c4c;\n        width: 80%;\n        left: 7%; }\n  .card-selection-container .button-container {\n    height: 28px;\n    margin-top: 10px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.game-result {\n  min-width: 500px;\n  background-image: url(\"ui/bak.png\");\n  background-repeat: repeat;\n  border-radius: 3px;\n  box-shadow: 0px 0px 5px black; }\n  .game-result .title {\n    padding: 10px; }\n  .game-result .results .winner {\n    color: #1ec91e; }\n  .game-result .results .row {\n    display: flex; }\n    .game-result .results .row .player-name {\n      flex-grow: 1; }\n    .game-result .results .row .col {\n      width: 70px; }\n    .game-result .results .row .col-2 {\n      width: 100px; }\n  .game-result .button-container {\n    padding: 20px; }\n\n.wugu-container {\n  width: 500px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .wugu-container .wugu-title {\n    height: 30px; }\n  .wugu-container .wugu-cards {\n    display: flex;\n    flex-wrap: wrap;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    border: 1px solid gray;\n    border-radius: 4px; }\n\n.cf-container {\n  width: 300px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cf-container .cf-title {\n    height: 30px; }\n  .cf-container .cf-cards {\n    display: flex;\n    justify-content: space-around;\n    align-items: center; }\n  .cf-container .left {\n    position: relative; }\n    .cf-container .left .win-lose {\n      background-size: contain;\n      background-repeat: no-repeat;\n      background-position: center;\n      animation: symbol-enter 0.5s forwards; }\n    .cf-container .left .win {\n      background-image: url(\"icons/win.png\"); }\n    .cf-container .left .lose {\n      background-image: url(\"icons/lose.png\"); }\n\n@keyframes symbol-enter {\n  0% {\n    transform: scale(3);\n    filter: opacity(0); }\n  100% {\n    transform: scale(1);\n    filter: opacity(1); } }\n", ""]);
+exports.push([module.i, ".ui-mounter {\n  z-index: 99;\n  pointer-events: none; }\n\n.duo-card-selection-container {\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .duo-card-selection-container .duo-card-selection-hint {\n    height: 30px; }\n  .duo-card-selection-container .row-name {\n    width: 40px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    letter-spacing: 2px;\n    text-align: center; }\n  .duo-card-selection-container .title {\n    text-align: center; }\n  .duo-card-selection-container .row-of-cards {\n    display: flex;\n    flex: 1 1 0;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    margin: 5px;\n    border: 1px solid white;\n    border-radius: 6px;\n    min-height: 160px;\n    min-width: 150px; }\n  .duo-card-selection-container .button-container {\n    height: 28px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.card-selection-container {\n  width: 60%;\n  max-width: 640px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .card-selection-container .card-selection-hint {\n    height: 30px; }\n  .card-selection-container .card-selection-row {\n    display: flex;\n    margin-top: 8px; }\n    .card-selection-container .card-selection-row .row-name {\n      width: 40px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      letter-spacing: 2px; }\n    .card-selection-container .card-selection-row .row-of-cards {\n      display: flex;\n      flex-grow: 1;\n      padding: 7px;\n      height: 155px;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      border-radius: 5px;\n      border: 1px solid #b9b9b9; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper {\n        width: 0px;\n        height: 0px;\n        max-width: 120px;\n        flex-grow: 1;\n        position: relative;\n        pointer-events: none;\n        transition: 0.2s; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper:not(:last-child):hover {\n        width: 40px; }\n      .card-selection-container .card-selection-row .row-of-cards .as {\n        position: absolute;\n        height: 20px;\n        top: 80px;\n        background: #d6d696;\n        color: black;\n        border: 1px solid black;\n        border-radius: 3px;\n        text-shadow: 0px 0px 2px #794c4c;\n        width: 80%;\n        left: 7%; }\n  .card-selection-container .button-container {\n    height: 28px;\n    margin-top: 10px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.game-result {\n  min-width: 500px;\n  background-image: url(\"ui/bak.png\");\n  background-repeat: repeat;\n  border-radius: 3px;\n  box-shadow: 0px 0px 5px black; }\n  .game-result .title {\n    padding: 10px; }\n  .game-result .results .winner {\n    color: #1ec91e; }\n  .game-result .results .row {\n    display: flex; }\n    .game-result .results .row .player-name {\n      flex-grow: 1; }\n    .game-result .results .row .col {\n      width: 70px; }\n    .game-result .results .row .col-2 {\n      width: 100px; }\n\n.button-container {\n  pointer-events: initial;\n  padding: 20px; }\n\n.wugu-container {\n  width: 500px; }\n\n.cards-container {\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cards-container .cards-container-title {\n    height: 30px; }\n  .cards-container .cards {\n    display: flex;\n    flex-wrap: wrap;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    border: 1px solid gray;\n    border-radius: 4px; }\n\n.cf-container {\n  width: 300px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cf-container .cf-title {\n    height: 30px; }\n  .cf-container .cf-cards {\n    display: flex;\n    justify-content: space-around;\n    align-items: center; }\n  .cf-container .left {\n    position: relative; }\n    .cf-container .left .win-lose {\n      background-size: contain;\n      background-repeat: no-repeat;\n      background-position: center;\n      animation: symbol-enter 0.5s forwards; }\n    .cf-container .left .win {\n      background-image: url(\"icons/win.png\"); }\n    .cf-container .left .lose {\n      background-image: url(\"icons/lose.png\"); }\n\n@keyframes symbol-enter {\n  0% {\n    transform: scale(3);\n    filter: opacity(0); }\n  100% {\n    transform: scale(1);\n    filter: opacity(1); } }\n", ""]);
 
 
 
@@ -22222,7 +22690,7 @@ exports.push([module.i, ".ui-my-player-card {\n  box-shadow: 0px 0px 30px black;
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
+exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none;\n      width: 120%;\n      height: 120%; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
 
 
 
@@ -22237,7 +22705,7 @@ exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cu
 
 exports = module.exports = __webpack_require__(/*! ../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.ui-my-player-card .faction-war {\n  width: 320px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .general {\n    pointer-events: all; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name {\n      font-size: 20px;\n      writing-mode: unset;\n      width: 100px;\n      height: 22px;\n      color: white;\n      white-space: nowrap; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name-after {\n      width: 0;\n      height: 0;\n      border-top: 11px solid transparent;\n      border-left: 9px;\n      border-bottom: 11px solid transparent;\n      position: absolute;\n      left: 100%; }\n    .ui-player-card.ui-my-player-card .faction-war .general .title {\n      position: absolute;\n      left: -3px;\n      top: -5px;\n      font-size: 30px;\n      color: #ffffc9;\n      text-shadow: 0px 0px 10px gold; }\n  .ui-player-card.ui-my-player-card .faction-war .hidden .card-avatar {\n    filter: brightness(50%) grayscale(0.7); }\n  .ui-player-card.ui-my-player-card .faction-war .hidden::after {\n    content: '潜伏';\n    position: absolute;\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    color: white;\n    filter: drop-shadow(0px 0px 6px black);\n    font-size: 24px; }\n  .ui-player-card.ui-my-player-card .faction-war .my-faction-mark {\n    width: 24px;\n    height: 24px;\n    position: absolute;\n    top: -4px;\n    right: 0px;\n    border-radius: 15px;\n    font-size: 34px;\n    border: double black;\n    color: white;\n    justify-content: center;\n    display: flex;\n    align-items: center;\n    z-index: 9; }\n\n.ui-player-card .dead {\n  filter: grayscale(100%); }\n\n.ui-player-card .faction-war {\n  width: 180px;\n  height: 190px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card .faction-war .general {\n    height: 100%;\n    position: relative;\n    pointer-events: all;\n    flex-grow: 1;\n    overflow: hidden; }\n    .ui-player-card .faction-war .general .marks {\n      background: rgba(31, 31, 31, 0.767);\n      color: white;\n      font-size: 12px;\n      font-family: Arial, Helvetica, sans-serif;\n      position: absolute;\n      left: 20px;\n      top: 13%;\n      letter-spacing: initial; }\n    .ui-player-card .faction-war .general .general-name {\n      position: absolute;\n      top: 0px;\n      left: 0px;\n      width: 20px;\n      font-size: 22px;\n      text-indent: 26px;\n      display: flex;\n      align-items: center;\n      height: 100px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      color: #e7e3a5;\n      pointer-events: none;\n      text-shadow: 0px 0px 4px black;\n      white-space: nowrap; }\n\n.ui-player-card .faction-mark {\n  width: 24px;\n  height: 24px;\n  position: absolute;\n  top: -8px;\n  left: -8px;\n  border-radius: 15px;\n  font-size: 34px;\n  border: double black;\n  color: white;\n  justify-content: center;\n  display: flex;\n  align-items: center;\n  z-index: 1; }\n\n.ui-player-card .wei {\n  background: #1717c5 !important; }\n\n.ui-player-card .shu {\n  background: #bb1b1b !important; }\n\n.ui-player-card .wu {\n  background: #1ba51b !important; }\n\n.ui-player-card .qun {\n  background: #c5a81a !important; }\n\n.ui-player-card .ye {\n  background: #902090 !important; }\n\n.ui-player-card .faction-dynamic-mark {\n  pointer-events: all;\n  width: 24px;\n  height: 24px;\n  padding: 1px;\n  position: absolute;\n  top: -5px;\n  left: -5px;\n  background: lightgray;\n  border-radius: 3px;\n  border: 1px solid black;\n  display: flex;\n  flex-wrap: wrap;\n  transition: 0.1s;\n  z-index: 1; }\n  .ui-player-card .faction-dynamic-mark .mark {\n    background: gray;\n    width: 50%;\n    height: 50%;\n    cursor: pointer;\n    box-shadow: inset 0px 0px 2px #000000d4; }\n\n.ui-player-card .faction-dynamic-mark:hover {\n  width: 34px;\n  height: 34px; }\n\n.glow-on-hover:before {\n  content: '';\n  background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);\n  position: absolute;\n  top: -2px;\n  left: -2px;\n  background-size: 400%;\n  z-index: -1;\n  filter: blur(5px);\n  width: calc(100% + 4px);\n  height: calc(100% + 4px);\n  animation: glowing 10s linear infinite;\n  opacity: 0;\n  transition: opacity .3s ease-in-out;\n  border-radius: 10px;\n  opacity: 1; }\n\n.glow-on-hover:after {\n  z-index: -1;\n  content: '';\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  background: #111;\n  left: 0;\n  top: 0;\n  border-radius: 10px; }\n\n@keyframes glowing {\n  0% {\n    background-position: 0 0; }\n  100% {\n    background-position: 400% 0; } }\n", ""]);
+exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.ui-my-player-card .faction-war {\n  width: 320px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .general {\n    pointer-events: all; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name {\n      font-size: 20px;\n      writing-mode: unset;\n      width: 100px;\n      height: 22px;\n      color: white;\n      white-space: nowrap; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name-after {\n      width: 0;\n      height: 0;\n      border-top: 11px solid transparent;\n      border-left: 9px;\n      border-bottom: 11px solid transparent;\n      position: absolute;\n      left: 100%; }\n    .ui-player-card.ui-my-player-card .faction-war .general .title {\n      position: absolute;\n      left: -3px;\n      top: -5px;\n      font-size: 30px;\n      color: #ffffc9;\n      text-shadow: 0px 0px 10px gold; }\n  .ui-player-card.ui-my-player-card .faction-war .hidden .card-avatar {\n    filter: brightness(50%) grayscale(0.7); }\n  .ui-player-card.ui-my-player-card .faction-war .hidden::after {\n    content: '潜伏';\n    position: absolute;\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    color: white;\n    filter: drop-shadow(0px 0px 6px black);\n    font-size: 24px;\n    pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .my-faction-mark {\n    width: 24px;\n    height: 24px;\n    position: absolute;\n    top: -4px;\n    right: 0px;\n    border-radius: 15px;\n    font-size: 34px;\n    border: double black;\n    color: white;\n    justify-content: center;\n    display: flex;\n    align-items: center;\n    z-index: 9; }\n\n.ui-player-card .dead {\n  filter: grayscale(100%); }\n\n.ui-player-card .faction-war {\n  width: 180px;\n  height: 190px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card .faction-war .general {\n    height: 100%;\n    position: relative;\n    pointer-events: all;\n    flex-grow: 1;\n    overflow: hidden; }\n    .ui-player-card .faction-war .general .marks {\n      background: rgba(31, 31, 31, 0.767);\n      color: white;\n      font-size: 12px;\n      font-family: Arial, Helvetica, sans-serif;\n      position: absolute;\n      left: 20px;\n      top: 13%;\n      letter-spacing: initial; }\n    .ui-player-card .faction-war .general .general-name {\n      position: absolute;\n      top: 0px;\n      left: 0px;\n      width: 20px;\n      font-size: 22px;\n      text-indent: 26px;\n      display: flex;\n      align-items: center;\n      height: 100px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      color: #e7e3a5;\n      pointer-events: none;\n      text-shadow: 0px 0px 4px black;\n      white-space: nowrap; }\n\n.ui-player-card .faction-mark {\n  width: 24px;\n  height: 24px;\n  position: absolute;\n  top: -8px;\n  left: -8px;\n  border-radius: 15px;\n  font-size: 34px;\n  border: double black;\n  color: white;\n  justify-content: center;\n  display: flex;\n  align-items: center;\n  z-index: 1; }\n\n.ui-player-card .wei {\n  background: #1717c5 !important; }\n\n.ui-player-card .shu {\n  background: #bb1b1b !important; }\n\n.ui-player-card .wu {\n  background: #1ba51b !important; }\n\n.ui-player-card .qun {\n  background: #c5a81a !important; }\n\n.ui-player-card .ye {\n  background: #902090 !important; }\n\n.ui-player-card .faction-dynamic-mark {\n  pointer-events: all;\n  width: 24px;\n  height: 24px;\n  padding: 1px;\n  position: absolute;\n  top: -5px;\n  left: -5px;\n  background: lightgray;\n  border-radius: 3px;\n  border: 1px solid black;\n  display: flex;\n  flex-wrap: wrap;\n  transition: 0.1s;\n  z-index: 1; }\n  .ui-player-card .faction-dynamic-mark .mark {\n    background: gray;\n    width: 50%;\n    height: 50%;\n    cursor: pointer;\n    box-shadow: inset 0px 0px 2px #000000d4; }\n\n.ui-player-card .faction-dynamic-mark:hover {\n  width: 34px;\n  height: 34px; }\n\n.glow-on-hover:before {\n  content: '';\n  background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);\n  position: absolute;\n  top: -2px;\n  left: -2px;\n  background-size: 400%;\n  z-index: -1;\n  filter: blur(5px);\n  width: calc(100% + 4px);\n  height: calc(100% + 4px);\n  animation: glowing 10s linear infinite;\n  opacity: 0;\n  transition: opacity .3s ease-in-out;\n  border-radius: 10px;\n  opacity: 1; }\n\n.glow-on-hover:after {\n  z-index: -1;\n  content: '';\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  background: #111;\n  left: 0;\n  top: 0;\n  border-radius: 10px; }\n\n@keyframes glowing {\n  0% {\n    background-position: 0 0; }\n  100% {\n    background-position: 400% 0; } }\n", ""]);
 
 
 

@@ -11,7 +11,7 @@ import { ICard } from "../common/cards/ICard";
 import { CardManager } from "../common/cards/Card";
 import { GameMode } from "../common/GameMode";
 import { GameModeEnum } from "../common/GameModeEnum";
-import { SkillStatus } from "../game-mode-faction/skill/Skill";
+import { SkillStatus } from "../common/Skill";
 
 export default class GameClientContext extends GameContext {
 

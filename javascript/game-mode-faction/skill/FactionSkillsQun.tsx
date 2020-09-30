@@ -1,4 +1,4 @@
-import { Skill, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger, SimpleTrigger } from "./Skill";
+import { Skill, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger, SimpleTrigger } from "../../common/Skill";
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
 import { HintType } from "../../common/ServerHint";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";

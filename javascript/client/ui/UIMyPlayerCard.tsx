@@ -9,7 +9,7 @@ import Pubsub from '../../common/util/PubSub'
 import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { Stage } from '../../common/Stage'
-import { SkillStatus, Skill, HiddenType } from '../../game-mode-faction/skill/Skill'
+import { SkillStatus, Skill, HiddenType } from '../../common/Skill'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
 
 const damageDuration = 2000

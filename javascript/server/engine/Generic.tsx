@@ -4,6 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardSelectionResult } from "../../common/ServerHint";
 import { UIPosition } from "../../common/PlayerAction";
 
+//todo: remember 之后的手牌数, 用以发动渐营 + 死谏 避免技能相互作用条件不满足无法发动
 export abstract class CardAwayEvent {
     player: string
     cards: Array<[Card, CardPos]>

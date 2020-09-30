@@ -1,4 +1,4 @@
-import { SimpleConditionalSkill, EventRegistryForSkills, Skill, GeneralSkillStatusUpdate, HiddenType } from "./Skill"
+import { SimpleConditionalSkill, EventRegistryForSkills, Skill, GeneralSkillStatusUpdate, HiddenType, SkillTrigger, SkillRepo } from "../../common/Skill"
 import GameManager from "../../server/GameManager"
 import DamageOp, { DamageSource, DamageTimeline, DamageType } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
@@ -8,7 +8,7 @@ import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionD
 import { HintType, ServerHint } from "../../common/ServerHint"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
 import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit"
-import { CardPos } from "../../common/transit/CardPos"
+import { CardMovementEvent, CardPos } from "../../common/transit/CardPos"
 import { WINE_TAKEN } from "../../common/RoundStat"
 import Card, { CardType } from "../../common/cards/Card"
 import { slashTargetFilter, registerSlashPlayingHand, registerPlaySlash, registerSlash } from "../../client/player-actions/PlayerActionDrivers"
@@ -21,18 +21,20 @@ import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp"
 import PlayerAct from "../../server/context/PlayerAct"
 import DodgeOp from "../../server/engine/DodgeOp"
 import HealOp, { HealTimeline } from "../../server/engine/HealOp"
-import { Timeline } from "../../server/Operation"
+import { RuseOp, Timeline } from "../../server/Operation"
 import JudgeOp from "../../server/engine/JudgeOp"
 import FactionPlayerInfo from "../FactionPlayerInfo"
 import { Suits, all, any } from "../../common/util/Util"
 import { PlayerInfo } from "../../common/PlayerInfo"
 import { BlockedEquipment, BaGua } from "../../server/engine/Equipments"
-import { HuoGong, GrabCard } from "../../server/engine/SingleRuseOp"
+import { HuoGong, GrabCard, JueDou } from "../../server/engine/SingleRuseOp"
 import { WuXieContext } from "../../server/engine/WuXieOp"
 import { askAbandonBasicCard } from "../FactionWarUtil";
 import { TieSuo, NanMan } from "../../server/engine/MultiRuseOp"
 import AskSavingOp from "../../server/engine/AskSavingOp"
 import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp"
+import { CustomUIData, GuanXingData } from "../../client/card-panel/CustomUIRegistry"
+import { DropOthersCardRequest } from "../../server/engine/DropCardOp"
 
 const REN_DE_SLASH = [SlashType.RED, SlashType.BLACK, SlashType.FIRE, SlashType.THUNDER]
 
@@ -1147,10 +1149,220 @@ export class ShouCheng extends SimpleConditionalSkill<CardAwayEvent> {
     }
 }
 
-// 观星 准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。
-// 空城 锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。
+export class GuanXing extends SimpleConditionalSkill<StageStartFlow> {
+    id = '观星'
+    displayName = '观星'
+    description = '准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。'
+    data: CustomUIData<GuanXingData>
+    xDeterminer: (manager: GameManager)=>number = (manager)=>{
+        return Math.min(5, manager.getSortedByCurr(true).length)
+    }
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+    }
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        return event.isFor(this.playerId, Stage.ROUND_BEGIN)
+    }
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let x = this.xDeterminer(manager)
+        let cards = manager.context.deck.getCardsFromTop(x)
+        this.data = new CustomUIData<GuanXingData>('guanxing', {
+            title: `${this.playerId} 观星`,
+            size: x,
+            isController: true,
+            top: cards.map((c, i)=>['guanxing' + i, c]),
+            btm: []
+        })
+        this.invokeEffects(manager)
+        let {top, btm} = this.data.data
 
-// 挑衅 出牌阶段限一次，你可以选择一名攻击范围内含有你的角色，然后除非该角色对你使用一张【杀】，否则你弃置其一张牌。
+        //做好update hookup
+        const onCardMoved=(event: CardMovementEvent)=>{
+            event.applyToTopBtm(top, btm)
+            manager.broadcast(event)
+        }
+        manager.pubsub().on<CardMovementEvent>(CardMovementEvent, onCardMoved)
+
+        //发送观星的移动请求
+        this.setBroadcast(manager)
+        await manager.sendHint(this.playerId, {
+            hintType: HintType.UI_PANEL,
+            hintMsg: 'ignore',
+            customRequest: {
+                mode: 'choose',
+                data: true
+            }
+        })
+
+        //观星完毕
+        manager.context.deck.placeCardsAtTop(top.map(item => item[1]))
+        manager.context.deck.placeCardsAtBtm(btm.map(item => item[1]))
+        manager.log(`${this.playerId} 将 ${top.length}张牌置于牌堆顶, ${btm.length}张牌置于牌堆底`)
+
+        //扫尾
+        manager.broadcast(new CustomUIData(CustomUIData.STOP, null))
+        manager.pubsub().off<CardMovementEvent>(CardMovementEvent, onCardMoved)
+        this.data = null
+        manager.onReconnect = null
+    }
+
+    private setBroadcast(manager: GameManager) {
+        manager.onReconnect = ()=>{
+            manager.broadcast(this.data, (data, pId)=>{
+                if(pId !== this.playerId) {
+                    let copy = new CustomUIData<GuanXingData>('guanxing', {
+                        title: `${this.playerId} 观星`,
+                        size: this.data.data.size,
+                        isController: false,
+                        top: this.data.data.top.map(t => [t[0], Card.DUMMY]),
+                        btm: this.data.data.btm.map(t => [t[0], Card.DUMMY])
+                    })
+                    return copy
+                }
+                return data
+            })
+        }
+        manager.onReconnect()
+    }
+}
+
+
+export class KongChengCancellor<T extends (RuseOp<any> | SlashCompute)> implements SkillTrigger<T> {
+
+    constructor(private skill: Skill) {}
+
+    getSkill(): Skill {
+        return this.skill
+    }
+
+    invokeMsg(event: T, manager: GameManager): string {
+        return '发动' + this.skill.displayName
+    }
+
+    conditionFulfilled(event: T, manager: GameManager): boolean {
+        if(manager.context.getPlayer(this.skill.playerId).getCards(CardPos.HAND).length === 0) {
+            if(event.timeline === Timeline.BECOME_TARGET && event.target.player.id === this.skill.playerId) {
+                if(event instanceof RuseOp && event.ruseType === CardType.JUE_DOU) {
+                    return true
+                }
+                if(event instanceof SlashCompute) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    async doInvoke(event: T, manager: GameManager): Promise<void> {
+        this.skill.invokeEffects(manager)
+        event.abort = true
+    }
+}
+
+export class KongCheng extends Skill {
+    id = '空城'
+    displayName = '空城'
+    description = '锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。'
+    //你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。'
+    isLocked = true
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<SlashCompute>(SlashCompute, new KongChengCancellor(this))
+        skillRegistry.on<JueDou>(JueDou, new KongChengCancellor(this))
+        const onCardAway= async (away: CardAwayEvent)=>{
+            if(this.isRevealed && !this.isDisabled && away.player === this.playerId && 
+                manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length === 0) {
+                this.invokeEffects(manager)
+            }
+        }
+        skillRegistry.onEvent<CardBeingDroppedEvent>(CardBeingDroppedEvent, this.playerId, onCardAway)
+        skillRegistry.onEvent<CardBeingTakenEvent>(CardBeingTakenEvent, this.playerId, onCardAway)
+        skillRegistry.onEvent<CardBeingUsedEvent>(CardBeingUsedEvent, this.playerId, onCardAway)
+    }
+}
+
+export class TiaoXin extends Skill {
+    
+    id = '挑衅'
+    displayName = '挑衅'
+    description = '出牌阶段限一次，你可以选择一名攻击范围内含有你的角色，然后除非该角色对你使用一张【杀】，否则你弃置其一张牌。'
+    hiddenType = HiddenType.NONE
+    
+    bootstrapClient() {
+        playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+            return new PlayerActionDriverDefiner('挑衅')
+                    .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>id === this.id && !hint.roundStat.customData[this.id])
+                    .expectChoose([UIPosition.PLAYER], 1, 1, 
+                        (id, context)=>{
+                            return id !== this.playerId && context.computeDistance(id, this.playerId) <= context.getPlayer(id).getReach()
+                        },
+                        ()=>`选择一名攻击范围内含有你的角色`)
+                    .expectAnyButton('点击确定发动挑衅')
+                    .build(hint)
+        })
+    }
+
+    public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager) {
+        manager.roundStats.customData[this.id] = true
+        let target = act.targets[0]
+        this.invokeEffects(manager, [target.player.id])
+        
+        let resp = await manager.sendHint(target.player.id, {
+            hintType: HintType.PLAY_SLASH,
+            hintMsg: `${this.playerId} 发动 挑衅 令你对其出杀, 若你取消他将弃置你一张牌`,
+            targetPlayers: [act.source.player.id],
+            extraButtons: [new Button(Button.CANCEL.id, '放弃')]
+        })
+
+        if(resp.isCancel()) {
+            console.log('玩家放弃出杀, 弃置其一张牌')
+            await new DropOthersCardRequest().perform(manager, act.source, target, `(挑衅)弃置${target}一张牌`, [CardPos.HAND, CardPos.EQUIP])
+        } else {
+            console.log('玩家出杀, 开始结算吧')
+            resp.targets.push(act.source)
+            await manager.resolver.on(resp, manager)
+        }
+    }
+}
+
+export class GuanXingJiangWei extends GuanXing {
+    id = '观星(姜维)'
+}
+
+export class YiZhi extends Skill {
+    
+    id = '遗志'
+    displayName = '遗志'
+    description = '副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。'
+    disabledForMain = true
+    hiddenType = HiddenType.NONE
+
+    async onStatusUpdated(manager: GameManager, repo: SkillRepo) {
+        if(!this.isGone && !this.isDisabled && this.isRevealed) {
+            this.isGone = true
+
+            try {
+                let teacher = repo.getSkill(this.playerId, '观星')
+                if(teacher.isMain) {
+                    console.log(`[${this.id}] 生效改变观星描述为5`);
+                    (teacher as GuanXing).xDeterminer = ()=>5
+                } else {
+                    console.error('发现观星技能但不是主将技??!!', teacher.playerId, teacher.id)
+                }
+            } catch (ignore) {
+                console.log(`[${this.id}] 生效增加姜维的观星技能`)
+                let myNew = new GuanXingJiangWei(this.playerId)
+                myNew.isRevealed = true
+                repo.addSkill(this.playerId, myNew)
+                manager.send(this.playerId, myNew.toStatus())
+            }
+
+            manager.send(this.playerId, this.toStatus())
+        }
+    }
+}
+
 // 遗志 副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。
 // 天覆 主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。
 

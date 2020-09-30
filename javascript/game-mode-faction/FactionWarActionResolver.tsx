@@ -14,7 +14,7 @@ import { DropCardRequest } from "../server/engine/DropCardOp";
 import { Faction, factionsSame } from "../common/General";
 import { EquipOp } from "../server/engine/EquipOp";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
-import { Skill } from "./skill/Skill";
+import { Skill } from "../common/Skill";
 import { RevealGeneralEvent } from "./FactionWarInitializer";
 import PlayerAct from "../server/context/PlayerAct";
 import HealOp from "../server/engine/HealOp";

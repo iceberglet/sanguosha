@@ -77,10 +77,10 @@ export default class UIMyCards extends React.Component<Prop, object> {
         this.props.cardTransitManager.register(endpoint, this.props.info.player.id)
     }
 
-    componentWillUnmount() {
-        // console.log('UICardRow unsubscribing to card transit')
-        this.props.cardTransitManager.register(null, this.props.info.player.id)
-    }
+    // componentWillUnmount() {
+    //     // console.log('UICardRow unsubscribing to card transit')
+    //     this.props.cardTransitManager.register(null, this.props.info.player.id)
+    // }
 
     render() {
         let {info, hideCards, equipChecker, cardsChecker, signsChecker, onCardsShifted } = this.props

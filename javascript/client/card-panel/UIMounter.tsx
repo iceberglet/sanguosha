@@ -11,7 +11,7 @@ import { UIPosition } from '../../common/PlayerAction'
 import context from 'react-bootstrap/esm/AccordionContext'
 import UICard from '../ui/UICard'
 import { Checker } from '../ui/UIBoard'
-import Card from '../../common/cards/Card'
+import Pubsub from '../../common/util/PubSub'
 
 
 type Prop = {
@@ -19,8 +19,9 @@ type Prop = {
     onSubGeneralChecker: Checker,
     customRequest: CustomRequest,
     commonUI: CustomUIData<any>,
-    consumer: (res: any) => void,
-    context: GameClientContext
+    consumer: (res: any, intermittent?: boolean) => void,
+    context: GameClientContext,
+    pubsub: Pubsub
 }
 
 export default class UIMounter extends React.Component<Prop, any> {
@@ -37,9 +38,13 @@ export default class UIMounter extends React.Component<Prop, any> {
     }
     
     renderCommonUI() {
-        let {customRequest, commonUI, consumer} = this.props
+        let {customRequest, commonUI, consumer, pubsub} = this.props
         console.log(commonUI, customRequest)
-        return customUIRegistry.get(commonUI.type, commonUI.data, customRequest?.data, consumer)
+        return customUIRegistry.get(commonUI.type, {
+            commonUI: commonUI.data, 
+            requestData: customRequest?.data, consumer,
+            pubsub
+        })
     }
 
     render() {

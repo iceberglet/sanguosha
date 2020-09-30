@@ -1,5 +1,5 @@
 import DamageOp, { DamageTimeline, DamageSource, DamageType } from "../../server/engine/DamageOp";
-import { SimpleConditionalSkill, EventRegistryForSkills, HiddenType, Skill } from "./Skill";
+import { SimpleConditionalSkill, EventRegistryForSkills, HiddenType, Skill } from "../../common/Skill";
 import GameManager from "../../server/GameManager";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, DuoCardSelectionHint, DuoCardSelectionResult } from "../../common/ServerHint";

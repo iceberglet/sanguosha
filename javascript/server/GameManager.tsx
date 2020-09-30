@@ -5,7 +5,7 @@ import { PlayerDeadInHisRound } from "./Operation";
 import RoundStat from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
 import { ServerHint, HintType } from "../common/ServerHint";
-import { SequenceAwarePubSub, EventRegistry, GameEventListener, CompositeListener } from "../common/util/PubSub";
+import Pubsub, { SequenceAwarePubSub, EventRegistry, GameEventListener, CompositeListener } from "../common/util/PubSub";
 import { Button } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
@@ -19,7 +19,7 @@ import { ICard } from "../common/cards/ICard";
 import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
 import GameEnding from "./GameEnding";
 import GameStatsCollector from "./GameStatsCollector";
-import { EventRegistryForSkills } from "../game-mode-faction/skill/Skill";
+import { EventRegistryForSkills } from "../common/Skill";
 import { CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
 import PlayerAct from "./context/PlayerAct";
 import { Gender } from "../common/General";
@@ -184,6 +184,10 @@ export default class GameManager {
 
     public send(anyone: string, anything: any) {
         this.registry.send(anyone, anything)
+    }
+
+    public pubsub(): Pubsub {
+        return this.registry.pubsub
     }
 
     /**

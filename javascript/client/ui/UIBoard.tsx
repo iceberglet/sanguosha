@@ -20,7 +20,7 @@ import CardTransitManager from './CardTransitManager'
 import UIMyCards from './UIMyCards'
 import { CustomUIData } from '../card-panel/CustomUIRegistry'
 import { GameMode } from '../../common/GameMode'
-import { SkillStatus } from '../../game-mode-faction/skill/Skill'
+import { SkillStatus } from '../../common/Skill'
 import { UIRollingLogger, UILogger } from './UILogger'
 import { audioManager } from '../audio-manager/AudioManager'
 import RuleModal from './UIRuleModal'
@@ -126,10 +126,19 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         p.pubsub.on(SkillStatus, (s: SkillStatus)=>{
             // console.log('Received Skill Status', s)
             this.setState(state => {
-                let match = state.skillButtons.find(prop => {
+                let matchIdx = state.skillButtons.findIndex(prop => {
                     return prop.skill.id === s.id && prop.skill.playerId === s.playerId
                 })
-                if(!match) {
+                if(s.isGone) {
+                    if(matchIdx >= 0) {
+                        console.log('删除技能', s)
+                        state.skillButtons.splice(matchIdx, 1)
+                    } else {
+                        console.log('未找到技能', s)
+                    }
+                    return state
+                }
+                if(matchIdx < 0) {
                     console.info('Received a new skill!', s)
                     let skill = GameMode.get(context.gameMode).skillProvider(s.id, myId)
                     skill.isMain = s.isMain
@@ -141,6 +150,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                         }
                     })
                 } else {
+                    let match = state.skillButtons[matchIdx]
                     Object.assign(match.skill, s)
                     console.log('Updated skill', match.skill.isRevealed, s, match.skill)
                 }
@@ -233,14 +243,22 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                         context={context}
                         onGeneralChecker={onGeneralChecker}
                         onSubGeneralChecker={onSubGeneralChecker}
-                        consumer={res => {context.submitAction({
-                            actionData: null,
-                            actionSource: myId,
-                            serverHint: null,
-                            customData: res
-                        })
-                        this.setState({uiRequest: null})
-                    }}/>
+                        pubsub={pubsub}
+                        consumer={(res, intermittent: boolean = false) => {
+                            if(!intermittent) {
+                                context.submitAction({
+                                    actionData: null,
+                                    actionSource: myId,
+                                    serverHint: null,
+                                    customData: res
+                                })
+                                this.setState({uiRequest: null})
+                            } else {
+                                //just send
+                                context.sendToServer(res)
+                            }
+                        }}
+                    />
 
                     <UIRollingLogger pubsub={pubsub} />
                 </div>

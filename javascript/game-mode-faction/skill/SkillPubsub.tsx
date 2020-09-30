@@ -1,5 +1,5 @@
 import Multimap from "../../common/util/Multimap"
-import { SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger, invocable } from "./Skill"
+import { SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger, invocable } from "../../common/Skill"
 import GameManager from "../../server/GameManager"
 import { Button } from "../../common/PlayerAction"
 import { HintType } from "../../common/ServerHint"
@@ -85,7 +85,7 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
             }
             
             //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
-
+            //小心一个技能使得另一个技能无法发动 (先渐营再死谏就囧了)
             console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id))
             let choices: Array<[SkillTrigger<any>, Button]> = []
             for(let s of skillTriggers) {

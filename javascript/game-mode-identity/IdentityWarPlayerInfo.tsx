@@ -4,7 +4,7 @@ import { Player } from "../common/Player";
 import * as React from "react";
 import './identity-war.scss'
 import { GameMode } from "../common/GameMode";
-import { Skill } from "../game-mode-faction/skill/Skill";
+import { Skill } from "../common/Skill";
 
 export default class IdentityWarPlayerInfo extends PlayerInfo {
 

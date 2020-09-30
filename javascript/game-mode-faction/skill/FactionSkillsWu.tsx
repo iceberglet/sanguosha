@@ -1,5 +1,5 @@
 
-import { Skill, SkillTrigger, HiddenType, SimpleConditionalSkill, EventRegistryForSkills } from "./Skill"
+import { Skill, SkillTrigger, HiddenType, SimpleConditionalSkill, EventRegistryForSkills } from "../../common/Skill"
 import { HintType, CardSelectionResult } from "../../common/ServerHint"
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
@@ -1005,7 +1005,7 @@ export class BuQu extends SimpleConditionalSkill<AskSavingOp> {
     public async doInvoke(event: AskSavingOp, manager: GameManager): Promise<void> {
         this.invokeEffects(manager)
         let card = manager.context.deck.getCardsFromTop(1)[0]
-        card.description = this.playerId + ' > 不屈判定'
+        card.description = this.playerId + ' > 不屈牌'
         let size = card.size.size
         let transit = CardTransit.deckToWorkflow([card])
         transit.specialEffect = 'flip'

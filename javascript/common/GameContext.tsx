@@ -6,6 +6,43 @@ import { ICard } from "./cards/ICard";
 import Multimap from "./util/Multimap";
 
 export type Interpreter = (c: ICard) => ICard
+
+class Cursor {
+    private idx: number
+
+    constructor(private infos: PlayerInfo[], start: string) {
+        this.idx = infos.findIndex(p => p.player.id === start)
+        if(this.idx < 0) {
+            throw 'Unable to find this player ' + start + ' among ' + infos.map(p => p.player.id)
+        }
+    }
+
+    get() {
+        return this.infos[this.idx]
+    }
+
+    up(): Cursor {
+        do {
+            this.idx--
+            if(this.idx < 0) {
+                this.idx = this.infos.length - 1
+            }
+        } while (this.get().isDead)
+        return this
+    }
+
+    down(): Cursor {
+        do {
+            this.idx++
+            if(this.idx >= this.infos.length) {
+                this.idx = 0
+            }
+        } while (this.get().isDead)
+        return this
+    }
+}
+
+
 /**
  * Contains current state of the game
  * All players' situations, card holdings, hp
@@ -88,6 +125,10 @@ export default class GameContext {
     getRingFromPerspective(playerId: string, inclusive: boolean = false, deadAlso: boolean = false): PlayerInfo[] {
         let idx = this.playerInfos.findIndex(p => p.player.id === playerId)
         return [...this.playerInfos.slice(inclusive? idx : idx + 1), ...this.playerInfos.slice(0, idx)].filter(p => deadAlso || !p.isDead)
+    }
+
+    cursor(playerId: string): Cursor {
+        return new Cursor(this.playerInfos, playerId)
     }
 
     /**

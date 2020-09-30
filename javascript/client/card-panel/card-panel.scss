@@ -161,23 +161,27 @@
             }
         }
     }
-    .button-container {
-        padding: 20px;
-    }
+}
+.button-container {
+    pointer-events: initial;
+    padding: 20px;
 }
 
 .wugu-container {
     width: 500px;
+}
+
+.cards-container {
     padding: 10px;
     background: linear-gradient(45deg, #191b35, #423535);
     border: 1px solid #161a38;
 
 
-    .wugu-title {
+    .cards-container-title {
         height: 30px;
     }
 
-    .wugu-cards {
+    .cards {
         display: flex;
         flex-wrap: wrap;
         background-image: url(ui/bak.png);

@@ -8,7 +8,7 @@ import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
 import { ClassFormatter } from "../common/util/Togglable"
 import { SkillButtonProp, SkillButton } from "../client/ui/UIMyPlayerCard"
 import { GameMode } from "../common/GameMode"
-import { Skill } from "./skill/Skill"
+import { Skill } from "../common/Skill"
 import { wrapGeneral } from "../client/card-panel/GeneralUI"
 import { CardPos } from "../common/transit/CardPos"
 

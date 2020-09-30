@@ -139,7 +139,10 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
         );
 
         //notify server
-        this.props.onCardsShifted(new CardPosChangeEvent(UIPosition.MY_HAND, this.props.myName, result.source.index, result.destination.index))
+        this.props.onCardsShifted(new CardPosChangeEvent(UIPosition.MY_HAND, 
+            this.props.myName, 
+            result.source.index,
+            result.destination.index))
 
         this.forceUpdate()
     }
@@ -149,7 +152,7 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
         let {hover, cards} = this.state
 
         return <DragDropContext onDragEnd={this.onDragEnd}>
-            <Droppable droppableId="droppable" direction="horizontal">
+            <Droppable droppableId="hand" direction="horizontal" type='hand'>
             {(provided, snapshot) => (
                 <div ref={r => {provided.innerRef(r); this.containerRef = r}} style={getListStyle(snapshot.isDraggingOver)} {...provided.droppableProps}>
                 {/* <div ref={this.containerRef} > */}
@@ -164,7 +167,7 @@ export default class UICardRow extends React.Component<CardRowProp, State> imple
                             style.transition = c.animDuration + 'ms'
                         }
 
-                        return <Draggable key={c.card.id} draggableId={c.card.id} index={i} /*isDragDisabled={status !== ElementStatus.NORMAL}*/>
+                        return <Draggable key={c.card.id} draggableId={c.card.id} index={i}>
                         {(provided, snapshot) => (
                             <div ref={provided.innerRef}
                                 {...provided.draggableProps}
@@ -222,4 +225,4 @@ const getListStyle = (isDraggingOver: boolean) : React.CSSProperties => ({
 
     width: '100%',
     paddingRight: '100px'
-  });
+});

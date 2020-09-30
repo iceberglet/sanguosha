@@ -14,7 +14,7 @@ import { HintType, GeneralSelectionResult } from "../common/ServerHint";
 import GameStatsCollector from "../server/GameStatsCollector";
 import { SequenceAwareSkillPubSub } from "./skill/SkillPubsub";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
-import { SkillStatus } from "./skill/Skill";
+import { SkillStatus } from "../common/Skill";
 import { Faction } from "../common/General";
 import { CardPos, CardPosChangeEvent, CardRearrangeRequest } from "../common/transit/CardPos";
 import { UIPosition } from "../common/PlayerAction";

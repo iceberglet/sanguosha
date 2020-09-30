@@ -8,7 +8,7 @@ import { GameHoster } from "../server/GameHoster";
 import FactionWarGameHoster from "../game-mode-faction/FactionWarGameHoster";
 import { PlayerRegistry } from "../server/PlayerRegistry";
 import { GameModeEnum } from "./GameModeEnum";
-import { Skill } from "../game-mode-faction/skill/Skill";
+import { Skill } from "./Skill";
 import { FactionSkillProviders } from "../game-mode-faction/skill/FactionWarSkillRepo";
 import { describer } from "./util/Describer";
 import * as React from 'react'

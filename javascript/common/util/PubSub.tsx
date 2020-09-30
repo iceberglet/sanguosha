@@ -22,7 +22,8 @@ export default class Pubsub {
     publish(obj: any) {
         let con: Consumer<any>[] = this._map.get(obj.constructor)
         if(!con) {
-            throw `No one is listening to this message! ${obj.constructor.name}`
+            console.error(`No one is listening to this message! ${obj.constructor.name}`)
+            return
         }
         con.forEach(item => item(obj))
     }

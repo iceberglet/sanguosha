@@ -41,6 +41,25 @@ export class CardPosChangeEvent {
 
 }
 
+
+export const TOP = 'top'
+export const BTM = 'btm'
+
+export class CardMovementEvent {
+    public constructor(public readonly item: string,
+                        public readonly fromPos: string,
+                        public readonly toPos: string,
+                        public readonly from: number,
+                        public readonly to: number) {}
+
+    public applyToTopBtm<T>(top: Array<T>, btm: Array<T>) {
+        let leave = this.fromPos === TOP? top : btm
+        let item = leave.splice(this.from, 1)
+        let toAdd = this.toPos === TOP? top: btm
+        toAdd.splice(this.to, 0, item[0])
+    }
+}
+
 export class CardRearrangeRequest {
     public constructor(public readonly requester: string){}
 }

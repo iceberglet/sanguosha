@@ -238,8 +238,8 @@ export default class CardTransitManager {
     }
 
     onCardTransfer=(transfer: CardTransit)=>{
-        let f: CardEndpoint = this.getEndpoint(transfer.from, transfer.fromPos)
-        let t: CardEndpoint = this.getEndpoint(transfer.to, transfer.toPos)
+        let f: CardEndpoint = this.getEndpoint(transfer.from)
+        let t: CardEndpoint = this.getEndpoint(transfer.to)
         // let e: CardEndpoint = this.endpoints.get(transfer.from)
         if(!f || !t) {
             throw `Cannot find endpoint for id: ${transfer.from}, ${transfer.to}`
@@ -256,7 +256,7 @@ export default class CardTransitManager {
         t.performAddAnimation(initial, transfer)
     }
 
-    private getEndpoint(id: string, pos: CardPos) {
+    private getEndpoint(id: string) {
         return this.endpoints.get(id)
     }
 }

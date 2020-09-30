@@ -1,5 +1,5 @@
 import Multimap from "../../common/util/Multimap";
-import { SimpleConditionalSkill, EventRegistryForSkills, SkillStatus, Skill, GeneralSkillStatusUpdate, HiddenType } from "./Skill";
+import { SimpleConditionalSkill, EventRegistryForSkills, SkillStatus, Skill, GeneralSkillStatusUpdate, HiddenType, SkillRepo } from "../../common/Skill";
 import { RevealGeneralEvent } from "../FactionWarInitializer";
 import GameManager from "../../server/GameManager";
 import FactionPlayerInfo from "../FactionPlayerInfo";
@@ -8,7 +8,7 @@ import { GameMode } from "../../common/GameMode";
 import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, 
         JieMing, QuHu, YiJi, QiaoBian, XiaoGuo, TunTian, JiXi, ZiLiang } from "./FactionSkillsWei";
 import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi, 
-        HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng } from "./FactionSkillsShu";
+        HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng, KongCheng, GuanXing, YiZhi, TiaoXin, GuanXingJiangWei } from "./FactionSkillsShu";
 import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng, KeJi, MouDuan, FenMing, DuanXie, BuQu, FenJi } from "./FactionSkillsWu";
 import { Stage } from "../../common/Stage";
 import { PlayerInfo } from "../../common/PlayerInfo";
@@ -89,6 +89,11 @@ FactionSkillProviders.register('淑慎', pid => new ShuShen(pid))
 FactionSkillProviders.register('神智', pid => new ShenZhi(pid))
 FactionSkillProviders.register('生息', pid => new ShengXi(pid))
 FactionSkillProviders.register('守成', pid => new ShouCheng(pid))
+FactionSkillProviders.register('空城', pid => new KongCheng(pid))
+FactionSkillProviders.register('观星', pid => new GuanXing(pid))
+FactionSkillProviders.register('挑衅', pid => new TiaoXin(pid))
+FactionSkillProviders.register('观星(姜维)', pid => new GuanXingJiangWei(pid))
+FactionSkillProviders.register('遗志', pid => new YiZhi(pid))
 
 FactionSkillProviders.register('制衡', pid => new ZhiHeng(pid))
 FactionSkillProviders.register('奇袭', pid => new QiXi(pid))
@@ -146,7 +151,7 @@ FactionSkillProviders.register('锋略', pid => new FengLue(pid))
 FactionSkillProviders.register('谋识', pid => new MouShi(pid))
 FactionSkillProviders.register('狂斧', pid => new KuangFu(pid))
 
-export default class FactionWarSkillRepo {
+export default class FactionWarSkillRepo implements SkillRepo {
     
     //player id => skills
     private allSkills = new Multimap<string, Skill>()
@@ -159,7 +164,6 @@ export default class FactionWarSkillRepo {
             let facInfo = info as FactionPlayerInfo
             facInfo.getSkills(GameMode.get(manager.context.gameMode)).forEach(skill => {
                 this.addSkill(facInfo.player.id, skill)
-                skill.bootstrapServer(this.skillRegistry, manager)
             })
         })
         manager.adminRegistry.onGeneral<RevealGeneralEvent>(RevealGeneralEvent, this.onRevealEvent)
@@ -169,6 +173,7 @@ export default class FactionWarSkillRepo {
     public addSkill(p: string, skill: Skill) {
         console.log('[技能] 添加技能', p, skill.id)
         this.allSkills.set(p, skill)
+        skill.bootstrapServer(this.skillRegistry, this.manager, this)
     }
 
     public async onClientUpdateSkill(ss: SkillStatus): Promise<void> {
@@ -177,7 +182,7 @@ export default class FactionWarSkillRepo {
         if(skill.isForewarned !== ss.isForewarned) {
             console.log('[技能] 改变技能预亮', skill.id, skill.playerId, ss.isForewarned)
             skill.isForewarned = ss.isForewarned
-            await skill.onStatusUpdated(this.manager)
+            await skill.onStatusUpdated(this.manager, this)
         }
         if(skill.isRevealed !== ss.isRevealed && ss.isRevealed) {
             if(skill.hiddenType === HiddenType.REVEAL_IN_MY_USE_CARD && 
@@ -237,7 +242,7 @@ export default class FactionWarSkillRepo {
                 if(disabler.reasons.size === 0) {
                     console.log('[技能] 恢复技能', s.playerId, s.id)
                     s.isDisabled = false
-                    await s.onStatusUpdated(this.manager)
+                    await s.onStatusUpdated(this.manager, this)
                     this.manager.send(s.playerId, s.toStatus())
                 }
             } else {
@@ -250,7 +255,7 @@ export default class FactionWarSkillRepo {
                     console.log('[技能] 禁止技能', s.playerId, s.id)
                     //进行disable作业
                     s.isDisabled = true
-                    await s.onStatusUpdated(this.manager)
+                    await s.onStatusUpdated(this.manager, this)
                     this.manager.send(s.playerId, s.toStatus())
                 }
 
@@ -272,7 +277,7 @@ export default class FactionWarSkillRepo {
                 skill.isRevealed = true
             }
             console.log('[技能] 有武将明置, 技能展示', e.playerId, skill.id, skill.isRevealed)
-            await skill.onStatusUpdated(this.manager)
+            await skill.onStatusUpdated(this.manager, this)
             this.manager.send(e.playerId, skill.toStatus())
         }
     }

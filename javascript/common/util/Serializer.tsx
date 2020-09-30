@@ -16,9 +16,9 @@ import RoundStat from "../RoundStat"
 import { CustomUIData } from "../../client/card-panel/CustomUIRegistry"
 import { GameStats } from "../../server/GameStatsCollector"
 import { PlayerPrepChoice, Circus } from '../../game-mode-faction/FactionWarGameHoster'
-import { SkillStatus } from "../../game-mode-faction/skill/Skill"
+import { SkillStatus } from "../Skill"
 import Multimap from "./Multimap"
-import { CardPosChangeEvent, CardRearrangeRequest } from "../transit/CardPos"
+import { CardMovementEvent, CardPosChangeEvent, CardRearrangeRequest } from "../transit/CardPos"
 
 
 export type Payload = {
@@ -162,6 +162,7 @@ Serde.register(PlayerInfo)
 Serde.register(CardType)
 Serde.register(Card)
 Serde.register(CardRearrangeRequest)
+Serde.register(CardMovementEvent)
 Serde.register(FWCard)
 Serde.register(CardSize)
 Serde.register(IdentityWarGeneral)
