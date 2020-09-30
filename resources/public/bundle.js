@@ -15140,6 +15140,7 @@ class GameManager {
                         console.log('Player died in his round. Proceeding to next player...');
                         //为了发动戚乱尚需要最后来这么一下
                         yield this.events.publish(new StageFlows_1.StageEndFlow(this.currPlayer(), Stage_1.Stage.ROUND_END));
+                        this.goToNextPlayer();
                         continue;
                     }
                     if (err instanceof GameEnding_1.default) {
@@ -15158,11 +15159,9 @@ class GameManager {
                         return this.context.playerInfos.map(p => p.player.id);
                     }
                     console.error(err);
+                    this.goToNextPlayer();
                     //try continue
                     // throw err
-                }
-                finally {
-                    this.goToNextPlayer();
                 }
             }
         });

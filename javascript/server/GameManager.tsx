@@ -113,6 +113,7 @@ export default class GameManager {
                     console.log('Player died in his round. Proceeding to next player...')
                     //为了发动戚乱尚需要最后来这么一下
                     await this.events.publish(new StageEndFlow(this.currPlayer(), Stage.ROUND_END))
+                    this.goToNextPlayer()
                     continue;
                 }
                 if(err instanceof GameEnding) {
@@ -131,10 +132,9 @@ export default class GameManager {
                     return this.context.playerInfos.map(p => p.player.id)
                 }
                 console.error(err)
+                this.goToNextPlayer()
                 //try continue
                 // throw err
-            } finally {
-                this.goToNextPlayer()
             }
         }
     }
