@@ -1,5 +1,5 @@
 
-import { Skill, SkillTrigger, HiddenType, SimpleConditionalSkill, EventRegistryForSkills } from "../../common/Skill"
+import { Skill, SkillTrigger, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillRepo } from "../../common/Skill"
 import { HintType, CardSelectionResult } from "../../common/ServerHint"
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
@@ -12,7 +12,7 @@ import { CardBeingDroppedEvent, CardBeingUsedEvent, CardAwayEvent, CardBeingTake
 import Card, { CardType, Suit, Color, SuperGenre } from "../../common/cards/Card"
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp"
 import { isSuitBlack, isSuitRed, ICard, mimicCard, deriveColor } from "../../common/cards/ICard"
-import { GuoHe, ShunShou } from "../../server/engine/SingleRuseOp"
+import { GuoHe, JueDou, ShunShou } from "../../server/engine/SingleRuseOp"
 import DamageOp, { DamageSource, DamageType, DamageTimeline } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
 import DropCardOp, { DropCardRequest, DropTimeline, DropOthersCardRequest } from "../../server/engine/DropCardOp"
@@ -31,6 +31,7 @@ import { MoveCardOnField } from "../../server/engine/MoveCardOp"
 import { DoTieSuo } from "../../server/engine/MultiRuseOp"
 import AskSavingOp from "../../server/engine/AskSavingOp"
 import { PlayerInfo } from "../../common/PlayerInfo"
+import JudgeOp from "../../server/engine/JudgeOp"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -468,7 +469,7 @@ export class YingHun extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
-        if(event.info.player.id === this.playerId && event.stage === Stage.ROUND_BEGIN) {
+        if(event.isFor(this.playerId, Stage.ROUND_BEGIN)) {
             let me = manager.context.getPlayer(this.playerId)
             return me.hp < me.maxHp
         }
@@ -1044,6 +1045,185 @@ export class FenJi extends SimpleConditionalSkill<StageStartFlow> {
     }
 }
 
+class RedSlashTrigger implements SkillTrigger<SlashCompute> {
+    
+    constructor(private skill: Skill) {}
+
+    getSkill(): Skill {
+        return this.skill
+    }
+
+    invokeMsg(event: SlashCompute, manager: GameManager): string {
+        return '发动' + this.skill.displayName
+    }
+
+    conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
+        if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.target.player.id === this.skill.playerId) {
+            return event.color === 'red'
+        }
+        if(event.timeline === Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
+            return event.color === 'red'
+        }
+        return false
+    }
+
+    async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+        this.skill.invokeEffects(manager)
+        await new TakeCardOp(manager.context.getPlayer(this.skill.playerId), 1).perform(manager)
+    }
+}
+
+class JueDouTrigger implements SkillTrigger<JueDou> {
+    
+    constructor(private skill: Skill) {}
+
+    getSkill(): Skill {
+        return this.skill
+    }
+
+    invokeMsg(event: JueDou, manager: GameManager): string {
+        return '发动' + this.skill.displayName
+    }
+
+    conditionFulfilled(event: JueDou, manager: GameManager): boolean {
+        if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.target.player.id === this.skill.playerId) {
+            return true
+        }
+        if(event.timeline === Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
+            return true
+        }
+        return false
+    }
+
+    async doInvoke(event: JueDou, manager: GameManager): Promise<void> {
+        this.skill.invokeEffects(manager)
+        await new TakeCardOp(manager.context.getPlayer(this.skill.playerId), 1).perform(manager)
+    }
+}
+
+export class JiAng extends Skill {
+    
+    id = '激昂'
+    displayName = '激昂'
+    description = '当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<SlashCompute>(SlashCompute, new RedSlashTrigger(this))
+        skillRegistry.on<JueDou>(JueDou, new JueDouTrigger(this))
+    }
+}
+
+export class YingYang extends SimpleConditionalSkill<CardFightOp> {
+    
+    id = '鹰扬'
+    displayName = '鹰扬'
+    description = '当你拼点的牌亮出后，你可以令此牌的点数+3或-3。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<CardFightOp>(CardFightOp, this)
+    }
+
+    public conditionFulfilled(event: CardFightOp, manager: GameManager): boolean {
+        return event.initiater.player.id === this.playerId || event.target.player.id === this.playerId
+    }
+
+    public async doInvoke(event: CardFightOp, manager: GameManager): Promise<void> {
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.MULTI_CHOICE,
+            hintMsg: '请选择让你的拼点牌点数:',
+            extraButtons: [new Button('+3', '+3'), new Button('-3', '-3'), Button.CANCEL]
+        })
+        if(resp.isCancel()) {
+            return
+        }
+        let delta = 0
+        if(resp.button === '+3') {
+            delta = 3
+        } else {
+            delta = -3
+        }
+        if(event.initiater.player.id === this.playerId) {
+            event.initiatorPoint += delta
+        } else {
+            event.targetPoint += delta
+        }
+        this.invokeEffects(manager, [], `${this.playerId} 发动 ${this.displayName} 使其判定牌点数 ${delta}`)
+    }
+}
+
+export class YingZiCe extends YingZi {
+    id = '英姿(策)'
+}
+
+export class YingHunCe extends YingHun {
+    id = '英魂(策)'
+}
+
+export class HunShang extends Skill {
+    
+    id = '魂殇'
+    displayName = '魂殇'
+    description = '副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。'
+    hiddenType = HiddenType.NONE
+    disabledForMain = true
+    isLocked = true
+    myYingZi: YingZiCe
+    myYingHun: YingHunCe
+
+    async onStatusUpdated(manager: GameManager, repo: SkillRepo) {
+        if(!this.isGone && !this.isDisabled && this.isRevealed) {
+            this.isGone = true
+
+            console.log(`[${this.id}] 生效增加孙策技能`)
+            let myNew = new YingZiCe(this.playerId)
+            myNew.isRevealed = true
+            myNew.isForewarned = true
+            repo.addSkill(this.playerId, myNew)
+            this.myYingZi = myNew
+            let myNew2 = new YingHunCe(this.playerId)
+            myNew2.isRevealed = true
+            myNew.isForewarned = true
+            this.myYingHun = myNew2
+            repo.addSkill(this.playerId, myNew2)
+
+            if(manager.currEffect.stage !== Stage.ROUND_BEGIN || manager.currEffect.player !== this.playerId) {
+                await repo.changeSkillDisabledness(this.myYingZi, false, this.displayName, null)
+                await repo.changeSkillDisabledness(this.myYingHun, false, this.displayName, null)
+            }
+
+            manager.send(this.playerId, myNew.toStatus())
+            manager.send(this.playerId, myNew2.toStatus())
+
+            manager.send(this.playerId, this.toStatus())
+        }
+    }
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(event)=>{
+            if(event.stage === Stage.ROUND_BEGIN) {
+                if(event.info.player.id === this.playerId) {
+                    if(this.myYingHun && this.myYingZi && this.myYingHun.isDisabled && manager.context.getPlayer(this.playerId).hp <= 1) {
+                        console.log(`${this.displayName} 英姿英魂生效`)
+                        await repo.changeSkillDisabledness(this.myYingZi, true, this.displayName, null)
+                        await repo.changeSkillDisabledness(this.myYingHun, true, this.displayName, null)
+                    }
+                } else {
+                    if(this.myYingHun && this.myYingZi && !this.myYingHun.isDisabled) {
+                        console.log(`${this.displayName} 英姿英魂失效`)
+                        await repo.changeSkillDisabledness(this.myYingZi, false, this.displayName, null)
+                        await repo.changeSkillDisabledness(this.myYingHun, false, this.displayName, null)
+                    }
+                }
+            }
+        })
+    }
+
+}
+
+// 激昂 当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。
+// 鹰扬 当你拼点的牌亮出后，你可以令此牌的点数+3或-3。
+// 魂殇 副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。
+
 // 短兵 你使用【杀】可以多选择一名距离为1的角色为目标。
 // 奋迅 出牌阶段限一次，你可以弃置一张牌并选择一名其他角色，然后本回合你计算与其的距离视为1。
 
@@ -1051,9 +1231,6 @@ export class FenJi extends SimpleConditionalSkill<StageStartFlow> {
 // 鸟翔 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，你令该角色需依次使用两张【闪】才能抵消。
 
 
-// 激昂 当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。
-// 鹰扬 当你拼点的牌亮出后，你可以令此牌的点数+3或-3。
-// 魂殇 副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。
 
 
 // 调度 与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。

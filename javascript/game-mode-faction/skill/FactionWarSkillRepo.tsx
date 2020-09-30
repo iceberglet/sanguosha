@@ -8,10 +8,10 @@ import { GameMode } from "../../common/GameMode";
 import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, 
         JieMing, QuHu, YiJi, QiaoBian, XiaoGuo, TunTian, JiXi, ZiLiang } from "./FactionSkillsWei";
 import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi, 
-        HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng, KongCheng, GuanXing, YiZhi, TiaoXin, GuanXingJiangWei } from "./FactionSkillsShu";
-import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng, KeJi, MouDuan, FenMing, DuanXie, BuQu, FenJi } from "./FactionSkillsWu";
+        HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng, KongCheng, GuanXing, YiZhi, TiaoXin, GuanXingJiangWei, KanPoJiangWei, TianFu } from "./FactionSkillsShu";
+import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng, KeJi, MouDuan, FenMing, DuanXie, BuQu, FenJi, YingYang, JiAng, HunShang, YingZiCe, YingHunCe } from "./FactionSkillsWu";
 import { Stage } from "../../common/Stage";
-import { PlayerInfo } from "../../common/PlayerInfo";
+import { Mark, PlayerInfo } from "../../common/PlayerInfo";
 import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan, MaShuPang, MaShuTeng, LeiJi, GuiDao, SuiShi, SiJian, LuanJi, XiongYi, JianChu, XiongSuan, MouShi, FengLue, JianYing, ShiBei, KuangFu } from "./FactionSkillsQun";
 
 
@@ -94,6 +94,8 @@ FactionSkillProviders.register('观星', pid => new GuanXing(pid))
 FactionSkillProviders.register('挑衅', pid => new TiaoXin(pid))
 FactionSkillProviders.register('观星(姜维)', pid => new GuanXingJiangWei(pid))
 FactionSkillProviders.register('遗志', pid => new YiZhi(pid))
+FactionSkillProviders.register('看破(姜维)', pid => new KanPoJiangWei(pid))
+FactionSkillProviders.register('天覆', pid => new TianFu(pid))
 
 FactionSkillProviders.register('制衡', pid => new ZhiHeng(pid))
 FactionSkillProviders.register('奇袭', pid => new QiXi(pid))
@@ -121,6 +123,11 @@ FactionSkillProviders.register('奋命', pid => new FenMing(pid))
 FactionSkillProviders.register('断绁', pid => new DuanXie(pid))
 FactionSkillProviders.register('不屈', pid => new BuQu(pid))
 FactionSkillProviders.register('奋激', pid => new FenJi(pid))
+FactionSkillProviders.register('英姿(策)', pid => new YingZiCe(pid))
+FactionSkillProviders.register('英魂(策)', pid => new YingHunCe(pid))
+FactionSkillProviders.register('魂殇', pid => new HunShang(pid))
+FactionSkillProviders.register('激昂', pid => new JiAng(pid))
+FactionSkillProviders.register('鹰扬', pid => new YingYang(pid))
 
 FactionSkillProviders.register('除疠', pid => new ChuLi(pid))
 FactionSkillProviders.register('急救', pid => new JiJiu(pid))
@@ -228,42 +235,50 @@ export default class FactionWarSkillRepo implements SkillRepo {
         console.log('[技能] 收到对武将牌封禁的修改', update.reason, update.target.player.id, skills.map(s => s.id))
 
         for(let s of skills) {
-            let disabler = this.disablers.find(d => d.playerId === s.playerId && d.skillId === s.id)
-            console.log('[技能] 已有的封禁理由: ', s.id, disabler? disabler.reasons : [])
-            if(update.enable) {
-                //除掉之前的disabler, 
-                if(!disabler || !disabler.reasons.has(update.reason)) {
-                    throw 'Impossible!, How can we enable if we did NOT disable?'
-                }
-                disabler.reasons.delete(update.reason)
-                delete marks[update.reason]
-                
-                //如果干净了, 我们才恢复
-                if(disabler.reasons.size === 0) {
-                    console.log('[技能] 恢复技能', s.playerId, s.id)
-                    s.isDisabled = false
-                    await s.onStatusUpdated(this.manager, this)
-                    this.manager.send(s.playerId, s.toStatus())
-                }
-            } else {
-                //如果已经disable了, 不要再来一次
-                if(!disabler) {
-                    disabler = new Disabler(s.playerId, s.id)
-                    this.disablers.push(disabler)
-                }
-                if(disabler.reasons.size === 0) {
-                    console.log('[技能] 禁止技能', s.playerId, s.id)
-                    //进行disable作业
-                    s.isDisabled = true
-                    await s.onStatusUpdated(this.manager, this)
-                    this.manager.send(s.playerId, s.toStatus())
-                }
+            await this.changeSkillDisabledness(s, update.enable, update.reason, marks)
+        }
+        this.manager.broadcast(update.target as PlayerInfo, PlayerInfo.sanitize)
+    }
 
-                marks[update.reason] = update.reason
-                //加我们一个disabler
-                disabler.reasons.add(update.reason)
+    public async changeSkillDisabledness(s: Skill, enable: boolean, reason: string, marks: Mark) {
+        let disabler = this.disablers.find(d => d.playerId === s.playerId && d.skillId === s.id)
+        console.log('[技能] 已有的封禁理由: ', s.id, disabler? disabler.reasons : [])
+        if(enable) {
+            //除掉之前的disabler, 
+            if(!disabler || !disabler.reasons.has(reason)) {
+                throw 'Impossible!, How can we enable if we did NOT disable?'
             }
-            this.manager.broadcast(update.target as PlayerInfo, PlayerInfo.sanitize)
+            disabler.reasons.delete(reason)
+            if(marks) {
+                delete marks[reason]
+            }
+            
+            //如果干净了, 我们才恢复
+            if(disabler.reasons.size === 0) {
+                console.log('[技能] 恢复技能', s.playerId, s.id)
+                s.isDisabled = false
+                await s.onStatusUpdated(this.manager, this)
+                this.manager.send(s.playerId, s.toStatus())
+            }
+        } else {
+            //如果已经disable了, 不要再来一次
+            if(!disabler) {
+                disabler = new Disabler(s.playerId, s.id)
+                this.disablers.push(disabler)
+            }
+            if(disabler.reasons.size === 0) {
+                console.log('[技能] 禁止技能', s.playerId, s.id)
+                //进行disable作业
+                s.isDisabled = true
+                await s.onStatusUpdated(this.manager, this)
+                this.manager.send(s.playerId, s.toStatus())
+            }
+
+            if(marks) {
+                marks[reason] = reason
+            }
+            //加我们一个disabler
+            disabler.reasons.add(reason)
         }
     }
 

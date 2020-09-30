@@ -2,7 +2,7 @@ import GameManager from "../server/GameManager";
 import { AckingConsumer } from "./util/PubSub";
 import { PlaySound, TextFlashEffect } from "./transit/EffectTransit";
 import PlayerAct from "../server/context/PlayerAct";
-import { PlayerInfo } from "./PlayerInfo";
+import { Mark, PlayerInfo } from "./PlayerInfo";
 import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
 import { RevealGeneralEvent } from "../game-mode-faction/FactionWarInitializer";
 import GameClientContext from "../client/GameClientContext";
@@ -256,6 +256,7 @@ export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTr
 export interface SkillRepo {
     addSkill(p: string, skill: Skill): void
     getSkill(pid: string, skillId: string): Skill
+    changeSkillDisabledness(s: Skill, enable: boolean, reason: string, marks?: Mark): Promise<void>
 }
 
 /**

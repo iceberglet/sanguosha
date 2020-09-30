@@ -23,8 +23,10 @@ export default class CardFightOp extends Operation<boolean> {
     initiatorCard: Card
     targetCard: Card
     private readonly title: string
+    initiatorPoint: number
+    targetPoint: number
 
-    constructor(private initiater: PlayerInfo, private target: PlayerInfo, private msg: string){
+    constructor(public readonly initiater: PlayerInfo, public readonly target: PlayerInfo, private msg: string){
         super()
         this.title = `${this.initiater.player.id} 拼点 ${this.target}(${msg})`
         if(initiater === target) {
@@ -70,7 +72,11 @@ export default class CardFightOp extends Operation<boolean> {
         manager.sendToWorkflow(this.target.player.id, CardPos.HAND, [this.targetCard], false)
         await manager.events.publish(new CardBeingDroppedEvent(this.target.player.id, [[this.targetCard, CardPos.HAND]]))
 
-        let success = this.initiatorCard.size.size > this.targetCard.size.size
+        this.initiatorPoint = this.initiatorCard.size.size
+        this.targetPoint = this.targetCard.size.size
+
+        await manager.events.publish(this)
+        let success = this.initiatorPoint > this.targetPoint
         console.log('[拼点] 结果成功?', success)
         this.broadcast(manager, false)
 
@@ -84,7 +90,9 @@ export default class CardFightOp extends Operation<boolean> {
         manager.broadcast(new CustomUIData<CardFightData>('card-fight', {
             title: this.title,
             cardLeft: this.initiatorCard,
-            cardRight: this.targetCard
+            cardRight: this.targetCard,
+            numberLeft: this.initiatorPoint,
+            numberRight: this.targetPoint
         }), sanitize? this.sanitize: null)
     }
     

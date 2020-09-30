@@ -264,6 +264,8 @@ customUIRegistry.register('guanxing', (p: MountableProp<GuanXingData, boolean>)=
 export type CardFightData = {
     cardLeft: Card,
     cardRight: Card,
+    numberLeft?: number,
+    numberRight?: number,
     title: string
 }
 
@@ -280,9 +282,10 @@ class CardFight extends React.Component<MountableProp<CardFightData, boolean>, o
     render() {
         let {commonUI, requestData, consumer} = this.props
         let left = commonUI.cardLeft, right = commonUI.cardRight
+        let {numberLeft, numberRight} = commonUI
         let result: string
-        if(left && right && !left.isDummy() && !right.isDummy()) {
-            result = left.size.size > right.size.size? 'win' : 'lose'
+        if(numberLeft && numberRight) {
+            result = numberLeft > numberRight? 'win' : 'lose'
         }
         return <div className='cf-container'>
             <div className='cf-title center'>{commonUI.title}</div>

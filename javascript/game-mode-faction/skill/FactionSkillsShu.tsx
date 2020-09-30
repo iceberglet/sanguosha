@@ -35,6 +35,7 @@ import AskSavingOp from "../../server/engine/AskSavingOp"
 import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp"
 import { CustomUIData, GuanXingData } from "../../client/card-panel/CustomUIRegistry"
 import { DropOthersCardRequest } from "../../server/engine/DropCardOp"
+import { areInFormation } from "./FactionSkillsGeneric"
 
 const REN_DE_SLASH = [SlashType.RED, SlashType.BLACK, SlashType.FIRE, SlashType.THUNDER]
 
@@ -1363,6 +1364,64 @@ export class YiZhi extends Skill {
     }
 }
 
+export class KanPoJiangWei extends KanPo {
+    id = '看破(姜维)'
+}
+
+export class TianFu extends Skill {
+    
+    id = '天覆'
+    displayName = '天覆'
+    description = '主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。'
+    disabledForSub = true
+    hiddenType = HiddenType.NONE
+    myKanPo: KanPoJiangWei
+
+    async onStatusUpdated(manager: GameManager, repo: SkillRepo) {
+        if(!this.isGone && !this.isDisabled && this.isRevealed) {
+            this.isGone = true
+
+            console.log(`[${this.id}] 生效增加姜维的看破技能`)
+            this.myKanPo = new KanPoJiangWei(this.playerId)
+            this.myKanPo.isRevealed = true
+            this.myKanPo.isMain = true
+            repo.addSkill(this.playerId, this.myKanPo)
+
+            //check disabled ness
+            if(areInFormation(manager.currPlayer().player.id, this.playerId, manager.context)) {
+                console.log(`${this.displayName} 使看破生效`)
+                this.myKanPo.isDisabled = false
+            } else {
+                console.log(`${this.displayName} 使看破禁用`)
+                this.myKanPo.isDisabled = true
+            }
+
+            manager.send(this.playerId, this.myKanPo.toStatus())
+
+            manager.send(this.playerId, this.toStatus())
+        }
+    }
+
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(event)=>{
+            if(!this.myKanPo) {
+                return
+            }
+            if(areInFormation(this.playerId, event.info.player.id, manager.context)) {
+                if(this.myKanPo.isDisabled) {
+                    console.log(`${this.displayName} 使看破生效`)
+                    await repo.changeSkillDisabledness(this.myKanPo, false, this.displayName, null)
+                }
+            } else {
+                if(!this.myKanPo.isDisabled) {
+                    console.log(`${this.displayName} 使看破禁用`)
+                    await repo.changeSkillDisabledness(this.myKanPo, true, this.displayName, null)
+                }
+            }
+        })
+    }
+}
 // 遗志 副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。
 // 天覆 主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。
 

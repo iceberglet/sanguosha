@@ -702,9 +702,10 @@ class CardFight extends React.Component {
     render() {
         let { commonUI, requestData, consumer } = this.props;
         let left = commonUI.cardLeft, right = commonUI.cardRight;
+        let { numberLeft, numberRight } = commonUI;
         let result;
-        if (left && right && !left.isDummy() && !right.isDummy()) {
-            result = left.size.size > right.size.size ? 'win' : 'lose';
+        if (numberLeft && numberRight) {
+            result = numberLeft > numberRight ? 'win' : 'lose';
         }
         return React.createElement("div", { className: 'cf-container' },
             React.createElement("div", { className: 'cf-title center' }, commonUI.title),
@@ -8007,12 +8008,30 @@ FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', '
 // public static liu_shan = new FactionWarGeneral('mountain_liu_shan', '刘禅', Faction.SHU, 1.5, '享乐', '放权')
 // public static huang_yue_ying = new FactionWarGeneral('standard_huang_yue_ying', '黄月英', Faction.SHU, 1.5, '集智', '奇才').asFemale() as FactionWarGeneral
 // public static meng_huo = new FactionWarGeneral('forest_meng_huo', '孟获', Faction.SHU, 2, '祸首', '再起')
-FactionWarGeneral.zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', General_1.Faction.SHU, 2, '巨象', '烈刃').asFemale();
-FactionWarGeneral.pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', General_1.Faction.SHU, 1.5, '连环', '涅槃');
-FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', General_1.Faction.SHU, 1.5, '淑慎', '神智').asFemale();
-FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成');
-FactionWarGeneral.zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '观星', '空城');
-FactionWarGeneral.jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', General_1.Faction.SHU, 2, '挑衅', '遗志' /*, '天覆'*/).hpDelta(0, -0.5);
+// public static zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', Faction.SHU, 2, '巨象', '烈刃').asFemale() as FactionWarGeneral
+// public static pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', Faction.SHU, 1.5, '连环', '涅槃')
+// public static gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', Faction.SHU, 1.5, '淑慎', '神智').asFemale() as FactionWarGeneral
+// public static jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', Faction.SHU, 1.5, '生息', '守成')
+// public static zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', Faction.SHU, 1.5, '观星', '空城')
+// public static jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', Faction.SHU, 2, '挑衅', '遗志', '天覆').hpDelta(0, -0.5)
+// //16
+// public static sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', Faction.WU, 2, '制衡')
+// public static gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', Faction.WU, 2, '奇袭')
+// public static huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', Faction.WU, 2, '苦肉')
+FactionWarGeneral.tai_shi_ci = new FactionWarGeneral('fire_tai_shi_ci', '太史慈', General_1.Faction.WU, 2, '天义');
+// public static lu_xun = new FactionWarGeneral('standard_lu_xun', '陆逊', Faction.WU, 1.5, '谦逊', '度势')
+// public static sun_shang_xiang = new FactionWarGeneral('standard_sun_shang_xiang', '孙尚香', Faction.WU, 1.5, '枭姬', '结姻').asFemale() as FactionWarGeneral
+// public static er_zhang = new FactionWarGeneral('mountain_er_zhang', '张昭张纮', Faction.WU, 1.5, '直谏', '固政')
+// public static zhou_yu = new FactionWarGeneral('standard_zhou_yu', '周瑜', Faction.WU, 1.5, '英姿', '反间')
+// public static da_qiao = new FactionWarGeneral('standard_da_qiao', '大乔', Faction.WU, 1.5, '国色', '流离').asFemale() as FactionWarGeneral
+// public static sun_jian = new FactionWarGeneral('forest_sun_jian', '孙坚', Faction.WU, 2.5, '英魂')
+// public static xiao_qiao = new FactionWarGeneral('wind_xiao_qiao', '小乔', Faction.WU, 1.5, '天香', '红颜').asFemale() as FactionWarGeneral
+// public static lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', Faction.WU, 1.5, '好施', '缔盟')
+FactionWarGeneral.xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', General_1.Faction.WU, 2, '疑城');
+FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', General_1.Faction.WU, 2, '克己', '谋断');
+FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命');
+FactionWarGeneral.zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', General_1.Faction.WU, 2, '不屈', '奋激').setCardName('创');
+FactionWarGeneral.sun_ce = new FactionWarGeneral('guo_sun_ce', '孙策', General_1.Faction.WU, 2, '激昂', '鹰扬', '魂殇').hpDelta(0, -0.5);
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
 exports.generalPairs = new Multimap_1.Pairs();
@@ -8590,6 +8609,79 @@ var update = __webpack_require__(/*! ../../node_modules/style-loader/lib/addStyl
 if(content.locals) module.exports = content.locals;
 
 if(false) {}
+
+/***/ }),
+
+/***/ "./javascript/game-mode-faction/skill/FactionSkillsGeneric.tsx":
+/*!*********************************************************************!*\
+  !*** ./javascript/game-mode-faction/skill/FactionSkillsGeneric.tsx ***!
+  \*********************************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.isSieged = exports.areInFormation = exports.areNeighbor = void 0;
+const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
+/**
+ * 检测A和B是否相邻
+ * @param a
+ * @param b
+ * @param context
+ */
+function areNeighbor(a, b, context) {
+    let aIdx = context.playerInfos.filter(p => !p.isDead).findIndex(p => p.player.id === a);
+    let bIdx = context.playerInfos.filter(p => !p.isDead).findIndex(p => p.player.id === b);
+    return Math.abs(aIdx - bIdx) === 1;
+}
+exports.areNeighbor = areNeighbor;
+/**
+ * 检测A和B是否在同一队列内
+ * @param a
+ * @param b
+ * @param context
+ */
+function areInFormation(a, b, context) {
+    if (a === b) {
+        return false;
+    }
+    let upCursor = context.cursor(a);
+    let me = upCursor.get();
+    let count = 0;
+    do {
+        upCursor.up();
+        if (upCursor.get().player.id === b) {
+            return true;
+        }
+        count++;
+    } while (General_1.factionsSame(upCursor.get().getFaction(), me.getFaction()) && count < 50);
+    let downCursor = context.cursor(a);
+    do {
+        downCursor.down();
+        if (downCursor.get().player.id === b) {
+            return true;
+        }
+        count++;
+    } while (General_1.factionsSame(downCursor.get().getFaction(), me.getFaction()) && count < 50);
+    if (count >= 50) {
+        console.error('Infinite Loop? ', a, b, context.playerInfos.map(p => [p.player.id, p.getFaction().name]));
+    }
+    return false;
+}
+exports.areInFormation = areInFormation;
+function isSieged(a, context) {
+    let upCursor = context.cursor(a);
+    let me = upCursor.get();
+    let up = upCursor.up().get();
+    let down = upCursor.down().down().get();
+    if (General_1.factionsSame(up.getFaction(), down.getFaction()) && up !== down && General_1.factionDiffers(up.getFaction(), me.getFaction())) {
+        return true;
+    }
+    return false;
+}
+exports.isSieged = isSieged;
+
 
 /***/ }),
 
@@ -9894,7 +9986,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.YiZhi = exports.GuanXingJiangWei = exports.TiaoXin = exports.KongCheng = exports.KongChengCancellor = exports.GuanXing = exports.ShouCheng = exports.ShengXi = exports.ShenZhi = exports.ShuShen = exports.LieRen = exports.JuXiang = exports.ZaiQi = exports.HuoShou = exports.NiePan = exports.LianHuan = exports.QiCai = exports.JiZhi = exports.FangQuan = exports.XiangLe = exports.JiLi = exports.LieGong = exports.KuangGu = exports.KanPo = exports.HuoJi = exports.BaZhen = exports.MaShu = exports.TieQi = exports.LongDan = exports.PaoXiao = exports.WuSheng = exports.Rende = void 0;
+exports.TianFu = exports.KanPoJiangWei = exports.YiZhi = exports.GuanXingJiangWei = exports.TiaoXin = exports.KongCheng = exports.KongChengCancellor = exports.GuanXing = exports.ShouCheng = exports.ShengXi = exports.ShenZhi = exports.ShuShen = exports.LieRen = exports.JuXiang = exports.ZaiQi = exports.HuoShou = exports.NiePan = exports.LianHuan = exports.QiCai = exports.JiZhi = exports.FangQuan = exports.XiangLe = exports.JiLi = exports.LieGong = exports.KuangGu = exports.KanPo = exports.HuoJi = exports.BaZhen = exports.MaShu = exports.TieQi = exports.LongDan = exports.PaoXiao = exports.WuSheng = exports.Rende = void 0;
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const DamageOp_1 = __webpack_require__(/*! ../../server/engine/DamageOp */ "./javascript/server/engine/DamageOp.tsx");
 const StageFlows_1 = __webpack_require__(/*! ../../server/engine/StageFlows */ "./javascript/server/engine/StageFlows.tsx");
@@ -9930,6 +10022,7 @@ const AskSavingOp_1 = __webpack_require__(/*! ../../server/engine/AskSavingOp */
 const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */ "./javascript/server/engine/CardFightOp.tsx");
 const CustomUIRegistry_1 = __webpack_require__(/*! ../../client/card-panel/CustomUIRegistry */ "./javascript/client/card-panel/CustomUIRegistry.tsx");
 const DropCardOp_1 = __webpack_require__(/*! ../../server/engine/DropCardOp */ "./javascript/server/engine/DropCardOp.tsx");
+const FactionSkillsGeneric_1 = __webpack_require__(/*! ./FactionSkillsGeneric */ "./javascript/game-mode-faction/skill/FactionSkillsGeneric.tsx");
 const REN_DE_SLASH = [SlashOp_1.SlashType.RED, SlashOp_1.SlashType.BLACK, SlashOp_1.SlashType.FIRE, SlashOp_1.SlashType.THUNDER];
 class Rende extends Skill_1.Skill {
     constructor() {
@@ -11321,6 +11414,66 @@ class YiZhi extends Skill_1.Skill {
     }
 }
 exports.YiZhi = YiZhi;
+class KanPoJiangWei extends KanPo {
+    constructor() {
+        super(...arguments);
+        this.id = '看破(姜维)';
+    }
+}
+exports.KanPoJiangWei = KanPoJiangWei;
+class TianFu extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '天覆';
+        this.displayName = '天覆';
+        this.description = '主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。';
+        this.disabledForSub = true;
+        this.hiddenType = Skill_1.HiddenType.NONE;
+    }
+    onStatusUpdated(manager, repo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.isGone && !this.isDisabled && this.isRevealed) {
+                this.isGone = true;
+                console.log(`[${this.id}] 生效增加姜维的看破技能`);
+                this.myKanPo = new KanPoJiangWei(this.playerId);
+                this.myKanPo.isRevealed = true;
+                this.myKanPo.isMain = true;
+                repo.addSkill(this.playerId, this.myKanPo);
+                //check disabled ness
+                if (FactionSkillsGeneric_1.areInFormation(manager.currPlayer().player.id, this.playerId, manager.context)) {
+                    console.log(`${this.displayName} 使看破生效`);
+                    this.myKanPo.isDisabled = false;
+                }
+                else {
+                    console.log(`${this.displayName} 使看破禁用`);
+                    this.myKanPo.isDisabled = true;
+                }
+                manager.send(this.playerId, this.myKanPo.toStatus());
+                manager.send(this.playerId, this.toStatus());
+            }
+        });
+    }
+    bootstrapServer(skillRegistry, manager, repo) {
+        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
+            if (!this.myKanPo) {
+                return;
+            }
+            if (FactionSkillsGeneric_1.areInFormation(this.playerId, event.info.player.id, manager.context)) {
+                if (this.myKanPo.isDisabled) {
+                    console.log(`${this.displayName} 使看破生效`);
+                    yield repo.changeSkillDisabledness(this.myKanPo, false, this.displayName, null);
+                }
+            }
+            else {
+                if (!this.myKanPo.isDisabled) {
+                    console.log(`${this.displayName} 使看破禁用`);
+                    yield repo.changeSkillDisabledness(this.myKanPo, true, this.displayName, null);
+                }
+            }
+        }));
+    }
+}
+exports.TianFu = TianFu;
 // 遗志 副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。
 // 天覆 主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。
 // 潜袭 准备阶段，你可以进行判定，然后你选择距离为1的一名角色，直到回合结束，该角色不能使用或打出与结果颜色相同的手牌。
@@ -12581,7 +12734,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FenJi = exports.BuQu = exports.FenMing = exports.DuanXie = exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
+exports.HunShang = exports.YingHunCe = exports.YingZiCe = exports.YingYang = exports.JiAng = exports.FenJi = exports.BuQu = exports.FenMing = exports.DuanXie = exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const PlayerActionDriverDefiner_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverDefiner */ "./javascript/client/player-actions/PlayerActionDriverDefiner.tsx");
@@ -13051,7 +13204,7 @@ class YingHun extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
     }
     conditionFulfilled(event, manager) {
-        if (event.info.player.id === this.playerId && event.stage === Stage_1.Stage.ROUND_BEGIN) {
+        if (event.isFor(this.playerId, Stage_1.Stage.ROUND_BEGIN)) {
             let me = manager.context.getPlayer(this.playerId);
             return me.hp < me.maxHp;
         }
@@ -13636,13 +13789,190 @@ class FenJi extends Skill_1.SimpleConditionalSkill {
     }
 }
 exports.FenJi = FenJi;
+class RedSlashTrigger {
+    constructor(skill) {
+        this.skill = skill;
+    }
+    getSkill() {
+        return this.skill;
+    }
+    invokeMsg(event, manager) {
+        return '发动' + this.skill.displayName;
+    }
+    conditionFulfilled(event, manager) {
+        if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.target.player.id === this.skill.playerId) {
+            return event.color === 'red';
+        }
+        if (event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
+            return event.color === 'red';
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.skill.invokeEffects(manager);
+            yield new TakeCardOp_1.default(manager.context.getPlayer(this.skill.playerId), 1).perform(manager);
+        });
+    }
+}
+class JueDouTrigger {
+    constructor(skill) {
+        this.skill = skill;
+    }
+    getSkill() {
+        return this.skill;
+    }
+    invokeMsg(event, manager) {
+        return '发动' + this.skill.displayName;
+    }
+    conditionFulfilled(event, manager) {
+        if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.target.player.id === this.skill.playerId) {
+            return true;
+        }
+        if (event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
+            return true;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.skill.invokeEffects(manager);
+            yield new TakeCardOp_1.default(manager.context.getPlayer(this.skill.playerId), 1).perform(manager);
+        });
+    }
+}
+class JiAng extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '激昂';
+        this.displayName = '激昂';
+        this.description = '当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。';
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(SlashOp_1.SlashCompute, new RedSlashTrigger(this));
+        skillRegistry.on(SingleRuseOp_1.JueDou, new JueDouTrigger(this));
+    }
+}
+exports.JiAng = JiAng;
+class YingYang extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '鹰扬';
+        this.displayName = '鹰扬';
+        this.description = '当你拼点的牌亮出后，你可以令此牌的点数+3或-3。';
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(CardFightOp_1.default, this);
+    }
+    conditionFulfilled(event, manager) {
+        return event.initiater.player.id === this.playerId || event.target.player.id === this.playerId;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let resp = yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                hintMsg: '请选择让你的拼点牌点数:',
+                extraButtons: [new PlayerAction_1.Button('+3', '+3'), new PlayerAction_1.Button('-3', '-3'), PlayerAction_1.Button.CANCEL]
+            });
+            if (resp.isCancel()) {
+                return;
+            }
+            let delta = 0;
+            if (resp.button === '+3') {
+                delta = 3;
+            }
+            else {
+                delta = -3;
+            }
+            if (event.initiater.player.id === this.playerId) {
+                event.initiatorPoint += delta;
+            }
+            else {
+                event.targetPoint += delta;
+            }
+            this.invokeEffects(manager, [], `${this.playerId} 发动 ${this.displayName} 使其判定牌点数 ${delta}`);
+        });
+    }
+}
+exports.YingYang = YingYang;
+class YingZiCe extends YingZi {
+    constructor() {
+        super(...arguments);
+        this.id = '英姿(策)';
+    }
+}
+exports.YingZiCe = YingZiCe;
+class YingHunCe extends YingHun {
+    constructor() {
+        super(...arguments);
+        this.id = '英魂(策)';
+    }
+}
+exports.YingHunCe = YingHunCe;
+class HunShang extends Skill_1.Skill {
+    constructor() {
+        super(...arguments);
+        this.id = '魂殇';
+        this.displayName = '魂殇';
+        this.description = '副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。';
+        this.hiddenType = Skill_1.HiddenType.NONE;
+        this.disabledForMain = true;
+        this.isLocked = true;
+    }
+    onStatusUpdated(manager, repo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.isGone && !this.isDisabled && this.isRevealed) {
+                this.isGone = true;
+                console.log(`[${this.id}] 生效增加孙策技能`);
+                let myNew = new YingZiCe(this.playerId);
+                myNew.isRevealed = true;
+                myNew.isForewarned = true;
+                repo.addSkill(this.playerId, myNew);
+                this.myYingZi = myNew;
+                let myNew2 = new YingHunCe(this.playerId);
+                myNew2.isRevealed = true;
+                myNew.isForewarned = true;
+                this.myYingHun = myNew2;
+                repo.addSkill(this.playerId, myNew2);
+                if (manager.currEffect.stage !== Stage_1.Stage.ROUND_BEGIN || manager.currEffect.player !== this.playerId) {
+                    yield repo.changeSkillDisabledness(this.myYingZi, false, this.displayName, null);
+                    yield repo.changeSkillDisabledness(this.myYingHun, false, this.displayName, null);
+                }
+                manager.send(this.playerId, myNew.toStatus());
+                manager.send(this.playerId, myNew2.toStatus());
+                manager.send(this.playerId, this.toStatus());
+            }
+        });
+    }
+    bootstrapServer(skillRegistry, manager, repo) {
+        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
+            if (event.stage === Stage_1.Stage.ROUND_BEGIN) {
+                if (event.info.player.id === this.playerId) {
+                    if (this.myYingHun && this.myYingZi && this.myYingHun.isDisabled && manager.context.getPlayer(this.playerId).hp <= 1) {
+                        console.log(`${this.displayName} 英姿英魂生效`);
+                        yield repo.changeSkillDisabledness(this.myYingZi, true, this.displayName, null);
+                        yield repo.changeSkillDisabledness(this.myYingHun, true, this.displayName, null);
+                    }
+                }
+                else {
+                    if (this.myYingHun && this.myYingZi && !this.myYingHun.isDisabled) {
+                        console.log(`${this.displayName} 英姿英魂失效`);
+                        yield repo.changeSkillDisabledness(this.myYingZi, false, this.displayName, null);
+                        yield repo.changeSkillDisabledness(this.myYingHun, false, this.displayName, null);
+                    }
+                }
+            }
+        }));
+    }
+}
+exports.HunShang = HunShang;
+// 激昂 当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。
+// 鹰扬 当你拼点的牌亮出后，你可以令此牌的点数+3或-3。
+// 魂殇 副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。
 // 短兵 你使用【杀】可以多选择一名距离为1的角色为目标。
 // 奋迅 出牌阶段限一次，你可以弃置一张牌并选择一名其他角色，然后本回合你计算与其的距离视为1。
 // 尚义 出牌阶段限一次，你可以令一名其他角色观看你的手牌。若如此做，你选择一项：1.观看其手牌并可以弃置其中的一张黑色牌；2.观看其所有暗置的武将牌。
 // 鸟翔 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，你令该角色需依次使用两张【闪】才能抵消。
-// 激昂 当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。
-// 鹰扬 当你拼点的牌亮出后，你可以令此牌的点数+3或-3。
-// 魂殇 副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。
 // 调度 与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。
 // 典财 其他角色的出牌阶段结束时，若你于此阶段失去了X张或更多的牌，则你可以将手牌摸至体力上限，然后你可以变更一次副将(X为你的体力值)。
 
@@ -13755,6 +14085,8 @@ exports.FactionSkillProviders.register('观星', pid => new FactionSkillsShu_1.G
 exports.FactionSkillProviders.register('挑衅', pid => new FactionSkillsShu_1.TiaoXin(pid));
 exports.FactionSkillProviders.register('观星(姜维)', pid => new FactionSkillsShu_1.GuanXingJiangWei(pid));
 exports.FactionSkillProviders.register('遗志', pid => new FactionSkillsShu_1.YiZhi(pid));
+exports.FactionSkillProviders.register('看破(姜维)', pid => new FactionSkillsShu_1.KanPoJiangWei(pid));
+exports.FactionSkillProviders.register('天覆', pid => new FactionSkillsShu_1.TianFu(pid));
 exports.FactionSkillProviders.register('制衡', pid => new FactionSkillsWu_1.ZhiHeng(pid));
 exports.FactionSkillProviders.register('奇袭', pid => new FactionSkillsWu_1.QiXi(pid));
 exports.FactionSkillProviders.register('苦肉', pid => new FactionSkillsWu_1.KuRou(pid));
@@ -13781,6 +14113,11 @@ exports.FactionSkillProviders.register('奋命', pid => new FactionSkillsWu_1.Fe
 exports.FactionSkillProviders.register('断绁', pid => new FactionSkillsWu_1.DuanXie(pid));
 exports.FactionSkillProviders.register('不屈', pid => new FactionSkillsWu_1.BuQu(pid));
 exports.FactionSkillProviders.register('奋激', pid => new FactionSkillsWu_1.FenJi(pid));
+exports.FactionSkillProviders.register('英姿(策)', pid => new FactionSkillsWu_1.YingZiCe(pid));
+exports.FactionSkillProviders.register('英魂(策)', pid => new FactionSkillsWu_1.YingHunCe(pid));
+exports.FactionSkillProviders.register('魂殇', pid => new FactionSkillsWu_1.HunShang(pid));
+exports.FactionSkillProviders.register('激昂', pid => new FactionSkillsWu_1.JiAng(pid));
+exports.FactionSkillProviders.register('鹰扬', pid => new FactionSkillsWu_1.YingYang(pid));
 exports.FactionSkillProviders.register('除疠', pid => new FactionSkillsQun_1.ChuLi(pid));
 exports.FactionSkillProviders.register('急救', pid => new FactionSkillsQun_1.JiJiu(pid));
 exports.FactionSkillProviders.register('无双', pid => new FactionSkillsQun_1.WuShuang(pid));
@@ -13827,42 +14164,9 @@ class FactionWarSkillRepo {
             }
             console.log('[技能] 收到对武将牌封禁的修改', update.reason, update.target.player.id, skills.map(s => s.id));
             for (let s of skills) {
-                let disabler = this.disablers.find(d => d.playerId === s.playerId && d.skillId === s.id);
-                console.log('[技能] 已有的封禁理由: ', s.id, disabler ? disabler.reasons : []);
-                if (update.enable) {
-                    //除掉之前的disabler, 
-                    if (!disabler || !disabler.reasons.has(update.reason)) {
-                        throw 'Impossible!, How can we enable if we did NOT disable?';
-                    }
-                    disabler.reasons.delete(update.reason);
-                    delete marks[update.reason];
-                    //如果干净了, 我们才恢复
-                    if (disabler.reasons.size === 0) {
-                        console.log('[技能] 恢复技能', s.playerId, s.id);
-                        s.isDisabled = false;
-                        yield s.onStatusUpdated(this.manager, this);
-                        this.manager.send(s.playerId, s.toStatus());
-                    }
-                }
-                else {
-                    //如果已经disable了, 不要再来一次
-                    if (!disabler) {
-                        disabler = new Disabler(s.playerId, s.id);
-                        this.disablers.push(disabler);
-                    }
-                    if (disabler.reasons.size === 0) {
-                        console.log('[技能] 禁止技能', s.playerId, s.id);
-                        //进行disable作业
-                        s.isDisabled = true;
-                        yield s.onStatusUpdated(this.manager, this);
-                        this.manager.send(s.playerId, s.toStatus());
-                    }
-                    marks[update.reason] = update.reason;
-                    //加我们一个disabler
-                    disabler.reasons.add(update.reason);
-                }
-                this.manager.broadcast(update.target, PlayerInfo_1.PlayerInfo.sanitize);
+                yield this.changeSkillDisabledness(s, update.enable, update.reason, marks);
             }
+            this.manager.broadcast(update.target, PlayerInfo_1.PlayerInfo.sanitize);
         });
         this.onRevealEvent = (e) => __awaiter(this, void 0, void 0, function* () {
             let skills = this.allSkills.getArr(e.playerId);
@@ -13932,6 +14236,48 @@ class FactionWarSkillRepo {
             throw '[技能] 未找到技能: ' + pid + ' > ' + skillId;
         }
         return skill;
+    }
+    changeSkillDisabledness(s, enable, reason, marks) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let disabler = this.disablers.find(d => d.playerId === s.playerId && d.skillId === s.id);
+            console.log('[技能] 已有的封禁理由: ', s.id, disabler ? disabler.reasons : []);
+            if (enable) {
+                //除掉之前的disabler, 
+                if (!disabler || !disabler.reasons.has(reason)) {
+                    throw 'Impossible!, How can we enable if we did NOT disable?';
+                }
+                disabler.reasons.delete(reason);
+                if (marks) {
+                    delete marks[reason];
+                }
+                //如果干净了, 我们才恢复
+                if (disabler.reasons.size === 0) {
+                    console.log('[技能] 恢复技能', s.playerId, s.id);
+                    s.isDisabled = false;
+                    yield s.onStatusUpdated(this.manager, this);
+                    this.manager.send(s.playerId, s.toStatus());
+                }
+            }
+            else {
+                //如果已经disable了, 不要再来一次
+                if (!disabler) {
+                    disabler = new Disabler(s.playerId, s.id);
+                    this.disablers.push(disabler);
+                }
+                if (disabler.reasons.size === 0) {
+                    console.log('[技能] 禁止技能', s.playerId, s.id);
+                    //进行disable作业
+                    s.isDisabled = true;
+                    yield s.onStatusUpdated(this.manager, this);
+                    this.manager.send(s.playerId, s.toStatus());
+                }
+                if (marks) {
+                    marks[reason] = reason;
+                }
+                //加我们一个disabler
+                disabler.reasons.add(reason);
+            }
+        });
     }
 }
 exports.default = FactionWarSkillRepo;
@@ -15837,7 +16183,10 @@ class CardFightOp extends Operation_1.Operation {
             yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(this.initiater.player.id, [[this.initiatorCard, CardPos_1.CardPos.HAND]]));
             manager.sendToWorkflow(this.target.player.id, CardPos_1.CardPos.HAND, [this.targetCard], false);
             yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(this.target.player.id, [[this.targetCard, CardPos_1.CardPos.HAND]]));
-            let success = this.initiatorCard.size.size > this.targetCard.size.size;
+            this.initiatorPoint = this.initiatorCard.size.size;
+            this.targetPoint = this.targetCard.size.size;
+            yield manager.events.publish(this);
+            let success = this.initiatorPoint > this.targetPoint;
             console.log('[拼点] 结果成功?', success);
             this.broadcast(manager, false);
             yield Util_1.delay(2000);
@@ -15849,7 +16198,9 @@ class CardFightOp extends Operation_1.Operation {
         manager.broadcast(new CustomUIRegistry_1.CustomUIData('card-fight', {
             title: this.title,
             cardLeft: this.initiatorCard,
-            cardRight: this.targetCard
+            cardRight: this.targetCard,
+            numberLeft: this.initiatorPoint,
+            numberRight: this.targetPoint
         }), sanitize ? this.sanitize : null);
     }
 }
