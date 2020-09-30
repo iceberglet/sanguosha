@@ -59,7 +59,7 @@ doAdd('wind_xiao_qiao', -50, 0, 150, 150, -100, -0, 170, 170)
 doAdd('fire_tai_shi_ci', -65, -40, 170, 170, -80, -50, 170, 170)
 doAdd('wind_zhou_tai', -55, -20, 170, 170, -80, -20, 170, 170)
 doAdd('forest_lu_su', -70, -20, 170, 170, -80, -20, 170, 170)
-doAdd('mountain_er_zhang', -35, -20, 150, 150, -40, -70, 170, 170)
+doAdd('mountain_er_zhang', -35, -20, 150, 150, -30, -10, 110, 110)
 doAdd('guo_ding_feng', -25, -50, 150, 150, -40, -50, 170, 170)
 
 doAdd('standard_hua_tuo', -50, -5, 150, 150, -90, -10, 170, 170)
