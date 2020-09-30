@@ -327,7 +327,7 @@ export default class GameManager {
 
     private async processJudgingStage() {
         let p = this.currPlayer()
-        let judgeCards = [...p.getCards(CardPos.JUDGE)]
+        let judgeCards = [...p.getCards(CardPos.JUDGE)].reverse()
         for(let j = 0; j < judgeCards.length; ++j) {
             console.log('[Game Manager] 延时锦囊结算', judgeCards[j].type)
             await new JudgeDelayedRuseOp(p, judgeCards[j]).perform(this)

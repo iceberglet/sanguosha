@@ -15326,7 +15326,7 @@ class GameManager {
     processJudgingStage() {
         return __awaiter(this, void 0, void 0, function* () {
             let p = this.currPlayer();
-            let judgeCards = [...p.getCards(CardPos_1.CardPos.JUDGE)];
+            let judgeCards = [...p.getCards(CardPos_1.CardPos.JUDGE)].reverse();
             for (let j = 0; j < judgeCards.length; ++j) {
                 console.log('[Game Manager] 延时锦囊结算', judgeCards[j].type);
                 yield new DelayedRuseOp_1.JudgeDelayedRuseOp(p, judgeCards[j]).perform(this);
