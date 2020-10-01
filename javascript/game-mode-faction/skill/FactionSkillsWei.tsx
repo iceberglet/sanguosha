@@ -990,9 +990,7 @@ export class XiaoGuo extends SimpleConditionalSkill<StageStartFlow> {
         let meAbandoned = await askAbandonBasicCard(manager, me, '请弃置一张基本牌发动骁果', true)
         if(meAbandoned) {
             console.log('[骁果] 弃置了基本牌, 对方需要弃置装备牌', event.info)
-            this.playSound(manager, 2)
-            manager.log(`${this.playerId} 发动了 ${this.displayName}`)
-            manager.broadcast(new TextFlashEffect(this.playerId, [event.info.player.id], this.id))
+            this.invokeEffects(manager, [event.info.player.id])
             let res = await askAbandonEquip(manager, event.info, '请弃置一张装备牌, 否则受到骁果的伤害', true)
             if(res) {
                 console.log('[骁果] 对方弃置了装备牌, ok lor')
@@ -1160,6 +1158,18 @@ export class JiXi extends Skill {
 // }
 
 /*
+
+export class XunXun extends Skill<DamageOp> {
+    id = '恂恂'
+    displayName = '恂恂'
+    description = '摸牌阶段开始时，你可以观看牌堆顶的四张牌，然后将其中的两张牌置于牌堆顶，将其余的牌置于牌堆底。'
+}
+
+export class WangXi extends Skill<DamageOp> {
+    id = '忘隙'
+    displayName = '忘隙'
+    description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。'
+}
 
 export class HuYuan extends Skill<DamageOp> {
 

@@ -41,11 +41,6 @@ export default class DeathOp extends Operation<void> {
 
         await manager.events.publish(this)
 
-        //show player death. no need to sanitize anymore
-        this.deceased.declareDeath()
-        manager.broadcast(this.deceased)
-        manager.log(this.killer? `${this.killer} 击杀了 ${this.deceased}` : `${this.deceased} 阵亡`)
-
         //检查是否满足游戏结束条件
         this.timeline = DeathTimeline.AFTER_REVEAL
         await manager.events.publish(this)
@@ -59,6 +54,11 @@ export default class DeathOp extends Operation<void> {
             cardAndPos[0].description = `${this.deceased.player.id} 阵亡弃牌`
             manager.sendToWorkflow(this.deceased.player.id, cardAndPos[1], [cardAndPos[0]])
         })
+
+        //show player death. no need to sanitize anymore
+        this.deceased.declareDeath()
+        manager.broadcast(this.deceased)
+        manager.log(this.killer? `${this.killer} 击杀了 ${this.deceased}` : `${this.deceased} 阵亡`)
 
         //处理奖惩
         this.timeline = DeathTimeline.AFTER_DEATH

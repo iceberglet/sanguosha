@@ -189,6 +189,10 @@ export abstract class PlayerInfo {
         return false
     }
 
+    hasCardAt(pos: CardPos): boolean {
+        return this.getCards(pos).length > 0
+    }
+
     hasOwnCards(): boolean {
         for(let kv of this.cards) {
             if(kv[0] === CardPos.HAND || kv[0] === CardPos.EQUIP) {

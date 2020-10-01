@@ -38,7 +38,9 @@ import { getFactionsWithLeastMembers, getFactionMembers } from "../FactionWarUti
 import { registerPeach } from "../../client/player-actions/PlayerActionDrivers";
 import CardFightOp from "../../server/engine/CardFightOp";
 import { EquipOp } from "../../server/engine/EquipOp";
-import { CardTransit } from "../../common/transit/EffectTransit";
+import { GrabCard } from '../../server/engine/SingleRuseOp'
+import { DUMMY_GENERAL_NAME } from "../FactionWarGenerals";
+import { removeGeneral } from "./FactionSkillsGeneric";
 
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
@@ -1230,16 +1232,18 @@ export class DuanChange extends SimpleConditionalSkill<DeathOp> {
         let resp = await manager.sendHint(this.playerId, {
             hintType: HintType.MULTI_CHOICE,
             hintMsg: `请选择令${event.killer}失去哪一张武将牌的技能`,
-            extraButtons: [new Button('main', '主将'), new Button('sub', '副将')]
+            extraButtons: [new Button('main', '主将的技能'), new Button('sub', '副将的技能')]
         })
         let position = resp.button
         //set isGone = true so client side does not have them any more
         for(let s of this.skillRepo.getSkills(event.killer.player.id)) {
-            s.isGone = true
+            if(s.position === position) {
+                s.isGone = true
+            }
         }
 
         //disable the abilities
-        manager.events.publish(new GeneralSkillStatusUpdate(this.displayName, event.killer as FactionPlayerInfo, position as SkillPosition, false, true))
+        await manager.events.publish(new GeneralSkillStatusUpdate(this.displayName, event.killer as FactionPlayerInfo, position as SkillPosition, false, true))
     }
 }
 
@@ -1285,20 +1289,124 @@ export class BeiGe extends SimpleConditionalSkill<DamageOp> {
     }
 }
 
+export class HengZheng extends SimpleConditionalSkill<StageStartFlow> {
 
+    id = '横征'
+    displayName = '横征'
+    description = '摸牌阶段，若你的体力值为1或你没有手牌，则你可以改为获得每名其他角色区域里的一张牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+    }
+
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        if(event.isFor(this.playerId, Stage.TAKE_CARD) && !manager.roundStats.skipStages.get(Stage.TAKE_CARD)) {
+            let me = manager.context.getPlayer(this.playerId)
+            return me.hp === 1 || me.getCards(CardPos.HAND).length === 1
+        }
+        return false
+    }
+
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let targets = manager.getSortedByCurr(false).filter(p => !p.hasCards())
+        manager.roundStats.skipStages.set(Stage.TAKE_CARD, true)
+        this.invokeEffects(manager, targets.map(t => t.player.id))
+        for(let target of targets) {
+            await GrabCard(event.info, target, `${this.displayName} > ${target}`, manager, [CardPos.HAND, CardPos.EQUIP, CardPos.JUDGE])
+        }
+    }
+}
+
+export class BaoLing extends SimpleConditionalSkill<StageEndFlow> {
+    
+    id = '暴凌'
+    displayName = '暴凌'
+    description = '主将技，锁定技，出牌阶段结束时，若你有副将，则你移除副将，然后加3点体力上限，回复3点体力，并获得“崩坏”。'
+    isLocked = true
+    disabledForSub = true
+    skillRepo: SkillRepo
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, skillRepo: SkillRepo): void {
+        skillRegistry.on<StageEndFlow>(StageEndFlow, this)
+        this.skillRepo = skillRepo
+    }
+
+    public conditionFulfilled(event: StageEndFlow, manager: GameManager): boolean {
+        if(event.isFor(this.playerId, Stage.USE_CARD)) {
+            let me = manager.context.getPlayer(this.playerId) as FactionPlayerInfo
+            return me.isSubGeneralRevealed && me.subGeneral.name !== DUMMY_GENERAL_NAME
+        }
+        return false
+    }
+
+    public async doInvoke(event: StageEndFlow, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+
+        let me = manager.context.getPlayer(this.playerId)
+        me.maxHp += 3
+        me.hp += 3
+
+        await removeGeneral(manager, this.skillRepo, this.playerId, false)
+
+        console.log(`[${this.id}] 获得技能'崩坏'`)
+        let myNew = new BengHuai(this.playerId)
+        myNew.isRevealed = true
+        myNew.position = 'main'
+        this.skillRepo.addSkill(this.playerId, myNew)
+        manager.send(this.playerId, myNew.toStatus())
+    }
+}
+
+export class BengHuai extends SimpleConditionalSkill<StageStartFlow> {
+    
+    id = '崩坏'
+    displayName = '崩坏'
+    description = '锁定技，结束阶段，若你不是体力值最小的角色，你失去1点体力或减1点体力上限。'
+    hiddenType = HiddenType.NONE
+    isLocked = true
+    disabledForMain = true
+    disabledForSub = true
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+    }
+
+    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        if(event.isFor(this.playerId, Stage.ROUND_END)) {
+            let others = manager.getSortedByCurr(false).map(p => p.hp)
+            let meHp = manager.context.getPlayer(this.playerId).hp
+            if(Math.min(...others) < meHp) {
+                return true
+            }
+        }
+        return false
+    }
+
+    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.MULTI_CHOICE,
+            hintMsg: `请选择崩坏的效果`,
+            extraButtons: [new Button('hp', '失去一点体力'), new Button('maxHp', '减1点体力上限')]
+        })
+        this.invokeEffects(manager)
+        let me = manager.context.getPlayer(this.playerId)
+        if(resp.button === 'hp') {
+            await new DamageOp(me, me, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+        } else {
+            me.changeMax(-1)
+            manager.broadcast(me, PlayerInfo.sanitize)
+        }
+    }
+}
 
 // 名士 锁定技，当你受到伤害时，若伤害来源有暗置的武将牌，此伤害-1。
 // 礼让 当你的牌因弃置而置入弃牌堆时，你可以将其中的任意张牌交给其他角色。
 // 双刃 出牌阶段开始时，你可以与一名角色拼点。若你赢，你视为对其或与其势力相同的另一名角色使用一张【杀】；若你没赢，你结束出牌阶段。
 
-// 狂斧 当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。
 // 祸水 出牌阶段，你可以明置此武将牌；你的回合内，其他角色不能明置其武将牌。
 // 倾城 出牌阶段，你可以弃置一张黑色牌并选择一名武将牌均明置的其他角色，然后你暗置其一张武将牌。然后若你以此法弃置的牌是黑色装备牌，则你可以再选择另一名武将牌均明置的其他角色，暗置其一张武将牌。
 
 // 千幻 当与你势力相同的一名角色受到伤害后，你可以将一张与你武将牌上花色均不同的牌置于你的武将牌上。当一名与你势力相同的角色成为基本牌或锦囊牌的唯一目标时，你可以移去一张“千幻”牌，取消之。
-// 横征 摸牌阶段，若你的体力值为1或你没有手牌，则你可以改为获得每名其他角色区域里的一张牌。
-// 暴凌 主将技，锁定技，出牌阶段结束时，若你有副将，则你移除副将，然后加3点体力上限，回复3点体力，并获得“崩坏”。
-// 崩坏 锁定技，结束阶段，若你不是体力值最小的角色，你失去1点体力或减1点体力上限。
 
 // 穿心 可预亮,当你于出牌阶段内使用【杀】或【决斗】对目标角色造成伤害时，若其与你势力不同且有副将，你可以防止此伤害。若如此做，该角色选择一项：1.弃置装备区里的所有牌，若如此做，其失去1点体力；2.移除副将。
 // 锋矢 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，可令该角色弃置装备区里的一张牌。

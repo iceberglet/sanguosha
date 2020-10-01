@@ -9,10 +9,10 @@ import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianD
         JieMing, QuHu, YiJi, QiaoBian, XiaoGuo, TunTian, JiXi, ZiLiang } from "./FactionSkillsWei";
 import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi, 
         HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng, KongCheng, GuanXing, YiZhi, TiaoXin, GuanXingJiangWei, KanPoJiangWei, TianFu } from "./FactionSkillsShu";
-import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng, KeJi, MouDuan, FenMing, DuanXie, BuQu, FenJi, YingYang, JiAng, HunShang, YingZiCe, YingHunCe } from "./FactionSkillsWu";
+import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng, KeJi, MouDuan, FenMing, DuanXie, BuQu, FenJi, YingYang, JiAng, HunShang, YingZiCe, YingHunCe, DiaoDuo, DianCai } from "./FactionSkillsWu";
 import { Stage } from "../../common/Stage";
 import { Mark, PlayerInfo } from "../../common/PlayerInfo";
-import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan, MaShuPang, MaShuTeng, LeiJi, GuiDao, SuiShi, SiJian, LuanJi, XiongYi, JianChu, XiongSuan, MouShi, FengLue, JianYing, ShiBei, KuangFu, DuanChange, BeiGe } from "./FactionSkillsQun";
+import { WeiMu, LuanWu, WanSha, ShuangXiong, BiYue, LiJian, WuShuang, JiJiu as JiJiu, ChuLi, CongJian, FuDi, ZhenDu, QiLuan, MaShuPang, MaShuTeng, LeiJi, GuiDao, SuiShi, SiJian, LuanJi, XiongYi, JianChu, XiongSuan, MouShi, FengLue, JianYing, ShiBei, KuangFu, DuanChange, BeiGe, BengHuai, BaoLing, HengZheng } from "./FactionSkillsQun";
 
 
 class FactionSkillProvider {
@@ -128,6 +128,8 @@ FactionSkillProviders.register('英魂(策)', pid => new YingHunCe(pid))
 FactionSkillProviders.register('魂殇', pid => new HunShang(pid))
 FactionSkillProviders.register('激昂', pid => new JiAng(pid))
 FactionSkillProviders.register('鹰扬', pid => new YingYang(pid))
+FactionSkillProviders.register('调度', pid => new DiaoDuo(pid))
+FactionSkillProviders.register('典财', pid => new DianCai(pid))
 
 FactionSkillProviders.register('除疠', pid => new ChuLi(pid))
 FactionSkillProviders.register('急救', pid => new JiJiu(pid))
@@ -159,6 +161,9 @@ FactionSkillProviders.register('谋识', pid => new MouShi(pid))
 FactionSkillProviders.register('狂斧', pid => new KuangFu(pid))
 FactionSkillProviders.register('悲歌', pid => new BeiGe(pid))
 FactionSkillProviders.register('断肠', pid => new DuanChange(pid))
+FactionSkillProviders.register('横征', pid => new HengZheng(pid))
+FactionSkillProviders.register('暴凌', pid => new BaoLing(pid))
+FactionSkillProviders.register('崩坏', pid => new BengHuai(pid))
 
 export default class FactionWarSkillRepo implements SkillRepo {
     

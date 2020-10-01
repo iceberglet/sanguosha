@@ -1395,6 +1395,7 @@ class CompositePlayerActionDriver extends PlayerActionDriver {
             return this.theOne.getUsableButtons();
         }
         else {
+            //get buttons only if all delegates have it!
             let base = this.delegates[0].getUsableButtons();
             for (let i = 1; i < this.delegates.length; ++i) {
                 base = base.filter(b => this.delegates[i].getUsableButtons().find(bb => bb.id === b.id));
@@ -2742,7 +2743,7 @@ class UIBoard extends React.Component {
                 if (matchIdx < 0) {
                     console.info('Received a new skill!', s);
                     let skill = GameMode_1.GameMode.get(context.gameMode).skillProvider(s.id, myId);
-                    skill.position = s.position;
+                    Object.assign(skill, s);
                     skill.bootstrapClient(context, context.getPlayer(myId));
                     state.skillButtons.push({
                         skill,
@@ -2847,7 +2848,7 @@ class UIBoard extends React.Component {
                 React.createElement("div", { className: 'player-buttons' },
                     React.createElement("div", { className: 'server-hint-msg' }, context.getMsg()),
                     context.getButtons().map(b => {
-                        return React.createElement(UIButton_1.default, { key: b.id, display: b.display, onClick: () => buttonChecker.onClicked(b.id), disabled: !buttonChecker.getStatus(b.id).isSelectable });
+                        return React.createElement(UIButton_1.default, { key: b.id, display: b.display, onClick: () => buttonChecker.onClicked(b.id), className: b.id === 'abort' ? 'ui-button-abort' : '', disabled: !buttonChecker.getStatus(b.id).isSelectable });
                     })),
                 React.createElement("div", { className: 'buttons' },
                     React.createElement(UIButton_1.default, { display: showDistance ? '隐藏距离' : '显示距离', onClick: () => { this.setState({ showDistance: !showDistance }); }, disabled: false }),
@@ -2872,7 +2873,7 @@ exports.default = UIBoard;
 Object.defineProperty(exports, "__esModule", { value: true });
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 function UIButton(p) {
-    return React.createElement("button", { className: 'ui-button', disabled: p.disabled, onClick: () => p.disabled || p.onClick() }, p.display);
+    return React.createElement("button", { className: 'ui-button ' + p.className, disabled: p.disabled, onClick: () => p.disabled || p.onClick() }, p.display);
 }
 exports.default = UIButton;
 
@@ -3222,9 +3223,9 @@ function UIHpCol(p) {
     // console.log(p.current, p.total, color)
     if (p.total > 5) {
         return React.createElement("div", { className: 'hp-col' },
-            React.createElement("div", { className: 'hp', style: { color } }, p.current),
-            React.createElement("div", { className: 'hp', style: { color } }, "/"),
             React.createElement("div", { className: 'hp', style: { color } }, p.total),
+            React.createElement("div", { className: 'hp', style: { color } }, "/"),
+            React.createElement("div", { className: 'hp', style: { color } }, p.current),
             React.createElement("img", { className: 'hp', src: `icons/yy_${color}.png` }));
     }
     return React.createElement("div", { className: 'hp-col' }, Array(p.total).fill(0).map((v, i) => {
@@ -4759,6 +4760,9 @@ class PlayerInfo {
             }
         }
         return false;
+    }
+    hasCardAt(pos) {
+        return this.getCards(pos).length > 0;
     }
     hasOwnCards() {
         for (let kv of this.cards) {
@@ -7841,6 +7845,8 @@ function doAdd(id, x, y, w, h, x2, y2, w2, h2) {
     bigRender.set(id, { x, y, w, h });
     smallRender.set(id, { x: x2, y: y2, w: w2, h: h2 });
 }
+doAdd('guo_soldier_male', -80, -30, 180, 180, -115, -35, 200, 200);
+doAdd('guo_soldier_female', -80, -50, 180, 180, -130, -45, 200, 200);
 doAdd('standard_cao_cao', -80, -30, 180, 180, -130, -25, 200, 200);
 doAdd('standard_si_ma_yi', -40, 0, 150, 150, -90, -15, 200, 200);
 doAdd('standard_xia_hou_dun', -28, -15, 150, 150, -70, -25, 200, 200);
@@ -7950,10 +7956,11 @@ exports.toFactionWarAvatarStyle = toFactionWarAvatarStyle;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generalPairs = exports.allGenerals = void 0;
+exports.generalPairs = exports.DUMMY_GENERAL_NAME = exports.allGenerals = void 0;
 const General_1 = __webpack_require__(/*! ../common/General */ "./javascript/common/General.tsx");
 const Multimap_1 = __webpack_require__(/*! ../common/util/Multimap */ "./javascript/common/util/Multimap.tsx");
 exports.allGenerals = new Map();
+exports.DUMMY_GENERAL_NAME = '士兵';
 class FactionWarGeneral extends General_1.General {
     constructor(id, name, faction, hp, ...abilities) {
         super(id, name, faction, hp, abilities);
@@ -7979,8 +7986,8 @@ class FactionWarGeneral extends General_1.General {
 }
 exports.default = FactionWarGeneral;
 //when soldier is used to replace people the hp and factions are already set so no worries
-FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', '士兵', General_1.Faction.UNKNOWN, 0);
-FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', '士兵', General_1.Faction.UNKNOWN, 0);
+FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0);
+FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0);
 //16
 FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2.5, '奸雄');
 FactionWarGeneral.si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', General_1.Faction.WEI, 1.5, '反馈', '鬼才');
@@ -7999,7 +8006,7 @@ FactionWarGeneral.yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', Gener
 FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', General_1.Faction.WEI, 2, '巧变');
 FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', General_1.Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田');
 // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
-//16
+//18
 FactionWarGeneral.liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', General_1.Faction.SHU, 2, '仁德');
 FactionWarGeneral.guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', General_1.Faction.SHU, 2.5, '武圣');
 FactionWarGeneral.zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', General_1.Faction.SHU, 2, '咆哮');
@@ -8018,7 +8025,7 @@ FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫�
 FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成');
 FactionWarGeneral.zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '观星', '空城');
 FactionWarGeneral.jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', General_1.Faction.SHU, 2, '挑衅', '遗志', '天覆').hpDelta(0, -0.5);
-//16
+//18
 FactionWarGeneral.sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', General_1.Faction.WU, 2, '制衡');
 FactionWarGeneral.gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', General_1.Faction.WU, 2, '奇袭');
 FactionWarGeneral.huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', General_1.Faction.WU, 2, '苦肉');
@@ -8036,7 +8043,8 @@ FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', 
 FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命');
 FactionWarGeneral.zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', General_1.Faction.WU, 2, '不屈', '奋激').setCardName('创');
 FactionWarGeneral.sun_ce = new FactionWarGeneral('guo_sun_ce', '孙策', General_1.Faction.WU, 2, '激昂', '鹰扬', '魂殇').hpDelta(0, -0.5);
-// //16
+FactionWarGeneral.lv_fan = new FactionWarGeneral('guo_lv_fan', '吕范', General_1.Faction.WU, 1.5, '调度', '典财');
+//18
 FactionWarGeneral.hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', General_1.Faction.QUN, 1.5, '除疠', '急救');
 FactionWarGeneral.lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', General_1.Faction.QUN, 2.5, '无双');
 FactionWarGeneral.diao_chan = new FactionWarGeneral('standard_diao_chan', '貂蝉', General_1.Faction.QUN, 1.5, '闭月', '离间').asFemale();
@@ -8054,6 +8062,7 @@ FactionWarGeneral.ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', Gene
 FactionWarGeneral.xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', General_1.Faction.QUN, 1.5, '锋略', '谋识');
 FactionWarGeneral.pan_feng = new FactionWarGeneral('guo_pan_feng', '潘凤', General_1.Faction.QUN, 2, '狂斧');
 FactionWarGeneral.cai_wen_ji = new FactionWarGeneral('mountain_cai_wen_ji', '蔡文姬', General_1.Faction.QUN, 1.5, '悲歌', '断肠').asFemale();
+FactionWarGeneral.dong_zhuo = new FactionWarGeneral('forest_dong_zhuo', '董卓', General_1.Faction.QUN, 2, '横征', '暴凌', '崩坏');
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
 exports.generalPairs = new Multimap_1.Pairs();
@@ -8649,9 +8658,70 @@ if(false) {}
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isSieged = exports.areInFormation = exports.areNeighbor = void 0;
+exports.removeGeneral = exports.isSieged = exports.areInFormation = exports.areNeighbor = void 0;
 const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
+const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
+const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
+const FactionWarGenerals_1 = __webpack_require__(/*! ../FactionWarGenerals */ "./javascript/game-mode-faction/FactionWarGenerals.tsx");
+var FormationType;
+(function (FormationType) {
+    FormationType[FormationType["SIEGE"] = 0] = "SIEGE";
+    FormationType[FormationType["LINE"] = 1] = "LINE";
+})(FormationType || (FormationType = {}));
+/**
+ * 阵法召唤
+A须满足下列五个条件，才能阵法召唤：
+1、A有势力且不为野心家。
+2、A有一张武将牌处于明置状态且此武将牌有阵法技。
+3、除A外存在没有势力的角色。
+4、与A势力相同的所有角色数小于玩家数的一半。
+5、根据此阵法技的发动条件的不同，判断A能否阵法召唤的条件5也会不同：
+（1）与围攻有关。
+a、A的上家与A势力不同，且A的上家的上家没有势力。
+b、A的下家与A势力不同，且A的下家的下家没有势力。
+a和b满足其中一条，判断A能否阵法召唤的条件5即满足。
+（2）与队列有关。
+a、A按顺时针方向的路径至一名没有势力的角色，在路径上没有与A势力不同的角色。
+b、A按逆时针方向的路径至一名没有势力的角色，在路径上没有与A势力不同的角色。
+a和b满足其中一条，判断A能否阵法召唤的条件5即满足。
+ */
+// export abstract class FormationAwareSkill extends Skill {
+//     /**
+//      * Call back function when this skill should recompute formation conditions
+//      * @param manager game manager
+//      * @param repo skill repo
+//      * @param enabled 是否满足条件? (场上至少四名玩家)
+//      */
+//     abstract async onFormationUpdate(manager: GameManager, repo: SkillRepo, enabled: boolean): Promise<void>
+//     bootstrapClient() {
+//         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+//             return new PlayerActionDriverDefiner('阵法召唤')
+//                     .expectAnyButton('')
+//                     // .expectAnyButton('点击确定发动阵法召唤')
+//                     .build(hint)
+//         })
+//     }
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
+//         skillRegistry.onEvent<DeathOp>(DeathOp, this.playerId, async(event)=>{
+//             if(event.timeline === DeathTimeline.AFTER_REVEAL) {
+//                 await this.onFormationUpdate(manager, repo, manager.getSortedByCurr(true).length >= 4)
+//             }
+//         })
+//         skillRegistry.onEvent<RevealPlayerEvent>(RevealPlayerEvent, this.playerId, async(event)=>{
+//             await this.onFormationUpdate(manager, repo, manager.getSortedByCurr(true).length >= 4)
+//         })
+//     }
+// }
 /**
  * 检测A和B是否相邻
  * @param a
@@ -8709,6 +8779,31 @@ function isSieged(a, context) {
     return false;
 }
 exports.isSieged = isSieged;
+function removeGeneral(manager, skillRepo, player, isMain) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let p = manager.context.getPlayer(player);
+        //take care of skills
+        let skillPos = isMain ? 'main' : 'sub';
+        for (let s of skillRepo.getSkills(p.player.id)) {
+            if (s.position === skillPos) {
+                s.isGone = true;
+            }
+        }
+        //disable the abilities
+        yield manager.events.publish(new Skill_1.GeneralSkillStatusUpdate(this.displayName, p, skillPos, false, true));
+        let currentGender = (isMain ? p.general : p.subGeneral).gender;
+        let newGeneral = currentGender === 'M' ? FactionWarGenerals_1.default.soldier_male : FactionWarGenerals_1.default.soldier_female;
+        //todo: remove skin fields
+        if (isMain) {
+            p.general = newGeneral;
+        }
+        else {
+            p.subGeneral = newGeneral;
+        }
+        manager.broadcast(p, PlayerInfo_1.PlayerInfo.sanitize);
+    });
+}
+exports.removeGeneral = removeGeneral;
 
 
 /***/ }),
@@ -8732,7 +8827,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BeiGe = exports.DuanChange = exports.KuangFu = exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
+exports.BengHuai = exports.BaoLing = exports.HengZheng = exports.BeiGe = exports.DuanChange = exports.KuangFu = exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const PlayerActionDriverProvider_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverProvider */ "./javascript/client/player-actions/PlayerActionDriverProvider.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
@@ -8770,6 +8865,9 @@ const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascr
 const PlayerActionDrivers_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDrivers */ "./javascript/client/player-actions/PlayerActionDrivers.tsx");
 const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */ "./javascript/server/engine/CardFightOp.tsx");
 const EquipOp_1 = __webpack_require__(/*! ../../server/engine/EquipOp */ "./javascript/server/engine/EquipOp.tsx");
+const SingleRuseOp_2 = __webpack_require__(/*! ../../server/engine/SingleRuseOp */ "./javascript/server/engine/SingleRuseOp.tsx");
+const FactionWarGenerals_1 = __webpack_require__(/*! ../FactionWarGenerals */ "./javascript/game-mode-faction/FactionWarGenerals.tsx");
+const FactionSkillsGeneric_1 = __webpack_require__(/*! ./FactionSkillsGeneric */ "./javascript/game-mode-faction/skill/FactionSkillsGeneric.tsx");
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
     [A]不可以，因为华佗判定【闪电】即说明华佗处于自己回合内，不符合【急救】的发动条件。同理，华佗在自己回合内被【刚烈】或者【天香】等技能影响而进入濒死状态，也不能发动【急救】技能。
@@ -9999,15 +10097,17 @@ class DuanChange extends Skill_1.SimpleConditionalSkill {
             let resp = yield manager.sendHint(this.playerId, {
                 hintType: ServerHint_1.HintType.MULTI_CHOICE,
                 hintMsg: `请选择令${event.killer}失去哪一张武将牌的技能`,
-                extraButtons: [new PlayerAction_1.Button('main', '主将'), new PlayerAction_1.Button('sub', '副将')]
+                extraButtons: [new PlayerAction_1.Button('main', '主将的技能'), new PlayerAction_1.Button('sub', '副将的技能')]
             });
             let position = resp.button;
             //set isGone = true so client side does not have them any more
             for (let s of this.skillRepo.getSkills(event.killer.player.id)) {
-                s.isGone = true;
+                if (s.position === position) {
+                    s.isGone = true;
+                }
             }
             //disable the abilities
-            manager.events.publish(new Skill_1.GeneralSkillStatusUpdate(this.displayName, event.killer, position, false, true));
+            yield manager.events.publish(new Skill_1.GeneralSkillStatusUpdate(this.displayName, event.killer, position, false, true));
         });
     }
 }
@@ -10058,16 +10158,122 @@ class BeiGe extends Skill_1.SimpleConditionalSkill {
     }
 }
 exports.BeiGe = BeiGe;
+class HengZheng extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '横征';
+        this.displayName = '横征';
+        this.description = '摸牌阶段，若你的体力值为1或你没有手牌，则你可以改为获得每名其他角色区域里的一张牌。';
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(StageFlows_1.StageStartFlow, this);
+    }
+    conditionFulfilled(event, manager) {
+        if (event.isFor(this.playerId, Stage_1.Stage.TAKE_CARD) && !manager.roundStats.skipStages.get(Stage_1.Stage.TAKE_CARD)) {
+            let me = manager.context.getPlayer(this.playerId);
+            return me.hp === 1 || me.getCards(CardPos_1.CardPos.HAND).length === 1;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let targets = manager.getSortedByCurr(false).filter(p => !p.hasCards());
+            manager.roundStats.skipStages.set(Stage_1.Stage.TAKE_CARD, true);
+            this.invokeEffects(manager, targets.map(t => t.player.id));
+            for (let target of targets) {
+                yield SingleRuseOp_2.GrabCard(event.info, target, `${this.displayName} > ${target}`, manager, [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP, CardPos_1.CardPos.JUDGE]);
+            }
+        });
+    }
+}
+exports.HengZheng = HengZheng;
+class BaoLing extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '暴凌';
+        this.displayName = '暴凌';
+        this.description = '主将技，锁定技，出牌阶段结束时，若你有副将，则你移除副将，然后加3点体力上限，回复3点体力，并获得“崩坏”。';
+        this.isLocked = true;
+        this.disabledForSub = true;
+    }
+    bootstrapServer(skillRegistry, manager, skillRepo) {
+        skillRegistry.on(StageFlows_1.StageEndFlow, this);
+        this.skillRepo = skillRepo;
+    }
+    conditionFulfilled(event, manager) {
+        if (event.isFor(this.playerId, Stage_1.Stage.USE_CARD)) {
+            let me = manager.context.getPlayer(this.playerId);
+            return me.isSubGeneralRevealed && me.subGeneral.name !== FactionWarGenerals_1.DUMMY_GENERAL_NAME;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager);
+            let me = manager.context.getPlayer(this.playerId);
+            me.maxHp += 3;
+            me.hp += 3;
+            yield FactionSkillsGeneric_1.removeGeneral(manager, this.skillRepo, this.playerId, false);
+            console.log(`[${this.id}] 获得技能'崩坏'`);
+            let myNew = new BengHuai(this.playerId);
+            myNew.isRevealed = true;
+            myNew.position = 'main';
+            this.skillRepo.addSkill(this.playerId, myNew);
+            manager.send(this.playerId, myNew.toStatus());
+        });
+    }
+}
+exports.BaoLing = BaoLing;
+class BengHuai extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '崩坏';
+        this.displayName = '崩坏';
+        this.description = '锁定技，结束阶段，若你不是体力值最小的角色，你失去1点体力或减1点体力上限。';
+        this.hiddenType = Skill_1.HiddenType.NONE;
+        this.isLocked = true;
+        this.disabledForMain = true;
+        this.disabledForSub = true;
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(StageFlows_1.StageStartFlow, this);
+    }
+    conditionFulfilled(event, manager) {
+        if (event.isFor(this.playerId, Stage_1.Stage.ROUND_END)) {
+            let others = manager.getSortedByCurr(false).map(p => p.hp);
+            let meHp = manager.context.getPlayer(this.playerId).hp;
+            if (Math.min(...others) < meHp) {
+                return true;
+            }
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let resp = yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                hintMsg: `请选择崩坏的效果`,
+                extraButtons: [new PlayerAction_1.Button('hp', '失去一点体力'), new PlayerAction_1.Button('maxHp', '减1点体力上限')]
+            });
+            this.invokeEffects(manager);
+            let me = manager.context.getPlayer(this.playerId);
+            if (resp.button === 'hp') {
+                yield new DamageOp_2.default(me, me, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+            }
+            else {
+                me.changeMax(-1);
+                manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
+            }
+        });
+    }
+}
+exports.BengHuai = BengHuai;
 // 名士 锁定技，当你受到伤害时，若伤害来源有暗置的武将牌，此伤害-1。
 // 礼让 当你的牌因弃置而置入弃牌堆时，你可以将其中的任意张牌交给其他角色。
 // 双刃 出牌阶段开始时，你可以与一名角色拼点。若你赢，你视为对其或与其势力相同的另一名角色使用一张【杀】；若你没赢，你结束出牌阶段。
-// 狂斧 当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。
 // 祸水 出牌阶段，你可以明置此武将牌；你的回合内，其他角色不能明置其武将牌。
 // 倾城 出牌阶段，你可以弃置一张黑色牌并选择一名武将牌均明置的其他角色，然后你暗置其一张武将牌。然后若你以此法弃置的牌是黑色装备牌，则你可以再选择另一名武将牌均明置的其他角色，暗置其一张武将牌。
 // 千幻 当与你势力相同的一名角色受到伤害后，你可以将一张与你武将牌上花色均不同的牌置于你的武将牌上。当一名与你势力相同的角色成为基本牌或锦囊牌的唯一目标时，你可以移去一张“千幻”牌，取消之。
-// 横征 摸牌阶段，若你的体力值为1或你没有手牌，则你可以改为获得每名其他角色区域里的一张牌。
-// 暴凌 主将技，锁定技，出牌阶段结束时，若你有副将，则你移除副将，然后加3点体力上限，回复3点体力，并获得“崩坏”。
-// 崩坏 锁定技，结束阶段，若你不是体力值最小的角色，你失去1点体力或减1点体力上限。
 // 穿心 可预亮,当你于出牌阶段内使用【杀】或【决斗】对目标角色造成伤害时，若其与你势力不同且有副将，你可以防止此伤害。若如此做，该角色选择一项：1.弃置装备区里的所有牌，若如此做，其失去1点体力；2.移除副将。
 // 锋矢 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，可令该角色弃置装备区里的一张牌。
 
@@ -12616,9 +12822,7 @@ class XiaoGuo extends Skill_1.SimpleConditionalSkill {
             let meAbandoned = yield FactionWarUtil_1.askAbandonBasicCard(manager, me, '请弃置一张基本牌发动骁果', true);
             if (meAbandoned) {
                 console.log('[骁果] 弃置了基本牌, 对方需要弃置装备牌', event.info);
-                this.playSound(manager, 2);
-                manager.log(`${this.playerId} 发动了 ${this.displayName}`);
-                manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, [event.info.player.id], this.id));
+                this.invokeEffects(manager, [event.info.player.id]);
                 let res = yield FactionWarUtil_1.askAbandonEquip(manager, event.info, '请弃置一张装备牌, 否则受到骁果的伤害', true);
                 if (res) {
                     console.log('[骁果] 对方弃置了装备牌, ok lor');
@@ -12783,6 +12987,18 @@ exports.JiXi = JiXi;
 // }
 /*
 
+export class XunXun extends Skill<DamageOp> {
+    id = '恂恂'
+    displayName = '恂恂'
+    description = '摸牌阶段开始时，你可以观看牌堆顶的四张牌，然后将其中的两张牌置于牌堆顶，将其余的牌置于牌堆底。'
+}
+
+export class WangXi extends Skill<DamageOp> {
+    id = '忘隙'
+    displayName = '忘隙'
+    description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。'
+}
+
 export class HuYuan extends Skill<DamageOp> {
 
     displayName = '护援'
@@ -12837,7 +13053,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HunShang = exports.YingHunCe = exports.YingZiCe = exports.YingYang = exports.JiAng = exports.FenJi = exports.BuQu = exports.FenMing = exports.DuanXie = exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
+exports.DianCai = exports.DiaoDuo = exports.HunShang = exports.YingHunCe = exports.YingZiCe = exports.YingYang = exports.JiAng = exports.FenJi = exports.BuQu = exports.FenMing = exports.DuanXie = exports.MouDuan = exports.KeJi = exports.YiCheng = exports.DiMeng = exports.HaoShi = exports.TianXiang = exports.HongYan = exports.GuZheng = exports.ZhiJian = exports.TianYi = exports.YingHun = exports.XiaoJi = exports.JieYin = exports.DuoShi = exports.QianXun = exports.LiuLi = exports.GuoSe = exports.FanJian = exports.YingZi = exports.KuRou = exports.QiXi = exports.ZhiHeng = void 0;
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const PlayerActionDriverDefiner_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverDefiner */ "./javascript/client/player-actions/PlayerActionDriverDefiner.tsx");
@@ -12867,6 +13083,7 @@ const MoveCardOp_1 = __webpack_require__(/*! ../../server/engine/MoveCardOp */ "
 const MultiRuseOp_1 = __webpack_require__(/*! ../../server/engine/MultiRuseOp */ "./javascript/server/engine/MultiRuseOp.tsx");
 const AskSavingOp_1 = __webpack_require__(/*! ../../server/engine/AskSavingOp */ "./javascript/server/engine/AskSavingOp.tsx");
 const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
+const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
 class ZhiHeng extends Skill_1.Skill {
     constructor() {
         super(...arguments);
@@ -14069,15 +14286,130 @@ class HunShang extends Skill_1.Skill {
     }
 }
 exports.HunShang = HunShang;
-// 激昂 当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。
-// 鹰扬 当你拼点的牌亮出后，你可以令此牌的点数+3或-3。
-// 魂殇 副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。
+class DiaoDuoStart extends Skill_1.SimpleTrigger {
+    conditionFulfilled(event, manager) {
+        return event.isFor(this.player.player.id, Stage_1.Stage.USE_CARD);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let resp = yield manager.sendHint(this.player.player.id, {
+                hintType: ServerHint_1.HintType.SPECIAL,
+                specialId: this.skill.id,
+                hintMsg: '请选择调度的对象',
+                extraButtons: [PlayerAction_1.Button.CANCEL]
+            });
+            if (resp.isCancel()) {
+                return;
+            }
+            let target = resp.targets[0];
+            let cardAndPos = yield DropCardOp_1.SelectACardAt(manager, this.player, target, `(调度)获得一张${target}的装备牌`, CardPos_1.CardPos.EQUIP);
+            if (!cardAndPos) {
+                console.error("???");
+                return;
+            }
+            this.skill.invokeEffects(manager, [target.player.id]);
+            yield manager.transferCards(target.player.id, this.player.player.id, CardPos_1.CardPos.EQUIP, CardPos_1.CardPos.HAND, [cardAndPos[0]]);
+            let chooseAnother = yield manager.sendHint(this.player.player.id, {
+                hintType: ServerHint_1.HintType.CHOOSE_PLAYER,
+                hintMsg: `请选择将${cardAndPos[0]}交给另一名角色(或点击取消自己保留)`,
+                forbidden: [this.player.player.id],
+                minQuantity: 1,
+                quantity: 1,
+                extraButtons: [PlayerAction_1.Button.CANCEL]
+            });
+            if (chooseAnother.isCancel()) {
+                return;
+            }
+            target = chooseAnother.targets[0];
+            this.skill.invokeEffects(manager, [target.player.id]);
+            yield manager.transferCards(this.player.player.id, target.player.id, CardPos_1.CardPos.HAND, CardPos_1.CardPos.HAND, [cardAndPos[0]]);
+        });
+    }
+}
+class DiaoDuo extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '调度';
+        this.displayName = '调度';
+        this.description = '与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。';
+    }
+    // hiddenType = HiddenType.NONE
+    bootstrapClient() {
+        PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint, context) => {
+            return new PlayerActionDriverDefiner_1.default('调度')
+                .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id, context) => {
+                let him = context.getPlayer(id);
+                let me = context.myself;
+                return him.hasCardAt(CardPos_1.CardPos.EQUIP) && (General_1.factionsSame(him.getFaction(), me.getFaction()) || id === me.player.id);
+            }, () => '(调度)选择与你势力相同且有装备牌的一名角色')
+                .expectAnyButton('选择发动调度')
+                .build(hint, [PlayerAction_1.Button.OK]);
+        });
+    }
+    bootstrapServer(skillRegistry, manager) {
+        skillRegistry.on(EquipOp_1.EquipOp, this);
+        skillRegistry.on(StageFlows_1.StageStartFlow, new DiaoDuoStart(this, manager));
+    }
+    conditionFulfilled(event, manager) {
+        let me = manager.context.getPlayer(this.playerId);
+        return (General_1.factionsSame(event.beneficiary.getFaction(), me.getFaction()) || me === event.beneficiary) && event.beneficiary === event.source;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager);
+            yield new TakeCardOp_1.default(manager.context.getPlayer(this.playerId), 1).perform(manager);
+        });
+    }
+}
+exports.DiaoDuo = DiaoDuo;
+class DianCai extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '典财';
+        this.displayName = '典财';
+        this.description = '其他角色的出牌阶段结束时，若你于此阶段失去了X张或更多的牌(X为你的体力值)，则你可以将手牌摸至体力上限。'; //，然后你可以变更一次副将'
+        this.cardLoss = 0;
+    }
+    bootstrapServer(skillRegistry, manager) {
+        const cardLoss = (event) => __awaiter(this, void 0, void 0, function* () {
+            if (event.player === this.playerId) {
+                this.cardLoss += event.cards.length;
+            }
+        });
+        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
+            this.cardLoss = 0;
+        }));
+        skillRegistry.on(StageFlows_1.StageEndFlow, this);
+        skillRegistry.onEvent(Generic_1.CardBeingUsedEvent, this.playerId, cardLoss);
+        skillRegistry.onEvent(Generic_1.CardBeingDroppedEvent, this.playerId, cardLoss);
+        skillRegistry.onEvent(Generic_1.CardBeingTakenEvent, this.playerId, cardLoss);
+    }
+    conditionFulfilled(event, manager) {
+        if (event.stage === Stage_1.Stage.USE_CARD && event.info.player.id !== this.playerId) {
+            let me = manager.context.getPlayer(this.playerId);
+            if (this.cardLoss >= me.hp && me.maxHp - me.getCards(CardPos_1.CardPos.HAND).length > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let me = manager.context.getPlayer(this.playerId);
+            let missing = me.maxHp - me.getCards(CardPos_1.CardPos.HAND).length;
+            if (missing <= 0) {
+                console.error('huh??', me);
+            }
+            this.invokeEffects(manager);
+            yield new TakeCardOp_1.default(me, missing).perform(manager);
+        });
+    }
+}
+exports.DianCai = DianCai;
 // 短兵 你使用【杀】可以多选择一名距离为1的角色为目标。
 // 奋迅 出牌阶段限一次，你可以弃置一张牌并选择一名其他角色，然后本回合你计算与其的距离视为1。
 // 尚义 出牌阶段限一次，你可以令一名其他角色观看你的手牌。若如此做，你选择一项：1.观看其手牌并可以弃置其中的一张黑色牌；2.观看其所有暗置的武将牌。
 // 鸟翔 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，你令该角色需依次使用两张【闪】才能抵消。
-// 调度 与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。
-// 典财 其他角色的出牌阶段结束时，若你于此阶段失去了X张或更多的牌，则你可以将手牌摸至体力上限，然后你可以变更一次副将(X为你的体力值)。
 
 
 /***/ }),
@@ -14221,6 +14553,8 @@ exports.FactionSkillProviders.register('英魂(策)', pid => new FactionSkillsWu
 exports.FactionSkillProviders.register('魂殇', pid => new FactionSkillsWu_1.HunShang(pid));
 exports.FactionSkillProviders.register('激昂', pid => new FactionSkillsWu_1.JiAng(pid));
 exports.FactionSkillProviders.register('鹰扬', pid => new FactionSkillsWu_1.YingYang(pid));
+exports.FactionSkillProviders.register('调度', pid => new FactionSkillsWu_1.DiaoDuo(pid));
+exports.FactionSkillProviders.register('典财', pid => new FactionSkillsWu_1.DianCai(pid));
 exports.FactionSkillProviders.register('除疠', pid => new FactionSkillsQun_1.ChuLi(pid));
 exports.FactionSkillProviders.register('急救', pid => new FactionSkillsQun_1.JiJiu(pid));
 exports.FactionSkillProviders.register('无双', pid => new FactionSkillsQun_1.WuShuang(pid));
@@ -14251,6 +14585,9 @@ exports.FactionSkillProviders.register('谋识', pid => new FactionSkillsQun_1.M
 exports.FactionSkillProviders.register('狂斧', pid => new FactionSkillsQun_1.KuangFu(pid));
 exports.FactionSkillProviders.register('悲歌', pid => new FactionSkillsQun_1.BeiGe(pid));
 exports.FactionSkillProviders.register('断肠', pid => new FactionSkillsQun_1.DuanChange(pid));
+exports.FactionSkillProviders.register('横征', pid => new FactionSkillsQun_1.HengZheng(pid));
+exports.FactionSkillProviders.register('暴凌', pid => new FactionSkillsQun_1.BaoLing(pid));
+exports.FactionSkillProviders.register('崩坏', pid => new FactionSkillsQun_1.BengHuai(pid));
 class FactionWarSkillRepo {
     constructor(manager, skillRegistry) {
         this.manager = manager;
@@ -16558,10 +16895,6 @@ class DeathOp extends Operation_1.Operation {
     perform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
             yield manager.events.publish(this);
-            //show player death. no need to sanitize anymore
-            this.deceased.declareDeath();
-            manager.broadcast(this.deceased);
-            manager.log(this.killer ? `${this.killer} 击杀了 ${this.deceased}` : `${this.deceased} 阵亡`);
             //检查是否满足游戏结束条件
             this.timeline = DeathTimeline.AFTER_REVEAL;
             yield manager.events.publish(this);
@@ -16573,6 +16906,10 @@ class DeathOp extends Operation_1.Operation {
                 cardAndPos[0].description = `${this.deceased.player.id} 阵亡弃牌`;
                 manager.sendToWorkflow(this.deceased.player.id, cardAndPos[1], [cardAndPos[0]]);
             });
+            //show player death. no need to sanitize anymore
+            this.deceased.declareDeath();
+            manager.broadcast(this.deceased);
+            manager.log(this.killer ? `${this.killer} 击杀了 ${this.deceased}` : `${this.deceased} 阵亡`);
             //处理奖惩
             this.timeline = DeathTimeline.AFTER_DEATH;
             yield manager.events.publish(this);
@@ -16900,7 +17237,7 @@ class DropCardOp extends Operation_1.Operation {
 }
 exports.default = DropCardOp;
 /**
- *
+ * Select a card from positions on a particular player
  * @param manager
  * @param source player to select card
  * @param target player whose card to be selected
@@ -18741,6 +19078,29 @@ SlashType.BLACK = new SlashType(Card_1.CardType.SLASH, DamageOp_1.DamageType.NOR
 SlashType.NO_COLOR = new SlashType(Card_1.CardType.SLASH, DamageOp_1.DamageType.NORMAL, '杀', 'n.a.');
 SlashType.FIRE = new SlashType(Card_1.CardType.SLASH_FIRE, DamageOp_1.DamageType.FIRE, '火杀', 'red');
 SlashType.THUNDER = new SlashType(Card_1.CardType.SLASH_THUNDER, DamageOp_1.DamageType.THUNDER, '雷杀', 'black');
+function deriveSlashType(icards) {
+    if (icards.length === 1) {
+        let type = icards[0].as || icards[0].type;
+        if (type === Card_1.CardType.SLASH_FIRE) {
+            return SlashType.FIRE;
+        }
+        else if (type === Card_1.CardType.SLASH_THUNDER) {
+            return SlashType.THUNDER;
+        }
+    }
+    if (!this.slashType) {
+        let color = ICard_1.deriveColor(icards.map(c => c.suit));
+        if (color === 'red') {
+            return SlashType.RED;
+        }
+        else if (color === 'black') {
+            return SlashType.BLACK;
+        }
+        else {
+            return SlashType.NO_COLOR;
+        }
+    }
+}
 /**
  * 玩家出杀的行动. 目标已经选择好
  *
@@ -18759,27 +19119,7 @@ class PlaySlashOp extends Operation_1.Operation {
     perform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
             let icards = this.cards.map(c => manager.interpret(this.source.player.id, c));
-            if (icards.length === 1) {
-                let type = icards[0].as || icards[0].type;
-                if (type === Card_1.CardType.SLASH_FIRE) {
-                    this.slashType = SlashType.FIRE;
-                }
-                else if (type === Card_1.CardType.SLASH_THUNDER) {
-                    this.slashType = SlashType.THUNDER;
-                }
-            }
-            if (!this.slashType) {
-                let color = ICard_1.deriveColor(icards.map(c => c.suit));
-                if (color === 'red') {
-                    this.slashType = SlashType.RED;
-                }
-                else if (color === 'black') {
-                    this.slashType = SlashType.BLACK;
-                }
-                else {
-                    this.slashType = SlashType.NO_COLOR;
-                }
-            }
+            this.slashType = deriveSlashType(icards);
             manager.broadcast(new EffectTransit_1.TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), this.slashType.text));
             //借刀杀人的话是别人出杀跟我们无关
             if (this.source === manager.currPlayer()) {
@@ -18906,6 +19246,7 @@ class AskForSlashOp extends Operation_1.Operation {
                     yield manager.resolver.onSkillAction(resp, this, manager);
                 }
                 else {
+                    //只可能是手牌或者丈八蛇矛的手牌
                     let cards = resp.getCardsAtPos(CardPos_1.CardPos.HAND).map(card => {
                         card.description = `${this.slasher.player.id} 出杀`;
                         if (!card.type.isSlash()) {
@@ -18913,10 +19254,11 @@ class AskForSlashOp extends Operation_1.Operation {
                         }
                         return card;
                     });
-                    manager.log(`${resp.source} 打出了 ${cards}`);
-                    let type = cards.length === 1 ? cards[0].type : Card_1.CardType.SLASH;
+                    let slashType = deriveSlashType(cards.map(c => manager.interpret(this.slasher.player.id, c)));
+                    manager.log(`${resp.source} 决斗打出了 ${cards}`);
                     manager.sendToWorkflow(this.slasher.player.id, CardPos_1.CardPos.HAND, cards);
-                    yield manager.events.publish(new Generic_1.CardBeingUsedEvent(this.slasher.player.id, cards.map(c => [c, CardPos_1.CardPos.HAND]), type, false, false));
+                    manager.broadcast(new EffectTransit_1.TextFlashEffect(this.slasher.player.id, [this.target.player.id], slashType.cardType.name));
+                    yield manager.events.publish(new Generic_1.CardBeingUsedEvent(this.slasher.player.id, cards.map(c => [c, CardPos_1.CardPos.HAND]), slashType.cardType, false, false));
                 }
             }
             return true;
@@ -22973,7 +23315,7 @@ var getBox = function getBox(el) {
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".ui-mounter {\n  z-index: 99;\n  pointer-events: none; }\n\n.duo-card-selection-container {\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .duo-card-selection-container .duo-card-selection-hint {\n    height: 30px; }\n  .duo-card-selection-container .row-name {\n    width: 40px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    letter-spacing: 2px;\n    text-align: center; }\n  .duo-card-selection-container .title {\n    text-align: center; }\n  .duo-card-selection-container .row-of-cards {\n    display: flex;\n    flex: 1 1 0;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    margin: 5px;\n    border: 1px solid white;\n    border-radius: 6px;\n    min-height: 160px;\n    min-width: 150px; }\n  .duo-card-selection-container .button-container {\n    height: 28px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.card-selection-container {\n  width: 60%;\n  max-width: 640px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .card-selection-container .card-selection-hint {\n    height: 30px; }\n  .card-selection-container .card-selection-row {\n    display: flex;\n    margin-top: 8px; }\n    .card-selection-container .card-selection-row .row-name {\n      width: 40px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      letter-spacing: 2px; }\n    .card-selection-container .card-selection-row .row-of-cards {\n      display: flex;\n      flex-grow: 1;\n      padding: 7px;\n      height: 155px;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      border-radius: 5px;\n      border: 1px solid #b9b9b9; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper {\n        width: 0px;\n        height: 0px;\n        max-width: 120px;\n        flex-grow: 1;\n        position: relative;\n        pointer-events: none;\n        transition: 0.2s; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper:not(:last-child):hover {\n        width: 40px; }\n      .card-selection-container .card-selection-row .row-of-cards .as {\n        position: absolute;\n        height: 20px;\n        top: 80px;\n        background: #d6d696;\n        color: black;\n        border: 1px solid black;\n        border-radius: 3px;\n        text-shadow: 0px 0px 2px #794c4c;\n        width: 80%;\n        left: 7%; }\n  .card-selection-container .button-container {\n    height: 28px;\n    margin-top: 10px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.game-result {\n  min-width: 500px;\n  background-image: url(\"ui/bak.png\");\n  background-repeat: repeat;\n  border-radius: 3px;\n  box-shadow: 0px 0px 5px black; }\n  .game-result .title {\n    padding: 10px; }\n  .game-result .results .winner {\n    color: #1ec91e; }\n  .game-result .results .row {\n    display: flex; }\n    .game-result .results .row .player-name {\n      flex-grow: 1; }\n    .game-result .results .row .col {\n      width: 70px; }\n    .game-result .results .row .col-2 {\n      width: 100px; }\n\n.button-container {\n  pointer-events: initial;\n  padding: 20px; }\n\n.wugu-container {\n  width: 500px; }\n\n.cards-container {\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cards-container .cards-container-title {\n    height: 30px; }\n  .cards-container .cards {\n    display: flex;\n    flex-wrap: wrap;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    border: 1px solid gray;\n    border-radius: 4px; }\n\n.cf-container {\n  width: 300px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cf-container .cf-title {\n    height: 30px; }\n  .cf-container .cf-cards {\n    display: flex;\n    justify-content: space-around;\n    align-items: center; }\n  .cf-container .left {\n    position: relative; }\n    .cf-container .left .win-lose {\n      background-size: contain;\n      background-repeat: no-repeat;\n      background-position: center;\n      animation: symbol-enter 0.5s forwards; }\n    .cf-container .left .win {\n      background-image: url(\"icons/win.png\"); }\n    .cf-container .left .lose {\n      background-image: url(\"icons/lose.png\"); }\n\n@keyframes symbol-enter {\n  0% {\n    transform: scale(3);\n    filter: opacity(0); }\n  100% {\n    transform: scale(1);\n    filter: opacity(1); } }\n", ""]);
+exports.push([module.i, ".ui-mounter {\n  z-index: 99;\n  pointer-events: none; }\n  .ui-mounter > * {\n    pointer-events: initial; }\n\n.duo-card-selection-container {\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .duo-card-selection-container .duo-card-selection-hint {\n    height: 30px; }\n  .duo-card-selection-container .row-name {\n    width: 40px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    letter-spacing: 2px;\n    text-align: center; }\n  .duo-card-selection-container .title {\n    text-align: center; }\n  .duo-card-selection-container .row-of-cards {\n    display: flex;\n    flex: 1 1 0;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    margin: 5px;\n    border: 1px solid white;\n    border-radius: 6px;\n    min-height: 160px;\n    min-width: 150px; }\n  .duo-card-selection-container .button-container {\n    height: 28px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.card-selection-container {\n  width: 60%;\n  max-width: 640px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .card-selection-container .card-selection-hint {\n    height: 30px; }\n  .card-selection-container .card-selection-row {\n    display: flex;\n    margin-top: 8px; }\n    .card-selection-container .card-selection-row .row-name {\n      width: 40px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      letter-spacing: 2px; }\n    .card-selection-container .card-selection-row .row-of-cards {\n      display: flex;\n      flex-grow: 1;\n      padding: 7px;\n      height: 155px;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      border-radius: 5px;\n      border: 1px solid #b9b9b9; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper {\n        width: 0px;\n        height: 0px;\n        max-width: 120px;\n        flex-grow: 1;\n        position: relative;\n        pointer-events: none;\n        transition: 0.2s; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper:not(:last-child):hover {\n        width: 40px; }\n      .card-selection-container .card-selection-row .row-of-cards .as {\n        position: absolute;\n        height: 20px;\n        top: 80px;\n        background: #d6d696;\n        color: black;\n        border: 1px solid black;\n        border-radius: 3px;\n        text-shadow: 0px 0px 2px #794c4c;\n        width: 80%;\n        left: 7%; }\n  .card-selection-container .button-container {\n    height: 28px;\n    margin-top: 10px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.game-result {\n  min-width: 500px;\n  background-image: url(\"ui/bak.png\");\n  background-repeat: repeat;\n  border-radius: 3px;\n  box-shadow: 0px 0px 5px black; }\n  .game-result .title {\n    padding: 10px; }\n  .game-result .results .winner {\n    color: #1ec91e; }\n  .game-result .results .row {\n    display: flex; }\n    .game-result .results .row .player-name {\n      flex-grow: 1; }\n    .game-result .results .row .col {\n      width: 70px; }\n    .game-result .results .row .col-2 {\n      width: 100px; }\n\n.button-container {\n  pointer-events: initial;\n  padding: 20px; }\n\n.wugu-container {\n  width: 500px; }\n\n.cards-container {\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cards-container .cards-container-title {\n    height: 30px; }\n  .cards-container .cards {\n    display: flex;\n    flex-wrap: wrap;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    border: 1px solid gray;\n    border-radius: 4px; }\n\n.cf-container {\n  width: 300px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cf-container .cf-title {\n    height: 30px; }\n  .cf-container .cf-cards {\n    display: flex;\n    justify-content: space-around;\n    align-items: center; }\n  .cf-container .left {\n    position: relative; }\n    .cf-container .left .win-lose {\n      background-size: contain;\n      background-repeat: no-repeat;\n      background-position: center;\n      animation: symbol-enter 0.5s forwards; }\n    .cf-container .left .win {\n      background-image: url(\"icons/win.png\"); }\n    .cf-container .left .lose {\n      background-image: url(\"icons/lose.png\"); }\n\n@keyframes symbol-enter {\n  0% {\n    transform: scale(3);\n    filter: opacity(0); }\n  100% {\n    transform: scale(1);\n    filter: opacity(1); } }\n", ""]);
 
 
 
@@ -23063,7 +23405,7 @@ exports.push([module.i, ".tooltip {\n  background: rgba(0, 0, 0, 0.74);\n  paddi
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .system-buttons {\n      position: absolute;\n      background: rgba(27, 27, 27, 0.712);\n      color: white;\n      font-family: initial;\n      border-radius: 6px;\n      padding: 5px;\n      font-size: 13px;\n      top: 4px;\n      left: 4px; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px;\n        padding: 10px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex;\n      position: relative;\n      height: 180px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-signs {\n          height: 36px;\n          display: flex;\n          padding-left: 10px;\n          align-items: center; }\n          .board .btm .my-cards .mid .my-signs .sign {\n            width: 20px;\n            height: 20px;\n            margin: 6px;\n            border-radius: 20px;\n            background: #777777;\n            font-size: 26px;\n            color: #ffffff;\n            opacity: 0.5;\n            transition: 0.2s;\n            border: 1px solid white; }\n            .board .btm .my-cards .mid .my-signs .sign.enabled {\n              opacity: 1;\n              filter: drop-shadow(3px 3px 1px black); }\n            .board .btm .my-cards .mid .my-signs .sign.selectable {\n              cursor: pointer;\n              border: 1px solid gold;\n              background: #d29557; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable:hover {\n              transform: translate(0px, -5px); }\n            .board .btm .my-cards .mid .my-signs .sign.selected {\n              transform: translate(0px, -5px);\n              color: gold; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 36px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 100px;\n          font-size: 18px; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px;\n        animation: flashing-red 1.6s infinite; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n@keyframes flashing-red {\n  0% {\n    color: white; }\n  50% {\n    color: red; }\n  100% {\n    color: white; } }\n", ""]);
+exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .system-buttons {\n      position: absolute;\n      background: rgba(27, 27, 27, 0.712);\n      color: white;\n      font-family: initial;\n      border-radius: 6px;\n      padding: 5px;\n      font-size: 13px;\n      top: 4px;\n      left: 4px; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px;\n        padding: 10px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex;\n      position: relative;\n      height: 180px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-signs {\n          height: 36px;\n          display: flex;\n          padding-left: 10px;\n          align-items: center; }\n          .board .btm .my-cards .mid .my-signs .sign {\n            width: 20px;\n            height: 20px;\n            margin: 6px;\n            border-radius: 20px;\n            background: #777777;\n            font-size: 26px;\n            color: #ffffff;\n            opacity: 0.5;\n            transition: 0.2s;\n            border: 1px solid white; }\n            .board .btm .my-cards .mid .my-signs .sign.enabled {\n              opacity: 1;\n              filter: drop-shadow(3px 3px 1px black); }\n            .board .btm .my-cards .mid .my-signs .sign.selectable {\n              cursor: pointer;\n              border: 1px solid gold;\n              background: #d29557; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable:hover {\n              transform: translate(0px, -5px); }\n            .board .btm .my-cards .mid .my-signs .sign.selected {\n              transform: translate(0px, -5px);\n              color: gold; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 36px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 100px;\n          font-size: 18px; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px;\n        animation: flashing-red 1.6s infinite; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em;\n  transition: 0.2s; }\n  .ui-button.ui-button-abort {\n    position: absolute;\n    right: 10px;\n    color: #bd7d1c;\n    background: white;\n    padding: 10px; }\n  .ui-button.ui-button-abort:hover {\n    color: red;\n    background: #2e2e2e; }\n  .ui-button.ui-button-abort:active {\n    color: black; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n@keyframes flashing-red {\n  0% {\n    color: white; }\n  50% {\n    color: red; }\n  100% {\n    color: white; } }\n", ""]);
 
 
 

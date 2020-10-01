@@ -43,7 +43,7 @@ export default class DropCardOp extends Operation<void> {
 }
 
 /**
- * 
+ * Select a card from positions on a particular player
  * @param manager 
  * @param source player to select card
  * @param target player whose card to be selected

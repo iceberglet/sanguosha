@@ -1,6 +1,10 @@
 .ui-mounter {
     z-index: 99;
     pointer-events: none;
+
+    > * {
+        pointer-events: initial;
+    }
 }
 
 .duo-card-selection-container {

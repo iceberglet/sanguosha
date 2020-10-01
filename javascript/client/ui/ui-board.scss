@@ -234,6 +234,24 @@
     min-width: 100px;
     margin-right: 5px;
     line-height: 1em;
+    transition: 0.2s;
+
+    &.ui-button-abort {
+        position: absolute;
+        right: 10px;
+        color: #bd7d1c;
+        background: white;
+        padding: 10px;
+    }
+
+    &.ui-button-abort:hover {
+        color: red;
+        background: rgb(46, 46, 46);
+    }
+
+    &.ui-button-abort:active {
+        color: black;
+    }
 }
 
 .ui-button:hover {

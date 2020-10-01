@@ -1,6 +1,7 @@
 // export type Action = '摸排'
 import GameClientContext from "../GameClientContext"
 import { PlayerUIAction, Button, UIPosition } from "../../common/PlayerAction"
+import context from "react-bootstrap/esm/AccordionContext"
 
 export enum Clickability {
     CLICKABLE,
@@ -156,6 +157,7 @@ export class CompositePlayerActionDriver extends PlayerActionDriver {
         if(this.theOne) {
             return this.theOne.getUsableButtons()
         } else {
+            //get buttons only if all delegates have it!
             let base = this.delegates[0].getUsableButtons()
             for(let i = 1; i < this.delegates.length; ++i) {
                 base = base.filter(b => this.delegates[i].getUsableButtons().find(bb => bb.id === b.id))

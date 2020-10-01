@@ -57,7 +57,8 @@ new GameMode(GameModeEnum.IdentityWarGame, '身份局', IdentityWarCards,
 new GameMode(GameModeEnum.FactionWarGame, '国战', FactionWarCards, 
                 new FactionWarActionResolver(),
                 (registry, no) => new FactionWarGameHoster(registry, no),
-                (s, p)=>FactionSkillProviders.get(s, p), ()=>{
+                (s, p)=>FactionSkillProviders.get(s, p), 
+                ()=>{
                     describer.register(CardType.TENG_JIA.id, '锁定技，【南蛮入侵】、【万箭齐发】和普通【杀】对你无效。当你受到火焰伤害时，此伤害+1。')
                     describer.register(CardType.SILVER_LION.id, '锁定技，当你受到伤害时，若此伤害多于1点，则防止多余的伤害；当你失去装备区里的【白银狮子】时，你回复1点体力。')
                     describer.register(CardType.REN_WANG.id, '锁定技，黑色的【杀】对你无效。')

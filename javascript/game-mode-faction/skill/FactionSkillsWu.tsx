@@ -1,5 +1,5 @@
 
-import { Skill, SkillTrigger, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillRepo } from "../../common/Skill"
+import { Skill, SkillTrigger, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillRepo, SimpleTrigger } from "../../common/Skill"
 import { HintType, CardSelectionResult } from "../../common/ServerHint"
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner"
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider"
@@ -15,7 +15,7 @@ import { isSuitBlack, isSuitRed, ICard, mimicCard, deriveColor } from "../../com
 import { GuoHe, JueDou, ShunShou } from "../../server/engine/SingleRuseOp"
 import DamageOp, { DamageSource, DamageType, DamageTimeline } from "../../server/engine/DamageOp"
 import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
-import DropCardOp, { DropCardRequest, DropTimeline, DropOthersCardRequest } from "../../server/engine/DropCardOp"
+import DropCardOp, { DropCardRequest, DropTimeline, DropOthersCardRequest, SelectACardAt } from "../../server/engine/DropCardOp"
 import { Suits, any, toChinese } from "../../common/util/Util"
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp"
 import { SlashCompute } from "../../server/engine/SlashOp"
@@ -31,7 +31,7 @@ import { MoveCardOnField } from "../../server/engine/MoveCardOp"
 import { DoTieSuo } from "../../server/engine/MultiRuseOp"
 import AskSavingOp from "../../server/engine/AskSavingOp"
 import { PlayerInfo } from "../../common/PlayerInfo"
-import JudgeOp from "../../server/engine/JudgeOp"
+import { factionsSame } from "../../common/General"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -1217,22 +1217,135 @@ export class HunShang extends Skill {
             }
         })
     }
-
 }
 
-// 激昂 当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。
-// 鹰扬 当你拼点的牌亮出后，你可以令此牌的点数+3或-3。
-// 魂殇 副将技，此武将牌减少半个阴阳鱼；准备阶段，若你的体力值不大于1，则你本回合获得“英姿”和“英魂”。
+
+class DiaoDuoStart extends SimpleTrigger<StageStartFlow> {
+
+    conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+        return event.isFor(this.player.player.id, Stage.USE_CARD)
+    }
+    async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let resp = await manager.sendHint(this.player.player.id, {
+            hintType: HintType.SPECIAL,
+            specialId: this.skill.id,
+            hintMsg: '请选择调度的对象',
+            extraButtons: [Button.CANCEL]
+        })
+        if(resp.isCancel()) {
+            return
+        }
+        let target = resp.targets[0]
+        let cardAndPos = await SelectACardAt(manager, this.player, target, `(调度)获得一张${target}的装备牌`, CardPos.EQUIP)
+        if(!cardAndPos) {
+            console.error("???")
+            return
+        }
+        this.skill.invokeEffects(manager, [target.player.id])
+        await manager.transferCards(target.player.id, this.player.player.id, CardPos.EQUIP, CardPos.HAND, [cardAndPos[0]])
+
+        let chooseAnother = await manager.sendHint(this.player.player.id, {
+            hintType: HintType.CHOOSE_PLAYER,
+            hintMsg: `请选择将${cardAndPos[0]}交给另一名角色(或点击取消自己保留)`,
+            forbidden: [this.player.player.id],
+            minQuantity: 1,
+            quantity: 1,
+            extraButtons: [Button.CANCEL]
+        })
+
+        if(chooseAnother.isCancel()) {
+            return
+        }
+
+        target = chooseAnother.targets[0]
+        this.skill.invokeEffects(manager, [target.player.id])
+        await manager.transferCards(this.player.player.id, target.player.id, CardPos.HAND, CardPos.HAND, [cardAndPos[0]])
+    }
+}
+
+export class DiaoDuo extends SimpleConditionalSkill<EquipOp> {
+    
+    id = '调度'
+    displayName = '调度'
+    description = '与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。'
+    // hiddenType = HiddenType.NONE
+
+    public bootstrapClient() {
+        playerActionDriverProvider.registerSpecial(this.id, (hint, context)=>{
+            return new PlayerActionDriverDefiner('调度')
+                        .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
+                                            let him = context.getPlayer(id)
+                                            let me = context.myself
+                                            return him.hasCardAt(CardPos.EQUIP) && (factionsSame(him.getFaction(), me.getFaction()) || id === me.player.id)
+                                        },
+                                        ()=>'(调度)选择与你势力相同且有装备牌的一名角色')
+                        .expectAnyButton('选择发动调度')
+                        .build(hint, [Button.OK])
+        })
+    }
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<EquipOp>(EquipOp, this)
+        skillRegistry.on<StageStartFlow>(StageStartFlow, new DiaoDuoStart(this, manager))
+    }
+
+    public conditionFulfilled(event: EquipOp, manager: GameManager): boolean {
+        let me = manager.context.getPlayer(this.playerId)
+        return (factionsSame(event.beneficiary.getFaction(), me.getFaction()) || me === event.beneficiary) && event.beneficiary === event.source
+    }
+
+    public async doInvoke(event: EquipOp, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+    }
+}
+
+export class DianCai extends SimpleConditionalSkill<StageEndFlow> {
+    
+    id = '典财'
+    displayName = '典财'
+    description = '其他角色的出牌阶段结束时，若你于此阶段失去了X张或更多的牌(X为你的体力值)，则你可以将手牌摸至体力上限。' //，然后你可以变更一次副将'
+    cardLoss = 0
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        const cardLoss = async (event: CardAwayEvent) => {
+            if(event.player === this.playerId) {
+                this.cardLoss += event.cards.length
+            }
+        }
+        skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(event)=>{
+            this.cardLoss = 0
+        })
+        skillRegistry.on<StageEndFlow>(StageEndFlow, this)
+        skillRegistry.onEvent<CardBeingUsedEvent>(CardBeingUsedEvent, this.playerId, cardLoss)
+        skillRegistry.onEvent<CardBeingDroppedEvent>(CardBeingDroppedEvent, this.playerId, cardLoss)
+        skillRegistry.onEvent<CardBeingTakenEvent>(CardBeingTakenEvent, this.playerId, cardLoss)
+    }
+
+    public conditionFulfilled(event: StageEndFlow, manager: GameManager): boolean {
+        if(event.stage === Stage.USE_CARD && event.info.player.id !== this.playerId) {
+            let me = manager.context.getPlayer(this.playerId)
+            if(this.cardLoss >= me.hp && me.maxHp - me.getCards(CardPos.HAND).length > 0) {
+                return true
+            }
+        }
+        return false 
+    }
+
+    public async doInvoke(event: StageEndFlow, manager: GameManager): Promise<void> {
+        let me = manager.context.getPlayer(this.playerId)
+        let missing = me.maxHp - me.getCards(CardPos.HAND).length
+        if(missing <= 0) {
+            console.error('huh??', me)
+        }
+        this.invokeEffects(manager)
+        await new TakeCardOp(me, missing).perform(manager)
+    }
+}
 
 // 短兵 你使用【杀】可以多选择一名距离为1的角色为目标。
 // 奋迅 出牌阶段限一次，你可以弃置一张牌并选择一名其他角色，然后本回合你计算与其的距离视为1。
 
 // 尚义 出牌阶段限一次，你可以令一名其他角色观看你的手牌。若如此做，你选择一项：1.观看其手牌并可以弃置其中的一张黑色牌；2.观看其所有暗置的武将牌。
 // 鸟翔 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，你令该角色需依次使用两张【闪】才能抵消。
-
-
-
-
-// 调度 与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。
-// 典财 其他角色的出牌阶段结束时，若你于此阶段失去了X张或更多的牌，则你可以将手牌摸至体力上限，然后你可以变更一次副将(X为你的体力值)。
 

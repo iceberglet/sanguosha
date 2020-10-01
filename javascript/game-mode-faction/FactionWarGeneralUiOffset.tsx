@@ -14,6 +14,9 @@ function doAdd(id: string, x: number, y: number, w: number, h: number, x2: numbe
     smallRender.set(id, {x: x2, y: y2, w: w2, h: h2})
 }
 
+doAdd('guo_soldier_male', -80, -30, 180, 180, -115, -35, 200, 200)
+doAdd('guo_soldier_female', -80, -50, 180, 180, -130, -45, 200, 200)
+
 doAdd('standard_cao_cao', -80, -30, 180, 180, -130, -25, 200, 200)
 doAdd('standard_si_ma_yi', -40, 0, 150, 150, -90, -15, 200, 200)
 doAdd('standard_xia_hou_dun', -28, -15, 150, 150, -70, -25, 200, 200)

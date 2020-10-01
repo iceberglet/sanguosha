@@ -141,7 +141,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 if(matchIdx < 0) {
                     console.info('Received a new skill!', s)
                     let skill = GameMode.get(context.gameMode).skillProvider(s.id, myId)
-                    skill.position = s.position
+                    Object.assign(skill, s)
                     skill.bootstrapClient(context, context.getPlayer(myId))
                     state.skillButtons.push({
                         skill,
@@ -282,7 +282,8 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                     <div className='server-hint-msg'>{context.getMsg()}</div>
                     {context.getButtons().map(b => {
                         return <UIButton key={b.id} display={b.display} onClick={()=>buttonChecker.onClicked(b.id)} 
-                        disabled={!buttonChecker.getStatus(b.id).isSelectable} />
+                                        className={b.id === 'abort'? 'ui-button-abort' : ''}
+                                        disabled={!buttonChecker.getStatus(b.id).isSelectable} />
                     })}
                 </div>
                 <div className='buttons'>

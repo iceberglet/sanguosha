@@ -6,7 +6,7 @@ import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import DodgeOp from "./DodgeOp";
 import Card, { CardType, Color } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
-import { deriveColor } from "../../common/cards/ICard";
+import { deriveColor, ICard } from "../../common/cards/ICard";
 import { HintType } from "../../common/ServerHint";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardBeingUsedEvent } from "./Generic";
@@ -32,6 +32,27 @@ export class SlashType {
     }
 }
 
+function deriveSlashType (icards: ICard[]) {
+    if(icards.length === 1) {
+        let type = icards[0].as || icards[0].type
+        if(type === CardType.SLASH_FIRE) {
+            return SlashType.FIRE
+        } else if(type === CardType.SLASH_THUNDER){
+            return SlashType.THUNDER
+        }
+    }
+    if(!this.slashType) {
+        let color = deriveColor(icards.map(c => c.suit))
+        if(color === 'red') {
+            return SlashType.RED
+        } else if(color === 'black') {
+            return SlashType.BLACK
+        } else {
+            return SlashType.NO_COLOR
+        }
+    }
+}
+
 /**
  * 玩家出杀的行动. 目标已经选择好
  * 
@@ -51,24 +72,7 @@ export default class PlaySlashOp extends Operation<void> {
 
     public async perform(manager: GameManager): Promise<void> {
         let icards = this.cards.map(c =>manager.interpret(this.source.player.id, c))
-        if(icards.length === 1) {
-            let type = icards[0].as || icards[0].type
-            if(type === CardType.SLASH_FIRE) {
-                this.slashType = SlashType.FIRE
-            } else if(type === CardType.SLASH_THUNDER){
-                this.slashType = SlashType.THUNDER
-            }
-        }
-        if(!this.slashType) {
-            let color = deriveColor(icards.map(c => c.suit))
-            if(color === 'red') {
-                this.slashType = SlashType.RED
-            } else if(color === 'black') {
-                this.slashType = SlashType.BLACK
-            } else {
-                this.slashType = SlashType.NO_COLOR
-            }
-        }
+        this.slashType = deriveSlashType(icards)
         
         manager.broadcast(new TextFlashEffect(this.source.player.id, this.targets.map(t => t.player.id), this.slashType.text))
 
@@ -194,6 +198,7 @@ export class AskForSlashOp extends Operation<boolean> {
             } else if (resp.skill) {
                 await manager.resolver.onSkillAction(resp, this, manager)
             } else {
+                //只可能是手牌或者丈八蛇矛的手牌
                 let cards = resp.getCardsAtPos(CardPos.HAND).map(card => {
                     card.description = `${this.slasher.player.id} 出杀`
                     if(!card.type.isSlash()) {
@@ -201,10 +206,11 @@ export class AskForSlashOp extends Operation<boolean> {
                     }
                     return card
                 })
-                manager.log(`${resp.source} 打出了 ${cards}`)
-                let type: CardType = cards.length === 1? cards[0].type : CardType.SLASH
+                let slashType = deriveSlashType(cards.map(c => manager.interpret(this.slasher.player.id, c)))
+                manager.log(`${resp.source} 决斗打出了 ${cards}`)
                 manager.sendToWorkflow(this.slasher.player.id, CardPos.HAND, cards)
-                await manager.events.publish(new CardBeingUsedEvent(this.slasher.player.id, cards.map(c => [c, CardPos.HAND]), type, false, false))
+                manager.broadcast(new TextFlashEffect(this.slasher.player.id, [this.target.player.id], slashType.cardType.name))
+                await manager.events.publish(new CardBeingUsedEvent(this.slasher.player.id, cards.map(c => [c, CardPos.HAND]), slashType.cardType, false, false))
             }
         }
 
