@@ -10641,7 +10641,7 @@ class HengZheng extends Skill_1.SimpleConditionalSkill {
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            let targets = manager.getSortedByCurr(false).filter(p => !p.hasCards());
+            let targets = manager.getSortedByCurr(false).filter(p => p.hasCards());
             manager.roundStats.skipStages.set(Stage_1.Stage.TAKE_CARD, true);
             this.invokeEffects(manager, targets.map(t => t.player.id));
             for (let target of targets) {
@@ -15289,21 +15289,17 @@ class SequenceAwareSkillPubSub {
                 //小心一个技能使得另一个技能无法发动 (先渐营再死谏就囧了)
                 console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id));
                 let choices = [];
-                //先把锁定技都给弄了 (防止先矢北然后附敌)
                 for (let s of skillTriggers) {
                     let skill = s.getSkill();
                     //将明置 & 锁定技 -> 直接触发
                     //将明置 & 非锁定技 -> 询问
                     //将暗置 & 锁定/非锁定 -> 询问
+                    //todo: 先把锁定技都给弄了 (防止先矢北然后附敌)
                     if (skill.isRevealed && skill.isLocked) {
                         console.log('[技能驱动] 直接发动锁定技: ', skill.id);
                         yield s.doInvoke(obj, this.manager);
                     }
-                }
-                //然后整理剩下的
-                for (let s of skillTriggers) {
-                    let skill = s.getSkill();
-                    if (!(skill.isRevealed && skill.isLocked) && Skill_1.invocable(s, obj, this.manager)) {
+                    else {
                         console.log('[技能驱动] 可能可以发动: ', skill.id);
                         let invokeMsg = s.invokeMsg(obj, this.manager);
                         if (!skill.isRevealed) {

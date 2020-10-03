@@ -1308,7 +1308,7 @@ export class HengZheng extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
-        let targets = manager.getSortedByCurr(false).filter(p => !p.hasCards())
+        let targets = manager.getSortedByCurr(false).filter(p => p.hasCards())
         manager.roundStats.skipStages.set(Stage.TAKE_CARD, true)
         this.invokeEffects(manager, targets.map(t => t.player.id))
         for(let target of targets) {
