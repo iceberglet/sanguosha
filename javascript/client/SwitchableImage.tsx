@@ -17,7 +17,9 @@ export default function SwitchableImage(p: ImageProp) {
         }, 500)
     }, [p.style.backgroundImage])
 
-    return <div className={'card-avatar ' + (isFlashing? 'img-flashing' : '')}>
-            <div className={'img'} style={p.style} />
+    let {style, ...props} = p
+
+    return <div className={'card-avatar ' + (isFlashing? 'img-flashing' : '')} {...props}>
+            <div className={'img'} style={style}/>
         </div>
 }
