@@ -156,14 +156,11 @@ export function wait(fn: Function, ms: number = 1000) {
 export function throttle(func: Function, wait: number) {
   let canExecute = true
   return function() {
-    console.log('calling', canExecute)
     if(canExecute) {
       canExecute = false
-      console.log('about to call', canExecute)
       func.apply(this, arguments)
       setTimeout(()=>{
         canExecute = true
-        console.log('after restore', canExecute)
       }, wait)
     }
   }

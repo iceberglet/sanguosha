@@ -6575,14 +6575,11 @@ exports.wait = wait;
 function throttle(func, wait) {
     let canExecute = true;
     return function () {
-        console.log('calling', canExecute);
         if (canExecute) {
             canExecute = false;
-            console.log('about to call', canExecute);
             func.apply(this, arguments);
             setTimeout(() => {
                 canExecute = true;
-                console.log('after restore', canExecute);
             }, wait);
         }
     };
