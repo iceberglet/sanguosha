@@ -211,7 +211,7 @@ export default class FactionPlayerInfo extends PlayerInfo {
     }
 
     static factionSame(a: PlayerInfo, b: PlayerInfo): boolean {
-        return factionsSame(a.getFaction(), b.getFaction())
+        return factionsSame(a.getFaction(), b.getFaction()) || a === b
     }
 }
 

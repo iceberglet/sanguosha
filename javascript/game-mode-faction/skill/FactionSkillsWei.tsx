@@ -26,8 +26,8 @@ import CardFightOp from "../../server/engine/CardFightOp";
 import { DropCardRequest } from "../../server/engine/DropCardOp";
 import { getNumberOfFactions, askAbandonBasicCard, askAbandonEquip } from "../FactionWarUtil";
 import { MoveCardOnField } from "../../server/engine/MoveCardOp";
-import { factionsSame } from "../../common/General";
 import { ShunShou } from "../../server/engine/SingleRuseOp";
+import FactionPlayerInfo from "../FactionPlayerInfo";
 
 export abstract class SkillForDamageTaken extends SimpleConditionalSkill<DamageOp> {
 
@@ -1052,7 +1052,7 @@ export class ZiLiang extends SimpleConditionalSkill<DamageOp> {
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
         let me = manager.context.getPlayer(this.playerId)
         //当与你势力相同的一名角色受到伤害后
-        return (event.target.player.id === this.playerId || factionsSame(event.target.getFaction(), me.getFaction())) && 
+        return FactionPlayerInfo.factionSame(event.target, me) && 
                     event.timeline === DamageTimeline.TAKEN_DAMAGE && 
                     event.type !== DamageType.ENERGY && !event.target.isDead && me.getCards(CardPos.ON_SUB_GENERAL).length > 0
     }

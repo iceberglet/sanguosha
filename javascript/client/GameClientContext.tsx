@@ -75,7 +75,7 @@ export default class GameClientContext extends GameContext {
     }
 
     public getButtons() {
-        return this.currentDriver.getUsableButtons()
+        return this.currentDriver.getUsableButtons(this)
     }
 
     public getMsg(): string {

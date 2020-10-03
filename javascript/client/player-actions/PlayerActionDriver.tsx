@@ -2,6 +2,7 @@
 import GameClientContext from "../GameClientContext"
 import { PlayerUIAction, Button, UIPosition } from "../../common/PlayerAction"
 import context from "react-bootstrap/esm/AccordionContext"
+import { HintType } from "../../common/ServerHint"
 
 export enum Clickability {
     CLICKABLE,
@@ -45,7 +46,7 @@ export abstract class PlayerActionDriver {
     /**
      * Buttons to be displayed
      */
-    abstract getUsableButtons(): Button[]
+    abstract getUsableButtons(context: GameClientContext): Button[]
     abstract getHintMsg(context: GameClientContext): string
     abstract getAllAreas(): Set<UIPosition>
 }
@@ -153,14 +154,17 @@ export class CompositePlayerActionDriver extends PlayerActionDriver {
         return false
     }
 
-    getUsableButtons() {
+    getUsableButtons(context: GameClientContext) {
         if(this.theOne) {
-            return this.theOne.getUsableButtons()
+            return this.theOne.getUsableButtons(context)
         } else {
             //get buttons only if all delegates have it!
-            let base = this.delegates[0].getUsableButtons()
+            let base = this.delegates[0].getUsableButtons(context)
             for(let i = 1; i < this.delegates.length; ++i) {
-                base = base.filter(b => this.delegates[i].getUsableButtons().find(bb => bb.id === b.id))
+                base = base.filter(b => this.delegates[i].getUsableButtons(context).find(bb => bb.id === b.id))
+            }
+            if(context.serverHint && context.serverHint.hint.hintType === HintType.PLAY_HAND) {
+                base = base.filter(b => b.id !== Button.CANCEL.id)
             }
             return base
         }

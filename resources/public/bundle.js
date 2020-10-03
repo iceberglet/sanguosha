@@ -282,7 +282,7 @@ class GameClientContext extends GameContext_1.default {
         }
     }
     getButtons() {
-        return this.currentDriver.getUsableButtons();
+        return this.currentDriver.getUsableButtons(this);
     }
     getMsg() {
         return this.currentDriver.getHintMsg(this);
@@ -1305,6 +1305,8 @@ if(false) {}
 
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CompositePlayerActionDriver = exports.NoActionDriver = exports.PlayerActionDriver = exports.ClickActionResult = exports.Clickability = void 0;
+const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
+const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 var Clickability;
 (function (Clickability) {
     Clickability[Clickability["CLICKABLE"] = 0] = "CLICKABLE";
@@ -1429,15 +1431,18 @@ class CompositePlayerActionDriver extends PlayerActionDriver {
         }
         return false;
     }
-    getUsableButtons() {
+    getUsableButtons(context) {
         if (this.theOne) {
-            return this.theOne.getUsableButtons();
+            return this.theOne.getUsableButtons(context);
         }
         else {
             //get buttons only if all delegates have it!
-            let base = this.delegates[0].getUsableButtons();
+            let base = this.delegates[0].getUsableButtons(context);
             for (let i = 1; i < this.delegates.length; ++i) {
-                base = base.filter(b => this.delegates[i].getUsableButtons().find(bb => bb.id === b.id));
+                base = base.filter(b => this.delegates[i].getUsableButtons(context).find(bb => bb.id === b.id));
+            }
+            if (context.serverHint && context.serverHint.hint.hintType === ServerHint_1.HintType.PLAY_HAND) {
+                base = base.filter(b => b.id !== PlayerAction_1.Button.CANCEL.id);
             }
             return base;
         }
@@ -6802,7 +6807,7 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         super.declareDeath();
     }
     static factionSame(a, b) {
-        return General_1.factionsSame(a.getFaction(), b.getFaction());
+        return General_1.factionsSame(a.getFaction(), b.getFaction()) || a === b;
     }
 }
 exports.default = FactionPlayerInfo;
@@ -9292,6 +9297,7 @@ const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javas
 const PlayerActionDriverDefiner_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverDefiner */ "./javascript/client/player-actions/PlayerActionDriverDefiner.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
+const FactionPlayerInfo_1 = __webpack_require__(/*! ../FactionPlayerInfo */ "./javascript/game-mode-faction/FactionPlayerInfo.tsx");
 const Util_1 = __webpack_require__(/*! ../../common/util/Util */ "./javascript/common/util/Util.tsx");
 const DropCardOp_1 = __webpack_require__(/*! ../../server/engine/DropCardOp */ "./javascript/server/engine/DropCardOp.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
@@ -9830,7 +9836,7 @@ class FuDi extends FactionSkillsWei_1.SkillForDamageTaken {
             let maxHp = 0;
             choices = [];
             manager.context.playerInfos.forEach(p => {
-                if (General_1.factionsSame(p.getFaction(), fac) && p.hp >= me.hp) {
+                if (FactionPlayerInfo_1.default.factionSame(p, event.source) && p.hp >= me.hp) {
                     if (p.hp > maxHp) {
                         choices = [p.player.id];
                         maxHp = p.hp;
@@ -10629,7 +10635,7 @@ class HengZheng extends Skill_1.SimpleConditionalSkill {
     conditionFulfilled(event, manager) {
         if (event.isFor(this.playerId, Stage_1.Stage.TAKE_CARD) && !manager.roundStats.skipStages.get(Stage_1.Stage.TAKE_CARD)) {
             let me = manager.context.getPlayer(this.playerId);
-            return me.hp === 1 || me.getCards(CardPos_1.CardPos.HAND).length === 1;
+            return me.hp === 1 || !me.hasCardAt(CardPos_1.CardPos.HAND);
         }
         return false;
     }
@@ -12302,8 +12308,8 @@ const CardFightOp_1 = __webpack_require__(/*! ../../server/engine/CardFightOp */
 const DropCardOp_1 = __webpack_require__(/*! ../../server/engine/DropCardOp */ "./javascript/server/engine/DropCardOp.tsx");
 const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
 const MoveCardOp_1 = __webpack_require__(/*! ../../server/engine/MoveCardOp */ "./javascript/server/engine/MoveCardOp.tsx");
-const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
 const SingleRuseOp_1 = __webpack_require__(/*! ../../server/engine/SingleRuseOp */ "./javascript/server/engine/SingleRuseOp.tsx");
+const FactionPlayerInfo_1 = __webpack_require__(/*! ../FactionPlayerInfo */ "./javascript/game-mode-faction/FactionPlayerInfo.tsx");
 class SkillForDamageTaken extends Skill_1.SimpleConditionalSkill {
     isMyDamage(event) {
         return event.target.player.id === this.playerId && event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE
@@ -13345,7 +13351,7 @@ class ZiLiang extends Skill_1.SimpleConditionalSkill {
     conditionFulfilled(event, manager) {
         let me = manager.context.getPlayer(this.playerId);
         //当与你势力相同的一名角色受到伤害后
-        return (event.target.player.id === this.playerId || General_1.factionsSame(event.target.getFaction(), me.getFaction())) &&
+        return FactionPlayerInfo_1.default.factionSame(event.target, me) &&
             event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE &&
             event.type !== DamageOp_1.DamageType.ENERGY && !event.target.isDead && me.getCards(CardPos_1.CardPos.ON_SUB_GENERAL).length > 0;
     }
@@ -13541,7 +13547,6 @@ const MoveCardOp_1 = __webpack_require__(/*! ../../server/engine/MoveCardOp */ "
 const MultiRuseOp_1 = __webpack_require__(/*! ../../server/engine/MultiRuseOp */ "./javascript/server/engine/MultiRuseOp.tsx");
 const AskSavingOp_1 = __webpack_require__(/*! ../../server/engine/AskSavingOp */ "./javascript/server/engine/AskSavingOp.tsx");
 const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
-const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
 class ZhiHeng extends Skill_1.Skill {
     constructor() {
         super(...arguments);
@@ -14798,7 +14803,7 @@ class DiaoDuo extends Skill_1.SimpleConditionalSkill {
                 .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id, context) => {
                 let him = context.getPlayer(id);
                 let me = context.myself;
-                return him.hasCardAt(CardPos_1.CardPos.EQUIP) && (General_1.factionsSame(him.getFaction(), me.getFaction()) || id === me.player.id);
+                return him.hasCardAt(CardPos_1.CardPos.EQUIP) && FactionPlayerInfo_1.default.factionSame(him, me);
             }, () => '(调度)选择与你势力相同且有装备牌的一名角色')
                 .expectAnyButton('选择发动调度')
                 .build(hint, [PlayerAction_1.Button.OK]);
@@ -14810,7 +14815,7 @@ class DiaoDuo extends Skill_1.SimpleConditionalSkill {
     }
     conditionFulfilled(event, manager) {
         let me = manager.context.getPlayer(this.playerId);
-        return (General_1.factionsSame(event.beneficiary.getFaction(), me.getFaction()) || me === event.beneficiary) && event.beneficiary === event.source;
+        return FactionPlayerInfo_1.default.factionSame(event.beneficiary, me) && event.beneficiary === event.source;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -15284,6 +15289,7 @@ class SequenceAwareSkillPubSub {
                 //小心一个技能使得另一个技能无法发动 (先渐营再死谏就囧了)
                 console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id));
                 let choices = [];
+                //先把锁定技都给弄了 (防止先矢北然后附敌)
                 for (let s of skillTriggers) {
                     let skill = s.getSkill();
                     //将明置 & 锁定技 -> 直接触发
@@ -15293,7 +15299,11 @@ class SequenceAwareSkillPubSub {
                         console.log('[技能驱动] 直接发动锁定技: ', skill.id);
                         yield s.doInvoke(obj, this.manager);
                     }
-                    else {
+                }
+                //然后整理剩下的
+                for (let s of skillTriggers) {
+                    let skill = s.getSkill();
+                    if (!(skill.isRevealed && skill.isLocked) && Skill_1.invocable(s, obj, this.manager)) {
                         console.log('[技能驱动] 可能可以发动: ', skill.id);
                         let invokeMsg = s.invokeMsg(obj, this.manager);
                         if (!skill.isRevealed) {
@@ -19546,17 +19556,15 @@ function deriveSlashType(icards) {
             return SlashType.THUNDER;
         }
     }
-    if (!this.slashType) {
-        let color = ICard_1.deriveColor(icards.map(c => c.suit));
-        if (color === 'red') {
-            return SlashType.RED;
-        }
-        else if (color === 'black') {
-            return SlashType.BLACK;
-        }
-        else {
-            return SlashType.NO_COLOR;
-        }
+    let color = ICard_1.deriveColor(icards.map(c => c.suit));
+    if (color === 'red') {
+        return SlashType.RED;
+    }
+    else if (color === 'black') {
+        return SlashType.BLACK;
+    }
+    else {
+        return SlashType.NO_COLOR;
     }
 }
 /**

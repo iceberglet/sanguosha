@@ -11,7 +11,7 @@ import { HintType } from "../common/ServerHint";
 import { MultiRuse } from "../server/engine/MultiRuseOp";
 import { PlayerInfo } from "../common/PlayerInfo";
 import { DropCardRequest } from "../server/engine/DropCardOp";
-import { Faction, factionsSame } from "../common/General";
+import { factionsSame } from "../common/General";
 import { EquipOp } from "../server/engine/EquipOp";
 import FactionWarSkillRepo from "./skill/FactionWarSkillRepo";
 import { Skill } from "../common/Skill";

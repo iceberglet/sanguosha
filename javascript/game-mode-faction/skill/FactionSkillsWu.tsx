@@ -1276,7 +1276,7 @@ export class DiaoDuo extends SimpleConditionalSkill<EquipOp> {
                         .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
                                             let him = context.getPlayer(id)
                                             let me = context.myself
-                                            return him.hasCardAt(CardPos.EQUIP) && (factionsSame(him.getFaction(), me.getFaction()) || id === me.player.id)
+                                            return him.hasCardAt(CardPos.EQUIP) && FactionPlayerInfo.factionSame(him, me)
                                         },
                                         ()=>'(调度)选择与你势力相同且有装备牌的一名角色')
                         .expectAnyButton('选择发动调度')
@@ -1291,7 +1291,7 @@ export class DiaoDuo extends SimpleConditionalSkill<EquipOp> {
 
     public conditionFulfilled(event: EquipOp, manager: GameManager): boolean {
         let me = manager.context.getPlayer(this.playerId)
-        return (factionsSame(event.beneficiary.getFaction(), me.getFaction()) || me === event.beneficiary) && event.beneficiary === event.source
+        return FactionPlayerInfo.factionSame(event.beneficiary, me) && event.beneficiary === event.source
     }
 
     public async doInvoke(event: EquipOp, manager: GameManager): Promise<void> {

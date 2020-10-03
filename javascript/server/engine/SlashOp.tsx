@@ -41,15 +41,14 @@ function deriveSlashType (icards: ICard[]) {
             return SlashType.THUNDER
         }
     }
-    if(!this.slashType) {
-        let color = deriveColor(icards.map(c => c.suit))
-        if(color === 'red') {
-            return SlashType.RED
-        } else if(color === 'black') {
-            return SlashType.BLACK
-        } else {
-            return SlashType.NO_COLOR
-        }
+    
+    let color = deriveColor(icards.map(c => c.suit))
+    if(color === 'red') {
+        return SlashType.RED
+    } else if(color === 'black') {
+        return SlashType.BLACK
+    } else {
+        return SlashType.NO_COLOR
     }
 }
 

@@ -531,7 +531,7 @@ export class FuDi extends SkillForDamageTaken {
             let maxHp = 0
             choices = []
             manager.context.playerInfos.forEach(p => {
-                if(factionsSame(p.getFaction(), fac) && p.hp >= me.hp) {
+                if(FactionPlayerInfo.factionSame(p, event.source) && p.hp >= me.hp) {
                     if(p.hp > maxHp) {
                         choices = [p.player.id]
                         maxHp = p.hp
@@ -1302,7 +1302,7 @@ export class HengZheng extends SimpleConditionalSkill<StageStartFlow> {
     public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
         if(event.isFor(this.playerId, Stage.TAKE_CARD) && !manager.roundStats.skipStages.get(Stage.TAKE_CARD)) {
             let me = manager.context.getPlayer(this.playerId)
-            return me.hp === 1 || me.getCards(CardPos.HAND).length === 1
+            return me.hp === 1 || !me.hasCardAt(CardPos.HAND)
         }
         return false
     }
