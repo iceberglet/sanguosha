@@ -48,6 +48,8 @@ export type Signs = {
     [key: string] : Sign
 }
 
+export type OnSkinChangeRequest = (isMain: boolean) => void
+
 export abstract class PlayerInfo {
     //一号位二号位?
     idx: number
@@ -107,7 +109,7 @@ export abstract class PlayerInfo {
      */
     abstract draw(): ReactElement | ReactElement[];
 
-    abstract drawSelf(skillButtons: SkillButtonProp[]): ReactElement | ReactElement[];
+    abstract drawSelf(skillButtons: SkillButtonProp[], cb: OnSkinChangeRequest): ReactElement | ReactElement[];
 
     heal(amount: number) {
         //sometimes max hp changes O.o

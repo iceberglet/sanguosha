@@ -50,6 +50,7 @@ export class General {
 
     public gender: Gender
     public uiOffset: UIOffSet
+    public skins: number = 5
 
     /**
      * @param id used to locate the resource
@@ -77,6 +78,11 @@ export class General {
             top: top + '%',
             left: left + '%'
         }
+        return this
+    }
+
+    public withSkin(skin: number) {
+        this.skins = skin
         return this
     }
 }

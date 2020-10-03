@@ -1,7 +1,7 @@
 import FactionWarGeneral from "./FactionWarGenerals"
 import { Faction, Gender, factionsSame } from '../common/General'
 import { Player } from "../common/Player"
-import { PlayerInfo, Mark, CardMark } from "../common/PlayerInfo"
+import { PlayerInfo, Mark, CardMark, OnSkinChangeRequest } from "../common/PlayerInfo"
 import * as React from "react"
 import './faction-war.scss'
 import { toFactionWarAvatarStyle } from "./FactionWarGeneralUiOffset"
@@ -11,6 +11,7 @@ import { GameMode } from "../common/GameMode"
 import { Skill } from "../common/Skill"
 import { wrapGeneral } from "../client/card-panel/GeneralUI"
 import { CardPos } from "../common/transit/CardPos"
+import SwitchableImage from "../client/SwitchableImage"
 
 
 export default class FactionPlayerInfo extends PlayerInfo {
@@ -22,6 +23,9 @@ export default class FactionPlayerInfo extends PlayerInfo {
     //铁骑, 潜袭之类的标识
     public mainMark: Mark = {}
     public subMark: Mark = {}
+
+    public mainSkin: string
+    public subSkin: string
     
     constructor(
         player: Player,
@@ -91,6 +95,8 @@ export default class FactionPlayerInfo extends PlayerInfo {
         }
         copy.general = this.isGeneralRevealed && this.general
         copy.subGeneral = this.isSubGeneralRevealed && this.subGeneral
+        copy.mainSkin = this.isGeneralRevealed && this.mainSkin
+        copy.subSkin = this.isSubGeneralRevealed && this.subSkin
         copy.signs = {}
         Object.keys(this.signs).forEach(k => {
             if(this.signs[k].owner === 'main' && !this.isGeneralRevealed) {
@@ -104,18 +110,19 @@ export default class FactionPlayerInfo extends PlayerInfo {
         return copy
     }
 
-    renderGeneral(g: FactionWarGeneral, isBig: boolean) {
+    renderGeneral(g: FactionWarGeneral, isBig: boolean, skin: string) {
 
-        let ele
+        let style: React.CSSProperties
         if(!g) {
             //not revealed yet
-            ele = <div className='img' 
-                    style={{backgroundImage: `url('generals/back.png')`, backgroundPosition: '-30px -20px', filter: 'grayscale(70%)'}} />
+            style = {backgroundImage: `url('generals/back.png')`, backgroundPosition: '-30px -20px', filter: 'grayscale(70%)'}
+        } else if(skin) {
+            style = toFactionWarAvatarStyle(skin, isBig)
         } else {
-            ele = <div className='img' style={toFactionWarAvatarStyle(g.id, isBig)} />
+            style = toFactionWarAvatarStyle(g.id, isBig)
         }
 
-        return wrapGeneral(g, <div className='card-avatar'>{ele}</div>)
+        return wrapGeneral(g, <SwitchableImage style={style}/>)
     }
 
     drawMark(isMain: boolean) {
@@ -135,12 +142,12 @@ export default class FactionPlayerInfo extends PlayerInfo {
         let sub = this.subGeneral? this.subGeneral.name : '副将'
         return [<div className={clazz} key={'pics'}>
             <div className='general' style={{letterSpacing: main.length > 2 ? '-4px' : '0px'}}>
-                {this.renderGeneral(this.general, false)}
+                {this.renderGeneral(this.general, false, this.mainSkin)}
                 <div className='general-name'>{main}</div>
                 {this.drawMark(true)}
             </div>
             <div className='general' style={{letterSpacing: sub.length > 2 ? '-4px' : '0px'}}>
-                {this.renderGeneral(this.subGeneral, false)}
+                {this.renderGeneral(this.subGeneral, false, this.subSkin)}
                 <div className='general-name'>{sub}</div>
                 {this.drawMark(false)}
             </div>
@@ -149,18 +156,18 @@ export default class FactionPlayerInfo extends PlayerInfo {
         <FactionMark key={'faction-mark'} info={this}/>]
     }
 
-    drawSelf(skillButtons: SkillButtonProp[]) {
+    drawSelf(skillButtons: SkillButtonProp[],  cb: OnSkinChangeRequest) {
         let fac = this.isRevealed()? this.getFaction() : this.general.faction
         let color = Color[fac.image]
         let clazz = new ClassFormatter('faction-war').and(this.isDead, 'dead').done()
         return <div className={clazz}>
             <div className={'general ' + (this.isGeneralRevealed || 'hidden')}>
-                {this.renderGeneral(this.general, true)}
+                {this.renderGeneral(this.general, true, this.mainSkin)}
                 <div className='general-name' style={{background: color, letterSpacing: this.general.name.length > 3 ? '-2px' : '0px'}}>
                     {this.general.name}
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>
-                <div className='title'>主</div>
+                <div className='title' onClick={()=>cb(true)}>主</div>
                 <div className='skill-buttons'>
                     {skillButtons.filter(b=>b.skill.position === 'main' || b.skill.position === 'player').map(b=>{
                         return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>
@@ -169,12 +176,12 @@ export default class FactionPlayerInfo extends PlayerInfo {
                 {this.drawMark(true)}
             </div>
             <div className={'general ' + (this.isSubGeneralRevealed || 'hidden')}>
-                {this.renderGeneral(this.subGeneral, true)}
+                {this.renderGeneral(this.subGeneral, true, this.subSkin)}
                 <div className='general-name' style={{background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-2px' : '0px'}}>
                     {this.subGeneral.name}
                     <div className='general-name-after' style={{borderLeft: `9px solid ${color}`}}/>
                 </div>
-                <div className='title'>副</div>
+                <div className='title' onClick={()=>cb(false)}>副</div>
                 <div className='skill-buttons'>
                     {skillButtons.filter(b=>b.skill.position === 'sub').map(b=>{
                         return <SkillButton {...b} key={b.skill.id} className={this.general.faction.image}/>

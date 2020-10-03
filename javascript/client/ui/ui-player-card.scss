@@ -232,6 +232,26 @@
     }
 }
 
+.img-flashing::after {
+    content: '';
+    background: rgba(255, 255, 255, 0.678);
+    width: 50%;
+    height: 200%;
+    transform-origin: center;
+    position: absolute;
+    transform-origin: bottom;
+    animation: img-flash 0.6s forwards;
+}
+
+@keyframes img-flash {
+    0% {
+        transform: translate(-500%, -100%) rotate(45deg);
+    }
+    100% {
+        transform: translate(0%, 0%) rotate(45deg);
+    }
+}
+
 @keyframes tremble {
     0% {transform: translate(-0px, 0px)}
     25% {transform: translate(-10px, 0px)}

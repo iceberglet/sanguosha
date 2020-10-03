@@ -310,6 +310,33 @@ exports.default = GameClientContext;
 
 /***/ }),
 
+/***/ "./javascript/client/SwitchableImage.tsx":
+/*!***********************************************!*\
+  !*** ./javascript/client/SwitchableImage.tsx ***!
+  \***********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+function SwitchableImage(p) {
+    let [isFlashing, setFlashing] = React.useState(false);
+    React.useEffect(() => {
+        setFlashing(true);
+        setTimeout(() => {
+            setFlashing(false);
+        }, 500);
+    }, [p.style.backgroundImage]);
+    return React.createElement("div", { className: 'card-avatar ' + (isFlashing ? 'img-flashing' : '') },
+        React.createElement("div", { className: 'img', style: p.style }));
+}
+exports.default = SwitchableImage;
+
+
+/***/ }),
+
 /***/ "./javascript/client/Util.tsx":
 /*!************************************!*\
   !*** ./javascript/client/Util.tsx ***!
@@ -2645,6 +2672,7 @@ const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/comm
 const UILogger_1 = __webpack_require__(/*! ./UILogger */ "./javascript/client/ui/UILogger.tsx");
 const AudioManager_1 = __webpack_require__(/*! ../audio-manager/AudioManager */ "./javascript/client/audio-manager/AudioManager.tsx");
 const UIRuleModal_1 = __webpack_require__(/*! ./UIRuleModal */ "./javascript/client/ui/UIRuleModal.tsx");
+const Util_1 = __webpack_require__(/*! ../../common/util/Util */ "./javascript/common/util/Util.tsx");
 class ElementStatus {
     constructor(name, isSelectable) {
         this.name = name;
@@ -2702,6 +2730,9 @@ class UIBoard extends React.Component {
             // console.log('Force Refreshing UIBoard')
             this.forceUpdate();
         };
+        this.skinUpdate = Util_1.throttle((isMain) => {
+            this.props.context.sendToServer(new EffectTransit_1.SkinRequest(this.props.context.myself.player.id, isMain));
+        }, 1000);
         let { myId, context } = p;
         let screenPosObtainer = new ScreenPosObtainer_1.ScreenPosObtainer();
         let skillChecker = new CheckerImpl(PlayerAction_1.UIPosition.MY_SKILL, context, this.refresh);
@@ -2788,10 +2819,9 @@ class UIBoard extends React.Component {
             this.state.cardTransitManager.onCardTransfer(effect);
         });
         p.pubsub.on(FactionPlayerInfo_1.default, (info) => {
-            // console.log('Before update player', info, context.getPlayer(info.player.id).getAllCards())
             delete info.cards;
-            Object.assign(context.getPlayer(info.player.id), info);
-            // console.log('After update player', info, context.getPlayer(info.player.id).getAllCards())
+            let player = context.getPlayer(info.player.id);
+            Object.assign(player, info);
             this.refresh();
         });
         p.pubsub.on(EffectTransit_1.CurrentPlayerEffect, (currentPlayerEffect) => {
@@ -2841,7 +2871,7 @@ class UIBoard extends React.Component {
                     React.createElement(UIRuleModal_1.default, { ruleName: mode.name + '规则', rules: mode.manual() }),
                     React.createElement("i", { className: 'fa fa-music icon ' + (this.state.audioPlaying ? 'flashing-red' : ''), onClick: this.toggleMusic }))),
             React.createElement("div", { className: 'btm', ref: this.dom },
-                React.createElement(UIMyPlayerCard_1.UIMyPlayerCard, { info: playerInfo, elementStatus: playerChecker.getStatus(myId), onSelect: (s) => playerChecker.onClicked(s), pubsub: pubsub, skillButtons: skillButtons }),
+                React.createElement(UIMyPlayerCard_1.UIMyPlayerCard, { info: playerInfo, elementStatus: playerChecker.getStatus(myId), cb: this.skinUpdate, onSelect: (s) => playerChecker.onClicked(s), pubsub: pubsub, skillButtons: skillButtons }),
                 React.createElement(UIMyCards_1.default, { info: playerInfo, equipChecker: equipChecker, cardsChecker: cardsChecker, signsChecker: signsChecker, hideCards: hideCards, cardTransitManager: cardTransitManager, onCardsShifted: shift => {
                         this.props.context.sendToServer(shift);
                     } }),
@@ -3476,7 +3506,7 @@ class UIMyPlayerCard extends React.Component {
     }
     render() {
         var _a;
-        let { info, elementStatus, skillButtons } = this.props;
+        let { info, elementStatus, skillButtons, cb } = this.props;
         let { damaged, effect } = this.state;
         let pendingOnMe = (_a = effect.pendingUser) === null || _a === void 0 ? void 0 : _a.has(info.player.id);
         let clazz = new Togglable_1.ClassFormatter('ui-player-card ui-my-player-card')
@@ -3486,7 +3516,7 @@ class UIMyPlayerCard extends React.Component {
             .and(pendingOnMe, 'glow-on-hover')
             .done();
         return React.createElement("div", { className: clazz, onClick: this.onClick },
-            info.drawSelf(skillButtons),
+            info.drawSelf(skillButtons, cb),
             React.createElement(Util_1.Mask, { isMasked: info.isDrunk, maskClass: 'drunk' }),
             React.createElement(Util_1.Mask, { isMasked: info.isTurnedOver, maskClass: 'turned-over' }),
             info.isTurnedOver && React.createElement("div", { className: 'occupy center font-big' }, "\u7FFB\u9762"),
@@ -4533,6 +4563,7 @@ class General {
         this.faction = faction;
         this.hp = hp;
         this.abilities = abilities;
+        this.skins = 5;
         this.gender = 'M';
         this.uiOffset = {
             top: '-10%',
@@ -4548,6 +4579,10 @@ class General {
             top: top + '%',
             left: left + '%'
         };
+        return this;
+    }
+    withSkin(skin) {
+        this.skins = skin;
         return this;
     }
 }
@@ -5599,7 +5634,7 @@ exports.CardRearrangeRequest = CardRearrangeRequest;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LogTransit = exports.CardTransit = exports.CurrentPlayerEffect = exports.DamageEffect = exports.TextFlashEffect = exports.PlaySound = void 0;
+exports.LogTransit = exports.CardTransit = exports.SkinRequest = exports.CurrentPlayerEffect = exports.DamageEffect = exports.TextFlashEffect = exports.PlaySound = void 0;
 const Card_1 = __webpack_require__(/*! ../cards/Card */ "./javascript/common/cards/Card.tsx");
 const CardPos_1 = __webpack_require__(/*! ./CardPos */ "./javascript/common/transit/CardPos.tsx");
 class PlaySound {
@@ -5634,6 +5669,13 @@ class CurrentPlayerEffect {
     }
 }
 exports.CurrentPlayerEffect = CurrentPlayerEffect;
+class SkinRequest {
+    constructor(player, isMain) {
+        this.player = player;
+        this.isMain = isMain;
+    }
+}
+exports.SkinRequest = SkinRequest;
 class CardTransit {
     constructor(from, fromPos, to, toPos, cards, animDurationSeconds, head = false, 
     /**
@@ -6217,6 +6259,7 @@ exports.Serde.register(PlayerInfo_1.Identity);
 exports.Serde.register(ServerHint_1.Rescind);
 exports.Serde.register(CustomUIRegistry_1.CustomUIData);
 exports.Serde.register(RoundStat_1.default);
+exports.Serde.register(EffectTransit_1.SkinRequest);
 exports.Serde.register(Multimap_1.default);
 exports.Serde.register(PlayerAction_1.Button);
 exports.Serde.register(Stage_1.Stage);
@@ -6386,7 +6429,7 @@ exports.TogglableMap = TogglableMap;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.wait = exports.delay = exports.toChinese = exports.promiseAny = exports.reorder = exports.any = exports.all = exports.filterMap = exports.flattenMap = exports.getKeys = exports.checkThat = exports.checkNotNull = exports.Mask = exports.Suits = exports.getNext = exports.enumValues = exports.takeFromArray = exports.getRandom = exports.shuffle = void 0;
+exports.debounce = exports.throttle = exports.wait = exports.delay = exports.toChinese = exports.promiseAny = exports.reorder = exports.any = exports.all = exports.filterMap = exports.flattenMap = exports.getKeys = exports.checkThat = exports.checkNotNull = exports.Mask = exports.Suits = exports.getNext = exports.enumValues = exports.takeFromArray = exports.getRandom = exports.shuffle = void 0;
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 function shuffle(array) {
     var m = array.length, t, i;
@@ -6529,6 +6572,44 @@ function wait(fn, ms = 1000) {
     });
 }
 exports.wait = wait;
+function throttle(func, wait) {
+    let canExecute = true;
+    return function () {
+        console.log('calling', canExecute);
+        if (canExecute) {
+            canExecute = false;
+            console.log('about to call', canExecute);
+            func.apply(this, arguments);
+            setTimeout(() => {
+                canExecute = true;
+                console.log('after restore', canExecute);
+            }, wait);
+        }
+    };
+}
+exports.throttle = throttle;
+// Returns a function, that, as long as it continues to be invoked, will not
+// be triggered. The function will be called after it stops being called for
+// N milliseconds. If `immediate` is passed, trigger the function on the
+// leading edge, instead of the trailing.
+function debounce(func, wait, immediate = false) {
+    var timeout;
+    return function () {
+        var context = this, args = arguments;
+        var later = function () {
+            timeout = null;
+            if (!immediate)
+                func.apply(context, args);
+        };
+        var callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow)
+            func.apply(context, args);
+    };
+}
+exports.debounce = debounce;
+;
 
 
 /***/ }),
@@ -6552,6 +6633,7 @@ const Togglable_1 = __webpack_require__(/*! ../common/util/Togglable */ "./javas
 const UIMyPlayerCard_1 = __webpack_require__(/*! ../client/ui/UIMyPlayerCard */ "./javascript/client/ui/UIMyPlayerCard.tsx");
 const GeneralUI_1 = __webpack_require__(/*! ../client/card-panel/GeneralUI */ "./javascript/client/card-panel/GeneralUI.tsx");
 const CardPos_1 = __webpack_require__(/*! ../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
+const SwitchableImage_1 = __webpack_require__(/*! ../client/SwitchableImage */ "./javascript/client/SwitchableImage.tsx");
 class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
     constructor(player, general, subGeneral) {
         super(player);
@@ -6619,6 +6701,8 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         }
         copy.general = this.isGeneralRevealed && this.general;
         copy.subGeneral = this.isSubGeneralRevealed && this.subGeneral;
+        copy.mainSkin = this.isGeneralRevealed && this.mainSkin;
+        copy.subSkin = this.isSubGeneralRevealed && this.subSkin;
         copy.signs = {};
         Object.keys(this.signs).forEach(k => {
             if (this.signs[k].owner === 'main' && !this.isGeneralRevealed) {
@@ -6631,16 +6715,19 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         });
         return copy;
     }
-    renderGeneral(g, isBig) {
-        let ele;
+    renderGeneral(g, isBig, skin) {
+        let style;
         if (!g) {
             //not revealed yet
-            ele = React.createElement("div", { className: 'img', style: { backgroundImage: `url('generals/back.png')`, backgroundPosition: '-30px -20px', filter: 'grayscale(70%)' } });
+            style = { backgroundImage: `url('generals/back.png')`, backgroundPosition: '-30px -20px', filter: 'grayscale(70%)' };
+        }
+        else if (skin) {
+            style = FactionWarGeneralUiOffset_1.toFactionWarAvatarStyle(skin, isBig);
         }
         else {
-            ele = React.createElement("div", { className: 'img', style: FactionWarGeneralUiOffset_1.toFactionWarAvatarStyle(g.id, isBig) });
+            style = FactionWarGeneralUiOffset_1.toFactionWarAvatarStyle(g.id, isBig);
         }
-        return GeneralUI_1.wrapGeneral(g, React.createElement("div", { className: 'card-avatar' }, ele));
+        return GeneralUI_1.wrapGeneral(g, React.createElement(SwitchableImage_1.default, { style: style }));
     }
     drawMark(isMain) {
         let marks = isMain ? this.mainMark : this.subMark;
@@ -6657,37 +6744,37 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         let sub = this.subGeneral ? this.subGeneral.name : '副将';
         return [React.createElement("div", { className: clazz, key: 'pics' },
                 React.createElement("div", { className: 'general', style: { letterSpacing: main.length > 2 ? '-4px' : '0px' } },
-                    this.renderGeneral(this.general, false),
+                    this.renderGeneral(this.general, false, this.mainSkin),
                     React.createElement("div", { className: 'general-name' }, main),
                     this.drawMark(true)),
                 React.createElement("div", { className: 'general', style: { letterSpacing: sub.length > 2 ? '-4px' : '0px' } },
-                    this.renderGeneral(this.subGeneral, false),
+                    this.renderGeneral(this.subGeneral, false, this.subSkin),
                     React.createElement("div", { className: 'general-name' }, sub),
                     this.drawMark(false)),
                 React.createElement("div", { className: 'player-name' }, this.player.id)),
             React.createElement(FactionMark, { key: 'faction-mark', info: this })];
     }
-    drawSelf(skillButtons) {
+    drawSelf(skillButtons, cb) {
         let fac = this.isRevealed() ? this.getFaction() : this.general.faction;
         let color = Color[fac.image];
         let clazz = new Togglable_1.ClassFormatter('faction-war').and(this.isDead, 'dead').done();
         return React.createElement("div", { className: clazz },
             React.createElement("div", { className: 'general ' + (this.isGeneralRevealed || 'hidden') },
-                this.renderGeneral(this.general, true),
+                this.renderGeneral(this.general, true, this.mainSkin),
                 React.createElement("div", { className: 'general-name', style: { background: color, letterSpacing: this.general.name.length > 3 ? '-2px' : '0px' } },
                     this.general.name,
                     React.createElement("div", { className: 'general-name-after', style: { borderLeft: `9px solid ${color}` } })),
-                React.createElement("div", { className: 'title' }, "\u4E3B"),
+                React.createElement("div", { className: 'title', onClick: () => cb(true) }, "\u4E3B"),
                 React.createElement("div", { className: 'skill-buttons' }, skillButtons.filter(b => b.skill.position === 'main' || b.skill.position === 'player').map(b => {
                     return React.createElement(UIMyPlayerCard_1.SkillButton, Object.assign({}, b, { key: b.skill.id, className: this.general.faction.image }));
                 })),
                 this.drawMark(true)),
             React.createElement("div", { className: 'general ' + (this.isSubGeneralRevealed || 'hidden') },
-                this.renderGeneral(this.subGeneral, true),
+                this.renderGeneral(this.subGeneral, true, this.subSkin),
                 React.createElement("div", { className: 'general-name', style: { background: color, letterSpacing: this.subGeneral.name.length > 3 ? '-2px' : '0px' } },
                     this.subGeneral.name,
                     React.createElement("div", { className: 'general-name-after', style: { borderLeft: `9px solid ${color}` } })),
-                React.createElement("div", { className: 'title' }, "\u526F"),
+                React.createElement("div", { className: 'title', onClick: () => cb(false) }, "\u526F"),
                 React.createElement("div", { className: 'skill-buttons' }, skillButtons.filter(b => b.skill.position === 'sub').map(b => {
                     return React.createElement(UIMyPlayerCard_1.SkillButton, Object.assign({}, b, { key: b.skill.id, className: this.general.faction.image }));
                 })),
@@ -7613,6 +7700,8 @@ const Skill_1 = __webpack_require__(/*! ../common/Skill */ "./javascript/common/
 const CardPos_1 = __webpack_require__(/*! ../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
 const Card_1 = __webpack_require__(/*! ../common/cards/Card */ "./javascript/common/cards/Card.tsx");
+const EffectTransit_1 = __webpack_require__(/*! ../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
+const PlayerInfo_1 = __webpack_require__(/*! ../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
 const myMode = GameModeEnum_1.GameModeEnum.FactionWarGame;
 const generalsToPickFrom = 7;
 class FactionWarGameHoster {
@@ -7640,6 +7729,38 @@ class FactionWarGameHoster {
             let player = this.manager.context.getPlayer(p.requester);
             player.getCards(CardPos_1.CardPos.HAND).sort(Card_1.cardSorter);
             this.manager.send(p.requester, player);
+        });
+        registry.pubsub.on(EffectTransit_1.SkinRequest, (r) => {
+            if (!this.manager) {
+                return;
+            }
+            console.log('更换皮肤', r.player, r.isMain);
+            let p = this.manager.context.getPlayer(r.player);
+            let general = r.isMain ? p.general : p.subGeneral;
+            if (general.skins === 0) {
+                return;
+            }
+            let curr = r.isMain ? p.mainSkin : p.subSkin;
+            let idx = 1;
+            if (curr) {
+                let currIdx = parseInt(curr.split('_').reverse()[0]);
+                idx = (currIdx + 1) % (general.skins + 1);
+            }
+            let skinName = null;
+            if (idx > 0) {
+                let arr = general.id.split('_');
+                arr.splice(0, 1);
+                arr.unshift('skin');
+                arr.push(idx.toString());
+                skinName = arr.join('_');
+            }
+            if (r.isMain) {
+                p.mainSkin = skinName;
+            }
+            else {
+                p.subSkin = skinName;
+            }
+            this.manager.broadcast(p, PlayerInfo_1.PlayerInfo.sanitize);
         });
     }
     init() {
@@ -7841,97 +7962,425 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.toFactionWarAvatarStyle = void 0;
 const smallRender = new Map();
 const bigRender = new Map();
-function doAdd(id, x, y, w, h, x2, y2, w2, h2) {
-    bigRender.set(id, { x, y, w, h });
-    smallRender.set(id, { x: x2, y: y2, w: w2, h: h2 });
+function doAdd(id, x, y, wh, x2, y2, wh2) {
+    bigRender.set(id, { x, y, w: wh, h: wh });
+    smallRender.set(id, { x: x2, y: y2, w: wh2, h: wh2 });
 }
-doAdd('guo_soldier_male', -80, -30, 180, 180, -115, -35, 200, 200);
-doAdd('guo_soldier_female', -80, -50, 180, 180, -130, -45, 200, 200);
-doAdd('standard_cao_cao', -80, -30, 180, 180, -130, -25, 200, 200);
-doAdd('standard_si_ma_yi', -40, 0, 150, 150, -90, -15, 200, 200);
-doAdd('standard_xia_hou_dun', -28, -15, 150, 150, -70, -25, 200, 200);
-doAdd('standard_zhang_liao', -28, -15, 150, 150, -90, -25, 200, 200);
-doAdd('standard_xu_chu', -48, -18, 150, 150, -110, -45, 200, 200);
-doAdd('standard_guo_jia', -48, -18, 150, 150, -120, -15, 200, 200);
-doAdd('standard_zhen_ji', -68, -5, 150, 150, -120, -15, 170, 170);
-doAdd('wind_xia_hou_yuan', -28, -45, 150, 150, -80, -55, 170, 170);
-doAdd('mountain_zhang_he', -38, -15, 150, 150, -80, -25, 170, 170);
-doAdd('forest_xu_huang', -38, -5, 150, 150, -80, -25, 170, 170);
-doAdd('wind_cao_ren', -158, -65, 250, 250, -160, -45, 250, 250);
-doAdd('fire_dian_wei', -45, 0, 150, 150, -110, -5, 200, 200);
-doAdd('fire_xun_yu', -30, 0, 150, 150, -90, -25, 200, 200);
-doAdd('forest_cao_pi', -35, -30, 150, 150, -90, -55, 200, 200);
-doAdd('guo_yue_jin', -105, -70, 200, 200, -110, -55, 200, 200);
-doAdd('standard_liu_bei', -30, -10, 150, 150, -90, -15, 200, 200);
-doAdd('standard_guan_yu', -30, -10, 150, 150, -90, -15, 200, 200);
-doAdd('standard_zhang_fei', -90, -60, 200, 200, -110, -45, 200, 200);
-doAdd('standard_zhu_ge_liang', -50, -20, 150, 150, -120, -25, 200, 200);
-doAdd('standard_zhao_yun', -30, 0, 150, 150, -70, -10, 170, 170);
-doAdd('standard_ma_chao', -40, -20, 150, 150, -80, -10, 170, 170);
-doAdd('standard_huang_yue_ying', -20, 0, 150, 150, -60, -0, 170, 170);
-doAdd('standard_huang_zhong', -50, 0, 150, 150, -110, -0, 170, 170);
-doAdd('wind_wei_yan', -40, -30, 150, 150, -70, -30, 170, 170);
-doAdd('fire_pang_tong', -20, -20, 150, 150, -40, -30, 170, 170);
-doAdd('fire_zhu_ge_liang', -80, -20, 150, 150, -140, -20, 170, 170);
-doAdd('mountain_liu_shan', -30, -20, 150, 150, -80, -20, 170, 170);
-doAdd('forest_meng_huo', -40, -50, 150, 150, -80, -50, 170, 170);
-doAdd('forest_zhu_rong', -60, -20, 150, 150, -110, -30, 170, 170);
-doAdd('guo_gan_fu_ren', -60, 0, 150, 150, -100, -20, 170, 170);
-doAdd('standard_sun_quan', -60, -30, 200, 200, -60, -20, 170, 170);
-doAdd('standard_gan_ning', -40, 0, 150, 150, -80, -0, 170, 170);
-doAdd('standard_lv_meng', -30, 0, 150, 150, -60, -0, 170, 170);
-doAdd('standard_huang_gai', -30, 0, 150, 150, -40, -0, 170, 170);
-doAdd('standard_zhou_yu', -60, -20, 200, 200, -65, -20, 170, 170);
-doAdd('standard_da_qiao', -60, -5, 150, 150, -105, -10, 170, 170);
-doAdd('standard_lu_xun', -20, -25, 150, 150, -55, -30, 170, 170);
-doAdd('standard_sun_shang_xiang', -20, -35, 150, 150, -35, -40, 170, 170);
-doAdd('forest_sun_jian', -120, -80, 240, 240, -140, -70, 250, 250);
-doAdd('wind_xiao_qiao', -50, 0, 150, 150, -100, -0, 170, 170);
-doAdd('fire_tai_shi_ci', -65, -40, 170, 170, -80, -50, 170, 170);
-doAdd('wind_zhou_tai', -55, -20, 170, 170, -80, -20, 170, 170);
-doAdd('forest_lu_su', -70, -20, 170, 170, -80, -20, 170, 170);
-doAdd('mountain_er_zhang', -35, -20, 150, 150, -30, -10, 110, 110);
-doAdd('guo_ding_feng', -25, -50, 150, 150, -40, -50, 170, 170);
-doAdd('standard_hua_tuo', -50, -5, 150, 150, -90, -10, 170, 170);
-doAdd('standard_lv_bu', -20, -25, 150, 150, -50, -20, 170, 170);
-doAdd('standard_diao_chan', -30, -15, 150, 150, -60, -20, 170, 170);
-doAdd('fire_yuan_shao', -50, -35, 150, 150, -110, -40, 170, 170);
-doAdd('fire_yan_liang_wen_chou', -20, -25, 150, 150, -50, -40, 170, 170);
-doAdd('forest_jia_xu', -45, -25, 150, 150, -90, -40, 170, 170);
-doAdd('fire_pang_de', -25, -25, 150, 150, -60, -30, 170, 170);
-doAdd('wind_zhang_jiao', -45, -25, 150, 150, -100, -30, 170, 170);
-doAdd('mountain_cai_wen_ji', -55, -55, 150, 150, -100, -60, 170, 170);
-doAdd('guo_ma_teng', -45, -15, 150, 150, -80, -30, 170, 170);
-doAdd('guo_kong_rong', -55, -55, 150, 150, -60, -10, 170, 170);
-doAdd('guo_ji_ling', -55, -55, 150, 150, -75, -10, 170, 170);
-doAdd('guo_tian_feng', -35, -5, 150, 150, -55, 0, 170, 170);
-doAdd('guo_pan_feng', -55, -5, 150, 150, -95, 0, 170, 170);
-doAdd('guo_zou_shi', -35, -20, 120, 120, -105, -20, 170, 170);
-doAdd('mountain_deng_ai', -15, -20, 150, 150, -65, -20, 170, 170);
-doAdd('guo_cao_hong', -35, -0, 120, 120, -135, 0, 170, 170);
-doAdd('guo_jiang_wan_fei_yi', -35, -0, 120, 120, -25, 0, 100, 100);
-doAdd('mountain_jiang_wei', -25, -10, 120, 120, -75, 0, 170, 170);
-doAdd('fame_xu_sheng', -15, -10, 120, 120, -65, -10, 150, 150);
-doAdd('guo_jiang_qin', -35, -0, 120, 120, -55, 0, 150, 150);
-doAdd('guo_he_tai_hou', -40, -20, 150, 150, -60, -10, 170, 170);
-// doAdd('guo_he_tai_hou 3', -15, -0, 120, 120)
-doAdd('wind_yu_ji', -85, -50, 180, 180, -125, -70, 200, 200);
-doAdd('bound_li_dian', -55, -20, 150, 150, -105, -40, 200, 200);
-doAdd('guo_zang_ba', -35, -40, 150, 150, -95, -70, 200, 200);
-doAdd('fame_ma_dai', -55, -40, 150, 150, -125, -50, 200, 200);
-doAdd('guo_mi_fu_ren', -55, -40, 150, 150, -65, -30, 200, 200);
-doAdd('guo_sun_ce', -45, -20, 150, 150, -105, -20, 200, 200);
-doAdd('guo_chen_wu_dong_xi', -45, -50, 150, 150, -50, -30, 120, 120);
-doAdd('forest_dong_zhuo', -25, -10, 150, 150, -70, -10, 170, 170);
-doAdd('guo_zhang_ren', -25, -10, 150, 150, -50, -10, 170, 170);
-doAdd('fame_xun_you', -45, -30, 150, 150, -90, -30, 170, 170);
-doAdd('guo_sha_mo_ke', -40, -20, 150, 150, -95, -30, 200, 200);
-doAdd('fame_fa_zheng', -25, -10, 150, 150, -50, -10, 170, 170);
-doAdd('guo_lv_fan', -5, -10, 150, 150, -40, -10, 170, 170);
-doAdd('guo_li_jue_guo_si', -15, -30, 120, 120, -45, -40, 120, 120);
-doAdd('guo_zhang_xiu', -50, -30, 150, 150, -100, -40, 170, 170);
-doAdd('fame_zu_shou', -170, -35, 300, 300, -210, -50, 350, 350);
-doAdd('guo_xun_chen', -50, -30, 150, 150, -80, -20, 170, 170);
+doAdd('guo_soldier_male', -80, -30, 180, -115, -35, 200);
+doAdd('guo_soldier_female', -80, -50, 180, -130, -45, 200);
+doAdd('standard_cao_cao', -80, -30, 180, -130, -25, 200);
+doAdd('standard_si_ma_yi', -40, 0, 150, -90, -15, 200);
+doAdd('standard_xia_hou_dun', -28, -15, 150, -70, -25, 200);
+doAdd('standard_zhang_liao', -28, -15, 150, -90, -25, 200);
+doAdd('standard_xu_chu', -48, -18, 150, -110, -45, 200);
+doAdd('standard_guo_jia', -48, -18, 150, -120, -15, 200);
+doAdd('standard_zhen_ji', -68, -5, 150, -120, -15, 170);
+doAdd('wind_xia_hou_yuan', -28, -45, 150, -80, -55, 170);
+doAdd('mountain_zhang_he', -38, -15, 150, -80, -25, 170);
+doAdd('forest_xu_huang', -38, -5, 150, -80, -25, 170);
+doAdd('wind_cao_ren', -158, -65, 250, -160, -45, 250);
+doAdd('fire_dian_wei', -45, 0, 150, -110, -5, 200);
+doAdd('fire_xun_yu', -30, 0, 150, -90, -25, 200);
+doAdd('forest_cao_pi', -35, -30, 150, -90, -55, 200);
+doAdd('guo_cao_pi', -28, -35, 170, -70, -60, 200);
+doAdd('guo_yue_jin', -105, -70, 200, -110, -55, 200);
+doAdd('standard_liu_bei', -30, -10, 150, -90, -15, 200);
+doAdd('standard_guan_yu', -30, -10, 150, -90, -15, 200);
+doAdd('standard_zhang_fei', -90, -60, 200, -110, -45, 200);
+doAdd('standard_zhu_ge_liang', -50, -20, 150, -120, -25, 200);
+doAdd('standard_zhao_yun', -30, 0, 150, -70, -10, 170);
+doAdd('standard_ma_chao', -40, -20, 150, -80, -10, 170);
+doAdd('standard_huang_yue_ying', -20, 0, 150, -60, -0, 170);
+doAdd('standard_huang_zhong', -50, 0, 150, -110, -0, 170);
+doAdd('wind_wei_yan', -40, -30, 150, -70, -30, 170);
+doAdd('fire_pang_tong', -20, -20, 150, -40, -30, 170);
+doAdd('fire_wo_long', -80, -20, 150, -140, -20, 170);
+doAdd('mountain_liu_shan', -30, -20, 150, -80, -20, 170);
+doAdd('forest_meng_huo', -40, -50, 150, -80, -50, 170);
+doAdd('forest_zhu_rong', -60, -20, 150, -110, -30, 170);
+doAdd('guo_gan_fu_ren', -60, 0, 150, -100, -20, 170);
+doAdd('standard_sun_quan', -60, -30, 200, -60, -20, 170);
+doAdd('standard_gan_ning', -40, 0, 150, -80, -0, 170);
+doAdd('standard_lv_meng', -30, 0, 150, -60, -0, 170);
+doAdd('standard_huang_gai', -30, 0, 150, -40, -0, 170);
+doAdd('standard_zhou_yu', -60, -20, 200, -65, -20, 170);
+doAdd('standard_da_qiao', -60, -5, 150, -105, -10, 170);
+doAdd('standard_lu_xun', -20, -25, 150, -55, -30, 170);
+doAdd('standard_sun_shang_xiang', -20, -35, 150, -35, -40, 170);
+doAdd('forest_sun_jian', -120, -80, 240, -140, -70, 250);
+doAdd('wind_xiao_qiao', -50, 0, 150, -100, -0, 170);
+doAdd('fire_tai_shi_ci', -65, -40, 170, -80, -50, 170);
+doAdd('wind_zhou_tai', -55, -20, 170, -80, -20, 170);
+doAdd('forest_lu_su', -70, -20, 170, -80, -20, 170);
+doAdd('mountain_er_zhang', -35, -20, 150, -30, -10, 110);
+doAdd('guo_ding_feng', -25, -50, 150, -40, -50, 170);
+doAdd('standard_hua_tuo', -50, -5, 150, -90, -10, 170);
+doAdd('standard_lv_bu', -20, -25, 150, -50, -20, 170);
+doAdd('standard_diao_chan', -30, -15, 150, -60, -20, 170);
+doAdd('fire_yuan_shao', -50, -35, 150, -110, -40, 170);
+doAdd('fire_yan_liang_wen_chou', -20, -25, 150, -50, -40, 170);
+doAdd('forest_jia_xu', -45, -25, 150, -90, -40, 170);
+doAdd('fire_pang_de', -25, -25, 150, -60, -30, 170);
+doAdd('wind_zhang_jiao', -45, -25, 150, -100, -30, 170);
+doAdd('mountain_cai_wen_ji', -55, -55, 150, -100, -60, 170);
+doAdd('guo_ma_teng', -45, -15, 150, -80, -30, 170);
+doAdd('guo_kong_rong', -55, -55, 150, -60, -10, 170);
+doAdd('guo_ji_ling', -55, -55, 150, -75, -10, 170);
+doAdd('guo_tian_feng', -35, -5, 150, -55, 0, 170);
+doAdd('guo_pan_feng', -55, -5, 150, -95, 0, 170);
+doAdd('guo_zou_shi', -35, -20, 120, -105, -20, 170);
+doAdd('mountain_deng_ai', -15, -20, 150, -65, -20, 170);
+doAdd('guo_cao_hong', -35, -0, 120, -135, 0, 170);
+doAdd('guo_jiang_wan_fei_yi', -35, -0, 120, -25, 0, 100);
+doAdd('mountain_jiang_wei', -25, -10, 120, -75, 0, 170);
+doAdd('fame_xu_sheng', -15, -10, 120, -65, -10, 150);
+doAdd('guo_jiang_qin', -35, -0, 120, -55, 0, 150);
+doAdd('guo_he_tai_hou', -40, -20, 150, -60, -10, 170);
+// doAdd('guo_he_tai_hou 3', -15, -0, 120)
+doAdd('wind_yu_ji', -85, -50, 180, -125, -70, 200);
+doAdd('bound_li_dian', -55, -20, 150, -105, -40, 200);
+doAdd('guo_zang_ba', -35, -40, 150, -95, -70, 200);
+doAdd('fame_ma_dai', -55, -40, 150, -125, -50, 200);
+doAdd('guo_mi_fu_ren', -55, -40, 150, -65, -30, 200);
+doAdd('guo_sun_ce', -45, -20, 150, -105, -20, 200);
+doAdd('guo_chen_wu_dong_xi', -45, -50, 150, -50, -30, 120);
+doAdd('forest_dong_zhuo', -25, -10, 150, -70, -10, 170);
+doAdd('guo_zhang_ren', -25, -10, 150, -50, -10, 170);
+doAdd('fame_xun_you', -45, -30, 150, -90, -30, 170);
+doAdd('guo_sha_mo_ke', -40, -20, 150, -95, -30, 200);
+doAdd('fame_fa_zheng', -25, -10, 150, -50, -10, 170);
+doAdd('guo_lv_fan', -5, -10, 150, -40, -10, 170);
+doAdd('guo_li_jue_guo_si', -15, -30, 120, -45, -40, 120);
+doAdd('guo_zhang_xiu', -50, -30, 150, -100, -40, 170);
+doAdd('fame_zu_shou', -170, -35, 300, -210, -50, 350);
+doAdd('guo_xun_chen', -50, -30, 150, -80, -20, 170);
+//--------------- skins -------------------------
+doAdd('skin_cai_wen_ji_1', -40, 0, 150, -120, -15, 200);
+doAdd('skin_cai_wen_ji_2', -30, -30, 150, -90, -65, 200);
+doAdd('skin_cai_wen_ji_3', -30, -30, 150, -60, -45, 200);
+doAdd('skin_cai_wen_ji_4', -30, -30, 150, -70, -75, 200);
+doAdd('skin_cai_wen_ji_5', -30, -50, 150, -70, -55, 200);
+doAdd('skin_cao_cao_1', -20, -20, 150, -40, -15, 140);
+doAdd('skin_cao_cao_2', -50, -10, 150, -110, -25, 200);
+doAdd('skin_cao_cao_3', -20, 0, 150, -80, 0, 200);
+doAdd('skin_cao_cao_4', -40, -0, 150, -60, 0, 130);
+doAdd('skin_cao_cao_5', -40, -0, 150, -100, 0, 200);
+doAdd('skin_cao_pi_1', -40, -30, 150, -100, -40, 200);
+doAdd('skin_cao_pi_2', -40, -10, 150, -90, -30, 200);
+doAdd('skin_cao_pi_3', -40, -10, 150, -110, -10, 200);
+doAdd('skin_cao_pi_4', -60, -20, 150, -115, -50, 200);
+doAdd('skin_cao_pi_5', 0, 0, 100, -55, -10, 150);
+doAdd('skin_cao_ren_1', -40, -30, 150, -55, -30, 150);
+doAdd('skin_cao_ren_2', -40, -20, 150, -95, -30, 200);
+doAdd('skin_cao_ren_3', -40, -20, 150, -105, -30, 200);
+doAdd('skin_cao_ren_4', -40, 0, 150, -95, 0, 200);
+doAdd('skin_chen_wu_dong_xi_1', -30, 0, 120, -45, 0, 100);
+doAdd('skin_chen_wu_dong_xi_2', -30, -20, 120, -25, 0, 100);
+doAdd('skin_da_qiao_1', -30, 0, 120, -120, 0, 200);
+doAdd('skin_da_qiao_2', -30, 0, 120, -90, 0, 150);
+doAdd('skin_da_qiao_3', -30, 0, 120, -60, 0, 150);
+doAdd('skin_da_qiao_4', -10, 0, 120, -50, -10, 150);
+doAdd('skin_da_qiao_5', -10, 0, 120, -30, -10, 150);
+doAdd('skin_deng_ai_1', -60, 0, 150, -70, 0, 150);
+doAdd('skin_deng_ai_2', -40, 0, 150, -90, 0, 200);
+doAdd('skin_deng_ai_3', -40, -10, 150, -110, -20, 200);
+doAdd('skin_deng_ai_4', -40, -10, 150, -80, -40, 200);
+doAdd('skin_deng_ai_5', -50, 0, 150, -130, -10, 200);
+doAdd('skin_dian_wei_1', -50, 0, 150, -100, -10, 200);
+doAdd('skin_dian_wei_2', -50, -20, 150, -110, -40, 200);
+doAdd('skin_dian_wei_3', -50, -20, 150, -80, -40, 200);
+doAdd('skin_dian_wei_4', -50, -20, 150, -100, -15, 200);
+doAdd('skin_dian_wei_5', -50, -20, 150, -110, -20, 200);
+doAdd('skin_diao_chan_1', -20, 0, 120, -80, -10, 200);
+doAdd('skin_diao_chan_2', -10, -15, 120, -50, -50, 200);
+doAdd('skin_diao_chan_3', 0, 0, 120, -70, -30, 200);
+doAdd('skin_diao_chan_4', 0, 0, 120, -60, -20, 200);
+doAdd('skin_diao_chan_5', -50, 0, 120, -140, -40, 200);
+doAdd('skin_dong_zhuo_1', 0, 0, 120, -70, -40, 200);
+doAdd('skin_dong_zhuo_2', 0, 0, 120, -120, -40, 200);
+doAdd('skin_dong_zhuo_3', -20, 0, 120, -120, -10, 200);
+doAdd('skin_dong_zhuo_4', -20, 0, 120, -120, -20, 200);
+doAdd('skin_dong_zhuo_5', -10, 0, 120, -100, -20, 200);
+doAdd('skin_er_zhang_1', -10, 0, 120, -70, 0, 150);
+doAdd('skin_er_zhang_2', -10, 0, 120, -40, 0, 120);
+doAdd('skin_er_zhang_3', -30, 0, 120, -50, 0, 120);
+doAdd('skin_er_zhang_4', -10, 0, 120, -40, 0, 120);
+doAdd('skin_er_zhang_5', -10, 0, 120, -40, 0, 120);
+doAdd('skin_gan_fu_ren_1', -10, 0, 120, -60, -20, 200);
+doAdd('skin_gan_fu_ren_2', -20, 0, 120, -140, -10, 200);
+doAdd('skin_gan_fu_ren_3', -10, -30, 120, -60, -40, 200);
+doAdd('skin_gan_fu_ren_4', -10, 0, 120, -40, 0, 150);
+doAdd('skin_gan_fu_ren_5', -20, 0, 120, -90, -20, 150);
+doAdd('skin_gan_ning_1', -20, 0, 140, -90, 0, 200);
+doAdd('skin_gan_ning_2', -20, -30, 120, -110, -50, 200);
+doAdd('skin_gan_ning_3', -40, 10, 120, -140, -10, 200);
+doAdd('skin_gan_ning_4', -90, 10, 120, -190, -10, 200);
+doAdd('skin_gan_ning_5', -20, -10, 120, -70, -30, 200);
+doAdd('skin_guan_yu_1', -40, 0, 120, -110, 0, 200);
+doAdd('skin_guan_yu_2', -40, 0, 120, -90, -20, 200);
+doAdd('skin_guan_yu_3', -30, 0, 120, -100, 0, 200);
+doAdd('skin_guan_yu_4', -30, 0, 120, -70, -20, 200);
+doAdd('skin_guan_yu_5', -30, 0, 120, -90, 0, 200);
+doAdd('skin_guo_jia_1', -60, -30, 120, -140, -60, 200);
+doAdd('skin_guo_jia_2', -35, 0, 120, -110, 0, 200);
+doAdd('skin_guo_jia_3', -65, -20, 120, -140, -40, 200);
+doAdd('skin_guo_jia_4', 0, 0, 140, -40, 0, 150);
+doAdd('skin_guo_jia_5', -50, -30, 140, -100, -60, 200);
+doAdd('skin_he_tai_hou_1', 0, 0, 100, -60, -10, 150);
+doAdd('skin_he_tai_hou_2', -30, 0, 140, -60, 0, 150);
+doAdd('skin_he_tai_hou_3', -30, -30, 140, -80, -50, 200);
+doAdd('skin_he_tai_hou_4', -50, -30, 140, -130, -30, 200);
+doAdd('skin_he_tai_hou_5', -50, -50, 140, -120, -60, 200);
+doAdd('skin_hua_tuo_1', -20, -40, 140, -100, -60, 200);
+doAdd('skin_hua_tuo_2', -20, 0, 140, -70, -10, 200);
+doAdd('skin_hua_tuo_3', -20, -30, 140, -80, -50, 200);
+doAdd('skin_hua_tuo_4', -50, 0, 140, -130, 0, 200);
+doAdd('skin_hua_tuo_5', -30, 0, 140, -100, 0, 200);
+doAdd('skin_huang_gai_1', -30, 0, 140, -100, 0, 200);
+doAdd('skin_huang_gai_2', -30, -50, 140, -120, -70, 200);
+doAdd('skin_huang_gai_3', -30, -20, 140, -100, -50, 200);
+doAdd('skin_huang_gai_4', -30, -20, 140, -80, -20, 200);
+doAdd('skin_huang_gai_5', -20, 0, 140, -80, -20, 200);
+doAdd('skin_huang_yue_ying_1', -40, -20, 140, -100, -40, 200);
+doAdd('skin_huang_yue_ying_2', -30, -10, 140, -80, -30, 200);
+doAdd('skin_huang_yue_ying_3', -30, 0, 140, -70, -10, 200);
+doAdd('skin_huang_yue_ying_4', -30, -20, 140, -70, -40, 200);
+doAdd('skin_huang_yue_ying_5', -30, -10, 140, -80, -20, 200);
+doAdd('skin_huang_zhong_1', -30, -10, 140, -95, -30, 200);
+doAdd('skin_huang_zhong_2', -30, 0, 140, -95, -10, 200);
+doAdd('skin_huang_zhong_3', -30, 0, 140, -75, -20, 200);
+doAdd('skin_huang_zhong_4', -120, 0, 140, -240, -20, 200);
+doAdd('skin_huang_zhong_5', -70, 0, 140, -170, 0, 200);
+doAdd('skin_jia_xu_1', -140, 0, 140, -190, -10, 150);
+doAdd('skin_jia_xu_2', -30, -60, 140, -100, -90, 200);
+doAdd('skin_jia_xu_3', 0, 0, 100, -90, -20, 150);
+doAdd('skin_jia_xu_4', 0, 0, 100, -80, -20, 150);
+doAdd('skin_jia_xu_5', 0, 0, 100, -60, -10, 150);
+doAdd('skin_jiang_wan_fei_yi_1', -50, 0, 100, -60, -10, 150);
+doAdd('skin_jiang_wan_fei_yi_2', 0, 0, 100, -30, -10, 150);
+doAdd('skin_jiang_wei_1', -40, 0, 140, -90, -10, 150);
+doAdd('skin_jiang_wei_2', -40, -50, 140, -130, -80, 200);
+doAdd('skin_jiang_wei_3', -30, -20, 140, -100, -40, 200);
+doAdd('skin_jiang_wei_4', -30, -20, 140, -140, -10, 200);
+doAdd('skin_jiang_wei_5', -60, 0, 140, -90, -10, 200);
+doAdd('skin_li_dian_1', -60, -10, 140, -140, -30, 200);
+doAdd('skin_li_dian_2', -40, -20, 140, -130, -30, 200);
+doAdd('skin_li_dian_3', -70, 0, 140, -160, -10, 200);
+doAdd('skin_li_dian_4', -80, 0, 200, -100, -10, 200);
+doAdd('skin_li_dian_5', -120, 0, 140, -250, -10, 200);
+doAdd('skin_liu_bei_1', -60, 0, 140, -160, -10, 200);
+doAdd('skin_liu_bei_2', -20, 0, 140, -90, 0, 200);
+doAdd('skin_liu_bei_3', -50, 0, 140, -160, -20, 200);
+doAdd('skin_liu_bei_4', -80, -50, 200, -110, -30, 200);
+doAdd('skin_liu_bei_5', -30, 0, 140, -100, -10, 200);
+doAdd('skin_liu_shan_1', -30, -20, 140, -70, -20, 150);
+doAdd('skin_liu_shan_2', 0, 0, 140, -20, 0, 150);
+doAdd('skin_liu_shan_3', -20, 0, 140, -50, 0, 150);
+doAdd('skin_liu_shan_4', 0, 0, 100, -85, -40, 150);
+doAdd('skin_liu_shan_5', -80, -50, 100, -50, -20, 150);
+doAdd('skin_lu_su_1', -40, 0, 140, -110, 0, 200);
+doAdd('skin_lu_su_2', -60, 0, 140, -150, 0, 200);
+doAdd('skin_lu_su_3', 0, 0, 140, -60, 0, 200);
+doAdd('skin_lu_su_4', 0, 0, 140, -50, 0, 200);
+doAdd('skin_lu_su_5', -60, -10, 140, -100, -15, 150);
+doAdd('skin_lu_xun_1', -100, 0, 200, -120, 0, 200);
+doAdd('skin_lu_xun_2', -260, -60, 180, -340, -70, 200);
+doAdd('skin_lu_xun_3', -50, -10, 180, -90, -10, 200);
+doAdd('skin_lu_xun_4', 0, 0, 150, -70, -10, 200);
+doAdd('skin_lu_xun_5', -40, -50, 150, -110, -70, 200);
+doAdd('skin_lv_bu_1', -120, -60, 250, -100, -30, 200);
+doAdd('skin_lv_bu_2', -70, 0, 150, -100, 0, 150);
+doAdd('skin_lv_bu_3', -50, 0, 150, -110, -10, 200);
+doAdd('skin_lv_bu_4', -100, -20, 150, -200, -50, 200);
+doAdd('skin_lv_bu_5', -10, -10, 150, -70, -30, 200);
+doAdd('skin_lv_meng_1', -40, -10, 150, -70, -30, 200);
+doAdd('skin_lv_meng_2', -35, -50, 150, -85, -60, 200);
+doAdd('skin_lv_meng_3', -25, 0, 150, -75, 0, 200);
+doAdd('skin_lv_meng_4', -55, 0, 150, -125, -20, 200);
+doAdd('skin_lv_meng_5', -35, 0, 150, -105, 0, 200);
+doAdd('skin_ma_chao_1', -125, 0, 200, -155, 0, 200);
+doAdd('skin_ma_chao_2', -185, 0, 200, -225, 0, 200);
+doAdd('skin_ma_chao_3', -65, 0, 150, -135, 0, 200);
+doAdd('skin_ma_chao_4', -15, 0, 150, -85, -10, 200);
+doAdd('skin_ma_chao_5', -45, 0, 150, -95, -20, 200);
+doAdd('skin_ma_teng_1', -35, 0, 150, -80, -10, 200);
+doAdd('skin_ma_teng_2', -135, -10, 150, -170, -10, 150);
+doAdd('skin_ma_teng_3', -75, 0, 150, -110, 0, 150);
+doAdd('skin_meng_huo_1', -15, -10, 150, -60, -20, 200);
+doAdd('skin_meng_huo_2', -15, -20, 150, -60, -30, 200);
+doAdd('skin_meng_huo_3', -55, -30, 150, -120, -60, 200);
+doAdd('skin_meng_huo_4', -55, -10, 150, -120, -20, 200);
+doAdd('skin_meng_huo_5', -45, -20, 150, -100, -50, 200);
+doAdd('skin_pan_feng_1', -45, -20, 150, -100, -50, 200);
+doAdd('skin_pan_feng_2', -55, 0, 150, -70, 0, 150);
+doAdd('skin_pan_feng_3', -185, 0, 150, -300, 0, 200);
+doAdd('skin_pan_feng_4', -125, 0, 150, -230, -30, 200);
+doAdd('skin_pan_feng_5', -45, -30, 150, -110, -40, 200);
+doAdd('skin_pang_de_1', -45, -40, 150, -110, -70, 200);
+doAdd('skin_pang_de_2', -64, -40, 150, -150, -70, 200);
+doAdd('skin_pang_de_3', -64, 0, 150, -130, 0, 200);
+doAdd('skin_pang_de_4', -35, 0, 150, -110, -20, 200);
+doAdd('skin_pang_de_5', -35, 0, 150, -70, -20, 200);
+doAdd('skin_pang_tong_1', -95, -80, 250, -80, -50, 200);
+doAdd('skin_pang_tong_2', -125, 0, 250, -100, 0, 200);
+doAdd('skin_pang_tong_3', -110, -30, 200, -120, -10, 200);
+doAdd('skin_pang_tong_4', -110, -60, 150, -130, -60, 200);
+doAdd('skin_pang_tong_5', -30, 0, 150, -90, -20, 200);
+doAdd('skin_si_ma_yi_1', -30, 0, 150, -90, -20, 200);
+doAdd('skin_si_ma_yi_2', -40, 0, 150, -95, -30, 200);
+doAdd('skin_si_ma_yi_3', -40, -30, 150, -75, -50, 200);
+doAdd('skin_si_ma_yi_4', -40, -30, 150, -95, -50, 200);
+doAdd('skin_si_ma_yi_5', -40, 0, 150, -95, 0, 200);
+doAdd('skin_sun_ce_1', -40, -30, 150, -95, -50, 200);
+doAdd('skin_sun_ce_2', -30, -10, 150, -80, -20, 200);
+doAdd('skin_sun_ce_3', -50, -70, 150, -140, -100, 200);
+doAdd('skin_sun_ce_4', -50, 0, 150, -90, -30, 200);
+doAdd('skin_sun_ce_5', -160, 0, 200, -190, 0, 200);
+doAdd('skin_sun_jian_1', -10, 0, 150, -60, -20, 200);
+doAdd('skin_sun_jian_2', -70, 0, 200, -120, -10, 250);
+doAdd('skin_sun_jian_3', -70, -30, 200, -100, -20, 200);
+doAdd('skin_sun_jian_4', -130, 0, 150, -230, 0, 200);
+doAdd('skin_sun_jian_5', -50, 0, 150, -130, 0, 200);
+doAdd('skin_sun_quan_1', -30, -10, 150, -90, -15, 200);
+doAdd('skin_sun_quan_2', -60, 0, 150, -130, 0, 200);
+doAdd('skin_sun_quan_3', -40, 0, 150, -100, 0, 200);
+doAdd('skin_sun_quan_4', -70, 0, 150, -150, -10, 200);
+doAdd('skin_sun_quan_5', -20, 0, 150, -70, -20, 200);
+doAdd('skin_sun_shang_xiang_1', -60, 0, 150, -110, -20, 170);
+doAdd('skin_sun_shang_xiang_2', -40, -10, 150, -80, -20, 170);
+doAdd('skin_sun_shang_xiang_3', -30, 0, 150, -60, 0, 170);
+doAdd('skin_sun_shang_xiang_4', -30, -10, 150, -60, -10, 170);
+doAdd('skin_sun_shang_xiang_5', -50, -10, 150, -80, 0, 170);
+doAdd('skin_tai_shi_ci_1', -60, -10, 150, -130, -20, 200);
+doAdd('skin_tai_shi_ci_2', -100, -10, 150, -190, -50, 200);
+doAdd('skin_tai_shi_ci_3', -50, -10, 150, -110, -40, 200);
+doAdd('skin_tai_shi_ci_4', -40, -10, 150, -80, -40, 200);
+doAdd('skin_tai_shi_ci_5', -120, -10, 150, -160, -20, 170);
+doAdd('skin_tian_feng_1', -50, 0, 150, -70, -20, 150);
+doAdd('skin_tian_feng_2', -50, 0, 150, -70, -20, 200);
+doAdd('skin_tian_feng_3', -50, -10, 150, -70, -20, 200);
+doAdd('skin_wei_yan_1', -160, 0, 150, -200, 0, 150);
+doAdd('skin_wei_yan_2', -130, -20, 150, -260, -40, 200);
+doAdd('skin_wei_yan_3', -20, -30, 150, -60, -40, 200);
+doAdd('skin_wei_yan_4', -50, -30, 150, -120, -40, 200);
+doAdd('skin_wei_yan_5', -20, -30, 150, -70, -40, 200);
+doAdd('skin_wo_long_1', -50, -20, 150, -120, -40, 200);
+doAdd('skin_wo_long_2', -60, 0, 150, -130, -10, 200);
+doAdd('skin_wo_long_3', -30, -10, 150, -90, -30, 200);
+doAdd('skin_wo_long_4', -80, -10, 150, -150, -30, 200);
+doAdd('skin_wo_long_5', -120, -40, 150, -160, -50, 150);
+doAdd('skin_xia_hou_dun_1', -50, -10, 150, -80, -20, 150);
+doAdd('skin_xia_hou_dun_2', -50, -10, 150, -110, 0, 150);
+doAdd('skin_xia_hou_dun_3', -80, -10, 150, -110, -20, 150);
+doAdd('skin_xia_hou_dun_4', -170, -10, 150, -230, -10, 150);
+doAdd('skin_xia_hou_dun_5', -60, -10, 150, -100, -10, 150);
+doAdd('skin_xia_hou_yuan_1', -30, -40, 150, -40, -30, 150);
+doAdd('skin_xia_hou_yuan_2', -80, 0, 150, -150, 0, 150);
+doAdd('skin_xia_hou_yuan_3', -80, -90, 150, -110, -70, 150);
+doAdd('skin_xia_hou_yuan_4', -30, 0, 150, -50, 0, 150);
+doAdd('skin_xia_hou_yuan_5', -70, -30, 150, -110, -20, 150);
+doAdd('skin_xiao_qiao_1', -30, 0, 150, -95, -10, 200);
+doAdd('skin_xiao_qiao_2', -20, 0, 150, -25, 0, 150);
+doAdd('skin_xiao_qiao_3', -100, -10, 150, -145, -20, 150);
+doAdd('skin_xiao_qiao_4', -10, 0, 150, -30, 0, 150);
+doAdd('skin_xiao_qiao_5', -60, 0, 150, -90, 0, 150);
+//
+doAdd('skin_xu_chu_1', -150, 0, 150, -210, -20, 170);
+doAdd('skin_xu_chu_2', -140, -10, 150, -210, -20, 170);
+doAdd('skin_xu_chu_3', -60, -10, 150, -100, -20, 170);
+doAdd('skin_xu_chu_4', -30, -10, 150, -60, -20, 170);
+doAdd('skin_xu_chu_5', -140, 0, 150, -220, 0, 170);
+doAdd('skin_xu_huang_1', -40, 0, 150, -105, -20, 200);
+doAdd('skin_xu_huang_2', -40, 0, 150, -95, -20, 200);
+doAdd('skin_xu_huang_3', -140, -20, 150, -275, -40, 200);
+doAdd('skin_xu_huang_4', -30, 0, 150, -95, 0, 200);
+doAdd('skin_xu_huang_5', -30, -20, 150, -95, -30, 200);
+doAdd('skin_xu_sheng_1', -50, 0, 150, -115, 0, 200);
+doAdd('skin_xu_sheng_2', -30, -20, 150, -80, 20, 200);
+doAdd('skin_xu_sheng_3', -30, -20, 150, -65, -30, 200);
+doAdd('skin_xu_sheng_4', -90, 0, 150, -190, 0, 200);
+doAdd('skin_xun_you_1', -30, -20, 150, -80, -30, 200);
+doAdd('skin_xun_you_2', -30, -30, 150, -85, -40, 200);
+doAdd('skin_xun_you_3', -50, -30, 150, -115, -40, 200);
+doAdd('skin_xun_you_4', -30, 0, 150, -95, -10, 200);
+doAdd('skin_xun_you_5', -30, -50, 150, -105, -70, 200);
+doAdd('skin_xun_yu_1', -30, 0, 150, -95, -20, 200);
+doAdd('skin_xun_yu_2', -30, 0, 150, -95, -20, 200);
+doAdd('skin_xun_yu_3', -30, -10, 150, -95, -30, 200);
+doAdd('skin_xun_yu_4', -30, 0, 150, -95, -20, 200);
+doAdd('skin_xun_yu_5', -10, 0, 150, -65, -10, 200);
+doAdd('skin_yan_liang_wen_chou_1', -20, 0, 120, -25, 0, 100);
+doAdd('skin_yan_liang_wen_chou_2', -20, -30, 120, -25, 0, 100);
+doAdd('skin_yan_liang_wen_chou_3', -20, 0, 120, -40, 0, 120);
+doAdd('skin_yan_liang_wen_chou_4', -10, -10, 120, -30, 0, 120);
+doAdd('skin_yan_liang_wen_chou_5', -10, -20, 120, -40, -20, 120);
+doAdd('skin_yuan_shao_1', 0, 0, 120, -70, -20, 200);
+doAdd('skin_yuan_shao_2', 0, 0, 120, -90, -10, 200);
+doAdd('skin_yuan_shao_3', -10, 0, 120, -75, -30, 200);
+doAdd('skin_yuan_shao_4', -120, 0, 120, -335, -40, 200);
+doAdd('skin_yuan_shao_5', -40, 0, 150, -125, 0, 200);
+doAdd('skin_yue_jin_1', -40, -20, 150, -95, -30, 200);
+doAdd('skin_yue_jin_2', -30, -20, 150, -75, -30, 200);
+doAdd('skin_yue_jin_3', -10, -40, 150, -35, -50, 200);
+doAdd('skin_yue_jin_4', -30, -20, 150, -75, -30, 200);
+doAdd('skin_zhang_fei_1', -30, -20, 150, -45, -30, 200);
+doAdd('skin_zhang_fei_2', -60, -50, 150, -125, -90, 200);
+doAdd('skin_zhang_fei_3', -70, -20, 150, -145, -20, 200);
+doAdd('skin_zhang_fei_4', -40, -10, 150, -75, -20, 200);
+doAdd('skin_zhang_fei_5', -160, -10, 150, -275, -20, 200);
+doAdd('skin_zhang_he_1', -160, -10, 150, -285, -40, 200);
+doAdd('skin_zhang_he_2', -60, -40, 150, -115, -50, 200);
+doAdd('skin_zhang_he_3', -150, -10, 150, -295, -30, 200);
+doAdd('skin_zhang_he_4', -60, -20, 150, -150, -30, 200);
+doAdd('skin_zhang_he_5', -60, 0, 150, -120, -20, 200);
+doAdd('skin_zhang_jiao_1', -160, 0, 150, -230, -20, 170);
+doAdd('skin_zhang_jiao_2', -110, -110, 250, -90, -70, 200);
+doAdd('skin_zhang_jiao_3', -40, -10, 150, -80, -20, 200);
+doAdd('skin_zhang_jiao_4', -60, -40, 150, -120, -60, 200);
+doAdd('skin_zhang_jiao_5', -60, -40, 150, -120, -60, 200);
+doAdd('skin_zhang_liao_1', -10, 0, 150, -50, -10, 200);
+doAdd('skin_zhang_liao_2', -50, 0, 150, -80, -10, 200);
+doAdd('skin_zhang_liao_3', -130, 0, 150, -230, -20, 200);
+doAdd('skin_zhang_liao_4', -180, -30, 150, -290, -40, 200);
+doAdd('skin_zhang_liao_5', -180, 0, 150, -330, -10, 200);
+doAdd('skin_zhang_xiu_1', -140, 0, 150, -250, -10, 200);
+doAdd('skin_zhang_xiu_2', -80, -20, 150, -160, -50, 200);
+doAdd('skin_zhang_xiu_3', -60, -20, 150, -140, -50, 200);
+doAdd('skin_zhang_xiu_4', -120, -20, 150, -230, -30, 200);
+doAdd('skin_zhao_yun_1', -50, 0, 150, -110, -10, 200);
+doAdd('skin_zhao_yun_2', -150, -20, 150, -270, -50, 200);
+doAdd('skin_zhao_yun_3', -50, 0, 150, -110, -10, 200);
+doAdd('skin_zhao_yun_4', -70, 0, 150, -130, -15, 200);
+doAdd('skin_zhao_yun_5', -130, -20, 150, -240, -45, 200);
+doAdd('skin_zhen_ji_1', -60, -20, 150, -90, -15, 200);
+doAdd('skin_zhen_ji_2', -60, 0, 150, -140, -15, 200);
+doAdd('skin_zhen_ji_3', -40, -20, 150, -80, -30, 200);
+doAdd('skin_zhen_ji_4', -40, -40, 150, -90, -50, 200);
+doAdd('skin_zhen_ji_5', -10, -10, 150, -40, -20, 200);
+doAdd('skin_zhou_tai_1', -30, 0, 150, -80, 0, 200);
+doAdd('skin_zhou_tai_2', -10, -10, 150, -50, -20, 200);
+doAdd('skin_zhou_tai_3', -150, -10, 150, -300, -30, 200);
+doAdd('skin_zhou_tai_4', -50, -30, 150, -70, -50, 200);
+doAdd('skin_zhou_tai_5', -50, -30, 150, -70, -50, 200);
+doAdd('skin_zhou_yu_1', 0, -60, 150, -50, -80, 200);
+doAdd('skin_zhou_yu_2', -30, -10, 150, -90, -20, 200);
+doAdd('skin_zhou_yu_3', -30, 0, 150, -90, 0, 200);
+doAdd('skin_zhou_yu_4', -30, 0, 150, -90, 0, 200);
+doAdd('skin_zhou_yu_5', -60, 0, 100, -190, 0, 150);
+doAdd('skin_zhu_ge_liang_1', -30, 0, 150, -70, -10, 200);
+doAdd('skin_zhu_ge_liang_2', -90, 0, 150, -190, 0, 200);
+doAdd('skin_zhu_ge_liang_3', -150, 0, 150, -250, -10, 200);
+doAdd('skin_zhu_ge_liang_4', -50, 0, 150, -120, -10, 200);
+doAdd('skin_zhu_ge_liang_5', -70, 0, 200, -125, 0, 250);
+doAdd('skin_zhu_rong_1', -70, 0, 200, -90, 0, 200);
+doAdd('skin_zhu_rong_2', -100, -40, 200, -130, -30, 200);
+doAdd('skin_zhu_rong_3', -50, -10, 170, -90, -20, 200);
+doAdd('skin_zhu_rong_4', -150, -10, 170, -270, -10, 200);
+doAdd('skin_zhu_rong_5', -210, -10, 170, -330, -10, 200);
+doAdd('skin_zu_shou_1', -80, -20, 170, -130, -20, 200);
+doAdd('skin_zu_shou_2', -70, 0, 170, -110, -10, 200);
+doAdd('skin_zu_shou_3', -90, 0, 170, -120, -15, 200);
+doAdd('skin_zu_shou_4', -50, 0, 170, -105, -15, 200);
 function toFactionWarAvatarStyle(id, isBig) {
     let render = isBig ? bigRender.get(id) : smallRender.get(id);
     return {
@@ -7986,8 +8435,8 @@ class FactionWarGeneral extends General_1.General {
 }
 exports.default = FactionWarGeneral;
 //when soldier is used to replace people the hp and factions are already set so no worries
-FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0);
-FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0);
+FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0).withSkin(0);
+FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0).withSkin(0);
 //16
 FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2.5, '奸雄');
 FactionWarGeneral.si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', General_1.Faction.WEI, 1.5, '反馈', '鬼才');
@@ -7999,9 +8448,9 @@ FactionWarGeneral.zhen_ji = new FactionWarGeneral('standard_zhen_ji', '甄姬', 
 FactionWarGeneral.xia_hou_yuan = new FactionWarGeneral('wind_xia_hou_yuan', '夏侯渊', General_1.Faction.WEI, 2, '神速');
 FactionWarGeneral.xu_huang = new FactionWarGeneral('forest_xu_huang', '徐晃', General_1.Faction.WEI, 2, '断粮');
 FactionWarGeneral.dian_wei = new FactionWarGeneral('fire_dian_wei', '典韦', General_1.Faction.WEI, 2, '强袭');
-FactionWarGeneral.cao_ren = new FactionWarGeneral('wind_cao_ren', '曹仁', General_1.Faction.WEI, 2, '据守');
+FactionWarGeneral.cao_ren = new FactionWarGeneral('wind_cao_ren', '曹仁', General_1.Faction.WEI, 2, '据守').withSkin(4);
 FactionWarGeneral.xun_yu = new FactionWarGeneral('fire_xun_yu', '荀彧', General_1.Faction.WEI, 1.5, '驱虎', '节命');
-FactionWarGeneral.cao_pi = new FactionWarGeneral('forest_cao_pi', '曹丕', General_1.Faction.WEI, 1.5, '行殇', '放逐');
+FactionWarGeneral.cao_pi = new FactionWarGeneral('guo_cao_pi', '曹丕', General_1.Faction.WEI, 1.5, '行殇', '放逐');
 FactionWarGeneral.yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', General_1.Faction.WEI, 2, '骁果');
 FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', General_1.Faction.WEI, 2, '巧变');
 FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', General_1.Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田');
@@ -8014,15 +8463,15 @@ FactionWarGeneral.zhao_yun = new FactionWarGeneral('standard_zhao_yun', '赵云'
 FactionWarGeneral.ma_chao = new FactionWarGeneral('standard_ma_chao', '马超', General_1.Faction.SHU, 2, '马术', '铁骑');
 FactionWarGeneral.huang_zhong = new FactionWarGeneral('standard_huang_zhong', '黄忠', General_1.Faction.SHU, 2, '烈弓');
 FactionWarGeneral.wei_yan = new FactionWarGeneral('wind_wei_yan', '魏延', General_1.Faction.SHU, 2, '狂骨');
-FactionWarGeneral.wo_long = new FactionWarGeneral('fire_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '八阵', '火计', '看破');
-FactionWarGeneral.sha_mo_ke = new FactionWarGeneral('guo_sha_mo_ke', '沙摩柯', General_1.Faction.SHU, 2, '蒺藜');
+FactionWarGeneral.wo_long = new FactionWarGeneral('fire_wo_long', '诸葛亮', General_1.Faction.SHU, 1.5, '八阵', '火计', '看破');
+FactionWarGeneral.sha_mo_ke = new FactionWarGeneral('guo_sha_mo_ke', '沙摩柯', General_1.Faction.SHU, 2, '蒺藜').withSkin(0);
 FactionWarGeneral.liu_shan = new FactionWarGeneral('mountain_liu_shan', '刘禅', General_1.Faction.SHU, 1.5, '享乐', '放权');
 FactionWarGeneral.huang_yue_ying = new FactionWarGeneral('standard_huang_yue_ying', '黄月英', General_1.Faction.SHU, 1.5, '集智', '奇才').asFemale();
 FactionWarGeneral.meng_huo = new FactionWarGeneral('forest_meng_huo', '孟获', General_1.Faction.SHU, 2, '祸首', '再起');
 FactionWarGeneral.zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', General_1.Faction.SHU, 2, '巨象', '烈刃').asFemale();
 FactionWarGeneral.pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', General_1.Faction.SHU, 1.5, '连环', '涅槃');
 FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', General_1.Faction.SHU, 1.5, '淑慎', '神智').asFemale();
-FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成');
+FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成').withSkin(2);
 FactionWarGeneral.zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '观星', '空城');
 FactionWarGeneral.jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', General_1.Faction.SHU, 2, '挑衅', '遗志', '天覆').hpDelta(0, -0.5);
 //18
@@ -8038,12 +8487,12 @@ FactionWarGeneral.da_qiao = new FactionWarGeneral('standard_da_qiao', '大乔', 
 FactionWarGeneral.sun_jian = new FactionWarGeneral('forest_sun_jian', '孙坚', General_1.Faction.WU, 2.5, '英魂');
 FactionWarGeneral.xiao_qiao = new FactionWarGeneral('wind_xiao_qiao', '小乔', General_1.Faction.WU, 1.5, '天香', '红颜').asFemale();
 FactionWarGeneral.lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', General_1.Faction.WU, 1.5, '好施', '缔盟');
-FactionWarGeneral.xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', General_1.Faction.WU, 2, '疑城');
+FactionWarGeneral.xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', General_1.Faction.WU, 2, '疑城').withSkin(4);
 FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', General_1.Faction.WU, 2, '克己', '谋断');
-FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命');
+FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命').withSkin(2);
 FactionWarGeneral.zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', General_1.Faction.WU, 2, '不屈', '奋激').setCardName('创');
 FactionWarGeneral.sun_ce = new FactionWarGeneral('guo_sun_ce', '孙策', General_1.Faction.WU, 2, '激昂', '鹰扬', '魂殇').hpDelta(0, -0.5);
-FactionWarGeneral.lv_fan = new FactionWarGeneral('guo_lv_fan', '吕范', General_1.Faction.WU, 1.5, '调度', '典财');
+FactionWarGeneral.lv_fan = new FactionWarGeneral('guo_lv_fan', '吕范', General_1.Faction.WU, 1.5, '调度', '典财').withSkin(0);
 //18
 FactionWarGeneral.hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', General_1.Faction.QUN, 1.5, '除疠', '急救');
 FactionWarGeneral.lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', General_1.Faction.QUN, 2.5, '无双');
@@ -8053,13 +8502,13 @@ FactionWarGeneral.jia_xu = new FactionWarGeneral('forest_jia_xu', '贾诩', Gene
 FactionWarGeneral.he_tai_hou = new FactionWarGeneral('guo_he_tai_hou', '何太后', General_1.Faction.QUN, 1.5, '鸩毒', '戚乱').asFemale();
 FactionWarGeneral.zhang_xiu = new FactionWarGeneral('guo_zhang_xiu', '张绣', General_1.Faction.QUN, 2, '附敌', '从谏');
 FactionWarGeneral.pang_de = new FactionWarGeneral('fire_pang_de', '庞德', General_1.Faction.QUN, 2, '马术(庞)', '鞬出');
-FactionWarGeneral.ma_teng = new FactionWarGeneral('guo_ma_teng', '马腾', General_1.Faction.QUN, 2, '马术(腾)', '雄异');
+FactionWarGeneral.ma_teng = new FactionWarGeneral('guo_ma_teng', '马腾', General_1.Faction.QUN, 2, '马术(腾)', '雄异').withSkin(3);
 FactionWarGeneral.zhang_jiao = new FactionWarGeneral('wind_zhang_jiao', '张角', General_1.Faction.QUN, 1.5, '雷击', '鬼道');
 FactionWarGeneral.yuan_shao = new FactionWarGeneral('fire_yuan_shao', '袁绍', General_1.Faction.QUN, 2, '乱击');
-FactionWarGeneral.tian_feng = new FactionWarGeneral('guo_tian_feng', '田丰', General_1.Faction.QUN, 1.5, '死谏', '随势');
-FactionWarGeneral.li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', General_1.Faction.QUN, 2, '凶算');
-FactionWarGeneral.ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', General_1.Faction.QUN, 1.5, '矢北', '渐营');
-FactionWarGeneral.xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', General_1.Faction.QUN, 1.5, '锋略', '谋识');
+FactionWarGeneral.tian_feng = new FactionWarGeneral('guo_tian_feng', '田丰', General_1.Faction.QUN, 1.5, '死谏', '随势').withSkin(3);
+FactionWarGeneral.li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', General_1.Faction.QUN, 2, '凶算').withSkin(0);
+FactionWarGeneral.ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', General_1.Faction.QUN, 1.5, '矢北', '渐营').withSkin(4);
+FactionWarGeneral.xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', General_1.Faction.QUN, 1.5, '锋略', '谋识').withSkin(0);
 FactionWarGeneral.pan_feng = new FactionWarGeneral('guo_pan_feng', '潘凤', General_1.Faction.QUN, 2, '狂斧');
 FactionWarGeneral.cai_wen_ji = new FactionWarGeneral('mountain_cai_wen_ji', '蔡文姬', General_1.Faction.QUN, 1.5, '悲歌', '断肠').asFemale();
 FactionWarGeneral.dong_zhuo = new FactionWarGeneral('forest_dong_zhuo', '董卓', General_1.Faction.QUN, 2, '横征', '暴凌', '崩坏');
@@ -23510,7 +23959,7 @@ exports.push([module.i, ".ui-my-player-card {\n  box-shadow: 0px 0px 30px black;
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none;\n      width: 120%;\n      height: 120%; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
+exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none;\n      width: 120%;\n      height: 120%; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n.img-flashing::after {\n  content: '';\n  background: rgba(255, 255, 255, 0.678);\n  width: 50%;\n  height: 200%;\n  transform-origin: center;\n  position: absolute;\n  transform-origin: bottom;\n  animation: img-flash 0.6s forwards; }\n\n@keyframes img-flash {\n  0% {\n    transform: translate(-500%, -100%) rotate(45deg); }\n  100% {\n    transform: translate(0%, 0%) rotate(45deg); } }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
 
 
 
@@ -23525,7 +23974,7 @@ exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cu
 
 exports = module.exports = __webpack_require__(/*! ../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.ui-my-player-card .faction-war {\n  width: 320px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .general {\n    pointer-events: all; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name {\n      font-size: 20px;\n      writing-mode: unset;\n      width: 100px;\n      height: 22px;\n      color: white;\n      white-space: nowrap; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name-after {\n      width: 0;\n      height: 0;\n      border-top: 11px solid transparent;\n      border-left: 9px;\n      border-bottom: 11px solid transparent;\n      position: absolute;\n      left: 100%; }\n    .ui-player-card.ui-my-player-card .faction-war .general .title {\n      position: absolute;\n      left: -3px;\n      top: -5px;\n      font-size: 30px;\n      color: #ffffc9;\n      text-shadow: 0px 0px 10px gold; }\n  .ui-player-card.ui-my-player-card .faction-war .hidden .card-avatar {\n    filter: brightness(50%) grayscale(0.7); }\n  .ui-player-card.ui-my-player-card .faction-war .hidden::after {\n    content: '潜伏';\n    position: absolute;\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    color: white;\n    filter: drop-shadow(0px 0px 6px black);\n    font-size: 24px;\n    pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .my-faction-mark {\n    width: 24px;\n    height: 24px;\n    position: absolute;\n    top: -4px;\n    right: 0px;\n    border-radius: 15px;\n    font-size: 34px;\n    border: double black;\n    color: white;\n    justify-content: center;\n    display: flex;\n    align-items: center;\n    z-index: 9; }\n\n.ui-player-card .dead {\n  filter: grayscale(100%); }\n\n.ui-player-card .faction-war {\n  width: 180px;\n  height: 190px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card .faction-war .general {\n    height: 100%;\n    position: relative;\n    pointer-events: all;\n    flex-grow: 1;\n    overflow: hidden; }\n    .ui-player-card .faction-war .general .marks {\n      background: rgba(31, 31, 31, 0.767);\n      color: white;\n      font-size: 12px;\n      font-family: Arial, Helvetica, sans-serif;\n      position: absolute;\n      left: 20px;\n      top: 13%;\n      letter-spacing: initial; }\n    .ui-player-card .faction-war .general .general-name {\n      position: absolute;\n      top: 0px;\n      left: 0px;\n      width: 20px;\n      font-size: 22px;\n      text-indent: 26px;\n      display: flex;\n      align-items: center;\n      height: 100px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      color: #e7e3a5;\n      pointer-events: none;\n      text-shadow: 0px 0px 4px black;\n      white-space: nowrap; }\n\n.ui-player-card .faction-mark {\n  width: 24px;\n  height: 24px;\n  position: absolute;\n  top: -8px;\n  left: -8px;\n  border-radius: 15px;\n  font-size: 34px;\n  border: double black;\n  color: white;\n  justify-content: center;\n  display: flex;\n  align-items: center;\n  z-index: 1; }\n\n.ui-player-card .wei {\n  background: #1717c5 !important; }\n\n.ui-player-card .shu {\n  background: #bb1b1b !important; }\n\n.ui-player-card .wu {\n  background: #1ba51b !important; }\n\n.ui-player-card .qun {\n  background: #c5a81a !important; }\n\n.ui-player-card .ye {\n  background: #902090 !important; }\n\n.ui-player-card .faction-dynamic-mark {\n  pointer-events: all;\n  width: 24px;\n  height: 24px;\n  padding: 1px;\n  position: absolute;\n  top: -5px;\n  left: -5px;\n  background: lightgray;\n  border-radius: 3px;\n  border: 1px solid black;\n  display: flex;\n  flex-wrap: wrap;\n  transition: 0.1s;\n  z-index: 1; }\n  .ui-player-card .faction-dynamic-mark .mark {\n    background: gray;\n    width: 50%;\n    height: 50%;\n    cursor: pointer;\n    box-shadow: inset 0px 0px 2px #000000d4; }\n\n.ui-player-card .faction-dynamic-mark:hover {\n  width: 34px;\n  height: 34px; }\n\n.glow-on-hover:before {\n  content: '';\n  background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);\n  position: absolute;\n  top: -2px;\n  left: -2px;\n  background-size: 400%;\n  z-index: -1;\n  filter: blur(5px);\n  width: calc(100% + 4px);\n  height: calc(100% + 4px);\n  animation: glowing 10s linear infinite;\n  opacity: 0;\n  transition: opacity .3s ease-in-out;\n  border-radius: 10px;\n  opacity: 1; }\n\n.glow-on-hover:after {\n  z-index: -1;\n  content: '';\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  background: #111;\n  left: 0;\n  top: 0;\n  border-radius: 10px; }\n\n@keyframes glowing {\n  0% {\n    background-position: 0 0; }\n  100% {\n    background-position: 400% 0; } }\n", ""]);
+exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.ui-my-player-card .faction-war {\n  width: 320px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .general {\n    pointer-events: all; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name {\n      font-size: 20px;\n      writing-mode: unset;\n      width: 100px;\n      height: 22px;\n      color: white;\n      white-space: nowrap; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name-after {\n      width: 0;\n      height: 0;\n      border-top: 11px solid transparent;\n      border-left: 9px;\n      border-bottom: 11px solid transparent;\n      position: absolute;\n      left: 100%; }\n    .ui-player-card.ui-my-player-card .faction-war .general .title {\n      position: absolute;\n      left: -3px;\n      top: -5px;\n      font-size: 30px;\n      color: #ffffc9;\n      text-shadow: 0px 0px 10px gold;\n      cursor: pointer; }\n  .ui-player-card.ui-my-player-card .faction-war .hidden .card-avatar {\n    filter: brightness(50%) grayscale(0.7); }\n  .ui-player-card.ui-my-player-card .faction-war .hidden::after {\n    content: '潜伏';\n    position: absolute;\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    color: white;\n    filter: drop-shadow(0px 0px 6px black);\n    font-size: 24px;\n    pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .my-faction-mark {\n    width: 24px;\n    height: 24px;\n    position: absolute;\n    top: -4px;\n    right: 0px;\n    border-radius: 15px;\n    font-size: 34px;\n    border: double black;\n    color: white;\n    justify-content: center;\n    display: flex;\n    align-items: center;\n    z-index: 9; }\n\n.ui-player-card .dead {\n  filter: grayscale(100%); }\n\n.ui-player-card .faction-war {\n  width: 180px;\n  height: 190px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card .faction-war .general {\n    height: 100%;\n    position: relative;\n    pointer-events: all;\n    flex-grow: 1;\n    overflow: hidden; }\n    .ui-player-card .faction-war .general .marks {\n      background: rgba(31, 31, 31, 0.767);\n      color: white;\n      font-size: 12px;\n      font-family: Arial, Helvetica, sans-serif;\n      position: absolute;\n      left: 20px;\n      top: 13%;\n      letter-spacing: initial; }\n    .ui-player-card .faction-war .general .general-name {\n      position: absolute;\n      top: 0px;\n      left: 0px;\n      width: 20px;\n      font-size: 22px;\n      text-indent: 26px;\n      display: flex;\n      align-items: center;\n      height: 100px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      color: #e7e3a5;\n      pointer-events: none;\n      text-shadow: 0px 0px 4px black;\n      white-space: nowrap; }\n\n.ui-player-card .faction-mark {\n  width: 24px;\n  height: 24px;\n  position: absolute;\n  top: -8px;\n  left: -8px;\n  border-radius: 15px;\n  font-size: 34px;\n  border: double black;\n  color: white;\n  justify-content: center;\n  display: flex;\n  align-items: center;\n  z-index: 1; }\n\n.ui-player-card .wei {\n  background: #1717c5 !important; }\n\n.ui-player-card .shu {\n  background: #bb1b1b !important; }\n\n.ui-player-card .wu {\n  background: #1ba51b !important; }\n\n.ui-player-card .qun {\n  background: #c5a81a !important; }\n\n.ui-player-card .ye {\n  background: #902090 !important; }\n\n.ui-player-card .faction-dynamic-mark {\n  pointer-events: all;\n  width: 24px;\n  height: 24px;\n  padding: 1px;\n  position: absolute;\n  top: -5px;\n  left: -5px;\n  background: lightgray;\n  border-radius: 3px;\n  border: 1px solid black;\n  display: flex;\n  flex-wrap: wrap;\n  transition: 0.1s;\n  z-index: 1; }\n  .ui-player-card .faction-dynamic-mark .mark {\n    background: gray;\n    width: 50%;\n    height: 50%;\n    cursor: pointer;\n    box-shadow: inset 0px 0px 2px #000000d4; }\n\n.ui-player-card .faction-dynamic-mark:hover {\n  width: 34px;\n  height: 34px; }\n\n.glow-on-hover:before {\n  content: '';\n  background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);\n  position: absolute;\n  top: -2px;\n  left: -2px;\n  background-size: 400%;\n  z-index: -1;\n  filter: blur(5px);\n  width: calc(100% + 4px);\n  height: calc(100% + 4px);\n  animation: glowing 10s linear infinite;\n  opacity: 0;\n  transition: opacity .3s ease-in-out;\n  border-radius: 10px;\n  opacity: 1; }\n\n.glow-on-hover:after {\n  z-index: -1;\n  content: '';\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  background: #111;\n  left: 0;\n  top: 0;\n  border-radius: 10px; }\n\n@keyframes glowing {\n  0% {\n    background-position: 0 0; }\n  100% {\n    background-position: 400% 0; } }\n", ""]);
 
 
 

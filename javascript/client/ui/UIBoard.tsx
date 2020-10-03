@@ -10,7 +10,7 @@ import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
 import { ServerHintTransit, Rescind, HintType, CustomRequest } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
-import { TextFlashEffect, CardTransit, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
+import { TextFlashEffect, CardTransit, CurrentPlayerEffect, SkinRequest } from '../../common/transit/EffectTransit'
 import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
 import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
@@ -24,7 +24,7 @@ import { SkillStatus } from '../../common/Skill'
 import { UIRollingLogger, UILogger } from './UILogger'
 import { audioManager } from '../audio-manager/AudioManager'
 import RuleModal from './UIRuleModal'
-import { CardPos, CardRearrangeRequest } from '../../common/transit/CardPos'
+import { debounce, throttle } from '../../common/util/Util'
 
 type UIBoardProp = {
     myId: string
@@ -185,10 +185,9 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             this.state.cardTransitManager.onCardTransfer(effect)
         })
         p.pubsub.on(FactionPlayerInfo, (info: FactionPlayerInfo)=>{
-            // console.log('Before update player', info, context.getPlayer(info.player.id).getAllCards())
             delete info.cards
-            Object.assign(context.getPlayer(info.player.id), info)
-            // console.log('After update player', info, context.getPlayer(info.player.id).getAllCards())
+            let player = context.getPlayer(info.player.id) as FactionPlayerInfo
+            Object.assign(player, info)
             this.refresh()
         })
         p.pubsub.on(CurrentPlayerEffect, (currentPlayerEffect: CurrentPlayerEffect)=>{
@@ -222,6 +221,10 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
         // console.log('Force Refreshing UIBoard')
         this.forceUpdate()
     }
+
+    skinUpdate=throttle((isMain: boolean)=>{
+        this.props.context.sendToServer(new SkinRequest(this.props.context.myself.player.id, isMain))
+    }, 1000)
 
     render() {
         let {myId, context, pubsub} = this.props
@@ -273,6 +276,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
             <div className='btm' ref={this.dom}>
                 {/* 状态 */}
                 <UIMyPlayerCard info={playerInfo} elementStatus={playerChecker.getStatus(myId)} 
+                                cb={this.skinUpdate}
                                 onSelect={(s)=>playerChecker.onClicked(s)} pubsub={pubsub} skillButtons={skillButtons}/>
                 <UIMyCards info={playerInfo} equipChecker={equipChecker} cardsChecker={cardsChecker} signsChecker={signsChecker}
                             hideCards={hideCards} cardTransitManager={cardTransitManager} onCardsShifted={shift => {
@@ -290,6 +294,9 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                     <UIButton display={showDistance? '隐藏距离' : '显示距离'} 
                             onClick={()=>{this.setState({showDistance: !showDistance})}} 
                             disabled={false} />
+                    {/* <UIButton display={'更换皮肤'} 
+                            onClick={debounce(()=>{context.sendToServer(new SkinRequest())}, 1000)} 
+                            disabled={false} /> */}
                     <UIButton display={hideCards? '拿起牌' : '扣牌'} 
                             onClick={()=>{this.setState({hideCards: !hideCards})}} 
                             disabled={false} />

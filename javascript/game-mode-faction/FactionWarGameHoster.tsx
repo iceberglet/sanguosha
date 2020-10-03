@@ -19,6 +19,8 @@ import { Faction } from "../common/General";
 import { CardPos, CardPosChangeEvent, CardRearrangeRequest } from "../common/transit/CardPos";
 import { UIPosition } from "../common/PlayerAction";
 import { cardSorter } from "../common/cards/Card";
+import { SkinRequest } from "../common/transit/EffectTransit";
+import { PlayerInfo } from "../common/PlayerInfo";
 
 const myMode = GameModeEnum.FactionWarGame
 const generalsToPickFrom = 7
@@ -43,6 +45,39 @@ export default class FactionWarGameHoster implements GameHoster {
             let player = this.manager.context.getPlayer(p.requester)
             player.getCards(CardPos.HAND).sort(cardSorter)
             this.manager.send(p.requester, player)
+        })
+        registry.pubsub.on<SkinRequest>(SkinRequest, (r)=>{
+            if(!this.manager) {
+                return
+            }
+            console.log('更换皮肤', r.player, r.isMain)
+            let p = this.manager.context.getPlayer(r.player) as FactionPlayerInfo
+            let general = r.isMain? p.general : p.subGeneral
+            if(general.skins === 0) {
+                return
+            }
+            let curr = r.isMain? p.mainSkin : p.subSkin
+            let idx = 1
+            if(curr) {
+                let currIdx = parseInt(curr.split('_').reverse()[0])
+                idx = (currIdx + 1) % (general.skins + 1)
+            }
+
+            let skinName = null
+            if(idx > 0) {
+                let arr = general.id.split('_')
+                arr.splice(0, 1)
+                arr.unshift('skin')
+                arr.push(idx.toString())
+                skinName = arr.join('_')
+            }
+
+            if(r.isMain) {
+                p.mainSkin = skinName
+            } else {
+                p.subSkin = skinName
+            }
+            this.manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
         })
     }
 

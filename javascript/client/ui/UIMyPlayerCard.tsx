@@ -1,6 +1,6 @@
 import * as React from 'react'
 import UIHpCol from './UIHpCol'
-import { PlayerInfo } from '../../common/PlayerInfo'
+import { OnSkinChangeRequest, PlayerInfo } from '../../common/PlayerInfo'
 import './ui-my-player-card.scss'
 import { ClassFormatter } from '../../common/util/Togglable'
 import { ElementStatus, Checker } from './UIBoard'
@@ -19,7 +19,8 @@ type CardProp = {
     elementStatus: ElementStatus,
     onSelect: (s: string)=>void,
     pubsub: Pubsub,
-    skillButtons: SkillButtonProp[]
+    skillButtons: SkillButtonProp[],
+    cb: OnSkinChangeRequest
 }
 
 type State = {
@@ -53,7 +54,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
     }
 
     render() {
-        let {info, elementStatus, skillButtons} = this.props
+        let {info, elementStatus, skillButtons, cb} = this.props
         let {damaged,effect} = this.state
         let pendingOnMe = effect.pendingUser?.has(info.player.id)
         let clazz = new ClassFormatter('ui-player-card ui-my-player-card')
@@ -64,7 +65,7 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
                         .done()
 
         return <div className={clazz}  onClick={this.onClick}>
-            {info.drawSelf(skillButtons)}
+            {info.drawSelf(skillButtons, cb)}
             
             <Mask isMasked={info.isDrunk} maskClass={'drunk'} />
             <Mask isMasked={info.isTurnedOver} maskClass={'turned-over'} />

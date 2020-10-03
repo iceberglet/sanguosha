@@ -31,6 +31,10 @@ export class CurrentPlayerEffect {
     ) {}
 }
 
+export class SkinRequest {
+    public constructor(public readonly player: string, public readonly isMain: boolean) {}
+}
+
 export class CardTransit {
 
     public static WORKFLOW = 'workflow'
