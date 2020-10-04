@@ -1,6 +1,8 @@
 import * as express from 'express'
 import * as http from 'http';
 import * as WebSocket from 'ws';
+var compression = require('compression');
+var path = require('path');
 import { Serde } from './common/util/Serializer';
 import Pubsub from './common/util/PubSub';
 import LoginMessage from './server/Login';
@@ -13,8 +15,9 @@ import { serverConfig } from './server/ServerConfig';
 let app = express()
 
 //serve static files
-app.use(express.static('public'))
-
+// console.log(path.resolve(__filename, '..', 'public'))
+app.use(express.static('public', { maxAge: 31557600 }));
+app.use(compression());
 
 const server = http.createServer(app)
 const wss = new WebSocket.Server({ server });
