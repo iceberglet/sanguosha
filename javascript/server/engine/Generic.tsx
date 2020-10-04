@@ -101,7 +101,7 @@ export function findCard(info: PlayerInfo, res: CardSelectionResult): Array<[Car
 
 export async function turnOver(by: PlayerInfo, victim: PlayerInfo, skillName: string, manager: GameManager) {
     
-    manager.log(`${by} 发动了 ${skillName} 将${by} 翻面`)
+    manager.log(`${by} ${skillName? '发动了 ' + skillName: ''} 将${by} 翻面`)
     manager.broadcast(new TextFlashEffect(by.player.id, [victim.player.id], skillName))
     victim.isTurnedOver = !victim.isTurnedOver
     manager.broadcast(victim, PlayerInfo.sanitize)

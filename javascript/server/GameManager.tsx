@@ -20,7 +20,7 @@ import { JudgeDelayedRuseOp } from "./engine/DelayedRuseOp";
 import GameEnding from "./GameEnding";
 import GameStatsCollector from "./GameStatsCollector";
 import { EventRegistryForSkills } from "../common/Skill";
-import { CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent } from "./engine/Generic";
+import { CardBeingUsedEvent, CardObtainedEvent, CardBeingTakenEvent, turnOver } from "./engine/Generic";
 import PlayerAct from "./context/PlayerAct";
 import { Gender } from "../common/General";
 
@@ -152,9 +152,11 @@ export default class GameManager {
         if(player.isTurnedOver) {
             player.isTurnedOver = false
             console.log(`Player is turned back ${player.player.id}`)
+            this.log(`${player.player.id} 将自己的武将牌翻回正面`)
             this.broadcast(player, PlayerInfo.sanitize)
             return
         } else {
+            this.log(`---------- 进入 ${player} 的回合 --------`)
             this.roundStats = new RoundStat()
             await this.processStage(player, Stage.ROUND_BEGIN)
             await this.processStage(player, Stage.JUDGE, async ()=>await this.processJudgingStage())

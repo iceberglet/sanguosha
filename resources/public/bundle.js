@@ -5589,7 +5589,8 @@ class Card {
         return this.id === Card.DUMMY.id;
     }
     toString() {
-        return `[${Util_1.Suits[this.suit]} ${this.size.size} ${this.type.name}]`;
+        var _a, _b;
+        return `[${Util_1.Suits[this.suit]} ${(_a = this.size) === null || _a === void 0 ? void 0 : _a.symbol} ${(_b = this.type) === null || _b === void 0 ? void 0 : _b.name}]`;
     }
 }
 exports.default = Card;
@@ -16203,10 +16204,12 @@ class GameManager {
             if (player.isTurnedOver) {
                 player.isTurnedOver = false;
                 console.log(`Player is turned back ${player.player.id}`);
+                this.log(`${player.player.id} 将自己的武将牌翻回正面`);
                 this.broadcast(player, PlayerInfo_1.PlayerInfo.sanitize);
                 return;
             }
             else {
+                this.log(`---------- 进入 ${player} 的回合 --------`);
                 this.roundStats = new RoundStat_1.default();
                 yield this.processStage(player, Stage_1.Stage.ROUND_BEGIN);
                 yield this.processStage(player, Stage_1.Stage.JUDGE, () => __awaiter(this, void 0, void 0, function* () { return yield this.processJudgingStage(); }));
@@ -18897,7 +18900,7 @@ function findCard(info, res) {
 exports.findCard = findCard;
 function turnOver(by, victim, skillName, manager) {
     return __awaiter(this, void 0, void 0, function* () {
-        manager.log(`${by} 发动了 ${skillName} 将${by} 翻面`);
+        manager.log(`${by} ${skillName ? '发动了 ' + skillName : ''} 将${by} 翻面`);
         manager.broadcast(new EffectTransit_1.TextFlashEffect(by.player.id, [victim.player.id], skillName));
         victim.isTurnedOver = !victim.isTurnedOver;
         manager.broadcast(victim, PlayerInfo_1.PlayerInfo.sanitize);

@@ -206,7 +206,7 @@ export default class Card implements ICard {
     }
 
     public toString() {
-        return `[${Suits[this.suit]} ${this.size.size} ${this.type.name}]`
+        return `[${Suits[this.suit]} ${this.size?.symbol} ${this.type?.name}]`
     }
 }
 
