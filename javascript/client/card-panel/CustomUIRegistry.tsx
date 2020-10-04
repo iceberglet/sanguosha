@@ -278,7 +278,8 @@ class XunXun extends React.Component<MountableProp<XunXunData, boolean>, XunXunS
         super(p)
         this.style = {
             display: 'flex',
-            width: '460px'
+            width: '460px',
+            height: '154px',
         }
         this.state = {
             top: [...p.commonUI.top],
