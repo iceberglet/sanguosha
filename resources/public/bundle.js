@@ -5436,6 +5436,8 @@ class CardSize {
     }
 }
 exports.CardSize = CardSize;
+CardSize.MAX = 13;
+CardSize.MIN = 1;
 CardSize.ACE = new CardSize('A', 1);
 CardSize.TWO = new CardSize('2', 2);
 CardSize.THREE = new CardSize('3', 3);
@@ -12699,7 +12701,7 @@ class LuoYi extends Skill_1.SimpleConditionalSkill {
         skillRegistry.onEvent(StageFlows_1.StageEndFlow, this.playerId, this.endEffect);
     }
     conditionFulfilled(event, manager) {
-        return event.player.player.id === this.playerId;
+        return event.player.player.id === this.playerId && event.amount > 0;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -14895,7 +14897,7 @@ class YingYang extends Skill_1.SimpleConditionalSkill {
         super(...arguments);
         this.id = '鹰扬';
         this.displayName = '鹰扬';
-        this.description = '当你拼点的牌亮出后，你可以令此牌的点数+3或-3。';
+        this.description = '当你拼点的牌亮出后，你可以令此牌的点数+3或-3。(最大为 K 最小为 A )';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(CardFightOp_1.default, this);
@@ -14921,10 +14923,10 @@ class YingYang extends Skill_1.SimpleConditionalSkill {
                 delta = -3;
             }
             if (event.initiater.player.id === this.playerId) {
-                event.initiatorPoint += delta;
+                event.initiatorPoint = Math.min(Card_1.CardSize.MAX, Math.max(Card_1.CardSize.MIN, event.initiatorPoint + delta));
             }
             else {
-                event.targetPoint += delta;
+                event.targetPoint = Math.min(Card_1.CardSize.MAX, Math.max(Card_1.CardSize.MIN, event.targetPoint + delta));
             }
             this.invokeEffects(manager, [], `${this.playerId} 发动 ${this.displayName} 使其判定牌点数 ${delta}`);
         });

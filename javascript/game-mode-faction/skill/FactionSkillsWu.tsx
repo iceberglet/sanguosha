@@ -9,7 +9,7 @@ import GameManager from "../../server/GameManager"
 import { TextFlashEffect, CardTransit } from "../../common/transit/EffectTransit"
 import { CardPos } from "../../common/transit/CardPos"
 import { CardBeingDroppedEvent, CardBeingUsedEvent, CardAwayEvent, CardBeingTakenEvent, CardObtainedEvent } from "../../server/engine/Generic"
-import Card, { CardType, Suit, Color, SuperGenre } from "../../common/cards/Card"
+import Card, { CardType, CardSize, Suit, Color, SuperGenre } from "../../common/cards/Card"
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp"
 import { isSuitBlack, isSuitRed, ICard, mimicCard, deriveColor } from "../../common/cards/ICard"
 import { GuoHe, JueDou, ShunShou } from "../../server/engine/SingleRuseOp"
@@ -1122,7 +1122,7 @@ export class YingYang extends SimpleConditionalSkill<CardFightOp> {
     
     id = '鹰扬'
     displayName = '鹰扬'
-    description = '当你拼点的牌亮出后，你可以令此牌的点数+3或-3。'
+    description = '当你拼点的牌亮出后，你可以令此牌的点数+3或-3。(最大为 K 最小为 A )'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<CardFightOp>(CardFightOp, this)
@@ -1148,9 +1148,9 @@ export class YingYang extends SimpleConditionalSkill<CardFightOp> {
             delta = -3
         }
         if(event.initiater.player.id === this.playerId) {
-            event.initiatorPoint += delta
+            event.initiatorPoint = Math.min(CardSize.MAX, Math.max(CardSize.MIN, event.initiatorPoint + delta))
         } else {
-            event.targetPoint += delta
+            event.targetPoint = Math.min(CardSize.MAX, Math.max(CardSize.MIN, event.targetPoint + delta))
         }
         this.invokeEffects(manager, [], `${this.playerId} 发动 ${this.displayName} 使其判定牌点数 ${delta}`)
     }

@@ -255,7 +255,7 @@ export class LuoYi extends SimpleConditionalSkill<TakeCardStageOp> {
     }
 
     public conditionFulfilled(event: TakeCardStageOp, manager: GameManager): boolean {
-        return event.player.player.id === this.playerId
+        return event.player.player.id === this.playerId && event.amount > 0
     }
 
     public async doInvoke(event: TakeCardStageOp, manager: GameManager): Promise<void> {

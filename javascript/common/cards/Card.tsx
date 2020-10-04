@@ -10,6 +10,8 @@ export type Suit = 'club' | 'spade' | 'heart' | 'diamond' | 'none'
 export type Color = 'red' | 'black' | 'n.a.'
 
 export class CardSize {
+    public static MAX = 13
+    public static MIN = 1
     public static ACE = new CardSize('A', 1)
     public static TWO = new CardSize('2', 2)
     public static THREE = new CardSize('3', 3)
