@@ -982,7 +982,13 @@ export class XiaoGuo extends SimpleConditionalSkill<InStageEnd> {
 
     public conditionFulfilled(event: InStageEnd, manager: GameManager): boolean {
         //其他角色的结束阶段
-        return event.stage === Stage.ROUND_END && event.info.player.id !== this.playerId
+        if(event.stage === Stage.ROUND_END && event.info.player.id !== this.playerId) {
+            let me = manager.context.getPlayer(this.playerId)
+            if(me.getCards(CardPos.HAND).filter(c => c.type.isBasic()).length > 0) {
+                return true
+            }
+        }
+        return false
     }
 
     public async doInvoke(event: InStageEnd, manager: GameManager): Promise<void> {

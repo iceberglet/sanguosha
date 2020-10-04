@@ -24,7 +24,7 @@ import { SkillStatus } from '../../common/Skill'
 import { UIRollingLogger, UILogger } from './UILogger'
 import { audioManager } from '../audio-manager/AudioManager'
 import RuleModal from './UIRuleModal'
-import { debounce, throttle } from '../../common/util/Util'
+import { debounce, Mask, throttle } from '../../common/util/Util'
 
 type UIBoardProp = {
     myId: string
@@ -302,6 +302,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                             disabled={false} />
                 </div>
             </div>
+            <Mask isMasked={!!context.getMsg()} maskClass={'alert-play-hand'}/>
             <EffectProducer screenPosObtainer={screenPosObtainer} ref={effectProducer=>this.effectProducer = effectProducer} />
         </div>
     }
