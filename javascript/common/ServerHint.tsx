@@ -79,6 +79,7 @@ export type DuoCardSelectionHint = {
 }
 
 export type GeneralSelectionHint = {
+    yourIdx: number,
     generals: General[]
 }
 

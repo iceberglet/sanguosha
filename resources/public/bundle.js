@@ -522,18 +522,19 @@ function DuoCardSelection(p) {
     return React.createElement("div", { className: 'duo-card-selection-container' },
         React.createElement("div", { className: 'duo-card-selection-hint center' }, p.title),
         React.createElement("table", null,
-            React.createElement("tr", null,
-                React.createElement("td", null),
-                React.createElement("td", { className: 'title' }, p.titleLeft),
-                React.createElement("td", { className: 'title' }, p.titleRight)),
-            Object.keys(p.rowsOfCard).map(rowName => {
-                return React.createElement("tr", { key: rowName },
-                    React.createElement("td", { className: 'row-name' }, rowName),
-                    React.createElement("td", null,
-                        React.createElement("div", { className: 'row-of-cards' }, p.rowsOfCard[rowName][0].map(mapper(true, rowName)))),
-                    React.createElement("td", null,
-                        React.createElement("div", { className: 'row-of-cards' }, p.rowsOfCard[rowName][1].map(mapper(false, rowName)))));
-            })),
+            React.createElement("tbody", null,
+                React.createElement("tr", null,
+                    React.createElement("td", null),
+                    React.createElement("td", { className: 'title' }, p.titleLeft),
+                    React.createElement("td", { className: 'title' }, p.titleRight)),
+                Object.keys(p.rowsOfCard).map(rowName => {
+                    return React.createElement("tr", { key: rowName },
+                        React.createElement("td", { className: 'row-name' }, rowName),
+                        React.createElement("td", null,
+                            React.createElement("div", { className: 'row-of-cards' }, p.rowsOfCard[rowName][0].map(mapper(true, rowName)))),
+                        React.createElement("td", null,
+                            React.createElement("div", { className: 'row-of-cards' }, p.rowsOfCard[rowName][1].map(mapper(false, rowName)))));
+                }))),
         React.createElement("div", { className: 'button-container' },
             p.chooseSize > 1 && React.createElement(UIButton_1.default, { display: '确定', disabled: !enabled, onClick: finish }),
             p.canCancel && React.createElement(UIButton_1.default, { display: '取消', disabled: false, onClick: finish })));
@@ -2340,6 +2341,7 @@ const Togglable_1 = __webpack_require__(/*! ../../common/util/Togglable */ "./ja
 __webpack_require__(/*! ./pregame-ui.scss */ "./javascript/client/pregame/pregame-ui.scss");
 const FactionWarRuleBook_1 = __webpack_require__(/*! ../../game-mode-faction/FactionWarRuleBook */ "./javascript/game-mode-faction/FactionWarRuleBook.tsx");
 const UIRuleModal_1 = __webpack_require__(/*! ../ui/UIRuleModal */ "./javascript/client/ui/UIRuleModal.tsx");
+const Util_1 = __webpack_require__(/*! ../../common/util/Util */ "./javascript/common/util/Util.tsx");
 function PregameUI(p) {
     let [hint, setHint] = React.useState(null);
     let [main, setMain] = React.useState(null);
@@ -2364,7 +2366,13 @@ function PregameUI(p) {
     //     }
     // }, [])
     let me = p.circus.statuses.find(s => s.player.id === p.myId);
-    let generals = hint ? hint.hint.customRequest.data.generals : [];
+    let generals = [];
+    let seating = -1;
+    if (hint) {
+        let hintData = hint.hint.customRequest.data;
+        generals = hintData.generals;
+        seating = hintData.yourIdx;
+    }
     /**
      * invalid if:
      * - single general in that faction
@@ -2396,7 +2404,10 @@ function PregameUI(p) {
                     React.createElement(GeneralUI_1.default, { general: me.chosenSubGeneral })))) :
             React.createElement("div", { className: 'my-choices' },
                 React.createElement(UIRuleModal_1.default, { ruleName: '国战规则', rules: React.createElement(FactionWarRuleBook_1.default, null) }),
-                React.createElement("div", { className: 'title center' }, main ? (sub ? '点击确定选将' : '请选择副将') : '请选择主将'),
+                React.createElement("div", { className: 'title center' },
+                    main ? (sub ? '点击确定选将' : '请选择副将') : '请选择主将',
+                    " ",
+                    `(你是${Util_1.toChinese(seating)}号位)`),
                 React.createElement("div", { className: 'available' }, generals.map(g => {
                     let disabled = selector.disabled.has(g);
                     let clazz = new Togglable_1.ClassFormatter('general-wrapper')
@@ -7901,6 +7912,7 @@ class FactionWarGameHoster {
     init() {
         console.log('[选将] 进入准备工作, 分发将牌, 等待玩家选将');
         this.choices = this.generateGeneralChoices(this.numberOfPlayer);
+        this.seating = Util_1.shuffle([0, 1, 2, 3, 4, 5, 6, 7].slice(0, this.numberOfPlayer));
         this.circus = new Circus();
         this.circus.playerNo = this.numberOfPlayer;
         this.manager = null;
@@ -7941,6 +7953,7 @@ class FactionWarGameHoster {
             this.registry.broadcast(this.circus, Circus.sanitize);
             //pause a bit for UI to load on client
             yield Util_1.delay(300);
+            let seating = this.seating.shift();
             //send a selection hint
             this.registry.sendServerAsk(player.player.id, {
                 hintType: ServerHint_1.HintType.UI_PANEL,
@@ -7948,6 +7961,7 @@ class FactionWarGameHoster {
                 customRequest: {
                     mode: 'choose',
                     data: {
+                        yourIdx: seating,
                         generals: this.choices.shift()
                     }
                 }
@@ -7955,6 +7969,7 @@ class FactionWarGameHoster {
                 let res = resp.customData;
                 player.chosenGeneral = FactionWarGenerals_1.allGenerals.get(res[0]);
                 player.chosenSubGeneral = FactionWarGenerals_1.allGenerals.get(res[1]);
+                player.seating = seating;
                 this.registry.broadcast(this.circus, Circus.sanitize);
                 this.tryStartTheGame();
             });
@@ -7977,11 +7992,17 @@ class FactionWarGameHoster {
         if (!this.statsCollector) {
             this.statsCollector = new GameStatsCollector_1.default(this.circus.statuses.map(s => s.player));
         }
-        let context = new GameServerContext_1.default(Util_1.shuffle(this.circus.statuses.map(s => {
+        let infos = [];
+        this.circus.statuses.forEach(s => {
             let info = new FactionPlayerInfo_1.default(s.player, s.chosenGeneral, s.chosenSubGeneral);
             info.init();
-            return info;
-        })), myMode, (size) => {
+            if (infos[s.seating]) {
+                console.error('Seat taken!', s, infos[s.seating]);
+                throw 'Idx taken!!! ' + s.seating;
+            }
+            infos[s.seating] = info;
+        });
+        let context = new GameServerContext_1.default(infos, myMode, (size) => {
             this.manager.setDeckRemain(size);
         });
         this.initializer = new FactionWarInitializer_1.default();
@@ -8075,6 +8096,7 @@ class PlayerPrepChoice {
             let copy = new PlayerPrepChoice(status.player);
             copy.chosenGeneral = status.chosenGeneral ? FactionWarGenerals_1.default.soldier_male : null;
             copy.chosenSubGeneral = status.chosenSubGeneral ? FactionWarGenerals_1.default.soldier_male : null;
+            copy.seating = status.seating;
             return copy;
         }
     }

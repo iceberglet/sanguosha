@@ -33,6 +33,7 @@ export default class FactionWarGameHoster implements GameHoster {
     manager: GameManager
     statsCollector: GameStatsCollector
     skillRepo: FactionWarSkillRepo
+    seating: Array<number> //index for players
 
     constructor(private registry: PlayerRegistry, private numberOfPlayer: number) {
         registry.pubsub.on<SkillStatus>(SkillStatus, this.onSkillStatusUpate)
@@ -84,6 +85,7 @@ export default class FactionWarGameHoster implements GameHoster {
     init(): void {
         console.log('[选将] 进入准备工作, 分发将牌, 等待玩家选将')
         this.choices = this.generateGeneralChoices(this.numberOfPlayer)
+        this.seating = shuffle([0, 1, 2, 3, 4, 5, 6, 7].slice(0, this.numberOfPlayer))
         this.circus = new Circus()
         this.circus.playerNo = this.numberOfPlayer
         this.manager = null
@@ -123,6 +125,7 @@ export default class FactionWarGameHoster implements GameHoster {
 
         //pause a bit for UI to load on client
         await delay(300)
+        let seating = this.seating.shift()
         //send a selection hint
         this.registry.sendServerAsk(player.player.id, {
             hintType: HintType.UI_PANEL,
@@ -130,6 +133,7 @@ export default class FactionWarGameHoster implements GameHoster {
             customRequest: {
                 mode: 'choose',
                 data: {
+                    yourIdx: seating,
                     generals: this.choices.shift()
                 }
             }
@@ -137,6 +141,7 @@ export default class FactionWarGameHoster implements GameHoster {
             let res = resp.customData as GeneralSelectionResult
             player.chosenGeneral = allGenerals.get(res[0])
             player.chosenSubGeneral = allGenerals.get(res[1])
+            player.seating = seating
             this.registry.broadcast(this.circus, Circus.sanitize)
             this.tryStartTheGame()
         })
@@ -164,11 +169,17 @@ export default class FactionWarGameHoster implements GameHoster {
         if(!this.statsCollector) {
             this.statsCollector = new GameStatsCollector(this.circus.statuses.map(s => s.player))
         }
-        let context = new GameServerContext(shuffle(this.circus.statuses.map(s => {
-                                                let info = new FactionPlayerInfo(s.player, s.chosenGeneral, s.chosenSubGeneral)
-                                                info.init()
-                                                return info
-                                            })), 
+        let infos: Array<FactionPlayerInfo> = []
+        this.circus.statuses.forEach(s => {
+            let info = new FactionPlayerInfo(s.player, s.chosenGeneral, s.chosenSubGeneral)
+            info.init()
+            if(infos[s.seating]) {
+                console.error('Seat taken!', s, infos[s.seating])
+                throw 'Idx taken!!! ' + s.seating
+            }
+            infos[s.seating] = info
+        })
+        let context = new GameServerContext(infos, 
                                             myMode, 
                                             (size)=>{
                                                 this.manager.setDeckRemain(size)
@@ -255,6 +266,7 @@ export default class FactionWarGameHoster implements GameHoster {
 export class Circus {
     statuses: PlayerPrepChoice[] = []
     gameMode: GameModeEnum = myMode
+    //number of players
     playerNo: number
 
     static sanitize(circus: Circus, id: string) {
@@ -269,6 +281,7 @@ export class Circus {
 export class PlayerPrepChoice {
     chosenGeneral: FactionWarGeneral
     chosenSubGeneral: FactionWarGeneral
+    seating: number
     
     constructor(public readonly player: Player) {
 
@@ -284,6 +297,7 @@ export class PlayerPrepChoice {
             let copy = new PlayerPrepChoice(status.player)
             copy.chosenGeneral = status.chosenGeneral? FactionWarGeneral.soldier_male : null
             copy.chosenSubGeneral = status.chosenSubGeneral? FactionWarGeneral.soldier_male : null
+            copy.seating = status.seating
             return copy
         }
     }

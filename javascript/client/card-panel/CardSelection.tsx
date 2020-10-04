@@ -121,26 +121,28 @@ export function DuoCardSelection(p: DuoProp) {
             <div className='title center'>{p.titleRight}</div>
         </div> */}
         <table>
-            <tr>
-                <td></td>
-                <td className='title'>{p.titleLeft}</td>
-                <td className='title'>{p.titleRight}</td>
-            </tr>
-            {Object.keys(p.rowsOfCard).map(rowName => {
-                return <tr key={rowName}>
-                    <td className='row-name'>{rowName}</td>
-                    <td>
-                        <div className='row-of-cards'>
-                            {p.rowsOfCard[rowName][0].map(mapper(true, rowName))}
-                        </div>
-                    </td>
-                    <td>
-                        <div className='row-of-cards'>
-                            {p.rowsOfCard[rowName][1].map(mapper(false, rowName))}
-                        </div>
-                    </td>
+            <tbody>
+                <tr>
+                    <td></td>
+                    <td className='title'>{p.titleLeft}</td>
+                    <td className='title'>{p.titleRight}</td>
                 </tr>
-            })}
+                {Object.keys(p.rowsOfCard).map(rowName => {
+                    return <tr key={rowName}>
+                        <td className='row-name'>{rowName}</td>
+                        <td>
+                            <div className='row-of-cards'>
+                                {p.rowsOfCard[rowName][0].map(mapper(true, rowName))}
+                            </div>
+                        </td>
+                        <td>
+                            <div className='row-of-cards'>
+                                {p.rowsOfCard[rowName][1].map(mapper(false, rowName))}
+                            </div>
+                        </td>
+                    </tr>
+                })}
+            </tbody>
         </table>
         { <div className='button-container'>
                 {p.chooseSize > 1 && <UIButton display={'确定'} disabled={!enabled} onClick={finish}/>}

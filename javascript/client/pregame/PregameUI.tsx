@@ -1,5 +1,5 @@
 import { Circus, PlayerPrepChoice } from "../../game-mode-faction/FactionWarGameHoster";
-import { generalPairs } from "../../game-mode-faction/FactionWarGenerals";
+import FactionWarGeneral, { generalPairs } from "../../game-mode-faction/FactionWarGenerals";
 import Pubsub from "../../common/util/PubSub";
 import * as React from 'react'
 import { ServerHintTransit, GeneralSelectionHint, HintType } from "../../common/ServerHint";
@@ -13,6 +13,7 @@ import './pregame-ui.scss'
 import { audioManager } from "../audio-manager/AudioManager";
 import FactionWarRuleBook from "../../game-mode-faction/FactionWarRuleBook";
 import UIRuleModal from '../ui/UIRuleModal'
+import { toChinese } from "../../common/util/Util";
 
 type Prop = {
     circus: Circus,
@@ -53,7 +54,13 @@ export default function PregameUI(p: Prop) {
 
     let me = p.circus.statuses.find(s => s.player.id === p.myId)
 
-    let generals = hint? (hint.hint.customRequest.data as GeneralSelectionHint).generals : []
+    let generals: Array<General> = []
+    let seating = -1
+    if(hint) {
+        let hintData = hint.hint.customRequest.data as GeneralSelectionHint
+        generals = hintData.generals
+        seating = hintData.yourIdx
+    }
     /**
      * invalid if:
      * - single general in that faction
@@ -92,7 +99,7 @@ export default function PregameUI(p: Prop) {
 
         <div className='my-choices'>
             <UIRuleModal ruleName={'国战规则'} rules={<FactionWarRuleBook />}/>
-            <div className='title center'>{main? (sub? '点击确定选将' : '请选择副将') : '请选择主将'}</div>
+            <div className='title center'>{main? (sub? '点击确定选将' : '请选择副将') : '请选择主将'} {`(你是${toChinese(seating)}号位)`}</div>
             <div className='available'>
                 {generals.map(g => {
                     let disabled = selector.disabled.has(g)
