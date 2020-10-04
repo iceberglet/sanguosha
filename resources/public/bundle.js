@@ -7265,7 +7265,7 @@ class FactionWarActionResolver extends PlayerActionResolver_1.ActionResolver {
                             yield YiYiDaiLao.do([card], player, manager);
                             break;
                         case Card_1.CardType.ZHI_JI:
-                            if (targets.length > 0) {
+                            if (targets.length > 0 && act.button !== 'chong_zhu') {
                                 yield new ZhiJiZhiBi(act.source, targetPs[0], [card]).perform(manager);
                             }
                             else {
@@ -11787,15 +11787,16 @@ class LianHuan extends Skill_1.Skill {
             let cardAndPos = act.getSingleCardAndPos();
             cardAndPos[0].as = Card_1.CardType.TIE_SUO;
             cardAndPos[0].description = '连环';
-            if (act.targets.length === 0) {
+            if (act.targets.length === 0 || act.button === 'chong_zhu') {
                 //铁索重铸算作弃置
                 yield act.dropCardsFromSource('重铸');
+                yield new MultiRuseOp_1.TieSuo(act.source, act.targets, true, [cardAndPos[0]]).perform(manager);
             }
             else {
                 manager.sendToWorkflow(act.source.player.id, cardAndPos[1], [cardAndPos[0]], true);
                 yield manager.events.publish(new Generic_1.CardBeingUsedEvent(act.source.player.id, [cardAndPos], Card_1.CardType.TIE_SUO, true, true));
+                yield new MultiRuseOp_1.TieSuo(act.source, act.targets, false, [cardAndPos[0]]).perform(manager);
             }
-            yield new MultiRuseOp_1.TieSuo(act.source, act.targets, [cardAndPos[0]]).perform(manager);
         });
     }
 }
@@ -12613,7 +12614,7 @@ class GangLie extends SkillForDamageTaken {
             if (manager.interpret(this.playerId, card).suit !== 'heart') {
                 console.log('[刚烈] 判定成功 ' + card.id);
                 let victim = event.source.player.id;
-                let dropped = yield new DropCardOp_1.DropCardRequest().perform(victim, 2, manager, '请选择弃置两张牌或者取消受到一点伤害', [PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP], true);
+                let dropped = yield new DropCardOp_1.DropCardRequest().perform(victim, 2, manager, '请选择弃置两张手牌或者取消受到一点伤害', [PlayerAction_1.UIPosition.MY_HAND], true);
                 if (!dropped) {
                     console.log('[刚烈] 玩家选择掉血');
                     yield new DamageOp_1.default(event.target, event.source, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
@@ -13308,7 +13309,7 @@ class YiJi extends SkillForDamageTaken {
             while (amount !== 0) {
                 amount--;
                 let cards = (yield new TakeCardOp_1.default(event.target, 2).perform(manager));
-                this.playSound(manager, 2);
+                this.playSound(manager, 1);
                 manager.log(`${this.playerId} 发动了 ${this.displayName}`);
                 manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, [], this.id));
                 let resp = yield manager.sendHint(this.playerId, {
@@ -17110,7 +17111,7 @@ class PlayerActionResolver extends ActionResolver {
                         yield new SingleRuseOp_1.JueDou(act.source, targetPs[0], [card]).perform(manager);
                         break;
                     case Card_1.CardType.TIE_SUO:
-                        yield new MultiRuseOp_1.TieSuo(act.source, targetPs, [card]).perform(manager);
+                        yield new MultiRuseOp_1.TieSuo(act.source, targetPs, act.button === 'chong_zhu', [card]).perform(manager);
                         break;
                     case Card_1.CardType.WAN_JIAN:
                         yield new MultiRuseOp_1.WanJian([card], act.source, Card_1.CardType.WAN_JIAN, manager.getSortedByCurr(false)).perform(manager);
@@ -19285,15 +19286,16 @@ class MultiRuse extends Operation_1.UseEventOperation {
 }
 exports.MultiRuse = MultiRuse;
 class TieSuo extends Operation_1.Operation {
-    constructor(source, targets, cards) {
+    constructor(source, targets, isChongZhu, cards) {
         super();
         this.source = source;
         this.targets = targets;
+        this.isChongZhu = isChongZhu;
         this.cards = cards;
     }
     perform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.targets || this.targets.length === 0) {
+            if (!this.targets || this.targets.length === 0 || this.isChongZhu) {
                 //重铸了
                 console.log('[MultiRuseOp] 重铸了');
                 yield new TakeCardOp_1.default(this.source, 1).perform(manager);

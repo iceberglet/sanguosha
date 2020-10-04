@@ -155,7 +155,7 @@ export default class PlayerActionResolver extends ActionResolver {
                     await new JueDou(act.source, targetPs[0], [card]).perform(manager)
                     break
                 case CardType.TIE_SUO:
-                    await new TieSuo(act.source, targetPs, [card]).perform(manager)
+                    await new TieSuo(act.source, targetPs, act.button === 'chong_zhu', [card]).perform(manager)
                     break
                 case CardType.WAN_JIAN:
                     await new WanJian([card], act.source, CardType.WAN_JIAN, manager.getSortedByCurr(false)).perform(manager)

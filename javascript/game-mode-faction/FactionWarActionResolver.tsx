@@ -145,7 +145,7 @@ export default class FactionWarActionResolver extends ActionResolver {
                         await YiYiDaiLao.do([card], player, manager)
                         break
                     case CardType.ZHI_JI:
-                        if(targets.length > 0) {
+                        if(targets.length > 0 && act.button !== 'chong_zhu') {
                             await new ZhiJiZhiBi(act.source, targetPs[0], [card]).perform(manager)
                         } else {
                             await new TakeCardOp(manager.context.getPlayer(act.source.player.id), 1).perform(manager)

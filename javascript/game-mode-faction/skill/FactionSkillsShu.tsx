@@ -846,14 +846,15 @@ export class LianHuan extends Skill {
         let cardAndPos = act.getSingleCardAndPos()
         cardAndPos[0].as = CardType.TIE_SUO
         cardAndPos[0].description = '连环'
-        if(act.targets.length === 0) {
+        if(act.targets.length === 0 || act.button === 'chong_zhu') {
             //铁索重铸算作弃置
             await act.dropCardsFromSource('重铸')
+            await new TieSuo(act.source, act.targets, true, [cardAndPos[0]]).perform(manager)
         } else {
             manager.sendToWorkflow(act.source.player.id, cardAndPos[1], [cardAndPos[0]], true)
             await manager.events.publish(new CardBeingUsedEvent(act.source.player.id, [cardAndPos], CardType.TIE_SUO, true, true))
+            await new TieSuo(act.source, act.targets, false, [cardAndPos[0]]).perform(manager)
         }
-        await new TieSuo(act.source, act.targets, [cardAndPos[0]]).perform(manager)
     }
 }
 

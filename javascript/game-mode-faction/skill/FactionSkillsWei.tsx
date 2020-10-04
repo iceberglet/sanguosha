@@ -181,8 +181,8 @@ export class GangLie extends SkillForDamageTaken {
             console.log('[刚烈] 判定成功 ' + card.id)
             let victim = event.source.player.id
 
-            let dropped = await new DropCardRequest().perform(victim, 2, manager, '请选择弃置两张牌或者取消受到一点伤害', 
-                        [UIPosition.MY_HAND, UIPosition.MY_EQUIP], true)
+            let dropped = await new DropCardRequest().perform(victim, 2, manager, '请选择弃置两张手牌或者取消受到一点伤害', 
+                        [UIPosition.MY_HAND], true)
             if(!dropped) {
                 console.log('[刚烈] 玩家选择掉血')
                 await new DamageOp(event.target, event.source, 1, [], DamageSource.SKILL).perform(manager)
@@ -856,7 +856,7 @@ export class YiJi extends SkillForDamageTaken {
         while(amount !== 0) {
             amount--
             let cards = (await new TakeCardOp(event.target, 2).perform(manager))
-            this.playSound(manager, 2)
+            this.playSound(manager, 1)
             manager.log(`${this.playerId} 发动了 ${this.displayName}`)
             manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
             let resp = await manager.sendHint(this.playerId, {

@@ -72,11 +72,11 @@ export abstract class MultiRuse extends UseEventOperation<void> {
 }
 
 export class TieSuo extends Operation<void> {
-    public constructor(public source: PlayerInfo, public targets: PlayerInfo[], public cards: Card[]) {
+    public constructor(public source: PlayerInfo, public targets: PlayerInfo[], public readonly isChongZhu: boolean, public cards: Card[]) {
         super()
     }
     public async perform(manager: GameManager): Promise<void> {
-        if(!this.targets || this.targets.length === 0) {
+        if(!this.targets || this.targets.length === 0 || this.isChongZhu) {
             //重铸了
             console.log('[MultiRuseOp] 重铸了')
             await new TakeCardOp(this.source, 1).perform(manager)
