@@ -225,6 +225,7 @@ export class PaoXiao extends SimpleConditionalSkill<SlashOP> {
     displayName = '咆哮'
     description = '锁定技，你使用【杀】无次数限制。当你于当前回合使用第二张【杀】时，你摸一张牌。'
     hiddenType = HiddenType.REVEAL_IN_MY_USE_CARD
+    needRepeatedCheck = false
     isLocked = true
     slashNumber = 0
 
@@ -656,6 +657,8 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
     displayName = '蒺藜'
     description = '当你于一回合内使用或打出第X张牌时，你可以摸X张牌（X为你的攻击范围）'
     playedInThisRound = 0
+    //否则可能反复发动计算
+    needRepeatedCheck = false
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<CardBeingUsedEvent>(CardBeingUsedEvent, this)
@@ -929,7 +932,7 @@ export class ZaiQi extends SimpleConditionalSkill<TakeCardStageOp> {
     public async doInvoke(event: TakeCardStageOp, manager: GameManager): Promise<void> {
         this.playSound(manager, 2)
         manager.broadcast(new TextFlashEffect(this.playerId, [], this.id))
-        event.amount = 0
+        event.amount = -999
 
         // 亮出X张
         let me = manager.context.getPlayer(this.playerId)
@@ -1094,6 +1097,7 @@ export class ShengXi extends SimpleConditionalSkill<StageStartFlow> {
     displayName = '生息'
     description = '弃牌阶段开始时，若你此回合内没有造成过伤害，你可以摸两张牌。'
     hasDealtDamage = false
+    needRepeatedCheck = false
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<StageStartFlow>(StageStartFlow, this)
@@ -1125,6 +1129,7 @@ export class ShouCheng extends SimpleConditionalSkill<CardAwayEvent> {
     id = '守成'
     displayName = '守成'
     description = '当与你势力相同的一名角色于其回合外失去最后手牌时，你可以令其摸一张牌。'
+    needRepeatedCheck = false
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<CardBeingDroppedEvent>(CardBeingDroppedEvent, this)
@@ -1231,6 +1236,8 @@ export class GuanXing extends SimpleConditionalSkill<StageStartFlow> {
 
 export class KongChengCancellor<T extends (RuseOp<any> | SlashCompute)> implements SkillTrigger<T> {
 
+    needRepeatedCheck = false
+
     constructor(private skill: Skill) {}
 
     getSkill(): Skill {
@@ -1265,6 +1272,7 @@ export class KongCheng extends Skill {
     id = '空城'
     displayName = '空城'
     description = '锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。'
+    needRepeatedCheck = false
     //你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。'
     isLocked = true
 

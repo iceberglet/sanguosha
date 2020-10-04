@@ -1,13 +1,13 @@
 import DamageOp, { DamageTimeline, DamageSource, DamageType } from "../../server/engine/DamageOp";
 import { SimpleConditionalSkill, EventRegistryForSkills, HiddenType, Skill } from "../../common/Skill";
 import GameManager from "../../server/GameManager";
-import { CardPos } from "../../common/transit/CardPos";
+import { CardMovementEvent, CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, DuoCardSelectionHint, DuoCardSelectionResult } from "../../common/ServerHint";
 import { gatherCards, findCard, CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingTakenEvent, CardObtainedEvent, CardAwayEvent, turnOver } from "../../server/engine/Generic";
 import JudgeOp, {JudgeTimeline} from "../../server/engine/JudgeOp";
 import { UIPosition, Button } from "../../common/PlayerAction";
-import { getRandom, checkThat, any } from "../../common/util/Util";
-import { StageEndFlow, StageStartFlow } from "../../server/engine/StageFlows";
+import { getRandom, checkThat, any, delay } from "../../common/util/Util";
+import { InStageEnd, InStageStart, StageEndFlow, StageStartFlow } from "../../server/engine/StageFlows";
 import { Stage, USEFUL_STAGES } from "../../common/Stage";
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
@@ -28,6 +28,7 @@ import { getNumberOfFactions, askAbandonBasicCard, askAbandonEquip } from "../Fa
 import { MoveCardOnField } from "../../server/engine/MoveCardOp";
 import { ShunShou } from "../../server/engine/SingleRuseOp";
 import FactionPlayerInfo from "../FactionPlayerInfo";
+import { CustomUIData, XunXunData } from "../../client/card-panel/CustomUIRegistry";
 
 export abstract class SkillForDamageTaken extends SimpleConditionalSkill<DamageOp> {
 
@@ -965,26 +966,26 @@ export class QiaoBian extends SimpleConditionalSkill<StageStartFlow> {
 }
 
 
-export class XiaoGuo extends SimpleConditionalSkill<StageStartFlow> {
+export class XiaoGuo extends SimpleConditionalSkill<InStageEnd> {
 
     id = '骁果'
     displayName = '骁果'
     description = '其他角色的结束阶段，你可以弃置一张基本牌，然后除非该角色弃置一张装备牌，否则受到你造成的1点伤害。'
 
-    public invokeMsg(stageflow: StageStartFlow) {
+    public invokeMsg(stageflow: InStageEnd) {
         return `对${stageflow.info.player.id}发动骁果`
     }
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
-        skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+        skillRegistry.on<InStageEnd>(InStageEnd, this)
     }
 
-    public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+    public conditionFulfilled(event: InStageEnd, manager: GameManager): boolean {
         //其他角色的结束阶段
         return event.stage === Stage.ROUND_END && event.info.player.id !== this.playerId
     }
 
-    public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+    public async doInvoke(event: InStageEnd, manager: GameManager): Promise<void> {
         // let resp = await new DropCardRequest().perform(this.playerId, 1, manager, '弃置一张基本牌', )
         let me = manager.context.getPlayer(this.playerId)
         let meAbandoned = await askAbandonBasicCard(manager, me, '请弃置一张基本牌发动骁果', true)
@@ -1125,6 +1126,113 @@ export class JiXi extends Skill {
     }
 }
 
+export class XunXun extends SimpleConditionalSkill<InStageStart> {
+    id = '恂恂'
+    displayName = '恂恂'
+    description = '摸牌阶段开始时，你可以观看牌堆顶的四张牌，然后将其中的两张牌置于牌堆顶，将其余的牌置于牌堆底。'
+    data: CustomUIData<XunXunData>
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<InStageStart>(InStageStart, this)
+    }
+
+    public conditionFulfilled(event: InStageStart, manager: GameManager): boolean {
+        return event.isFor(this.playerId, Stage.TAKE_CARD)
+    }
+
+    public async doInvoke(event: InStageStart, manager: GameManager): Promise<void> {
+        let cards = manager.context.deck.getCardsFromTop(4)
+        this.data = new CustomUIData<XunXunData>('xunxun', {
+            title: `${this.playerId} 恂恂`,
+            isController: true,
+            top: cards.map((c, i)=>['guanxing' + i, c]),
+            btm: []
+        })
+        this.invokeEffects(manager)
+        let {top, btm} = this.data.data
+
+        //做好update hookup
+        const onCardMoved=(event: CardMovementEvent)=>{
+            event.applyToTopBtm(top, btm)
+            manager.broadcast(event)
+        }
+        manager.pubsub().on<CardMovementEvent>(CardMovementEvent, onCardMoved)
+
+        //发送恂恂的移动请求
+        this.setBroadcast(manager)
+        await manager.sendHint(this.playerId, {
+            hintType: HintType.UI_PANEL,
+            hintMsg: 'ignore',
+            customRequest: {
+                mode: 'choose',
+                data: true
+            }
+        })
+
+        //恂恂完毕
+        manager.context.deck.placeCardsAtTop(top.map(item => item[1]))
+        manager.context.deck.placeCardsAtBtm(btm.map(item => item[1]))
+        manager.log(`${this.playerId} 将 ${top.length}张牌置于牌堆顶, ${btm.length}张牌置于牌堆底`)
+
+        //扫尾
+        manager.broadcast(new CustomUIData(CustomUIData.STOP, null))
+        manager.pubsub().off<CardMovementEvent>(CardMovementEvent, onCardMoved)
+        this.data = null
+        manager.onReconnect = null
+    }
+
+    private setBroadcast(manager: GameManager) {
+        manager.onReconnect = ()=>{
+            manager.broadcast(this.data, (data, pId)=>{
+                //sanitize
+                if(pId !== this.playerId) {
+                    let copy = new CustomUIData<XunXunData>('xunxun', {
+                        title: `${this.playerId} 恂恂`,
+                        isController: false,
+                        top: this.data.data.top.map(t => [t[0], Card.DUMMY]),
+                        btm: this.data.data.btm.map(t => [t[0], Card.DUMMY])
+                    })
+                    return copy
+                }
+                return data
+            })
+        }
+        manager.onReconnect()
+    }
+}
+
+export class WangXi extends SkillForDamageTaken {
+    id = '忘隙'
+    displayName = '忘隙'
+    description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。'
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+    }
+
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        //对其他角色造成伤害后
+        if(event.timeline === DamageTimeline.DID_DAMAGE && event.source && 
+            event.source.player.id === this.playerId && event.target.player.id !== this.playerId) {
+            return true
+        }
+        //受到其他角色一点伤害后
+        if(event.timeline === DamageTimeline.TAKEN_DAMAGE && this.isMyDamage(event) && this.damageFromOthers(event)) {
+            return true
+        }
+        return false
+    }
+
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager, [event.source.player.id, event.target.player.id])
+        for(let i = 0; i < event.amount; ++i) {
+            await new TakeCardOp(event.source, 1).perform(manager)
+            await new TakeCardOp(event.target, 1).perform(manager)
+            await delay(300)
+        }
+    }
+}
+
 // export class XunYou extends Skill {
 //     id = '奇策'
 //     displayName = '奇策'
@@ -1159,17 +1267,6 @@ export class JiXi extends Skill {
 
 /*
 
-export class XunXun extends Skill<DamageOp> {
-    id = '恂恂'
-    displayName = '恂恂'
-    description = '摸牌阶段开始时，你可以观看牌堆顶的四张牌，然后将其中的两张牌置于牌堆顶，将其余的牌置于牌堆底。'
-}
-
-export class WangXi extends Skill<DamageOp> {
-    id = '忘隙'
-    displayName = '忘隙'
-    description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。'
-}
 
 export class HuYuan extends Skill<DamageOp> {
 

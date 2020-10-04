@@ -210,8 +210,14 @@ export default class FactionPlayerInfo extends PlayerInfo {
         super.declareDeath()
     }
 
+    /**
+     * 适用于与你势力相同的一名角色
+     * 要求: 
+     * 1. 两人均明置
+     * 2. 两人明置的势力相同
+     */
     static factionSame(a: PlayerInfo, b: PlayerInfo): boolean {
-        return factionsSame(a.getFaction(), b.getFaction()) || a === b
+        return factionsSame(a.getFaction(), b.getFaction()) || (a === b && (a as FactionPlayerInfo).isRevealed())
     }
 }
 

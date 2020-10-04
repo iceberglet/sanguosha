@@ -361,6 +361,8 @@ export class LuanWu extends Skill {
 
 class MultiRuseCancellor<T extends MultiRuse> implements SkillTrigger<T> {
 
+    needRepeatedCheck = false
+
     constructor(private skill: Skill) {}
 
     getSkill(): Skill {
@@ -470,11 +472,6 @@ export class QiLuan extends SimpleConditionalSkill<StageEndFlow> {
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<StageEndFlow>(StageEndFlow, this)
-        // skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(op)=>{
-        //     if(op.stage === Stage.ROUND_BEGIN) {
-        //         this.bounty = 0
-        //     }
-        // })
         skillRegistry.onEvent<DeathOp>(DeathOp, this.playerId, async(op)=>{
             if(op.timeline !== DeathTimeline.BEFORE_REVEAL) {
                 return
@@ -506,10 +503,10 @@ export class FuDi extends SkillForDamageTaken {
     bootstrapClient() {
         playerActionDriverProvider.registerSpecial(this.id, (hint, context)=>{
             return new PlayerActionDriverDefiner('附敌')
-                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>true, ()=>'(附敌)选择一张手牌交给对方')
+                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>true, ()=>'(附敌)选择一张手牌交给伤害来源: ' + hint.sourcePlayer)
                         .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
                             return !!hint.forbidden.find(c => c === id)
-                        }, ()=>`(附敌)选择与${hint.sourcePlayer}势力相同的一名角色`)
+                        }, ()=>`(附敌)选择与${hint.sourcePlayer}势力相同角色中体力最多且不小于你的一名角色`)
                         .expectAnyButton('点击确定发动附敌')
                         .build(hint, [Button.OK])
         })
@@ -812,6 +809,7 @@ export class SiJian extends SimpleConditionalSkill<CardAwayEvent> {
     id = '死谏'
     displayName = '死谏'
     description = '当你失去最后的手牌时，你可以弃置一名其他角色的一张牌。'
+    needRepeatedCheck = false
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<CardBeingDroppedEvent>(CardBeingDroppedEvent, this)
@@ -850,6 +848,7 @@ export class SuiShi extends Skill {
     id = '随势'
     displayName = '随势'
     description = '锁定技，当其他角色进入濒死状态时，若伤害来源与你势力相同，你摸一张牌；当其他角色死亡时，若其与你势力相同，你失去1点体力。'
+    needRepeatedCheck = false
     isLocked = true
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {

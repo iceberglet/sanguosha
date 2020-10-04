@@ -76,39 +76,38 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
 
         for(let player of sortedPlayers) {
             let skillTriggers = subMap.getArr(player)
-                .filter(skill => invocable(skill, obj, this.manager))
+
+            let choices: Array<[SkillTrigger<any>, Button]> = []
+            for(let s of skillTriggers) {
+                if(invocable(s, obj, this.manager)) {
+                    let skill = s.getSkill()
+                    if(skill.isRevealed && skill.isLocked) {
+                        console.log('[技能驱动] 直接发动锁定技: ', skill.id)
+                        await s.doInvoke(obj, this.manager)
+                    } else {
+                        console.log('[技能驱动] 可能可以发动: ', skill.id)
+                        let invokeMsg = s.invokeMsg(obj, this.manager)
+                        if(!skill.isRevealed) {
+                            invokeMsg += `并明置${skill.position === 'main' ?'主将':'副将'}`
+                        }
+                        choices.push([s, new Button(skill.id, invokeMsg)])
+                    }
+                }
+            }
             
-            if(skillTriggers.length === 0) {
+            if(choices.length === 0) {
                 continue
             }
             
             //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
             //小心一个技能使得另一个技能无法发动 (先渐营再死谏就囧了)
-            console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id))
-            let choices: Array<[SkillTrigger<any>, Button]> = []
-            for(let s of skillTriggers) {
-                let skill = s.getSkill()
-                //将明置 & 锁定技 -> 直接触发
-                //将明置 & 非锁定技 -> 询问
-                //将暗置 & 锁定/非锁定 -> 询问
-
-                //todo: 先把锁定技都给弄了 (防止先矢北然后附敌)
-                if(skill.isRevealed && skill.isLocked) {
-                    console.log('[技能驱动] 直接发动锁定技: ', skill.id)
-                    await s.doInvoke(obj, this.manager)
-                } else {
-                    console.log('[技能驱动] 可能可以发动: ', skill.id)
-                    let invokeMsg = s.invokeMsg(obj, this.manager)
-                    if(!skill.isRevealed) {
-                        invokeMsg += `并明置${skill.position === 'main' ?'主将':'副将'}`
-                    }
-                    choices.push([s, new Button(skill.id, invokeMsg)])
-                }
-            }
             
             choices.push([null, Button.CANCEL])
             let resp: PlayerAct
             while(choices.length > 1) {
+                //不需要反复确认的技能可以直接请求继续发动
+                choices = choices.filter(c => !c[0] || !c[0].needRepeatedCheck || invocable(c[0], obj, this.manager))
+                
                 resp = await this.manager.sendHint(player, {
                     hintType: HintType.MULTI_CHOICE,
                     hintMsg: '请选择发动技能或取消',
@@ -130,7 +129,6 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                     if(!removedButton) {
                         throw 'Failed to remove button! ' + skillId
                     }
-                    choices.filter(c => !c[0] || invocable(c[0], obj, this.manager))
                 } else {
                     console.log('[技能驱动] 玩家放弃发动技能')
                     break

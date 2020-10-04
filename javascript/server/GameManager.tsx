@@ -10,7 +10,7 @@ import { Button } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
 import { Stage } from "../common/Stage";
 import GameServerContext from "./context/GameServerContext";
-import { StageStartFlow, StageEndFlow } from "./engine/StageFlows";
+import { StageStartFlow, StageEndFlow, InStageStart, InStageEnd } from "./engine/StageFlows";
 import TakeCardOp, { TakeCardStageOp } from "./engine/TakeCardOp";
 import DropCardOp from "./engine/DropCardOp";
 import { CurrentPlayerEffect, CardTransit, PlaySound, LogTransit } from "../common/transit/EffectTransit";
@@ -371,11 +371,13 @@ export default class GameManager {
         await new StageStartFlow(info, stage).perform(this)
         this.checkDeath()
         if(!this.roundStats.skipStages.get(stage)) {
+            await new InStageStart(info, stage).perform(this)
             this.setPlayerAndStage(this.currPlayer().player.id, stage)
             this.broadcast(this.currEffect)
             if(midProcessor) {
                 await midProcessor()
             }
+            await new InStageEnd(info, stage).perform(this)
         }
         this.checkDeath()
         await new StageEndFlow(info, stage).perform(this)

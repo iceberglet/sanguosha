@@ -324,6 +324,7 @@ export class LiuLi extends SimpleConditionalSkill<SlashCompute> {
 }
 
 class SingleRuseCancellor<T extends RuseOp<any>> implements SkillTrigger<T> {
+    needRepeatedCheck = false
 
     constructor(private skill: Skill, private cardType: CardType) {}
 
@@ -1046,6 +1047,8 @@ export class FenJi extends SimpleConditionalSkill<StageStartFlow> {
 }
 
 class RedSlashTrigger implements SkillTrigger<SlashCompute> {
+
+    needRepeatedCheck = false
     
     constructor(private skill: Skill) {}
 
@@ -1074,6 +1077,8 @@ class RedSlashTrigger implements SkillTrigger<SlashCompute> {
 }
 
 class JueDouTrigger implements SkillTrigger<JueDou> {
+
+    needRepeatedCheck = false
     
     constructor(private skill: Skill) {}
 

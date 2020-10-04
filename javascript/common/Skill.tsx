@@ -86,6 +86,13 @@ export function invocable<T>(trigger: SkillTrigger<T>, event: T, manager: GameMa
  */
 export interface SkillTrigger<T> {
 
+    /**
+     * 是否需要重复确认技能的发动条件
+     * 默认需要
+     * 在多个技能同时满足发动条件时可能先发动的技能会破坏后发动的技能发动的条件
+     */
+    needRepeatedCheck: boolean
+
     getSkill(): Skill
 
     invokeMsg(event: T, manager: GameManager): string
@@ -194,6 +201,7 @@ export abstract class Skill extends SkillStatus {
 
 export abstract class SimpleTrigger<T> implements SkillTrigger<T> {
     protected player: PlayerInfo
+    needRepeatedCheck = true
     constructor(protected skill: Skill, manager: GameManager) {
         this.player = manager.context.getPlayer(skill.playerId)
     }
@@ -217,6 +225,8 @@ export abstract class SimpleTrigger<T> implements SkillTrigger<T> {
  * 4. 非锁定技需要提示玩家是否发动
  */
 export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTrigger<T> {
+
+    needRepeatedCheck = true
 
     public getSkill() {
         return this

@@ -255,6 +255,173 @@ customUIRegistry.register('guanxing', (p: MountableProp<GuanXingData, boolean>)=
 
 /////////////////////////////////////////////////////////////////////
 
+export type XunXunData = {
+    // size: number,
+    title: string,
+
+    //***** below is sanitized */
+    isController: boolean,
+    top: Array<[string, Card]>,
+    btm: Array<[string, Card]>
+}
+
+type XunXunState = {
+    top: Array<[string, Card]>,
+    btm: Array<[string, Card]>
+}
+
+class XunXun extends React.Component<MountableProp<XunXunData, boolean>, XunXunState> {
+
+    style : React.CSSProperties
+
+    constructor(p: MountableProp<XunXunData, boolean>) {
+        super(p)
+        this.style = {
+            display: 'flex',
+            width: '460px'
+        }
+        this.state = {
+            top: [...p.commonUI.top],
+            btm: [...p.commonUI.btm]
+        }
+    }
+
+    /**
+     * Only useful if this client is NOT the dragger
+     * @param event 
+     */
+    onDragEvent=(event: CardMovementEvent)=>{
+        if(this.props.requestData) {
+            //this is my own movement, ignore
+            console.log('Ignoring my own movement', event)
+            return
+        }
+        if((event.fromPos === TOP || event.fromPos === BTM)) {
+            console.log('adding new event', event)
+            this.toProcess.enqueue(event)
+        } else {
+            console.error('Not My Action!!!', event, this.props.requestData)
+        }
+    }
+
+    inited = false
+    toProcess: AsyncBlockingQueue<CardMovementEvent> = new AsyncBlockingQueue()
+
+    componentDidMount() {
+        this.props.pubsub.on<CardMovementEvent>(CardMovementEvent, this.onDragEvent)
+    }
+
+    componentWillUnmount() {
+        this.props.pubsub.off<CardMovementEvent>(CardMovementEvent, this.onDragEvent)
+    }
+
+    sensor=async (api: SensorAPI) => {
+        if(this.inited) {
+            return
+        }
+        this.inited = true
+        while(true) {
+            let event = await this.toProcess.dequeue()
+            let x = 0, y = 0
+            if(event.fromPos !== event.toPos) {
+                y = event.fromPos === TOP? RowHeight: -RowHeight
+            }
+            x = (event.to - event.from) * 115
+            let lock = api.tryGetLock(event.item)
+            let drag = lock.fluidLift({x: 0, y: 0})
+            for(let i = 0; i < 20; i++) {
+                await wait(()=>drag.move({x: x * i / 19, y: y * i / 19}), 20)
+            }
+            drag.drop()
+        }
+    }
+
+    /**
+     * Only useful if this client IS the dragger
+     * @param result 
+     */
+    onDragEnd=(result: DropResult)=>{
+        // dropped outside the list
+        console.log(result)
+        if (!result.destination) {
+            return;
+        }
+        let movement = new CardMovementEvent(result.draggableId,
+            result.source.droppableId, result.destination.droppableId,
+            result.source.index, result.destination.index)
+        if(this.props.requestData) {
+            this.props.consumer(movement, true)
+        }
+        this.setState(s => {
+            movement.applyToTopBtm(s.top, s.btm)
+            return s
+        })
+    }
+
+    render() {
+        let {commonUI, consumer} = this.props
+        let {top, btm} = this.state
+        let enabled = commonUI.isController
+        console.log(this.style)
+        return <div className='cards-container'>
+            <div className='cards-container-title center'>{commonUI.title}</div>
+            <DragDropContext onDragEnd={this.onDragEnd} sensors={enabled? [] : [this.sensor]} enableDefaultSensors={!!enabled}>
+                <div className='row-title center'>牌堆顶(请留下两张于牌堆顶)</div>
+                <Droppable droppableId={TOP} direction="horizontal" type='guanxing'>
+                    {(provided, snapshot) => (
+                        <div ref={provided.innerRef} style={this.style} {...provided.droppableProps} className='cards'>
+                            {top.map((pair, i) => {
+                                let c = pair[1]
+                                return <Draggable key={pair[0]} draggableId={pair[0]} index={i}>
+                                {(provided, snapshot) => (
+                                    <div ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        {...provided.dragHandleProps}>
+                                        <UICard card={c} isShown={true} elementStatus={ElementStatus.NORMAL}/>
+                                    </div>
+                                )}
+                                </Draggable>
+                            })}
+                            {provided.placeholder}
+                        </div>
+                    )}
+                </Droppable>
+                <div className='row-title center'>牌堆底</div>
+                <Droppable droppableId={BTM} direction="horizontal" type='guanxing'>
+                    {(provided, snapshot) => (
+                        <div ref={provided.innerRef} style={this.style} {...provided.droppableProps} className='cards'>
+                            {btm.map((pair, i) => {
+                                let c = pair[1]
+                                return <Draggable key={pair[0]} draggableId={pair[0]} index={i}>
+                                {(provided, snapshot) => (
+                                    <div ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        {...provided.dragHandleProps}>
+                                        <UICard key={c.id} card={c} isShown={true} elementStatus={ElementStatus.NORMAL}/>
+                                    </div>
+                                )}
+                                </Draggable>
+                            })}
+                            {provided.placeholder}
+                        </div>
+                    )}
+                </Droppable>
+            </DragDropContext>
+            {
+                enabled && <div className='center button-container'>
+                    <UIButton disabled={top.length !== 2} display={'恂恂完毕'} onClick={()=>consumer(true)}/>
+                </div>
+            }
+        </div>
+    }
+}
+
+customUIRegistry.register('xunxun', (p: MountableProp<XunXunData, boolean>)=>{
+    return <XunXun {...p}/>
+})
+
+
+//////////////////////////////////////////////////////////
 
 /**
  * 左边永远是拼点的发起人

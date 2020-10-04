@@ -729,6 +729,114 @@ class GuanXing extends React.Component {
 exports.customUIRegistry.register('guanxing', (p) => {
     return React.createElement(GuanXing, Object.assign({}, p));
 });
+class XunXun extends React.Component {
+    constructor(p) {
+        super(p);
+        /**
+         * Only useful if this client is NOT the dragger
+         * @param event
+         */
+        this.onDragEvent = (event) => {
+            if (this.props.requestData) {
+                //this is my own movement, ignore
+                console.log('Ignoring my own movement', event);
+                return;
+            }
+            if ((event.fromPos === CardPos_1.TOP || event.fromPos === CardPos_1.BTM)) {
+                console.log('adding new event', event);
+                this.toProcess.enqueue(event);
+            }
+            else {
+                console.error('Not My Action!!!', event, this.props.requestData);
+            }
+        };
+        this.inited = false;
+        this.toProcess = new BlockingQueue_1.AsyncBlockingQueue();
+        this.sensor = (api) => __awaiter(this, void 0, void 0, function* () {
+            if (this.inited) {
+                return;
+            }
+            this.inited = true;
+            while (true) {
+                let event = yield this.toProcess.dequeue();
+                let x = 0, y = 0;
+                if (event.fromPos !== event.toPos) {
+                    y = event.fromPos === CardPos_1.TOP ? RowHeight : -RowHeight;
+                }
+                x = (event.to - event.from) * 115;
+                let lock = api.tryGetLock(event.item);
+                let drag = lock.fluidLift({ x: 0, y: 0 });
+                for (let i = 0; i < 20; i++) {
+                    yield Util_1.wait(() => drag.move({ x: x * i / 19, y: y * i / 19 }), 20);
+                }
+                drag.drop();
+            }
+        });
+        /**
+         * Only useful if this client IS the dragger
+         * @param result
+         */
+        this.onDragEnd = (result) => {
+            // dropped outside the list
+            console.log(result);
+            if (!result.destination) {
+                return;
+            }
+            let movement = new CardPos_1.CardMovementEvent(result.draggableId, result.source.droppableId, result.destination.droppableId, result.source.index, result.destination.index);
+            if (this.props.requestData) {
+                this.props.consumer(movement, true);
+            }
+            this.setState(s => {
+                movement.applyToTopBtm(s.top, s.btm);
+                return s;
+            });
+        };
+        this.style = {
+            display: 'flex',
+            width: '460px'
+        };
+        this.state = {
+            top: [...p.commonUI.top],
+            btm: [...p.commonUI.btm]
+        };
+    }
+    componentDidMount() {
+        this.props.pubsub.on(CardPos_1.CardMovementEvent, this.onDragEvent);
+    }
+    componentWillUnmount() {
+        this.props.pubsub.off(CardPos_1.CardMovementEvent, this.onDragEvent);
+    }
+    render() {
+        let { commonUI, consumer } = this.props;
+        let { top, btm } = this.state;
+        let enabled = commonUI.isController;
+        console.log(this.style);
+        return React.createElement("div", { className: 'cards-container' },
+            React.createElement("div", { className: 'cards-container-title center' }, commonUI.title),
+            React.createElement(react_beautiful_dnd_1.DragDropContext, { onDragEnd: this.onDragEnd, sensors: enabled ? [] : [this.sensor], enableDefaultSensors: !!enabled },
+                React.createElement("div", { className: 'row-title center' }, "\u724C\u5806\u9876(\u8BF7\u7559\u4E0B\u4E24\u5F20\u4E8E\u724C\u5806\u9876)"),
+                React.createElement(react_beautiful_dnd_1.Droppable, { droppableId: CardPos_1.TOP, direction: "horizontal", type: 'guanxing' }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: provided.innerRef, style: this.style }, provided.droppableProps, { className: 'cards' }),
+                    top.map((pair, i) => {
+                        let c = pair[1];
+                        return React.createElement(react_beautiful_dnd_1.Draggable, { key: pair[0], draggableId: pair[0], index: i }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: provided.innerRef }, provided.draggableProps, provided.dragHandleProps),
+                            React.createElement(UICard_1.default, { card: c, isShown: true, elementStatus: UIBoard_1.ElementStatus.NORMAL }))));
+                    }),
+                    provided.placeholder))),
+                React.createElement("div", { className: 'row-title center' }, "\u724C\u5806\u5E95"),
+                React.createElement(react_beautiful_dnd_1.Droppable, { droppableId: CardPos_1.BTM, direction: "horizontal", type: 'guanxing' }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: provided.innerRef, style: this.style }, provided.droppableProps, { className: 'cards' }),
+                    btm.map((pair, i) => {
+                        let c = pair[1];
+                        return React.createElement(react_beautiful_dnd_1.Draggable, { key: pair[0], draggableId: pair[0], index: i }, (provided, snapshot) => (React.createElement("div", Object.assign({ ref: provided.innerRef }, provided.draggableProps, provided.dragHandleProps),
+                            React.createElement(UICard_1.default, { key: c.id, card: c, isShown: true, elementStatus: UIBoard_1.ElementStatus.NORMAL }))));
+                    }),
+                    provided.placeholder)))),
+            enabled && React.createElement("div", { className: 'center button-container' },
+                React.createElement(UIButton_1.default, { disabled: top.length !== 2, display: '恂恂完毕', onClick: () => consumer(true) })));
+    }
+}
+exports.customUIRegistry.register('xunxun', (p) => {
+    return React.createElement(XunXun, Object.assign({}, p));
+});
 class CardFight extends React.Component {
     renderCard(c) {
         if (!c) {
@@ -5169,6 +5277,7 @@ exports.Skill = Skill;
 class SimpleTrigger {
     constructor(skill, manager) {
         this.skill = skill;
+        this.needRepeatedCheck = true;
         this.player = manager.context.getPlayer(skill.playerId);
     }
     getSkill() {
@@ -5187,6 +5296,10 @@ exports.SimpleTrigger = SimpleTrigger;
  * 4. 非锁定技需要提示玩家是否发动
  */
 class SimpleConditionalSkill extends Skill {
+    constructor() {
+        super(...arguments);
+        this.needRepeatedCheck = true;
+    }
     getSkill() {
         return this;
     }
@@ -6806,8 +6919,14 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
         this.isSubGeneralRevealed = true;
         super.declareDeath();
     }
+    /**
+     * 适用于与你势力相同的一名角色
+     * 要求:
+     * 1. 两人均明置
+     * 2. 两人明置的势力相同
+     */
     static factionSame(a, b) {
-        return General_1.factionsSame(a.getFaction(), b.getFaction()) || a === b;
+        return General_1.factionsSame(a.getFaction(), b.getFaction()) || (a === b && a.isRevealed());
     }
 }
 exports.default = FactionPlayerInfo;
@@ -8451,7 +8570,7 @@ exports.default = FactionWarGeneral;
 //when soldier is used to replace people the hp and factions are already set so no worries
 FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0).withSkin(0);
 FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0).withSkin(0);
-//16
+//17
 FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2.5, '奸雄');
 FactionWarGeneral.si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', General_1.Faction.WEI, 1.5, '反馈', '鬼才');
 FactionWarGeneral.xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', General_1.Faction.WEI, 2, '刚烈');
@@ -8468,7 +8587,8 @@ FactionWarGeneral.cao_pi = new FactionWarGeneral('guo_cao_pi', '曹丕', General
 FactionWarGeneral.yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', General_1.Faction.WEI, 2, '骁果');
 FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', General_1.Faction.WEI, 2, '巧变');
 FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', General_1.Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田');
-// public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
+FactionWarGeneral.li_dian = new FactionWarGeneral('bound_li_dian', '李典', General_1.Faction.WEI, 1.5, '恂恂', '忘隙');
+// // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
 //18
 FactionWarGeneral.liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', General_1.Faction.SHU, 2, '仁德');
 FactionWarGeneral.guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', General_1.Faction.SHU, 2.5, '武圣');
@@ -9667,6 +9787,7 @@ exports.LuanWu = LuanWu;
 class MultiRuseCancellor {
     constructor(skill) {
         this.skill = skill;
+        this.needRepeatedCheck = false;
     }
     getSkill() {
         return this.skill;
@@ -9773,11 +9894,6 @@ class QiLuan extends Skill_1.SimpleConditionalSkill {
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageEndFlow, this);
-        // skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(op)=>{
-        //     if(op.stage === Stage.ROUND_BEGIN) {
-        //         this.bounty = 0
-        //     }
-        // })
         skillRegistry.onEvent(DeathOp_1.default, this.playerId, (op) => __awaiter(this, void 0, void 0, function* () {
             if (op.timeline !== DeathOp_1.DeathTimeline.BEFORE_REVEAL) {
                 return;
@@ -9811,10 +9927,10 @@ class FuDi extends FactionSkillsWei_1.SkillForDamageTaken {
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint, context) => {
             return new PlayerActionDriverDefiner_1.default('附敌')
-                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => true, () => '(附敌)选择一张手牌交给对方')
+                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => true, () => '(附敌)选择一张手牌交给伤害来源: ' + hint.sourcePlayer)
                 .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id, context) => {
                 return !!hint.forbidden.find(c => c === id);
-            }, () => `(附敌)选择与${hint.sourcePlayer}势力相同的一名角色`)
+            }, () => `(附敌)选择与${hint.sourcePlayer}势力相同角色中体力最多且不小于你的一名角色`)
                 .expectAnyButton('点击确定发动附敌')
                 .build(hint, [PlayerAction_1.Button.OK]);
         });
@@ -10135,6 +10251,7 @@ class SiJian extends Skill_1.SimpleConditionalSkill {
         this.id = '死谏';
         this.displayName = '死谏';
         this.description = '当你失去最后的手牌时，你可以弃置一名其他角色的一张牌。';
+        this.needRepeatedCheck = false;
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(Generic_1.CardBeingDroppedEvent, this);
@@ -10175,6 +10292,7 @@ class SuiShi extends Skill_1.Skill {
         this.id = '随势';
         this.displayName = '随势';
         this.description = '锁定技，当其他角色进入濒死状态时，若伤害来源与你势力相同，你摸一张牌；当其他角色死亡时，若其与你势力相同，你失去1点体力。';
+        this.needRepeatedCheck = false;
         this.isLocked = true;
     }
     bootstrapServer(skillRegistry, manager) {
@@ -10987,6 +11105,7 @@ class PaoXiao extends Skill_1.SimpleConditionalSkill {
         this.displayName = '咆哮';
         this.description = '锁定技，你使用【杀】无次数限制。当你于当前回合使用第二张【杀】时，你摸一张牌。';
         this.hiddenType = Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD;
+        this.needRepeatedCheck = false;
         this.isLocked = true;
         this.slashNumber = 0;
     }
@@ -11436,6 +11555,8 @@ class JiLi extends Skill_1.SimpleConditionalSkill {
         this.displayName = '蒺藜';
         this.description = '当你于一回合内使用或打出第X张牌时，你可以摸X张牌（X为你的攻击范围）';
         this.playedInThisRound = 0;
+        //否则可能反复发动计算
+        this.needRepeatedCheck = false;
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(Generic_1.CardBeingUsedEvent, this);
@@ -11735,7 +11856,7 @@ class ZaiQi extends Skill_1.SimpleConditionalSkill {
         return __awaiter(this, void 0, void 0, function* () {
             this.playSound(manager, 2);
             manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, [], this.id));
-            event.amount = 0;
+            event.amount = -999;
             // 亮出X张
             let me = manager.context.getPlayer(this.playerId);
             let x = me.maxHp - me.hp;
@@ -11912,6 +12033,7 @@ class ShengXi extends Skill_1.SimpleConditionalSkill {
         this.displayName = '生息';
         this.description = '弃牌阶段开始时，若你此回合内没有造成过伤害，你可以摸两张牌。';
         this.hasDealtDamage = false;
+        this.needRepeatedCheck = false;
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -11947,6 +12069,7 @@ class ShouCheng extends Skill_1.SimpleConditionalSkill {
         this.id = '守成';
         this.displayName = '守成';
         this.description = '当与你势力相同的一名角色于其回合外失去最后手牌时，你可以令其摸一张牌。';
+        this.needRepeatedCheck = false;
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(Generic_1.CardBeingDroppedEvent, this);
@@ -12053,6 +12176,7 @@ exports.GuanXing = GuanXing;
 class KongChengCancellor {
     constructor(skill) {
         this.skill = skill;
+        this.needRepeatedCheck = false;
     }
     getSkill() {
         return this.skill;
@@ -12087,6 +12211,7 @@ class KongCheng extends Skill_1.Skill {
         this.id = '空城';
         this.displayName = '空城';
         this.description = '锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。';
+        this.needRepeatedCheck = false;
         //你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。'
         this.isLocked = true;
     }
@@ -12282,7 +12407,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.JiXi = exports.ZiLiang = exports.TunTian = exports.XiaoGuo = exports.QiaoBian = exports.YiJi = exports.JieMing = exports.QuHu = exports.FangZhu = exports.XingShang = exports.QiangXi = exports.JuShou = exports.DuanLiang = exports.ShenSu = exports.LuoShen = exports.QinGuo = exports.TianDu = exports.LuoYi = exports.TuXi = exports.GangLie = exports.GuiCai = exports.FanKui = exports.JianXiong = exports.SkillForDamageTaken = void 0;
+exports.WangXi = exports.XunXun = exports.JiXi = exports.ZiLiang = exports.TunTian = exports.XiaoGuo = exports.QiaoBian = exports.YiJi = exports.JieMing = exports.QuHu = exports.FangZhu = exports.XingShang = exports.QiangXi = exports.JuShou = exports.DuanLiang = exports.ShenSu = exports.LuoShen = exports.QinGuo = exports.TianDu = exports.LuoYi = exports.TuXi = exports.GangLie = exports.GuiCai = exports.FanKui = exports.JianXiong = exports.SkillForDamageTaken = void 0;
 const DamageOp_1 = __webpack_require__(/*! ../../server/engine/DamageOp */ "./javascript/server/engine/DamageOp.tsx");
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
@@ -12310,6 +12435,7 @@ const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascr
 const MoveCardOp_1 = __webpack_require__(/*! ../../server/engine/MoveCardOp */ "./javascript/server/engine/MoveCardOp.tsx");
 const SingleRuseOp_1 = __webpack_require__(/*! ../../server/engine/SingleRuseOp */ "./javascript/server/engine/SingleRuseOp.tsx");
 const FactionPlayerInfo_1 = __webpack_require__(/*! ../FactionPlayerInfo */ "./javascript/game-mode-faction/FactionPlayerInfo.tsx");
+const CustomUIRegistry_1 = __webpack_require__(/*! ../../client/card-panel/CustomUIRegistry */ "./javascript/client/card-panel/CustomUIRegistry.tsx");
 class SkillForDamageTaken extends Skill_1.SimpleConditionalSkill {
     isMyDamage(event) {
         return event.target.player.id === this.playerId && event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE
@@ -13273,7 +13399,7 @@ class XiaoGuo extends Skill_1.SimpleConditionalSkill {
         return `对${stageflow.info.player.id}发动骁果`;
     }
     bootstrapServer(skillRegistry) {
-        skillRegistry.on(StageFlows_1.StageStartFlow, this);
+        skillRegistry.on(StageFlows_1.InStageEnd, this);
     }
     conditionFulfilled(event, manager) {
         //其他角色的结束阶段
@@ -13421,6 +13547,111 @@ class JiXi extends Skill_1.Skill {
     }
 }
 exports.JiXi = JiXi;
+class XunXun extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '恂恂';
+        this.displayName = '恂恂';
+        this.description = '摸牌阶段开始时，你可以观看牌堆顶的四张牌，然后将其中的两张牌置于牌堆顶，将其余的牌置于牌堆底。';
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(StageFlows_1.InStageStart, this);
+    }
+    conditionFulfilled(event, manager) {
+        return event.isFor(this.playerId, Stage_1.Stage.TAKE_CARD);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let cards = manager.context.deck.getCardsFromTop(4);
+            this.data = new CustomUIRegistry_1.CustomUIData('xunxun', {
+                title: `${this.playerId} 恂恂`,
+                isController: true,
+                top: cards.map((c, i) => ['guanxing' + i, c]),
+                btm: []
+            });
+            this.invokeEffects(manager);
+            let { top, btm } = this.data.data;
+            //做好update hookup
+            const onCardMoved = (event) => {
+                event.applyToTopBtm(top, btm);
+                manager.broadcast(event);
+            };
+            manager.pubsub().on(CardPos_1.CardMovementEvent, onCardMoved);
+            //发送恂恂的移动请求
+            this.setBroadcast(manager);
+            yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.UI_PANEL,
+                hintMsg: 'ignore',
+                customRequest: {
+                    mode: 'choose',
+                    data: true
+                }
+            });
+            //恂恂完毕
+            manager.context.deck.placeCardsAtTop(top.map(item => item[1]));
+            manager.context.deck.placeCardsAtBtm(btm.map(item => item[1]));
+            manager.log(`${this.playerId} 将 ${top.length}张牌置于牌堆顶, ${btm.length}张牌置于牌堆底`);
+            //扫尾
+            manager.broadcast(new CustomUIRegistry_1.CustomUIData(CustomUIRegistry_1.CustomUIData.STOP, null));
+            manager.pubsub().off(CardPos_1.CardMovementEvent, onCardMoved);
+            this.data = null;
+            manager.onReconnect = null;
+        });
+    }
+    setBroadcast(manager) {
+        manager.onReconnect = () => {
+            manager.broadcast(this.data, (data, pId) => {
+                //sanitize
+                if (pId !== this.playerId) {
+                    let copy = new CustomUIRegistry_1.CustomUIData('xunxun', {
+                        title: `${this.playerId} 恂恂`,
+                        isController: false,
+                        top: this.data.data.top.map(t => [t[0], Card_1.default.DUMMY]),
+                        btm: this.data.data.btm.map(t => [t[0], Card_1.default.DUMMY])
+                    });
+                    return copy;
+                }
+                return data;
+            });
+        };
+        manager.onReconnect();
+    }
+}
+exports.XunXun = XunXun;
+class WangXi extends SkillForDamageTaken {
+    constructor() {
+        super(...arguments);
+        this.id = '忘隙';
+        this.displayName = '忘隙';
+        this.description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。';
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(DamageOp_1.default, this);
+    }
+    conditionFulfilled(event, manager) {
+        //对其他角色造成伤害后
+        if (event.timeline === DamageOp_1.DamageTimeline.DID_DAMAGE && event.source &&
+            event.source.player.id === this.playerId && event.target.player.id !== this.playerId) {
+            return true;
+        }
+        //受到其他角色一点伤害后
+        if (event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE && this.isMyDamage(event) && this.damageFromOthers(event)) {
+            return true;
+        }
+        return false;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager, [event.source.player.id, event.target.player.id]);
+            for (let i = 0; i < event.amount; ++i) {
+                yield new TakeCardOp_1.default(event.source, 1).perform(manager);
+                yield new TakeCardOp_1.default(event.target, 1).perform(manager);
+                yield Util_1.delay(300);
+            }
+        });
+    }
+}
+exports.WangXi = WangXi;
 // export class XunYou extends Skill {
 //     id = '奇策'
 //     displayName = '奇策'
@@ -13451,17 +13682,6 @@ exports.JiXi = JiXi;
 // }
 /*
 
-export class XunXun extends Skill<DamageOp> {
-    id = '恂恂'
-    displayName = '恂恂'
-    description = '摸牌阶段开始时，你可以观看牌堆顶的四张牌，然后将其中的两张牌置于牌堆顶，将其余的牌置于牌堆底。'
-}
-
-export class WangXi extends Skill<DamageOp> {
-    id = '忘隙'
-    displayName = '忘隙'
-    description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。'
-}
 
 export class HuYuan extends Skill<DamageOp> {
 
@@ -13840,6 +14060,7 @@ class SingleRuseCancellor {
     constructor(skill, cardType) {
         this.skill = skill;
         this.cardType = cardType;
+        this.needRepeatedCheck = false;
     }
     getSkill() {
         return this.skill;
@@ -14575,6 +14796,7 @@ exports.FenJi = FenJi;
 class RedSlashTrigger {
     constructor(skill) {
         this.skill = skill;
+        this.needRepeatedCheck = false;
     }
     getSkill() {
         return this.skill;
@@ -14601,6 +14823,7 @@ class RedSlashTrigger {
 class JueDouTrigger {
     constructor(skill) {
         this.skill = skill;
+        this.needRepeatedCheck = false;
     }
     getSkill() {
         return this.skill;
@@ -14952,6 +15175,8 @@ exports.FactionSkillProviders.register('骁果', pid => new FactionSkillsWei_1.X
 exports.FactionSkillProviders.register('屯田', pid => new FactionSkillsWei_1.TunTian(pid));
 exports.FactionSkillProviders.register('急袭', pid => new FactionSkillsWei_1.JiXi(pid));
 exports.FactionSkillProviders.register('资粮', pid => new FactionSkillsWei_1.ZiLiang(pid));
+exports.FactionSkillProviders.register('恂恂', pid => new FactionSkillsWei_1.XunXun(pid));
+exports.FactionSkillProviders.register('忘隙', pid => new FactionSkillsWei_1.WangXi(pid));
 exports.FactionSkillProviders.register('龙胆', pid => new FactionSkillsShu_1.LongDan(pid));
 exports.FactionSkillProviders.register('仁德', pid => new FactionSkillsShu_1.Rende(pid));
 exports.FactionSkillProviders.register('武圣', pid => new FactionSkillsShu_1.WuSheng(pid));
@@ -15280,37 +15505,35 @@ class SequenceAwareSkillPubSub {
             }
             let sortedPlayers = this.sorter(subMap.keys());
             for (let player of sortedPlayers) {
-                let skillTriggers = subMap.getArr(player)
-                    .filter(skill => Skill_1.invocable(skill, obj, this.manager));
-                if (skillTriggers.length === 0) {
+                let skillTriggers = subMap.getArr(player);
+                let choices = [];
+                for (let s of skillTriggers) {
+                    if (Skill_1.invocable(s, obj, this.manager)) {
+                        let skill = s.getSkill();
+                        if (skill.isRevealed && skill.isLocked) {
+                            console.log('[技能驱动] 直接发动锁定技: ', skill.id);
+                            yield s.doInvoke(obj, this.manager);
+                        }
+                        else {
+                            console.log('[技能驱动] 可能可以发动: ', skill.id);
+                            let invokeMsg = s.invokeMsg(obj, this.manager);
+                            if (!skill.isRevealed) {
+                                invokeMsg += `并明置${skill.position === 'main' ? '主将' : '副将'}`;
+                            }
+                            choices.push([s, new PlayerAction_1.Button(skill.id, invokeMsg)]);
+                        }
+                    }
+                }
+                if (choices.length === 0) {
                     continue;
                 }
                 //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
                 //小心一个技能使得另一个技能无法发动 (先渐营再死谏就囧了)
-                console.log('[技能驱动] 找到可发动的技能: ', player, skillTriggers.map(s => s.getSkill().id));
-                let choices = [];
-                for (let s of skillTriggers) {
-                    let skill = s.getSkill();
-                    //将明置 & 锁定技 -> 直接触发
-                    //将明置 & 非锁定技 -> 询问
-                    //将暗置 & 锁定/非锁定 -> 询问
-                    //todo: 先把锁定技都给弄了 (防止先矢北然后附敌)
-                    if (skill.isRevealed && skill.isLocked) {
-                        console.log('[技能驱动] 直接发动锁定技: ', skill.id);
-                        yield s.doInvoke(obj, this.manager);
-                    }
-                    else {
-                        console.log('[技能驱动] 可能可以发动: ', skill.id);
-                        let invokeMsg = s.invokeMsg(obj, this.manager);
-                        if (!skill.isRevealed) {
-                            invokeMsg += `并明置${skill.position === 'main' ? '主将' : '副将'}`;
-                        }
-                        choices.push([s, new PlayerAction_1.Button(skill.id, invokeMsg)]);
-                    }
-                }
                 choices.push([null, PlayerAction_1.Button.CANCEL]);
                 let resp;
                 while (choices.length > 1) {
+                    //不需要反复确认的技能可以直接请求继续发动
+                    choices = choices.filter(c => !c[0] || !c[0].needRepeatedCheck || Skill_1.invocable(c[0], obj, this.manager));
                     resp = yield this.manager.sendHint(player, {
                         hintType: ServerHint_1.HintType.MULTI_CHOICE,
                         hintMsg: '请选择发动技能或取消',
@@ -15332,7 +15555,6 @@ class SequenceAwareSkillPubSub {
                         if (!removedButton) {
                             throw 'Failed to remove button! ' + skillId;
                         }
-                        choices.filter(c => !c[0] || Skill_1.invocable(c[0], obj, this.manager));
                     }
                     else {
                         console.log('[技能驱动] 玩家放弃发动技能');
@@ -16175,11 +16397,13 @@ class GameManager {
             yield new StageFlows_1.StageStartFlow(info, stage).perform(this);
             this.checkDeath();
             if (!this.roundStats.skipStages.get(stage)) {
+                yield new StageFlows_1.InStageStart(info, stage).perform(this);
                 this.setPlayerAndStage(this.currPlayer().player.id, stage);
                 this.broadcast(this.currEffect);
                 if (midProcessor) {
                     yield midProcessor();
                 }
+                yield new StageFlows_1.InStageEnd(info, stage).perform(this);
             }
             this.checkDeath();
             yield new StageFlows_1.StageEndFlow(info, stage).perform(this);
@@ -19751,9 +19975,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.StageEndFlow = exports.StageStartFlow = void 0;
+exports.InStageEnd = exports.InStageStart = exports.StageEndFlow = exports.StageStartFlow = void 0;
 const Operation_1 = __webpack_require__(/*! ../Operation */ "./javascript/server/Operation.tsx");
-class StageStartFlow extends Operation_1.Operation {
+class StageEvent extends Operation_1.Operation {
     constructor(info, stage) {
         super();
         this.info = info;
@@ -19768,25 +19992,19 @@ class StageStartFlow extends Operation_1.Operation {
     isFor(p, stage) {
         return p === this.info.player.id && this.stage === stage;
     }
+}
+class StageStartFlow extends StageEvent {
 }
 exports.StageStartFlow = StageStartFlow;
-class StageEndFlow extends Operation_1.Operation {
-    constructor(info, stage) {
-        super();
-        this.info = info;
-        this.stage = stage;
-    }
-    perform(manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            //若要跳过任何阶段, 只需改变manager.roundStat
-            yield manager.events.publish(this);
-        });
-    }
-    isFor(p, stage) {
-        return p === this.info.player.id && this.stage === stage;
-    }
+class StageEndFlow extends StageEvent {
 }
 exports.StageEndFlow = StageEndFlow;
+class InStageStart extends StageEvent {
+}
+exports.InStageStart = InStageStart;
+class InStageEnd extends StageEvent {
+}
+exports.InStageEnd = InStageEnd;
 
 
 /***/ }),

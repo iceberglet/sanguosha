@@ -6,7 +6,7 @@ import FactionPlayerInfo from "../FactionPlayerInfo";
 import { describer } from "../../common/util/Describer";
 import { GameMode } from "../../common/GameMode";
 import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, 
-        JieMing, QuHu, YiJi, QiaoBian, XiaoGuo, TunTian, JiXi, ZiLiang } from "./FactionSkillsWei";
+        JieMing, QuHu, YiJi, QiaoBian, XiaoGuo, TunTian, JiXi, ZiLiang, XunXun, WangXi } from "./FactionSkillsWei";
 import { LongDan, Rende, WuSheng, PaoXiao, MaShu, TieQi, BaZhen, HuoJi, KanPo, KuangGu, LieGong, JiLi, XiangLe, FangQuan, QiCai, JiZhi, 
         HuoShou, ZaiQi, LieRen, JuXiang, NiePan, LianHuan, ShuShen, ShenZhi, ShengXi, ShouCheng, KongCheng, GuanXing, YiZhi, TiaoXin, GuanXingJiangWei, KanPoJiangWei, TianFu } from "./FactionSkillsShu";
 import { ZhiHeng, QiXi, KuRou, FanJian, YingZi, XiaoJi, JieYin, DuoShi, QianXun, YingHun, GuoSe, LiuLi, TianYi, GuZheng, ZhiJian, HongYan, TianXiang, HaoShi, DiMeng, YiCheng, KeJi, MouDuan, FenMing, DuanXie, BuQu, FenJi, YingYang, JiAng, HunShang, YingZiCe, YingHunCe, DiaoDuo, DianCai } from "./FactionSkillsWu";
@@ -61,6 +61,8 @@ FactionSkillProviders.register('骁果', pid => new XiaoGuo(pid))
 FactionSkillProviders.register('屯田', pid => new TunTian(pid))
 FactionSkillProviders.register('急袭', pid => new JiXi(pid))
 FactionSkillProviders.register('资粮', pid => new ZiLiang(pid))
+FactionSkillProviders.register('恂恂', pid => new XunXun(pid))
+FactionSkillProviders.register('忘隙', pid => new WangXi(pid))
 
 
 FactionSkillProviders.register('龙胆', pid => new LongDan(pid))
