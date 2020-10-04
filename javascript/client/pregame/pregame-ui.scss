@@ -17,6 +17,7 @@
         position: relative;
         padding: 8px;
         min-width: 200px;
+        font-family: cursive;
 
         .player-status {
             display: flex;
@@ -26,6 +27,11 @@
                 align-items: center;
                 display: flex;
             }
+
+            .seating {
+                width: 40px;
+            }
+
             .status {
                 width: 70px;
                 align-items: center;
@@ -35,6 +41,15 @@
             .status.chosen {
                 // background: green;
                 color: green
+            }
+
+            &.is-myself {
+                font-weight: 600;
+
+                .player-name {
+                    color: white;
+                    background: black;
+                }
             }
         }
         

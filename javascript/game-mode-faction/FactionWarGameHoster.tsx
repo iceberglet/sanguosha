@@ -94,7 +94,7 @@ export default class FactionWarGameHoster implements GameHoster {
     async onPlayerConnected(playerId: string): Promise<void> {
         if(!this.manager) {
             if(!this.circus.statuses.find(s => s.player.id === playerId))  {
-                let status = new PlayerPrepChoice({id: playerId})
+                let status = new PlayerPrepChoice({id: playerId}, this.seating.shift())
                 this.circus.statuses.push(status)
                 await this.addNewPlayer(status)
             } else {
@@ -125,7 +125,6 @@ export default class FactionWarGameHoster implements GameHoster {
 
         //pause a bit for UI to load on client
         await delay(300)
-        let seating = this.seating.shift()
         //send a selection hint
         this.registry.sendServerAsk(player.player.id, {
             hintType: HintType.UI_PANEL,
@@ -133,7 +132,7 @@ export default class FactionWarGameHoster implements GameHoster {
             customRequest: {
                 mode: 'choose',
                 data: {
-                    yourIdx: seating,
+                    yourIdx: player.seating,
                     generals: this.choices.shift()
                 }
             }
@@ -141,7 +140,6 @@ export default class FactionWarGameHoster implements GameHoster {
             let res = resp.customData as GeneralSelectionResult
             player.chosenGeneral = allGenerals.get(res[0])
             player.chosenSubGeneral = allGenerals.get(res[1])
-            player.seating = seating
             this.registry.broadcast(this.circus, Circus.sanitize)
             this.tryStartTheGame()
         })
@@ -169,15 +167,10 @@ export default class FactionWarGameHoster implements GameHoster {
         if(!this.statsCollector) {
             this.statsCollector = new GameStatsCollector(this.circus.statuses.map(s => s.player))
         }
-        let infos: Array<FactionPlayerInfo> = []
-        this.circus.statuses.forEach(s => {
+        let infos: Array<FactionPlayerInfo> = this.circus.statuses.sort((a, b)=>a.seating - b.seating).map(s => {
             let info = new FactionPlayerInfo(s.player, s.chosenGeneral, s.chosenSubGeneral)
             info.init()
-            if(infos[s.seating]) {
-                console.error('Seat taken!', s, infos[s.seating])
-                throw 'Idx taken!!! ' + s.seating
-            }
-            infos[s.seating] = info
+            return info
         })
         let context = new GameServerContext(infos, 
                                             myMode, 
@@ -212,7 +205,7 @@ export default class FactionWarGameHoster implements GameHoster {
         this.manager.startGame().then((ids)=>{
             this.init()
             ids.forEach(id => {
-                let status = new PlayerPrepChoice({id})
+                let status = new PlayerPrepChoice({id}, this.seating.shift())
                 this.circus.statuses.push(status)
             })
             Promise.all(this.circus.statuses.map(sta => this.addNewPlayer(sta)))
@@ -281,9 +274,8 @@ export class Circus {
 export class PlayerPrepChoice {
     chosenGeneral: FactionWarGeneral
     chosenSubGeneral: FactionWarGeneral
-    seating: number
     
-    constructor(public readonly player: Player) {
+    constructor(public readonly player: Player, public readonly seating: number) {
 
     }
 
@@ -294,10 +286,9 @@ export class PlayerPrepChoice {
         if(id === status.player.id) {
             return status
         } else {
-            let copy = new PlayerPrepChoice(status.player)
+            let copy = new PlayerPrepChoice(status.player, status.seating)
             copy.chosenGeneral = status.chosenGeneral? FactionWarGeneral.soldier_male : null
             copy.chosenSubGeneral = status.chosenSubGeneral? FactionWarGeneral.soldier_male : null
-            copy.seating = status.seating
             return copy
         }
     }

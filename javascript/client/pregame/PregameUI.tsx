@@ -74,12 +74,14 @@ export default function PregameUI(p: Prop) {
             <div className='overall center'>玩家数: {p.circus.statuses.length + '/' + p.circus.playerNo}</div>
             <div className='player-status heading' key={'title'}>
                 <div className='player-name'>玩家名</div>
+                <div className='seating'>顺位</div>
                 <div className={'status'}>状态</div>
             </div>
-            {p.circus.statuses.map(p => {
-                let ready = p.chosenGeneral && p.chosenSubGeneral
-                return <div className='player-status' key={p.player.id}>
-                    <div className='player-name'>{p.player.id}</div>
+            {p.circus.statuses.sort((a, b)=>a.seating - b.seating).map(player => {
+                let ready = player.chosenGeneral && player.chosenSubGeneral
+                return <div className={'player-status ' + (player.player.id === p.myId? 'is-myself' : '')} key={player.player.id}>
+                    <div className='player-name'>{player.player.id}</div>
+                    <div className='seating'>{toChinese(player.seating)}</div>
                     <div className={'status ' + (ready && 'chosen')}>{ready? '选好了' : '选将中'}</div>
                 </div>
             })}

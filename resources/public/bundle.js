@@ -2388,11 +2388,13 @@ function PregameUI(p) {
                 p.circus.statuses.length + '/' + p.circus.playerNo),
             React.createElement("div", { className: 'player-status heading', key: 'title' },
                 React.createElement("div", { className: 'player-name' }, "\u73A9\u5BB6\u540D"),
+                React.createElement("div", { className: 'seating' }, "\u987A\u4F4D"),
                 React.createElement("div", { className: 'status' }, "\u72B6\u6001")),
-            p.circus.statuses.map(p => {
-                let ready = p.chosenGeneral && p.chosenSubGeneral;
-                return React.createElement("div", { className: 'player-status', key: p.player.id },
-                    React.createElement("div", { className: 'player-name' }, p.player.id),
+            p.circus.statuses.sort((a, b) => a.seating - b.seating).map(player => {
+                let ready = player.chosenGeneral && player.chosenSubGeneral;
+                return React.createElement("div", { className: 'player-status ' + (player.player.id === p.myId ? 'is-myself' : ''), key: player.player.id },
+                    React.createElement("div", { className: 'player-name' }, player.player.id),
+                    React.createElement("div", { className: 'seating' }, Util_1.toChinese(player.seating)),
                     React.createElement("div", { className: 'status ' + (ready && 'chosen') }, ready ? '选好了' : '选将中'));
             })),
         me.chosenGeneral ? React.createElement("div", { className: 'my-choices' },
@@ -7924,7 +7926,7 @@ class FactionWarGameHoster {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.manager) {
                 if (!this.circus.statuses.find(s => s.player.id === playerId)) {
-                    let status = new PlayerPrepChoice({ id: playerId });
+                    let status = new PlayerPrepChoice({ id: playerId }, this.seating.shift());
                     this.circus.statuses.push(status);
                     yield this.addNewPlayer(status);
                 }
@@ -7956,7 +7958,6 @@ class FactionWarGameHoster {
             this.registry.broadcast(this.circus, Circus.sanitize);
             //pause a bit for UI to load on client
             yield Util_1.delay(300);
-            let seating = this.seating.shift();
             //send a selection hint
             this.registry.sendServerAsk(player.player.id, {
                 hintType: ServerHint_1.HintType.UI_PANEL,
@@ -7964,7 +7965,7 @@ class FactionWarGameHoster {
                 customRequest: {
                     mode: 'choose',
                     data: {
-                        yourIdx: seating,
+                        yourIdx: player.seating,
                         generals: this.choices.shift()
                     }
                 }
@@ -7972,7 +7973,6 @@ class FactionWarGameHoster {
                 let res = resp.customData;
                 player.chosenGeneral = FactionWarGenerals_1.allGenerals.get(res[0]);
                 player.chosenSubGeneral = FactionWarGenerals_1.allGenerals.get(res[1]);
-                player.seating = seating;
                 this.registry.broadcast(this.circus, Circus.sanitize);
                 this.tryStartTheGame();
             });
@@ -7995,15 +7995,10 @@ class FactionWarGameHoster {
         if (!this.statsCollector) {
             this.statsCollector = new GameStatsCollector_1.default(this.circus.statuses.map(s => s.player));
         }
-        let infos = [];
-        this.circus.statuses.forEach(s => {
+        let infos = this.circus.statuses.sort((a, b) => a.seating - b.seating).map(s => {
             let info = new FactionPlayerInfo_1.default(s.player, s.chosenGeneral, s.chosenSubGeneral);
             info.init();
-            if (infos[s.seating]) {
-                console.error('Seat taken!', s, infos[s.seating]);
-                throw 'Idx taken!!! ' + s.seating;
-            }
-            infos[s.seating] = info;
+            return info;
         });
         let context = new GameServerContext_1.default(infos, myMode, (size) => {
             this.manager.setDeckRemain(size);
@@ -8030,7 +8025,7 @@ class FactionWarGameHoster {
         this.manager.startGame().then((ids) => {
             this.init();
             ids.forEach(id => {
-                let status = new PlayerPrepChoice({ id });
+                let status = new PlayerPrepChoice({ id }, this.seating.shift());
                 this.circus.statuses.push(status);
             });
             Promise.all(this.circus.statuses.map(sta => this.addNewPlayer(sta)));
@@ -8085,8 +8080,9 @@ class Circus {
 }
 exports.Circus = Circus;
 class PlayerPrepChoice {
-    constructor(player) {
+    constructor(player, seating) {
         this.player = player;
+        this.seating = seating;
     }
     static sanitize(status, id) {
         if (!status) {
@@ -8096,10 +8092,9 @@ class PlayerPrepChoice {
             return status;
         }
         else {
-            let copy = new PlayerPrepChoice(status.player);
+            let copy = new PlayerPrepChoice(status.player, status.seating);
             copy.chosenGeneral = status.chosenGeneral ? FactionWarGenerals_1.default.soldier_male : null;
             copy.chosenSubGeneral = status.chosenSubGeneral ? FactionWarGenerals_1.default.soldier_male : null;
-            copy.seating = status.seating;
             return copy;
         }
     }
@@ -24077,7 +24072,7 @@ exports.push([module.i, ".effect-container {\n  pointer-events: none; }\n  .effe
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".general-selection-container {\n  display: flex;\n  padding: 15px;\n  min-width: 80%;\n  min-height: 80%; }\n  .general-selection-container .icon {\n    color: white; }\n  .general-selection-container .overall {\n    height: 20px; }\n  .general-selection-container .player-statuses {\n    position: relative;\n    padding: 8px;\n    min-width: 200px; }\n    .general-selection-container .player-statuses .player-status {\n      display: flex; }\n      .general-selection-container .player-statuses .player-status .player-name {\n        flex-grow: 1;\n        align-items: center;\n        display: flex; }\n      .general-selection-container .player-statuses .player-status .status {\n        width: 70px;\n        align-items: center;\n        display: flex;\n        color: #494949; }\n      .general-selection-container .player-statuses .player-status .status.chosen {\n        color: green; }\n    .general-selection-container .player-statuses .heading > * {\n      background: rgba(43, 43, 43, 0.671);\n      color: white !important; }\n  .general-selection-container .player-statuses::before {\n    z-index: -1;\n    content: '';\n    position: absolute;\n    left: 0px;\n    top: 0px;\n    width: 100%;\n    height: 100%;\n    background-image: url(ui/wallpaper.jpg);\n    background-repeat: repeat;\n    filter: brightness(134%); }\n  .general-selection-container .my-choices {\n    padding: 8px;\n    background-image: url(\"ui/bak.png\");\n    background-repeat: repeat;\n    flex-grow: 1;\n    display: flex;\n    flex-direction: column;\n    justify-content: center; }\n    .general-selection-container .my-choices .title {\n      color: white;\n      font-size: 1.4em;\n      margin-bottom: 10px; }\n    .general-selection-container .my-choices .available {\n      display: flex;\n      justify-content: center; }\n      .general-selection-container .my-choices .available .general-wrapper {\n        cursor: pointer;\n        transition: 0.2s;\n        margin: 3px;\n        border: 1px solid black;\n        border-radius: 10px;\n        overflow: hidden;\n        box-shadow: 0px 0px 10px black; }\n        .general-selection-container .my-choices .available .general-wrapper:hover {\n          transform: translate(0px, -10px); }\n        .general-selection-container .my-choices .available .general-wrapper.disabled {\n          cursor: initial;\n          filter: brightness(50%); }\n        .general-selection-container .my-choices .available .general-wrapper.disabled:hover {\n          transform: none; }\n        .general-selection-container .my-choices .available .general-wrapper.highlighted {\n          filter: drop-shadow(0px 0px 10px gold); }\n    .general-selection-container .my-choices .chosen {\n      padding: 5px; }\n      .general-selection-container .my-choices .chosen .place-holder {\n        cursor: pointer;\n        background: grey;\n        transition: 0.2s;\n        margin: 3px;\n        border: 1px solid black;\n        border-radius: 10px;\n        filter: drop-shadow(0px 0px 4px black);\n        overflow: hidden; }\n    .general-selection-container .my-choices .button-container {\n      padding: 5px; }\n", ""]);
+exports.push([module.i, ".general-selection-container {\n  display: flex;\n  padding: 15px;\n  min-width: 80%;\n  min-height: 80%; }\n  .general-selection-container .icon {\n    color: white; }\n  .general-selection-container .overall {\n    height: 20px; }\n  .general-selection-container .player-statuses {\n    position: relative;\n    padding: 8px;\n    min-width: 200px;\n    font-family: cursive; }\n    .general-selection-container .player-statuses .player-status {\n      display: flex; }\n      .general-selection-container .player-statuses .player-status .player-name {\n        flex-grow: 1;\n        align-items: center;\n        display: flex; }\n      .general-selection-container .player-statuses .player-status .seating {\n        width: 40px; }\n      .general-selection-container .player-statuses .player-status .status {\n        width: 70px;\n        align-items: center;\n        display: flex;\n        color: #494949; }\n      .general-selection-container .player-statuses .player-status .status.chosen {\n        color: green; }\n      .general-selection-container .player-statuses .player-status.is-myself {\n        font-weight: 600; }\n        .general-selection-container .player-statuses .player-status.is-myself .player-name {\n          color: white;\n          background: black; }\n    .general-selection-container .player-statuses .heading > * {\n      background: rgba(43, 43, 43, 0.671);\n      color: white !important; }\n  .general-selection-container .player-statuses::before {\n    z-index: -1;\n    content: '';\n    position: absolute;\n    left: 0px;\n    top: 0px;\n    width: 100%;\n    height: 100%;\n    background-image: url(ui/wallpaper.jpg);\n    background-repeat: repeat;\n    filter: brightness(134%); }\n  .general-selection-container .my-choices {\n    padding: 8px;\n    background-image: url(\"ui/bak.png\");\n    background-repeat: repeat;\n    flex-grow: 1;\n    display: flex;\n    flex-direction: column;\n    justify-content: center; }\n    .general-selection-container .my-choices .title {\n      color: white;\n      font-size: 1.4em;\n      margin-bottom: 10px; }\n    .general-selection-container .my-choices .available {\n      display: flex;\n      justify-content: center; }\n      .general-selection-container .my-choices .available .general-wrapper {\n        cursor: pointer;\n        transition: 0.2s;\n        margin: 3px;\n        border: 1px solid black;\n        border-radius: 10px;\n        overflow: hidden;\n        box-shadow: 0px 0px 10px black; }\n        .general-selection-container .my-choices .available .general-wrapper:hover {\n          transform: translate(0px, -10px); }\n        .general-selection-container .my-choices .available .general-wrapper.disabled {\n          cursor: initial;\n          filter: brightness(50%); }\n        .general-selection-container .my-choices .available .general-wrapper.disabled:hover {\n          transform: none; }\n        .general-selection-container .my-choices .available .general-wrapper.highlighted {\n          filter: drop-shadow(0px 0px 10px gold); }\n    .general-selection-container .my-choices .chosen {\n      padding: 5px; }\n      .general-selection-container .my-choices .chosen .place-holder {\n        cursor: pointer;\n        background: grey;\n        transition: 0.2s;\n        margin: 3px;\n        border: 1px solid black;\n        border-radius: 10px;\n        filter: drop-shadow(0px 0px 4px black);\n        overflow: hidden; }\n    .general-selection-container .my-choices .button-container {\n      padding: 5px; }\n", ""]);
 
 
 
