@@ -14,7 +14,7 @@ class AudioManager {
         audio.pause()
     }
 
-    play(name: string, loop = false) {
+    play(name: string, loop = false, onEnd: ()=>void = null) {
         try {
             let audio: any
             if(this.cache.has(name)) {
@@ -24,6 +24,9 @@ class AudioManager {
                 this.cache.set(name, audio)
             }
 
+            if(onEnd) {
+                audio.onended = onEnd
+            }
             audio.loop = loop
             audio.play()
             return

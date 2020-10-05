@@ -24,7 +24,8 @@ type CardProp = {
     elementStatus: ElementStatus,
     isDamaged: boolean,
     onSelect: (s: string)=>void,
-    cardTransitManager: CardTransitManager
+    cardTransitManager: CardTransitManager,
+    speech?: string
 }
 
 export class UIPlayerCard extends React.Component<CardProp, object> {
@@ -50,7 +51,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
     }
 
     render() {
-        let {info, dist, elementStatus, isDamaged, effect} = this.props
+        let {info, dist, elementStatus, isDamaged, effect, speech} = this.props
         let inMyTurn = effect.player === info.player.id
         // console.log(effect)
         let pendingOnMe = effect.pendingUser?.has(info.player.id)
@@ -98,6 +99,7 @@ export class UIPlayerCard extends React.Component<CardProp, object> {
             <Mask isMasked={elementStatus === ElementStatus.DISABLED}/>
             <div className='seat-number'>{toChinese(info.idx)}</div>
             <DefaultCardEndpoint info={info} callback={()=>this.forceUpdate()} ref={this.doRegister}/>
+            {speech && <div className='chat'>{speech}</div>}
         </div>
     }
 }

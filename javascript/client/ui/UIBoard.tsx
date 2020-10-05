@@ -2,7 +2,7 @@ import * as React from 'react'
 
 import './ui-board.scss'
 import { UIMyPlayerCard, SkillButtonProp } from './UIMyPlayerCard'
-import UIButton from './UIButton'
+import UIButton, { UIDropDownButton } from './UIButton'
 import UIPlayGround from './UIPlayGround' 
 import GameClientContext from '../GameClientContext'
 import { UIPosition } from '../../common/PlayerAction'
@@ -10,7 +10,7 @@ import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
 import { ServerHintTransit, Rescind, HintType, CustomRequest } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
-import { TextFlashEffect, CardTransit, CurrentPlayerEffect, SkinRequest } from '../../common/transit/EffectTransit'
+import { TextFlashEffect, CardTransit, CurrentPlayerEffect, SkinRequest, VoiceRequest } from '../../common/transit/EffectTransit'
 import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
 import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
@@ -291,6 +291,21 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                     })}
                 </div>
                 <div className='buttons'>
+                    <UIDropDownButton display={'语音'} 
+                                list={[
+                                    '人心散了队伍不好带啊',
+                                    '你可以打得再烂一点儿吗',
+                                    '你咋不上天哪',
+                                    '哥们儿给力点行吗',
+                                    '姑娘你真是条汉子',
+                                    '我从未见过如此厚颜无耻之人',
+                                    '昏君啊',
+                                    '见证奇迹的时刻到了',
+                                    '请收下我的膝盖',
+                                    '这波不亏',
+                                    '风吹鸡蛋壳牌去人安乐'
+                                ]}
+                                onClick={(choice: string)=>context.sendToServer(new VoiceRequest(myId, choice))}/>
                     <UIButton display={showDistance? '隐藏距离' : '显示距离'} 
                             onClick={()=>{this.setState({showDistance: !showDistance})}} 
                             disabled={false} />

@@ -19,7 +19,7 @@ import { Faction } from "../common/General";
 import { CardPos, CardPosChangeEvent, CardRearrangeRequest } from "../common/transit/CardPos";
 import { UIPosition } from "../common/PlayerAction";
 import { cardSorter } from "../common/cards/Card";
-import { SkinRequest } from "../common/transit/EffectTransit";
+import { SkinRequest, VoiceRequest } from "../common/transit/EffectTransit";
 import { PlayerInfo } from "../common/PlayerInfo";
 
 const myMode = GameModeEnum.FactionWarGame
@@ -38,6 +38,9 @@ export default class FactionWarGameHoster implements GameHoster {
     constructor(private registry: PlayerRegistry, private numberOfPlayer: number) {
         registry.pubsub.on<SkillStatus>(SkillStatus, this.onSkillStatusUpate)
         registry.pubsub.on<CardPosChangeEvent>(CardPosChangeEvent, this.shiftCard)
+        registry.pubsub.on<VoiceRequest>(VoiceRequest, (request)=>{
+            registry.broadcast(request)
+        })
         registry.pubsub.on<CardRearrangeRequest>(CardRearrangeRequest, p => {
             if(!this.manager) {
                 return

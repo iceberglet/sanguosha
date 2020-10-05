@@ -6,11 +6,12 @@ import { ClassFormatter } from '../../common/util/Togglable'
 import { ElementStatus, Checker } from './UIBoard'
 import { Mask } from '../../common/util/Util'
 import Pubsub from '../../common/util/PubSub'
-import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
+import { DamageEffect, CurrentPlayerEffect, VoiceRequest } from '../../common/transit/EffectTransit'
 import { getDamageSpriteSheet } from '../effect/SpriteSheet'
 import { Stage } from '../../common/Stage'
 import { SkillStatus, Skill, HiddenType } from '../../common/Skill'
 import { OverlayTrigger, Tooltip } from 'react-bootstrap'
+import { audioManager } from '../audio-manager/AudioManager'
 
 const damageDuration = 2000
 
@@ -38,6 +39,9 @@ export class UIMyPlayerCard extends React.Component<CardProp, State> {
             }
             this.setState({damaged: true})
             setTimeout(()=>this.setState({damaged: false}), damageDuration)
+        })
+        p.pubsub.on(VoiceRequest, (request: VoiceRequest)=>{
+            audioManager.play(`/audio/chat/${request.speech}.mp3`)
         })
         p.pubsub.on(CurrentPlayerEffect, (e: CurrentPlayerEffect)=>this.setState({effect: e}))
         this.state = {

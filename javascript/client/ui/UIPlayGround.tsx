@@ -3,12 +3,13 @@ import * as React from 'react'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import { Checker, ElementStatus } from './UIBoard'
 import Pubsub from '../../common/util/PubSub'
-import { DamageEffect, CurrentPlayerEffect } from '../../common/transit/EffectTransit'
+import { DamageEffect, CurrentPlayerEffect, VoiceRequest } from '../../common/transit/EffectTransit'
 import { UIWorkflowCardRow } from './UIWorkflowRow'
 import { CardManager } from '../../common/cards/Card'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
 import { UIPlayerCard } from './UIPlayerCard'
 import CardTransitManager, { DeckEndpoint } from './CardTransitManager'
+import { audioManager } from '../audio-manager/AudioManager'
 
 const damageDuration = 2000
 
@@ -26,7 +27,8 @@ type PlayGroundProp = {
 type State = {
     //players who are being damaged
     damageAnimation: Set<string>,
-    currentPlayerEffect: CurrentPlayerEffect
+    currentPlayerEffect: CurrentPlayerEffect,
+    speeches: Map<string, string>
 }
 
 export default class UIPlayGround extends React.Component<PlayGroundProp, State> {
@@ -48,16 +50,29 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
         p.pubsub.on(CurrentPlayerEffect, (currentPlayerEffect: CurrentPlayerEffect)=>{
             this.setState({currentPlayerEffect})
         })
+        p.pubsub.on(VoiceRequest, (request: VoiceRequest)=>{
+            this.setState(s => {
+                s.speeches.set(request.player, request.speech)
+                return s
+            })
+            audioManager.play(`/audio/chat/${request.speech}.mp3`, false, ()=>{
+                this.setState(s => {
+                    s.speeches.delete(request.player)
+                    return s
+                })
+            })
+        })
 
         this.state = {
             damageAnimation: new Set<string>(),
+            speeches: new Map<string, string>(),
             currentPlayerEffect: new CurrentPlayerEffect(null, null, new Set<string>(), 0)
         }
     }
 
     render() {
         let {players, screenPosObtainer, showDist, distanceComputer, checker, cardManager, cardTransitManager} = this.props
-        let {damageAnimation, currentPlayerEffect} = this.state
+        let {damageAnimation, currentPlayerEffect, speeches} = this.state
         let number = players.length
         let rows = 3
         if(number <= 2) {
@@ -71,7 +86,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                         screenPosObtainer={screenPosObtainer} isDamaged={damageAnimation.has(p.player.id)}
                         elementStatus={p.isDead? ElementStatus.NORMAL : checker.getStatus(p.player.id)} 
                         effect={currentPlayerEffect} cardTransitManager={cardTransitManager}
-                        onSelect={s=>checker.onClicked(s)}/>
+                        onSelect={s=>checker.onClicked(s)} speech={speeches.get(p.player.id)}/>
         }
 
         return <div className='occupy'>

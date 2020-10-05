@@ -390,7 +390,7 @@ class AudioManager {
         let audio = this.cache.get(name);
         audio.pause();
     }
-    play(name, loop = false) {
+    play(name, loop = false, onEnd = null) {
         try {
             let audio;
             if (this.cache.has(name)) {
@@ -399,6 +399,9 @@ class AudioManager {
             else {
                 audio = new Audio(name);
                 this.cache.set(name, audio);
+            }
+            if (onEnd) {
+                audio.onended = onEnd;
             }
             audio.loop = loop;
             audio.play();
@@ -3020,6 +3023,19 @@ class UIBoard extends React.Component {
                         return React.createElement(UIButton_1.default, { key: b.id, display: b.display, onClick: () => buttonChecker.onClicked(b.id), className: b.id === 'abort' ? 'ui-button-abort' : '', disabled: !buttonChecker.getStatus(b.id).isSelectable });
                     })),
                 React.createElement("div", { className: 'buttons' },
+                    React.createElement(UIButton_1.UIDropDownButton, { display: '语音', list: [
+                            '人心散了队伍不好带啊',
+                            '你可以打得再烂一点儿吗',
+                            '你咋不上天哪',
+                            '哥们儿给力点行吗',
+                            '姑娘你真是条汉子',
+                            '我从未见过如此厚颜无耻之人',
+                            '昏君啊',
+                            '见证奇迹的时刻到了',
+                            '请收下我的膝盖',
+                            '这波不亏',
+                            '风吹鸡蛋壳牌去人安乐'
+                        ], onClick: (choice) => context.sendToServer(new EffectTransit_1.VoiceRequest(myId, choice)) }),
                     React.createElement(UIButton_1.default, { display: showDistance ? '隐藏距离' : '显示距离', onClick: () => { this.setState({ showDistance: !showDistance }); }, disabled: false }),
                     React.createElement(UIButton_1.default, { display: hideCards ? '拿起牌' : '扣牌', onClick: () => { this.setState({ hideCards: !hideCards }); }, disabled: false }))),
             React.createElement(Util_1.Mask, { isMasked: !!context.getMsg(), maskClass: 'alert-play-hand' }),
@@ -3041,11 +3057,29 @@ exports.default = UIBoard;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.UIDropDownButton = void 0;
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 function UIButton(p) {
     return React.createElement("button", { className: 'ui-button ' + p.className, disabled: p.disabled, onClick: () => p.disabled || p.onClick() }, p.display);
 }
 exports.default = UIButton;
+function UIDropDownButton(p) {
+    let [disabled, setDisabled] = React.useState(false);
+    let [isExpand, setExpand] = React.useState(false);
+    const onChoose = (choice) => {
+        p.onClick(choice);
+        setDisabled(true);
+        setTimeout(() => {
+            setDisabled(false);
+        }, 5000);
+    };
+    return React.createElement("button", { className: 'ui-button ' + p.className, disabled: disabled, onClick: () => setExpand(!isExpand), onBlur: () => setExpand(false) },
+        p.display,
+        isExpand && React.createElement("div", { className: 'drop-down' }, p.list.map(item => {
+            return React.createElement("div", { className: 'choice', key: item, onClick: () => onChoose(item) }, item);
+        })));
+}
+exports.UIDropDownButton = UIDropDownButton;
 
 
 /***/ }),
@@ -3621,6 +3655,7 @@ const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTrans
 const SpriteSheet_1 = __webpack_require__(/*! ../effect/SpriteSheet */ "./javascript/client/effect/SpriteSheet.tsx");
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const react_bootstrap_1 = __webpack_require__(/*! react-bootstrap */ "./node_modules/react-bootstrap/esm/index.js");
+const AudioManager_1 = __webpack_require__(/*! ../audio-manager/AudioManager */ "./javascript/client/audio-manager/AudioManager.tsx");
 const damageDuration = 2000;
 class UIMyPlayerCard extends React.Component {
     constructor(p) {
@@ -3637,6 +3672,9 @@ class UIMyPlayerCard extends React.Component {
             }
             this.setState({ damaged: true });
             setTimeout(() => this.setState({ damaged: false }), damageDuration);
+        });
+        p.pubsub.on(EffectTransit_1.VoiceRequest, (request) => {
+            AudioManager_1.audioManager.play(`/audio/chat/${request.speech}.mp3`);
         });
         p.pubsub.on(EffectTransit_1.CurrentPlayerEffect, (e) => this.setState({ effect: e }));
         this.state = {
@@ -3754,6 +3792,7 @@ const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTrans
 const UIWorkflowRow_1 = __webpack_require__(/*! ./UIWorkflowRow */ "./javascript/client/ui/UIWorkflowRow.tsx");
 const UIPlayerCard_1 = __webpack_require__(/*! ./UIPlayerCard */ "./javascript/client/ui/UIPlayerCard.tsx");
 const CardTransitManager_1 = __webpack_require__(/*! ./CardTransitManager */ "./javascript/client/ui/CardTransitManager.tsx");
+const AudioManager_1 = __webpack_require__(/*! ../audio-manager/AudioManager */ "./javascript/client/audio-manager/AudioManager.tsx");
 const damageDuration = 2000;
 class UIPlayGround extends React.Component {
     constructor(p) {
@@ -3773,14 +3812,27 @@ class UIPlayGround extends React.Component {
         p.pubsub.on(EffectTransit_1.CurrentPlayerEffect, (currentPlayerEffect) => {
             this.setState({ currentPlayerEffect });
         });
+        p.pubsub.on(EffectTransit_1.VoiceRequest, (request) => {
+            this.setState(s => {
+                s.speeches.set(request.player, request.speech);
+                return s;
+            });
+            AudioManager_1.audioManager.play(`/audio/chat/${request.speech}.mp3`, false, () => {
+                this.setState(s => {
+                    s.speeches.delete(request.player);
+                    return s;
+                });
+            });
+        });
         this.state = {
             damageAnimation: new Set(),
+            speeches: new Map(),
             currentPlayerEffect: new EffectTransit_1.CurrentPlayerEffect(null, null, new Set(), 0)
         };
     }
     render() {
         let { players, screenPosObtainer, showDist, distanceComputer, checker, cardManager, cardTransitManager } = this.props;
-        let { damageAnimation, currentPlayerEffect } = this.state;
+        let { damageAnimation, currentPlayerEffect, speeches } = this.state;
         let number = players.length;
         let rows = 3;
         if (number <= 2) {
@@ -3790,7 +3842,7 @@ class UIPlayGround extends React.Component {
             rows = 2;
         }
         let cardGetter = (p, i) => {
-            return React.createElement(UIPlayerCard_1.UIPlayerCard, { key: i, info: p, dist: showDist && !p.isDead && distanceComputer(p.player.id), screenPosObtainer: screenPosObtainer, isDamaged: damageAnimation.has(p.player.id), elementStatus: p.isDead ? UIBoard_1.ElementStatus.NORMAL : checker.getStatus(p.player.id), effect: currentPlayerEffect, cardTransitManager: cardTransitManager, onSelect: s => checker.onClicked(s) });
+            return React.createElement(UIPlayerCard_1.UIPlayerCard, { key: i, info: p, dist: showDist && !p.isDead && distanceComputer(p.player.id), screenPosObtainer: screenPosObtainer, isDamaged: damageAnimation.has(p.player.id), elementStatus: p.isDead ? UIBoard_1.ElementStatus.NORMAL : checker.getStatus(p.player.id), effect: currentPlayerEffect, cardTransitManager: cardTransitManager, onSelect: s => checker.onClicked(s), speech: speeches.get(p.player.id) });
         };
         return React.createElement("div", { className: 'occupy' },
             React.createElement("div", { className: 'deck-info' },
@@ -3850,7 +3902,7 @@ class UIPlayerCard extends React.Component {
     }
     render() {
         var _a;
-        let { info, dist, elementStatus, isDamaged, effect } = this.props;
+        let { info, dist, elementStatus, isDamaged, effect, speech } = this.props;
         let inMyTurn = effect.player === info.player.id;
         // console.log(effect)
         let pendingOnMe = (_a = effect.pendingUser) === null || _a === void 0 ? void 0 : _a.has(info.player.id);
@@ -3886,7 +3938,8 @@ class UIPlayerCard extends React.Component {
             info.isChained && React.createElement("div", { className: 'tie-suo' }),
             React.createElement(Util_1.Mask, { isMasked: elementStatus === UIBoard_1.ElementStatus.DISABLED }),
             React.createElement("div", { className: 'seat-number' }, Util_1.toChinese(info.idx)),
-            React.createElement(CardTransitManager_1.DefaultCardEndpoint, { info: info, callback: () => this.forceUpdate(), ref: this.doRegister }));
+            React.createElement(CardTransitManager_1.DefaultCardEndpoint, { info: info, callback: () => this.forceUpdate(), ref: this.doRegister }),
+            speech && React.createElement("div", { className: 'chat' }, speech));
     }
 }
 exports.UIPlayerCard = UIPlayerCard;
@@ -5782,7 +5835,7 @@ exports.CardRearrangeRequest = CardRearrangeRequest;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LogTransit = exports.CardTransit = exports.SkinRequest = exports.CurrentPlayerEffect = exports.DamageEffect = exports.TextFlashEffect = exports.PlaySound = void 0;
+exports.LogTransit = exports.CardTransit = exports.VoiceRequest = exports.SkinRequest = exports.CurrentPlayerEffect = exports.DamageEffect = exports.TextFlashEffect = exports.PlaySound = void 0;
 const Card_1 = __webpack_require__(/*! ../cards/Card */ "./javascript/common/cards/Card.tsx");
 const CardPos_1 = __webpack_require__(/*! ./CardPos */ "./javascript/common/transit/CardPos.tsx");
 class PlaySound {
@@ -5824,6 +5877,13 @@ class SkinRequest {
     }
 }
 exports.SkinRequest = SkinRequest;
+class VoiceRequest {
+    constructor(player, speech) {
+        this.player = player;
+        this.speech = speech;
+    }
+}
+exports.VoiceRequest = VoiceRequest;
 class CardTransit {
     constructor(from, fromPos, to, toPos, cards, animDurationSeconds, head = false, 
     /**
@@ -6409,6 +6469,7 @@ exports.Serde.register(CustomUIRegistry_1.CustomUIData);
 exports.Serde.register(RoundStat_1.default);
 exports.Serde.register(EffectTransit_1.SkinRequest);
 exports.Serde.register(Multimap_1.default);
+exports.Serde.register(EffectTransit_1.VoiceRequest);
 exports.Serde.register(PlayerAction_1.Button);
 exports.Serde.register(Stage_1.Stage);
 exports.Serde.register(EffectTransit_1.LogTransit);
@@ -7872,6 +7933,9 @@ class FactionWarGameHoster {
         };
         registry.pubsub.on(Skill_1.SkillStatus, this.onSkillStatusUpate);
         registry.pubsub.on(CardPos_1.CardPosChangeEvent, this.shiftCard);
+        registry.pubsub.on(EffectTransit_1.VoiceRequest, (request) => {
+            registry.broadcast(request);
+        });
         registry.pubsub.on(CardPos_1.CardRearrangeRequest, p => {
             if (!this.manager) {
                 return;
@@ -24117,7 +24181,7 @@ exports.push([module.i, ".tooltip {\n  background: rgba(0, 0, 0, 0.74);\n  paddi
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .system-buttons {\n      position: absolute;\n      background: rgba(27, 27, 27, 0.712);\n      color: white;\n      font-family: initial;\n      border-radius: 6px;\n      padding: 5px;\n      font-size: 13px;\n      top: 4px;\n      left: 4px; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px;\n        padding: 10px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex;\n      position: relative;\n      height: 180px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-signs {\n          height: 36px;\n          display: flex;\n          padding-left: 10px;\n          align-items: center; }\n          .board .btm .my-cards .mid .my-signs .sign {\n            width: 20px;\n            height: 20px;\n            margin: 6px;\n            border-radius: 20px;\n            background: #777777;\n            font-size: 26px;\n            color: #ffffff;\n            opacity: 0.5;\n            transition: 0.2s;\n            border: 1px solid white; }\n            .board .btm .my-cards .mid .my-signs .sign.enabled {\n              opacity: 1;\n              filter: drop-shadow(3px 3px 1px black); }\n            .board .btm .my-cards .mid .my-signs .sign.selectable {\n              cursor: pointer;\n              border: 1px solid gold;\n              background: #d29557; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable:hover {\n              transform: translate(0px, -5px); }\n            .board .btm .my-cards .mid .my-signs .sign.selected {\n              transform: translate(0px, -5px);\n              color: gold; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 36px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 100px;\n          font-size: 18px; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      z-index: 2; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em;\n  transition: 0.2s; }\n  .ui-button.ui-button-abort {\n    position: absolute;\n    right: 10px;\n    color: #bd7d1c;\n    background: white;\n    padding: 10px; }\n  .ui-button.ui-button-abort:hover {\n    color: red;\n    background: #2e2e2e; }\n  .ui-button.ui-button-abort:active {\n    color: black; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n.alert-play-hand {\n  animation: flashing-red 1.6s infinite;\n  pointer-events: none; }\n\n@keyframes flashing-red {\n  0% {\n    background: transparent; }\n  50% {\n    background: rgba(255, 0, 0, 0.247); }\n  100% {\n    background: transparent; } }\n", ""]);
+exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .system-buttons {\n      position: absolute;\n      background: rgba(27, 27, 27, 0.712);\n      color: white;\n      font-family: initial;\n      border-radius: 6px;\n      padding: 5px;\n      font-size: 13px;\n      top: 4px;\n      left: 4px; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px;\n        padding: 10px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex;\n      position: relative;\n      height: 180px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-signs {\n          height: 36px;\n          display: flex;\n          padding-left: 10px;\n          align-items: center; }\n          .board .btm .my-cards .mid .my-signs .sign {\n            width: 20px;\n            height: 20px;\n            margin: 6px;\n            border-radius: 20px;\n            background: #777777;\n            font-size: 26px;\n            color: #ffffff;\n            opacity: 0.5;\n            transition: 0.2s;\n            border: 1px solid white; }\n            .board .btm .my-cards .mid .my-signs .sign.enabled {\n              opacity: 1;\n              filter: drop-shadow(3px 3px 1px black); }\n            .board .btm .my-cards .mid .my-signs .sign.selectable {\n              cursor: pointer;\n              border: 1px solid gold;\n              background: #d29557; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable:hover {\n              transform: translate(0px, -5px); }\n            .board .btm .my-cards .mid .my-signs .sign.selected {\n              transform: translate(0px, -5px);\n              color: gold; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 36px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 100px;\n          font-size: 18px; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      z-index: 2; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em;\n  transition: 0.2s; }\n  .ui-button.ui-button-abort {\n    position: absolute;\n    right: 10px;\n    color: #bd7d1c;\n    background: white;\n    padding: 10px; }\n  .ui-button.ui-button-abort:hover {\n    color: red;\n    background: #2e2e2e; }\n  .ui-button.ui-button-abort:active {\n    color: black; }\n  .ui-button .drop-down {\n    position: absolute;\n    bottom: -100%;\n    left: 0px;\n    border: 1px solid darkgray; }\n    .ui-button .drop-down .choice {\n      background: beige;\n      color: black;\n      cursor: pointer; }\n    .ui-button .drop-down .choice:hover {\n      color: white;\n      background: black; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n.alert-play-hand {\n  animation: flashing-red 1.6s infinite;\n  pointer-events: none; }\n\n@keyframes flashing-red {\n  0% {\n    background: transparent; }\n  50% {\n    background: rgba(255, 0, 0, 0.247); }\n  100% {\n    background: transparent; } }\n", ""]);
 
 
 
@@ -24222,7 +24286,7 @@ exports.push([module.i, ".ui-my-player-card {\n  box-shadow: 0px 0px 30px black;
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none;\n      width: 120%;\n      height: 120%; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n.img-flashing::after {\n  content: '';\n  background: rgba(255, 255, 255, 0.678);\n  width: 50%;\n  height: 200%;\n  transform-origin: center;\n  position: absolute;\n  transform-origin: bottom;\n  animation: img-flash 0.6s forwards; }\n\n@keyframes img-flash {\n  0% {\n    transform: translate(-500%, -100%) rotate(45deg); }\n  100% {\n    transform: translate(0%, 0%) rotate(45deg); } }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
+exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none;\n      width: 120%;\n      height: 120%; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .chat {\n    position: absolute;\n    align-self: center;\n    justify-self: center;\n    background: white;\n    color: black;\n    font-family: initial;\n    font-size: 16px; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n.img-flashing::after {\n  content: '';\n  background: rgba(255, 255, 255, 0.678);\n  width: 50%;\n  height: 200%;\n  transform-origin: center;\n  position: absolute;\n  transform-origin: bottom;\n  animation: img-flash 0.6s forwards; }\n\n@keyframes img-flash {\n  0% {\n    transform: translate(-500%, -100%) rotate(45deg); }\n  100% {\n    transform: translate(0%, 0%) rotate(45deg); } }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
 
 
 

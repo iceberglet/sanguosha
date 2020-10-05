@@ -159,6 +159,16 @@
         width: 60%;
     }
 
+    .chat {
+        position: absolute;
+        align-self: center;
+        justify-self: center;
+        background: white;
+        color: black;
+        font-family: initial;
+        font-size: 16px;
+    }
+
     .seat-number {
         position: absolute;
         top: 103%;
