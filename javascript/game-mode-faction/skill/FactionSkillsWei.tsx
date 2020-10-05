@@ -26,7 +26,7 @@ import CardFightOp from "../../server/engine/CardFightOp";
 import { DropCardRequest } from "../../server/engine/DropCardOp";
 import { getNumberOfFactions, askAbandonBasicCard, askAbandonEquip } from "../FactionWarUtil";
 import { MoveCardOnField } from "../../server/engine/MoveCardOp";
-import { ShunShou } from "../../server/engine/SingleRuseOp";
+import { GrabCard, ShunShou } from "../../server/engine/SingleRuseOp";
 import FactionPlayerInfo from "../FactionPlayerInfo";
 import { CustomUIData, XunXunData } from "../../client/card-panel/CustomUIRegistry";
 
@@ -230,8 +230,9 @@ export class TuXi extends SimpleConditionalSkill<TakeCardStageOp> {
             console.log('[突袭] 玩家选择了突袭, 放弃了摸牌', victims.map(v => v.player.id))
             manager.broadcast(new TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id))
             for(let v of victims) {
-                let card = getRandom(v.getCards(CardPos.HAND))
-                await manager.transferCards(v.player.id, this.playerId, CardPos.HAND, CardPos.HAND, [card])
+                if(v.hasCardAt(CardPos.HAND)) {
+                    await GrabCard(resp.source, v, '突袭摸牌 > ' + v, manager, [CardPos.HAND])
+                }
             }
             event.amount = 0
         }
@@ -939,8 +940,10 @@ export class QiaoBian extends SimpleConditionalSkill<StageStartFlow> {
             manager.log(`${this.playerId} 发动了 ${this.displayName} 向 ${victims} 各摸一张手牌`)
             manager.broadcast(new TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id))
             for(let v of victims) {
-                let card = getRandom(v.getCards(CardPos.HAND))
-                await manager.transferCards(v.player.id, this.playerId, CardPos.HAND, CardPos.HAND, [card])
+                //有可能死谏之类的把牌搞走了...
+                if(v.hasCardAt(CardPos.HAND)) {
+                    await GrabCard(resp.source, v, '巧变摸牌 > ' + v, manager, [CardPos.HAND])
+                }
             }
         }
         if(event.stage === Stage.USE_CARD) {
@@ -1023,7 +1026,8 @@ export class TunTian extends SimpleConditionalSkill<CardAwayEvent> {
 
     public conditionFulfilled(event: CardAwayEvent, manager: GameManager): boolean {
         //其他角色的结束阶段
-        return manager.currPlayer().player.id !== this.playerId && event.isCardFrom(this.playerId)
+        return manager.currPlayer().player.id !== this.playerId && event.isCardFrom(this.playerId) &&
+                event.cards.filter(c => c[1] === CardPos.HAND || c[1] === CardPos.EQUIP).length > 0
     }
 
     public async doInvoke(event: CardAwayEvent, manager: GameManager): Promise<void> {

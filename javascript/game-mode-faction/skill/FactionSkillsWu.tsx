@@ -1227,6 +1227,9 @@ export class HunShang extends Skill {
 
 class DiaoDuoStart extends SimpleTrigger<StageStartFlow> {
 
+    invokeMsg(event: StageStartFlow, manager: GameManager) {
+        return `发动调度获得势力相同角色的一张装备`
+    }
     conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
         return event.isFor(this.player.player.id, Stage.USE_CARD)
     }
@@ -1292,6 +1295,10 @@ export class DiaoDuo extends SimpleConditionalSkill<EquipOp> {
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<EquipOp>(EquipOp, this)
         skillRegistry.on<StageStartFlow>(StageStartFlow, new DiaoDuoStart(this, manager))
+    }
+
+    public invokeMsg(event: EquipOp, manager: GameManager) {
+        return `发动调度 摸一张牌`
     }
 
     public conditionFulfilled(event: EquipOp, manager: GameManager): boolean {

@@ -12724,8 +12724,9 @@ class TuXi extends Skill_1.SimpleConditionalSkill {
                 console.log('[突袭] 玩家选择了突袭, 放弃了摸牌', victims.map(v => v.player.id));
                 manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id));
                 for (let v of victims) {
-                    let card = Util_1.getRandom(v.getCards(CardPos_1.CardPos.HAND));
-                    yield manager.transferCards(v.player.id, this.playerId, CardPos_1.CardPos.HAND, CardPos_1.CardPos.HAND, [card]);
+                    if (v.hasCardAt(CardPos_1.CardPos.HAND)) {
+                        yield SingleRuseOp_1.GrabCard(resp.source, v, '突袭摸牌 > ' + v, manager, [CardPos_1.CardPos.HAND]);
+                    }
                 }
                 event.amount = 0;
             }
@@ -13450,8 +13451,10 @@ class QiaoBian extends Skill_1.SimpleConditionalSkill {
                 manager.log(`${this.playerId} 发动了 ${this.displayName} 向 ${victims} 各摸一张手牌`);
                 manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id));
                 for (let v of victims) {
-                    let card = Util_1.getRandom(v.getCards(CardPos_1.CardPos.HAND));
-                    yield manager.transferCards(v.player.id, this.playerId, CardPos_1.CardPos.HAND, CardPos_1.CardPos.HAND, [card]);
+                    //有可能死谏之类的把牌搞走了...
+                    if (v.hasCardAt(CardPos_1.CardPos.HAND)) {
+                        yield SingleRuseOp_1.GrabCard(resp.source, v, '巧变摸牌 > ' + v, manager, [CardPos_1.CardPos.HAND]);
+                    }
                 }
             }
             if (event.stage === Stage_1.Stage.USE_CARD) {
@@ -13533,7 +13536,8 @@ class TunTian extends Skill_1.SimpleConditionalSkill {
     }
     conditionFulfilled(event, manager) {
         //其他角色的结束阶段
-        return manager.currPlayer().player.id !== this.playerId && event.isCardFrom(this.playerId);
+        return manager.currPlayer().player.id !== this.playerId && event.isCardFrom(this.playerId) &&
+            event.cards.filter(c => c[1] === CardPos_1.CardPos.HAND || c[1] === CardPos_1.CardPos.EQUIP).length > 0;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -15066,6 +15070,9 @@ class HunShang extends Skill_1.Skill {
 }
 exports.HunShang = HunShang;
 class DiaoDuoStart extends Skill_1.SimpleTrigger {
+    invokeMsg(event, manager) {
+        return `发动调度获得势力相同角色的一张装备`;
+    }
     conditionFulfilled(event, manager) {
         return event.isFor(this.player.player.id, Stage_1.Stage.USE_CARD);
     }
@@ -15128,6 +15135,9 @@ class DiaoDuo extends Skill_1.SimpleConditionalSkill {
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(EquipOp_1.EquipOp, this);
         skillRegistry.on(StageFlows_1.StageStartFlow, new DiaoDuoStart(this, manager));
+    }
+    invokeMsg(event, manager) {
+        return `发动调度 摸一张牌`;
     }
     conditionFulfilled(event, manager) {
         let me = manager.context.getPlayer(this.playerId);
