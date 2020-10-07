@@ -225,7 +225,7 @@ export class TuXi extends SimpleConditionalSkill<TakeCardStageOp> {
             console.log('[突袭] 玩家最终放弃了突袭')
         } else {
             this.playSound(manager, 2)
-            let victims = resp.targets
+            let victims = manager.sortByCurrent(resp.targets)
             manager.log(`${this.playerId} 对 ${victims.map(v => v.player.id)} 发动了 ${this.displayName}`)
             console.log('[突袭] 玩家选择了突袭, 放弃了摸牌', victims.map(v => v.player.id))
             manager.broadcast(new TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id))
@@ -649,7 +649,7 @@ export class XingShang extends SimpleConditionalSkill<DeathOp> {
     }
 
     public conditionFulfilled(event: DeathOp, manager: GameManager): boolean {
-        return event.deceased.player.id !== this.id && event.timeline === DeathTimeline.IN_DEATH
+        return event.deceased.player.id !== this.playerId && event.deceased.hasOwnCards() && event.timeline === DeathTimeline.IN_DEATH
     }
 
     public invokeMsg(event: DeathOp): string {
@@ -710,7 +710,7 @@ export class FangZhu extends SkillForDamageTaken {
         }
         this.playSound(manager, 2)
         let target = resp.targets[0]
-        console.log('[放逐] 结果', resp, target.player.id)
+        console.log('[放逐] > ', target.player.id)
         
         await turnOver(manager.context.getPlayer(this.playerId), target, this.displayName, manager)
 
@@ -935,7 +935,7 @@ export class QiaoBian extends SimpleConditionalSkill<StageStartFlow> {
                 forbidden: [...manager.getSortedByCurr(false).filter(p => p.getCards(CardPos.HAND).length === 0).map(p => p.player.id), this.playerId],
             })
     
-            let victims = resp.targets
+            let victims = manager.sortByCurrent(resp.targets)
             console.log('[巧变] 玩家选择摸', victims.map(v => v.player.id))
             manager.log(`${this.playerId} 发动了 ${this.displayName} 向 ${victims} 各摸一张手牌`)
             manager.broadcast(new TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id))

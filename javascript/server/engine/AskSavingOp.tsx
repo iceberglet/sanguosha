@@ -58,7 +58,7 @@ export default class AskSavingOp {
             if(!response.isCancel()) {
                 if(response.skill) {
                     await manager.resolver.onSkillAction(response, this, manager)
-                } if(response.signChosen) {
+                } else if(response.signChosen) {
                     await manager.resolver.onSignAction(response, this, manager)
                 } else {
                     //金主爸爸!!

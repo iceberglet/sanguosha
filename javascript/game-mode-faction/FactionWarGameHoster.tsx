@@ -110,15 +110,19 @@ export default class FactionWarGameHoster implements GameHoster {
                 this.registry.onPlayerReconnected(playerId)
             }
         } else {
-            this.resendGameToPlayer(playerId)
+            await this.resendGameToPlayer(playerId)
         }
     }
 
-    private resendGameToPlayer(playerId: string) {
+    private async resendGameToPlayer(playerId: string) {
         this.manager.onPlayerReconnected(playerId)
         this.skillRepo.getSkills(playerId).forEach(s => {
             this.manager.send(playerId, s.toStatus())
         })
+        
+        //await a while so client is properly set up
+        await delay(500)
+        this.registry.onPlayerReconnected(playerId)
     }
 
     async addNewPlayer(player: PlayerPrepChoice): Promise<void> {

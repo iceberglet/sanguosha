@@ -164,7 +164,7 @@ export abstract class PlayerInfo {
     removeFromPos(cardId: string, cardPos: CardPos) {
         let removed = takeFromArray(this.cards.get(cardPos), c => c.id === cardId)
         if(!removed) {
-            throw `Did not find such card! ${cardId} ${CardPos[cardPos]}`
+            throw `Did not find such card! ${cardId} ${CardPos[cardPos]} ${this.cards.get(cardPos)}`
         }
     }
 

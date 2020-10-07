@@ -4966,7 +4966,7 @@ class PlayerInfo {
     removeFromPos(cardId, cardPos) {
         let removed = Util_1.takeFromArray(this.cards.get(cardPos), c => c.id === cardId);
         if (!removed) {
-            throw `Did not find such card! ${cardId} ${CardPos_1.CardPos[cardPos]}`;
+            throw `Did not find such card! ${cardId} ${CardPos_1.CardPos[cardPos]} ${this.cards.get(cardPos)}`;
         }
     }
     getReach() {
@@ -8005,14 +8005,19 @@ class FactionWarGameHoster {
                 }
             }
             else {
-                this.resendGameToPlayer(playerId);
+                yield this.resendGameToPlayer(playerId);
             }
         });
     }
     resendGameToPlayer(playerId) {
-        this.manager.onPlayerReconnected(playerId);
-        this.skillRepo.getSkills(playerId).forEach(s => {
-            this.manager.send(playerId, s.toStatus());
+        return __awaiter(this, void 0, void 0, function* () {
+            this.manager.onPlayerReconnected(playerId);
+            this.skillRepo.getSkills(playerId).forEach(s => {
+                this.manager.send(playerId, s.toStatus());
+            });
+            //await a while so client is properly set up
+            yield Util_1.delay(500);
+            this.registry.onPlayerReconnected(playerId);
         });
     }
     addNewPlayer(player) {
@@ -12719,7 +12724,7 @@ class TuXi extends Skill_1.SimpleConditionalSkill {
             }
             else {
                 this.playSound(manager, 2);
-                let victims = resp.targets;
+                let victims = manager.sortByCurrent(resp.targets);
                 manager.log(`${this.playerId} 对 ${victims.map(v => v.player.id)} 发动了 ${this.displayName}`);
                 console.log('[突袭] 玩家选择了突袭, 放弃了摸牌', victims.map(v => v.player.id));
                 manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id));
@@ -13152,7 +13157,7 @@ class XingShang extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(DeathOp_1.default, this);
     }
     conditionFulfilled(event, manager) {
-        return event.deceased.player.id !== this.id && event.timeline === DeathOp_1.DeathTimeline.IN_DEATH;
+        return event.deceased.player.id !== this.playerId && event.deceased.hasOwnCards() && event.timeline === DeathOp_1.DeathTimeline.IN_DEATH;
     }
     invokeMsg(event) {
         return `发动 ${this.displayName} 获得 ${event.deceased} 的所有手牌/装备牌`;
@@ -13212,7 +13217,7 @@ class FangZhu extends SkillForDamageTaken {
             }
             this.playSound(manager, 2);
             let target = resp.targets[0];
-            console.log('[放逐] 结果', resp, target.player.id);
+            console.log('[放逐] > ', target.player.id);
             yield Generic_1.turnOver(manager.context.getPlayer(this.playerId), target, this.displayName, manager);
             yield new TakeCardOp_1.default(target, resp.source.maxHp - resp.source.hp).perform(manager);
             return;
@@ -13446,7 +13451,7 @@ class QiaoBian extends Skill_1.SimpleConditionalSkill {
                     //必须是有手牌的人
                     forbidden: [...manager.getSortedByCurr(false).filter(p => p.getCards(CardPos_1.CardPos.HAND).length === 0).map(p => p.player.id), this.playerId],
                 });
-                let victims = resp.targets;
+                let victims = manager.sortByCurrent(resp.targets);
                 console.log('[巧变] 玩家选择摸', victims.map(v => v.player.id));
                 manager.log(`${this.playerId} 发动了 ${this.displayName} 向 ${victims} 各摸一张手牌`);
                 manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, victims.map(v => v.player.id), this.id));
@@ -14552,17 +14557,15 @@ class HaoShi extends Skill_1.SimpleConditionalSkill {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint, context) => {
             let required = Math.floor(context.myself.getCards(CardPos_1.CardPos.HAND).length / 2);
             let minimum = Infinity, choices = new Set();
-            context.playerInfos.forEach(p => {
-                if (this.playerId !== p.player.id) {
-                    let hand = p.getCards(CardPos_1.CardPos.HAND).length;
-                    if (hand < minimum) {
-                        minimum = hand;
-                        choices.clear();
-                        choices.add(p.player.id);
-                    }
-                    else if (hand === minimum) {
-                        choices.add(p.player.id);
-                    }
+            context.playerInfos.filter(p => !p.isDead && p.player.id !== this.playerId).forEach(p => {
+                let hand = p.getCards(CardPos_1.CardPos.HAND).length;
+                if (hand < minimum) {
+                    minimum = hand;
+                    choices.clear();
+                    choices.add(p.player.id);
+                }
+                else if (hand === minimum) {
+                    choices.add(p.player.id);
                 }
             });
             if (choices.size < 1) {
@@ -16229,6 +16232,9 @@ class GameManager {
         this.statsCollector.subscribeTo(adminRegistry);
         adminRegistry.onGeneral(Generic_1.CardBeingUsedEvent, this.processCardEvent);
     }
+    sortByCurrent(players) {
+        return this.context.sortFromPerspective(this.currPlayer().player.id, players.map(p => p.player.id));
+    }
     playSound(gender, soundName) {
         //no gender -> defaults to male (for unrevealed players)
         let genderFolder = gender === 'F' ? 'female' : 'male';
@@ -16382,7 +16388,6 @@ class GameManager {
         if (this.onReconnect) {
             this.onReconnect();
         }
-        this.registry.onPlayerReconnected(player);
     }
     currPlayer() {
         return this.context.playerInfos[this.currentPlayer];
@@ -17292,7 +17297,7 @@ class AskSavingOp {
                     if (response.skill) {
                         yield manager.resolver.onSkillAction(response, this, manager);
                     }
-                    if (response.signChosen) {
+                    else if (response.signChosen) {
                         yield manager.resolver.onSignAction(response, this, manager);
                     }
                     else {
@@ -20047,7 +20052,7 @@ class AskForSlashOp extends Operation_1.Operation {
                         return card;
                     });
                     let slashType = deriveSlashType(cards.map(c => manager.interpret(this.slasher.player.id, c)));
-                    manager.log(`${resp.source} 决斗打出了 ${cards}`);
+                    manager.log(`${resp.source} 打出了 ${cards}`);
                     manager.sendToWorkflow(this.slasher.player.id, CardPos_1.CardPos.HAND, cards);
                     manager.broadcast(new EffectTransit_1.TextFlashEffect(this.slasher.player.id, [this.target.player.id], slashType.cardType.name));
                     yield manager.events.publish(new Generic_1.CardBeingUsedEvent(this.slasher.player.id, cards.map(c => [c, CardPos_1.CardPos.HAND]), slashType.cardType, false, false));

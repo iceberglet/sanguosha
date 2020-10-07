@@ -710,16 +710,14 @@ export class HaoShi extends SimpleConditionalSkill<TakeCardStageOp> {
         playerActionDriverProvider.registerSpecial(this.id, (hint, context)=>{
             let required = Math.floor(context.myself.getCards(CardPos.HAND).length / 2)
             let minimum = Infinity, choices = new Set<string>()
-            context.playerInfos.forEach(p => {
-                if(this.playerId !== p.player.id) {
-                    let hand = p.getCards(CardPos.HAND).length
-                    if(hand < minimum) {
-                        minimum = hand
-                        choices.clear()
-                        choices.add(p.player.id)
-                    } else if (hand === minimum) {
-                        choices.add(p.player.id)
-                    }
+            context.playerInfos.filter(p => !p.isDead && p.player.id !== this.playerId).forEach(p => {
+                let hand = p.getCards(CardPos.HAND).length
+                if(hand < minimum) {
+                    minimum = hand
+                    choices.clear()
+                    choices.add(p.player.id)
+                } else if (hand === minimum) {
+                    choices.add(p.player.id)
                 }
             })
             if(choices.size < 1) {

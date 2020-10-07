@@ -206,7 +206,7 @@ export class AskForSlashOp extends Operation<boolean> {
                     return card
                 })
                 let slashType = deriveSlashType(cards.map(c => manager.interpret(this.slasher.player.id, c)))
-                manager.log(`${resp.source} 决斗打出了 ${cards}`)
+                manager.log(`${resp.source} 打出了 ${cards}`)
                 manager.sendToWorkflow(this.slasher.player.id, CardPos.HAND, cards)
                 manager.broadcast(new TextFlashEffect(this.slasher.player.id, [this.target.player.id], slashType.cardType.name))
                 await manager.events.publish(new CardBeingUsedEvent(this.slasher.player.id, cards.map(c => [c, CardPos.HAND]), slashType.cardType, false, false))

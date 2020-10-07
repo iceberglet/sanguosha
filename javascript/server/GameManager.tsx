@@ -67,6 +67,10 @@ export default class GameManager {
         adminRegistry.onGeneral<CardBeingUsedEvent>(CardBeingUsedEvent, this.processCardEvent)
     }
 
+    sortByCurrent (players: PlayerInfo[]) {
+        return this.context.sortFromPerspective(this.currPlayer().player.id, players.map(p => p.player.id))
+    }
+
     processCardEvent = async (event: CardBeingUsedEvent): Promise<void> => {
         if(!event.as || event.as.isEquipment()) {
             return
@@ -242,7 +246,6 @@ export default class GameManager {
         if(this.onReconnect) {
             this.onReconnect()
         }
-        this.registry.onPlayerReconnected(player)
     }
 
     public getCard=(id: string): Card=> {
