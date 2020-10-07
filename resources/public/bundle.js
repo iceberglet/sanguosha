@@ -17528,6 +17528,7 @@ var DamageSource;
     DamageSource[DamageSource["SKILL"] = 4] = "SKILL";
     DamageSource[DamageSource["SHAN_DIAN"] = 5] = "SHAN_DIAN";
     DamageSource[DamageSource["HUO_GONG"] = 6] = "HUO_GONG";
+    DamageSource[DamageSource["TIE_SUO"] = 7] = "TIE_SUO";
 })(DamageSource = exports.DamageSource || (exports.DamageSource = {}));
 // function fromSlash(type: CardType) {
 //     switch(type) {
@@ -17628,7 +17629,7 @@ class DamageOp extends Operation_1.Operation {
                     //player might die half way...
                     if (!player.isDead) {
                         console.log('[伤害结算] 连环伤害:', player.player.id);
-                        yield new DamageOp(this.source, player, this.amount, this.cards, this.damageSource, this.type, false).perform(manager);
+                        yield new DamageOp(this.source, player, this.amount, this.cards, DamageSource.TIE_SUO, this.type, false).perform(manager);
                     }
                 }
             }
@@ -18154,6 +18155,7 @@ class DropCardRequest {
                 manager.sendToWorkflow(targetId, p, toDrop, false);
                 yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(targetId, toDrop.map(d => [d, p])));
             }
+            manager.log(`[${targetId}] 弃置 ${cardsAndPos.map(c => c[0])}`);
             return true;
         });
     }
@@ -18519,6 +18521,10 @@ class Qilin extends Equipment {
     constructor() {
         super(...arguments);
         this.performEffect = (op) => __awaiter(this, void 0, void 0, function* () {
+            //1. 要有伤害来源
+            //2. 来源是我
+            //3. 是杀的伤害
+            //4. 不是铁索连环 (铁索连环Source是TIE_SUO)
             if (!op.source || op.source.player.id !== this.player || op.damageSource !== DamageOp_1.DamageSource.SLASH) {
                 return;
             }

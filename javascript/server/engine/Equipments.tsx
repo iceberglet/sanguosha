@@ -262,6 +262,10 @@ export class Qilin extends Equipment {
     }
 
     performEffect = async (op: DamageOp) => {
+        //1. 要有伤害来源
+        //2. 来源是我
+        //3. 是杀的伤害
+        //4. 不是铁索连环 (铁索连环Source是TIE_SUO)
         if(!op.source || op.source.player.id !== this.player || op.damageSource !== DamageSource.SLASH) {
             return
         }

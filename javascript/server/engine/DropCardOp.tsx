@@ -166,6 +166,7 @@ export class DropCardRequest {
             manager.sendToWorkflow(targetId, p, toDrop, false)
             await manager.events.publish(new CardBeingDroppedEvent(targetId, toDrop.map(d => [d, p])))
         }
+        manager.log(`[${targetId}] 弃置 ${cardsAndPos.map(c => c[0])}`)
         return true
     }
 }
