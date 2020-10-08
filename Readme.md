@@ -4,8 +4,8 @@
 1. Node 服务器
 2. 浏览器作为游玩客户端(推荐Chrome)
 
-![游戏截图](https://github.com/Iceberglet/sanguosha/blob/master/screenshot-1.png?raw=true)
-![游戏截图](https://github.com/Iceberglet/sanguosha/blob/master/screenshot-2.png?raw=true)
+![游戏截图](https://github.com/Iceberglet/sanguosha/blob/master/screenshot-1.PNG?raw=true)
+![游戏截图](https://github.com/Iceberglet/sanguosha/blob/master/screenshot-2.PNG?raw=true)
 
 
 ### 使用方法
