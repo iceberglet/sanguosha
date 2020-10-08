@@ -1,5 +1,12 @@
 # Node版 三国杀 服务器程序
 
+需要:
+1. Node 服务器
+2. 浏览器作为游玩客户端(推荐Chrome)
+
+![游戏截图](https://github.com/Iceberglet/sanguosha/blob/master/screenshot-1.png?raw=true)
+![游戏截图](https://github.com/Iceberglet/sanguosha/blob/master/screenshot-2.png?raw=true)
+
 
 ### 使用方法
 
