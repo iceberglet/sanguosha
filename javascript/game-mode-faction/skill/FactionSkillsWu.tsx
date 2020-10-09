@@ -170,7 +170,7 @@ export class YingZi extends SimpleConditionalSkill<TakeCardStageOp> {
 export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
     id = '反间'
     displayName = '反间'
-    description = '出牌阶段限一次，你可以展示一张手牌并交给一名其他角色，其选择一项：1.展示所有手牌，弃置与此牌同花色的牌；2.失去1点体力。'
+    description = '出牌阶段限一次，你可以展示一张手牌并交给一名其他角色，其选择一项：1.展示所有手牌，然后弃置你与此牌同花色的牌(包括装备牌)；2.失去1点体力。'
     hiddenType = HiddenType.NONE
 
     bootstrapClient() {
@@ -207,7 +207,7 @@ export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
         let resp = await manager.sendHint(target, {
             hintType: HintType.MULTI_CHOICE,
             hintMsg: '请选择对反间的反应',
-            extraButtons: [new Button('cards', `展示所有手牌，弃置所有${Suits[suit]}花色牌`), new Button('hp', '失去一点体力')]
+            extraButtons: [new Button('cards', `展示所有手牌，然后弃置你所有${Suits[suit]}花色的手牌和装备牌`), new Button('hp', '失去一点体力')]
         })
         let button = resp.button
         console.log('[反间] 对方选择了', button)
@@ -216,6 +216,7 @@ export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
             let toKeep: Card[] = []
             //allCards.filter(c => manager.interpret(target, c.id).suit === suit)
             let toDrop: Card[] = []
+            let toDrop2: Card[] = []
             //allCards.filter(c => manager.interpret(target, c.id).suit !== suit)
             allCards.forEach(c => {
                 if(manager.interpret(target, c).suit === suit) {
@@ -226,9 +227,19 @@ export class FanJian extends SimpleConditionalSkill<TakeCardStageOp> {
                     toKeep.push(c)
                 }
             })
+            targetP.getCards(CardPos.EQUIP).forEach(c => {
+                if(manager.interpret(target, c).suit === suit) {
+                    c.description = '反间弃置装备牌'
+                    toDrop2.push(c)
+                }
+            })
             if(toDrop.length > 0) {
                 manager.sendToWorkflow(target, CardPos.HAND, toDrop, false)
                 await manager.events.publish(new CardBeingDroppedEvent(target, toDrop.map(t => [t, CardPos.HAND])))
+            }
+            if(toDrop2.length > 0) {
+                manager.sendToWorkflow(target, CardPos.EQUIP, toDrop2, false)
+                await manager.events.publish(new CardBeingDroppedEvent(target, toDrop2.map(t => [t, CardPos.EQUIP])))
             }
             if(toKeep.length > 0) {
                 manager.sendToWorkflow(target, CardPos.HAND, toKeep, false, true)
