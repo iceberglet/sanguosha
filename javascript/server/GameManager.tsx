@@ -43,6 +43,7 @@ export default class GameManager {
 
     public readonly currEffect: CurrentPlayerEffect = new CurrentPlayerEffect(null, null, new Set<string>(), 0)
     public resolver: PlayerActionResolver
+    public manualEnding: GameEnding
 
     public constructor(public context: GameServerContext, 
                         private registry: PlayerRegistry,
@@ -112,6 +113,9 @@ export default class GameManager {
                     this.currentPlayer = onHold
                 }
                 this.goToNextPlayer()
+                if(this.manualEnding) {
+                    throw this.manualEnding
+                }
             } catch (err) {
                 if(err instanceof PlayerDeadInHisRound) {
                     console.log('Player died in his round. Proceeding to next player...')

@@ -39,6 +39,10 @@ export class VoiceRequest {
     public constructor(public readonly player: string, public readonly speech: string) {}
 }
 
+export class SurrenderRequest {
+    public constructor(public readonly player: string){}
+}
+
 export class CardTransit {
 
     public static WORKFLOW = 'workflow'

@@ -507,7 +507,7 @@ export class BaZhen extends SimpleConditionalSkill<DodgeOp> {
     public conditionFulfilled(event: DodgeOp, manager: GameManager): boolean {
         //我要出闪但没有防具
         return event.target.player.id === this.playerId && 
-            !manager.context.getPlayer(this.playerId).getCards(CardPos.EQUIP).find(c => c.type.genre === 'shield') &&
+            !manager.context.getPlayer(this.playerId).findCardAt(CardPos.EQUIP, 'shield') &&
             !BlockedEquipment.isBlocked(this.playerId)
     }
 
@@ -594,19 +594,10 @@ export class KanPo extends Skill {
                             .filter(c => isSuitBlack(manager.interpret(this.playerId, c).suit))
                             .length > 0) {
                 console.log('[看破] 添加技能处理')
-                context.candidates.push(this.playerId)
+                context.candidates.add(this.playerId)
                 context.processors.set(this.playerId, this)
             }
         })
-    }
-
-    public async onWuXieOp(context: WuXieContext) {
-        if(this.isDisabled || (!this.isRevealed && !this.isForewarned)) {
-            return
-        }
-        console.log('[看破] 添加技能处理')
-        context.candidates.push(this.playerId)
-        context.processors.set(this.playerId, this)
     }
 }
 

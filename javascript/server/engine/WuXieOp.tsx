@@ -2,7 +2,7 @@ import GameManager from "../GameManager";
 import { CardType } from "../../common/cards/Card";
 import { Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
-import { promiseAny, delay } from "../../common/util/Util";
+import { promiseAny, delay, toArr } from "../../common/util/Util";
 import { HintType } from "../../common/ServerHint";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import PlayerAct from "../context/PlayerAct";
@@ -21,7 +21,7 @@ type WuXieProcessor = {
 export class WuXieContext {
 
     public processors = new Map<string, WuXieProcessor>()
-    public candidates: string[] = []
+    public candidates = new Set<string>()
 
     public constructor(private manager: GameManager, 
                         public readonly ruseType: CardType) {
@@ -31,7 +31,7 @@ export class WuXieContext {
         // 检查所有人的手牌查看是否有无懈, 没有的直接 null 处理
         this.manager.context.playerInfos.filter(p => !p.isDead).forEach(p => {
             if(p.getCards(CardPos.HAND).filter(c => c.type.isWuxie()).length > 0) {
-                this.candidates.push(p.player.id)
+                this.candidates.add(p.player.id)
             }
         })
         // publish WuXieFlow event, 比如卧龙和曹仁有技能可以当做无懈可击, 他们会将 null 改回 自己的flow
@@ -51,16 +51,16 @@ export class WuXieContext {
         //不断地反复无懈 (因为无懈还可以无懈)
         while(true) {
 
-            this.candidates = this.candidates.filter(p=>{
+            this.candidates = new Set<string>(toArr(this.candidates).filter(p=>{
                 //要么有无懈牌, 要么有特殊功能
                 //并且没有放弃无懈的权利
                 let meHasCard = this.manager.context.getPlayer(p).getCards(CardPos.HAND).filter(c => c.type.isWuxie()).length > 0
                 let meGotSpecial = this.processors.has(p) && this.processors.get(p).canStillProcess(this.manager)
                 return (meHasCard || meGotSpecial) && !pplNotInterestedInThisPlayer.has(p)
-            })
+            }))
 
             // 若无人possible, 直接完结, 撒花~
-            if(this.candidates.length === 0) {
+            if(this.candidates.size === 0) {
                 return isRuseAbort
             }
     
@@ -77,7 +77,7 @@ export class WuXieContext {
             this.manager.setPending(this.manager.getSortedByCurr(true).map(p => p.player.id))
             this.manager.log(msg)
 
-            let responses = this.candidates.map(async candidate => {
+            let responses = toArr(this.candidates).map(async candidate => {
                         let resp = await this.manager.sendHint(candidate, {
                             hintType: HintType.WU_XIE,
                             hintMsg: msg,
@@ -94,7 +94,7 @@ export class WuXieContext {
                             // 任何回复了 refuse_all 的人本次及以后将不再被询问
                             pplNotInterestedInThisPlayer.add(candidate)
                             this.processors.delete(candidate)
-                            this.candidates.splice(this.candidates.findIndex(c => c === candidate), 1)
+                            this.candidates.delete(candidate)
                         }
                         throw `${candidate}拒绝了无懈`
                     })

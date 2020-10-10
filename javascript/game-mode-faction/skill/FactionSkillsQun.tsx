@@ -1382,10 +1382,14 @@ export class BengHuai extends SimpleConditionalSkill<StageStartFlow> {
     }
 
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+        let buttons = [new Button('hp', '失去一点体力'), new Button('maxHp', '减1点体力上限')]
+        if(event.info.maxHp <= 1) {
+            buttons[1].disable()
+        }
         let resp = await manager.sendHint(this.playerId, {
             hintType: HintType.MULTI_CHOICE,
             hintMsg: `请选择崩坏的效果`,
-            extraButtons: [new Button('hp', '失去一点体力'), new Button('maxHp', '减1点体力上限')]
+            extraButtons: buttons
         })
         this.invokeEffects(manager)
         let me = manager.context.getPlayer(this.playerId)

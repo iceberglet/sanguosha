@@ -1091,7 +1091,7 @@ export class ZiLiang extends SimpleConditionalSkill<DamageOp> {
         manager.broadcast(me, PlayerInfo.sanitize)
         let res = resp.customData as CardSelectionResult
         let card = candidates[res[0].idx]
-        this.invokeEffects(manager)
+        this.invokeEffects(manager, [event.target.player.id], `${this.playerId} 发动 ${this.displayName} 将 ${card} 交给了 ${event.target.player.id}`)
         await manager.transferCards(this.playerId, event.target.player.id, CardPos.ON_SUB_GENERAL, CardPos.HAND, [card])
     }
 }

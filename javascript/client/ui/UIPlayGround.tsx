@@ -3,7 +3,7 @@ import * as React from 'react'
 import { PlayerInfo } from '../../common/PlayerInfo'
 import { Checker, ElementStatus } from './UIBoard'
 import Pubsub from '../../common/util/PubSub'
-import { DamageEffect, CurrentPlayerEffect, VoiceRequest } from '../../common/transit/EffectTransit'
+import { DamageEffect, CurrentPlayerEffect, VoiceRequest, SurrenderRequest } from '../../common/transit/EffectTransit'
 import { UIWorkflowCardRow } from './UIWorkflowRow'
 import { CardManager } from '../../common/cards/Card'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
@@ -28,7 +28,8 @@ type State = {
     //players who are being damaged
     damageAnimation: Set<string>,
     currentPlayerEffect: CurrentPlayerEffect,
-    speeches: Map<string, string>
+    speeches: Map<string, string>,
+    surrendered: string
 }
 
 export default class UIPlayGround extends React.Component<PlayGroundProp, State> {
@@ -62,11 +63,15 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                 })
             })
         })
+        p.pubsub.on(SurrenderRequest, (r: SurrenderRequest)=>{
+            this.setState({surrendered: r.player})
+        })
 
         this.state = {
             damageAnimation: new Set<string>(),
             speeches: new Map<string, string>(),
-            currentPlayerEffect: new CurrentPlayerEffect(null, null, new Set<string>(), 0)
+            currentPlayerEffect: new CurrentPlayerEffect(null, null, new Set<string>(), 0),
+            surrendered: null
         }
     }
 
@@ -86,7 +91,7 @@ export default class UIPlayGround extends React.Component<PlayGroundProp, State>
                         screenPosObtainer={screenPosObtainer} isDamaged={damageAnimation.has(p.player.id)}
                         elementStatus={p.isDead? ElementStatus.NORMAL : checker.getStatus(p.player.id)} 
                         effect={currentPlayerEffect} cardTransitManager={cardTransitManager}
-                        onSelect={s=>checker.onClicked(s)} speech={speeches.get(p.player.id)}/>
+                        onSelect={s=>checker.onClicked(s)} speech={speeches.get(p.player.id)} surrendered={p.player.id === this.state.surrendered}/>
         }
 
         return <div className='occupy'>

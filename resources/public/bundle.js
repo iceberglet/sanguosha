@@ -2815,6 +2815,7 @@ const UILogger_1 = __webpack_require__(/*! ./UILogger */ "./javascript/client/ui
 const AudioManager_1 = __webpack_require__(/*! ../audio-manager/AudioManager */ "./javascript/client/audio-manager/AudioManager.tsx");
 const UIRuleModal_1 = __webpack_require__(/*! ./UIRuleModal */ "./javascript/client/ui/UIRuleModal.tsx");
 const Util_1 = __webpack_require__(/*! ../../common/util/Util */ "./javascript/common/util/Util.tsx");
+const FactionWarUtil_1 = __webpack_require__(/*! ../../game-mode-faction/FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
 class ElementStatus {
     constructor(name, isSelectable) {
         this.name = name;
@@ -3037,7 +3038,8 @@ class UIBoard extends React.Component {
                             '风吹鸡蛋壳牌去人安乐'
                         ], onClick: (choice) => context.sendToServer(new EffectTransit_1.VoiceRequest(myId, choice)) }),
                     React.createElement(UIButton_1.default, { display: showDistance ? '隐藏距离' : '显示距离', onClick: () => { this.setState({ showDistance: !showDistance }); }, disabled: false }),
-                    React.createElement(UIButton_1.default, { display: hideCards ? '拿起牌' : '扣牌', onClick: () => { this.setState({ hideCards: !hideCards }); }, disabled: false }))),
+                    React.createElement(UIButton_1.default, { display: hideCards ? '拿起牌' : '扣牌', onClick: () => { this.setState({ hideCards: !hideCards }); }, disabled: false }),
+                    React.createElement(UIButton_1.default, { display: '投降', onClick: () => confirm('你真的想要投降?') && context.sendToServer(new EffectTransit_1.SurrenderRequest(myId)), disabled: !FactionWarUtil_1.canSurrender(myId, context) }))),
             React.createElement(Util_1.Mask, { isMasked: !!context.getMsg(), maskClass: 'alert-play-hand' }),
             React.createElement(EffectProducer_1.default, { screenPosObtainer: screenPosObtainer, ref: effectProducer => this.effectProducer = effectProducer }));
     }
@@ -3824,10 +3826,14 @@ class UIPlayGround extends React.Component {
                 });
             });
         });
+        p.pubsub.on(EffectTransit_1.SurrenderRequest, (r) => {
+            this.setState({ surrendered: r.player });
+        });
         this.state = {
             damageAnimation: new Set(),
             speeches: new Map(),
-            currentPlayerEffect: new EffectTransit_1.CurrentPlayerEffect(null, null, new Set(), 0)
+            currentPlayerEffect: new EffectTransit_1.CurrentPlayerEffect(null, null, new Set(), 0),
+            surrendered: null
         };
     }
     render() {
@@ -3842,7 +3848,7 @@ class UIPlayGround extends React.Component {
             rows = 2;
         }
         let cardGetter = (p, i) => {
-            return React.createElement(UIPlayerCard_1.UIPlayerCard, { key: i, info: p, dist: showDist && !p.isDead && distanceComputer(p.player.id), screenPosObtainer: screenPosObtainer, isDamaged: damageAnimation.has(p.player.id), elementStatus: p.isDead ? UIBoard_1.ElementStatus.NORMAL : checker.getStatus(p.player.id), effect: currentPlayerEffect, cardTransitManager: cardTransitManager, onSelect: s => checker.onClicked(s), speech: speeches.get(p.player.id) });
+            return React.createElement(UIPlayerCard_1.UIPlayerCard, { key: i, info: p, dist: showDist && !p.isDead && distanceComputer(p.player.id), screenPosObtainer: screenPosObtainer, isDamaged: damageAnimation.has(p.player.id), elementStatus: p.isDead ? UIBoard_1.ElementStatus.NORMAL : checker.getStatus(p.player.id), effect: currentPlayerEffect, cardTransitManager: cardTransitManager, onSelect: s => checker.onClicked(s), speech: speeches.get(p.player.id), surrendered: p.player.id === this.state.surrendered });
         };
         return React.createElement("div", { className: 'occupy' },
             React.createElement("div", { className: 'deck-info' },
@@ -3902,7 +3908,7 @@ class UIPlayerCard extends React.Component {
     }
     render() {
         var _a;
-        let { info, dist, elementStatus, isDamaged, effect, speech } = this.props;
+        let { info, dist, elementStatus, isDamaged, effect, speech, surrendered } = this.props;
         let inMyTurn = effect.player === info.player.id;
         // console.log(effect)
         let pendingOnMe = (_a = effect.pendingUser) === null || _a === void 0 ? void 0 : _a.has(info.player.id);
@@ -3939,6 +3945,7 @@ class UIPlayerCard extends React.Component {
             React.createElement(Util_1.Mask, { isMasked: elementStatus === UIBoard_1.ElementStatus.DISABLED }),
             React.createElement("div", { className: 'seat-number' }, Util_1.toChinese(info.idx)),
             React.createElement(CardTransitManager_1.DefaultCardEndpoint, { info: info, callback: () => this.forceUpdate(), ref: this.doRegister }),
+            surrendered && React.createElement("img", { src: 'animations/surrender.gif', alt: '\u6295\u964D!', className: 'chat' }),
             speech && React.createElement("div", { className: 'chat' }, speech));
     }
 }
@@ -5835,7 +5842,7 @@ exports.CardRearrangeRequest = CardRearrangeRequest;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LogTransit = exports.CardTransit = exports.VoiceRequest = exports.SkinRequest = exports.CurrentPlayerEffect = exports.DamageEffect = exports.TextFlashEffect = exports.PlaySound = void 0;
+exports.LogTransit = exports.CardTransit = exports.SurrenderRequest = exports.VoiceRequest = exports.SkinRequest = exports.CurrentPlayerEffect = exports.DamageEffect = exports.TextFlashEffect = exports.PlaySound = void 0;
 const Card_1 = __webpack_require__(/*! ../cards/Card */ "./javascript/common/cards/Card.tsx");
 const CardPos_1 = __webpack_require__(/*! ./CardPos */ "./javascript/common/transit/CardPos.tsx");
 class PlaySound {
@@ -5884,6 +5891,12 @@ class VoiceRequest {
     }
 }
 exports.VoiceRequest = VoiceRequest;
+class SurrenderRequest {
+    constructor(player) {
+        this.player = player;
+    }
+}
+exports.SurrenderRequest = SurrenderRequest;
 class CardTransit {
     constructor(from, fromPos, to, toPos, cards, animDurationSeconds, head = false, 
     /**
@@ -6470,6 +6483,7 @@ exports.Serde.register(RoundStat_1.default);
 exports.Serde.register(EffectTransit_1.SkinRequest);
 exports.Serde.register(Multimap_1.default);
 exports.Serde.register(EffectTransit_1.VoiceRequest);
+exports.Serde.register(EffectTransit_1.SurrenderRequest);
 exports.Serde.register(PlayerAction_1.Button);
 exports.Serde.register(Stage_1.Stage);
 exports.Serde.register(EffectTransit_1.LogTransit);
@@ -6638,7 +6652,7 @@ exports.TogglableMap = TogglableMap;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.debounce = exports.throttle = exports.wait = exports.delay = exports.toChinese = exports.promiseAny = exports.reorder = exports.any = exports.all = exports.filterMap = exports.flattenMap = exports.getKeys = exports.checkThat = exports.checkNotNull = exports.Mask = exports.Suits = exports.getNext = exports.enumValues = exports.takeFromArray = exports.getRandom = exports.shuffle = void 0;
+exports.toArr = exports.debounce = exports.throttle = exports.wait = exports.delay = exports.toChinese = exports.promiseAny = exports.reorder = exports.any = exports.all = exports.filterMap = exports.flattenMap = exports.getKeys = exports.checkThat = exports.checkNotNull = exports.Mask = exports.Suits = exports.getNext = exports.enumValues = exports.takeFromArray = exports.getRandom = exports.shuffle = void 0;
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 function shuffle(array) {
     var m = array.length, t, i;
@@ -6816,6 +6830,12 @@ function debounce(func, wait, immediate = false) {
 }
 exports.debounce = debounce;
 ;
+function toArr(set) {
+    let res = [];
+    set.forEach(s => res.push(s));
+    return res;
+}
+exports.toArr = toArr;
 
 
 /***/ }),
@@ -7914,6 +7934,8 @@ const PlayerAction_1 = __webpack_require__(/*! ../common/PlayerAction */ "./java
 const Card_1 = __webpack_require__(/*! ../common/cards/Card */ "./javascript/common/cards/Card.tsx");
 const EffectTransit_1 = __webpack_require__(/*! ../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
 const PlayerInfo_1 = __webpack_require__(/*! ../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
+const FactionWarUtil_1 = __webpack_require__(/*! ./FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
+const GameEnding_1 = __webpack_require__(/*! ../server/GameEnding */ "./javascript/server/GameEnding.tsx");
 const myMode = GameModeEnum_1.GameModeEnum.FactionWarGame;
 const generalsToPickFrom = 7;
 class FactionWarGameHoster {
@@ -7944,6 +7966,16 @@ class FactionWarGameHoster {
             let player = this.manager.context.getPlayer(p.requester);
             player.getCards(CardPos_1.CardPos.HAND).sort(Card_1.cardSorter);
             this.manager.send(p.requester, player);
+        });
+        registry.pubsub.on(EffectTransit_1.SurrenderRequest, s => {
+            var _a;
+            console.log('玩家投降', s.player);
+            if (FactionWarUtil_1.canSurrender(s.player, (_a = this.manager) === null || _a === void 0 ? void 0 : _a.context) && !this.manager.manualEnding) {
+                this.manager.log(`${s.player} 投降了 回合结束即结算胜负`);
+                this.manager.broadcast(s);
+                let winners = this.manager.getSortedByCurr(true).filter(p => p.player.id !== s.player).map(p => p.player.id);
+                this.manager.manualEnding = new GameEnding_1.default(winners);
+            }
         });
         registry.pubsub.on(EffectTransit_1.SkinRequest, (r) => {
             if (!this.manager) {
@@ -9183,7 +9215,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.askAbandonEquip = exports.askAbandonBasicCard = exports.getFactionsWithLeastMembers = exports.getFactionMembers = exports.getNumberOfFactions = void 0;
+exports.askAbandonEquip = exports.askAbandonBasicCard = exports.canSurrender = exports.getFactionsWithLeastMembers = exports.getFactionMembers = exports.getNumberOfFactions = void 0;
 const General_1 = __webpack_require__(/*! ../common/General */ "./javascript/common/General.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../common/ServerHint */ "./javascript/common/ServerHint.tsx");
 const PlayerAction_1 = __webpack_require__(/*! ../common/PlayerAction */ "./javascript/common/PlayerAction.tsx");
@@ -9244,6 +9276,33 @@ function getFactionsWithLeastMembers(manager) {
 }
 exports.getFactionsWithLeastMembers = getFactionsWithLeastMembers;
 /**
+ * 玩家是否可以surrender
+ * @param player
+ * @param manager
+ */
+function canSurrender(player, context) {
+    if (!context) {
+        return false;
+    }
+    let remaining = context.playerInfos.filter(p => !p.isDead);
+    console.log('Can Surrender?', remaining);
+    if (remaining.length <= 2) {
+        return true;
+    }
+    let facs = new Set();
+    for (let p of remaining) {
+        if (!p.isRevealed()) {
+            return false;
+        }
+        if (p.player.id === player) {
+            continue;
+        }
+        facs.add(p.getFaction());
+    }
+    return facs.size === 1;
+}
+exports.canSurrender = canSurrender;
+/**
  * Return 是否按要求弃置了牌
  * @param manager
  * @param target
@@ -9269,6 +9328,13 @@ function askAbandonBasicCard(manager, target, msg, canCancel) {
     });
 }
 exports.askAbandonBasicCard = askAbandonBasicCard;
+/**
+ * 令玩家弃置一张装备
+ * @param manager
+ * @param target 受害者
+ * @param msg 提示
+ * @param canCancel 是否可以取消
+ */
 function askAbandonEquip(manager, target, msg, canCancel) {
     return __awaiter(this, void 0, void 0, function* () {
         let nonEquip = target.getCards(CardPos_1.CardPos.HAND).filter(c => !c.type.isEquipment()).map(c => c.id);
@@ -10923,10 +10989,14 @@ class BengHuai extends Skill_1.SimpleConditionalSkill {
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
+            let buttons = [new PlayerAction_1.Button('hp', '失去一点体力'), new PlayerAction_1.Button('maxHp', '减1点体力上限')];
+            if (event.info.maxHp <= 1) {
+                buttons[1].disable();
+            }
             let resp = yield manager.sendHint(this.playerId, {
                 hintType: ServerHint_1.HintType.MULTI_CHOICE,
                 hintMsg: `请选择崩坏的效果`,
-                extraButtons: [new PlayerAction_1.Button('hp', '失去一点体力'), new PlayerAction_1.Button('maxHp', '减1点体力上限')]
+                extraButtons: buttons
             });
             this.invokeEffects(manager);
             let me = manager.context.getPlayer(this.playerId);
@@ -11486,7 +11556,7 @@ class BaZhen extends Skill_1.SimpleConditionalSkill {
     conditionFulfilled(event, manager) {
         //我要出闪但没有防具
         return event.target.player.id === this.playerId &&
-            !manager.context.getPlayer(this.playerId).getCards(CardPos_1.CardPos.EQUIP).find(c => c.type.genre === 'shield') &&
+            !manager.context.getPlayer(this.playerId).findCardAt(CardPos_1.CardPos.EQUIP, 'shield') &&
             !Equipments_1.BlockedEquipment.isBlocked(this.playerId);
     }
     doInvoke(event, manager) {
@@ -11573,20 +11643,10 @@ class KanPo extends Skill_1.Skill {
                 .filter(c => ICard_1.isSuitBlack(manager.interpret(this.playerId, c).suit))
                 .length > 0) {
                 console.log('[看破] 添加技能处理');
-                context.candidates.push(this.playerId);
+                context.candidates.add(this.playerId);
                 context.processors.set(this.playerId, this);
             }
         }));
-    }
-    onWuXieOp(context) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.isDisabled || (!this.isRevealed && !this.isForewarned)) {
-                return;
-            }
-            console.log('[看破] 添加技能处理');
-            context.candidates.push(this.playerId);
-            context.processors.set(this.playerId, this);
-        });
     }
 }
 exports.KanPo = KanPo;
@@ -13605,7 +13665,7 @@ class ZiLiang extends Skill_1.SimpleConditionalSkill {
             manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
             let res = resp.customData;
             let card = candidates[res[0].idx];
-            this.invokeEffects(manager);
+            this.invokeEffects(manager, [event.target.player.id], `${this.playerId} 发动 ${this.displayName} 将 ${card} 交给了 ${event.target.player.id}`);
             yield manager.transferCards(this.playerId, event.target.player.id, CardPos_1.CardPos.ON_SUB_GENERAL, CardPos_1.CardPos.HAND, [card]);
         });
     }
@@ -16273,6 +16333,9 @@ class GameManager {
                         this.currentPlayer = onHold;
                     }
                     this.goToNextPlayer();
+                    if (this.manualEnding) {
+                        throw this.manualEnding;
+                    }
                 }
                 catch (err) {
                     if (err instanceof Operation_1.PlayerDeadInHisRound) {
@@ -20290,7 +20353,7 @@ class WuXieContext {
         this.manager = manager;
         this.ruseType = ruseType;
         this.processors = new Map();
-        this.candidates = [];
+        this.candidates = new Set();
         this.processNormal = (action, manager) => __awaiter(this, void 0, void 0, function* () {
             let card = action.getSingleCardAndPos()[0];
             console.log(`[无懈的结算] 打出了${card.id}作为无懈`);
@@ -20305,7 +20368,7 @@ class WuXieContext {
             // 检查所有人的手牌查看是否有无懈, 没有的直接 null 处理
             this.manager.context.playerInfos.filter(p => !p.isDead).forEach(p => {
                 if (p.getCards(CardPos_1.CardPos.HAND).filter(c => c.type.isWuxie()).length > 0) {
-                    this.candidates.push(p.player.id);
+                    this.candidates.add(p.player.id);
                 }
             });
             // publish WuXieFlow event, 比如卧龙和曹仁有技能可以当做无懈可击, 他们会将 null 改回 自己的flow
@@ -20324,15 +20387,15 @@ class WuXieContext {
             let pplNotInterestedInThisPlayer = new Set();
             //不断地反复无懈 (因为无懈还可以无懈)
             while (true) {
-                this.candidates = this.candidates.filter(p => {
+                this.candidates = new Set(Util_1.toArr(this.candidates).filter(p => {
                     //要么有无懈牌, 要么有特殊功能
                     //并且没有放弃无懈的权利
                     let meHasCard = this.manager.context.getPlayer(p).getCards(CardPos_1.CardPos.HAND).filter(c => c.type.isWuxie()).length > 0;
                     let meGotSpecial = this.processors.has(p) && this.processors.get(p).canStillProcess(this.manager);
                     return (meHasCard || meGotSpecial) && !pplNotInterestedInThisPlayer.has(p);
-                });
+                }));
                 // 若无人possible, 直接完结, 撒花~
-                if (this.candidates.length === 0) {
+                if (this.candidates.size === 0) {
                     return isRuseAbort;
                 }
                 // 对于所有并非Impossible也没有refuse的人提出要求
@@ -20346,7 +20409,7 @@ class WuXieContext {
                 // show everyone to be doing this
                 this.manager.setPending(this.manager.getSortedByCurr(true).map(p => p.player.id));
                 this.manager.log(msg);
-                let responses = this.candidates.map((candidate) => __awaiter(this, void 0, void 0, function* () {
+                let responses = Util_1.toArr(this.candidates).map((candidate) => __awaiter(this, void 0, void 0, function* () {
                     let resp = yield this.manager.sendHint(candidate, {
                         hintType: ServerHint_1.HintType.WU_XIE,
                         hintMsg: msg,
@@ -20364,7 +20427,7 @@ class WuXieContext {
                         // 任何回复了 refuse_all 的人本次及以后将不再被询问
                         pplNotInterestedInThisPlayer.add(candidate);
                         this.processors.delete(candidate);
-                        this.candidates.splice(this.candidates.findIndex(c => c === candidate), 1);
+                        this.candidates.delete(candidate);
                     }
                     throw `${candidate}拒绝了无懈`;
                 }));
@@ -24213,7 +24276,7 @@ exports.push([module.i, ".tooltip {\n  background: rgba(0, 0, 0, 0.74);\n  paddi
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .system-buttons {\n      position: absolute;\n      background: rgba(27, 27, 27, 0.712);\n      color: white;\n      font-family: initial;\n      border-radius: 6px;\n      padding: 5px;\n      font-size: 13px;\n      top: 4px;\n      left: 4px; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px;\n        padding: 10px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex;\n      position: relative;\n      height: 180px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-signs {\n          height: 36px;\n          display: flex;\n          padding-left: 10px;\n          align-items: center; }\n          .board .btm .my-cards .mid .my-signs .sign {\n            width: 20px;\n            height: 20px;\n            margin: 6px;\n            border-radius: 20px;\n            background: #777777;\n            font-size: 26px;\n            color: #ffffff;\n            opacity: 0.5;\n            transition: 0.2s;\n            border: 1px solid white; }\n            .board .btm .my-cards .mid .my-signs .sign.enabled {\n              opacity: 1;\n              filter: drop-shadow(3px 3px 1px black); }\n            .board .btm .my-cards .mid .my-signs .sign.selectable {\n              cursor: pointer;\n              border: 1px solid gold;\n              background: #d29557; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable:hover {\n              transform: translate(0px, -5px); }\n            .board .btm .my-cards .mid .my-signs .sign.selected {\n              transform: translate(0px, -5px);\n              color: gold; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 36px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 100px;\n          font-size: 18px; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      z-index: 2; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em;\n  transition: 0.2s; }\n  .ui-button.ui-button-abort {\n    position: absolute;\n    right: 10px;\n    color: #bd7d1c;\n    background: white;\n    padding: 10px; }\n  .ui-button.ui-button-abort:hover {\n    color: red;\n    background: #2e2e2e; }\n  .ui-button.ui-button-abort:active {\n    color: black; }\n  .ui-button .drop-down {\n    position: absolute;\n    bottom: -100%;\n    left: 0px;\n    border: 1px solid darkgray; }\n    .ui-button .drop-down .choice {\n      background: beige;\n      color: black;\n      cursor: pointer; }\n    .ui-button .drop-down .choice:hover {\n      color: white;\n      background: black; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n.alert-play-hand {\n  animation: flashing-red 1.6s infinite;\n  pointer-events: none; }\n\n@keyframes flashing-red {\n  0% {\n    background: transparent; }\n  50% {\n    background: rgba(255, 0, 0, 0.247); }\n  100% {\n    background: transparent; } }\n", ""]);
+exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .system-buttons {\n      position: absolute;\n      background: rgba(27, 27, 27, 0.712);\n      color: white;\n      font-family: initial;\n      border-radius: 6px;\n      padding: 5px;\n      font-size: 13px;\n      top: 4px;\n      left: 4px; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px;\n        padding: 10px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex;\n      position: relative;\n      height: 180px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-signs {\n          height: 36px;\n          display: flex;\n          padding-left: 10px;\n          align-items: center; }\n          .board .btm .my-cards .mid .my-signs .sign {\n            width: 20px;\n            height: 20px;\n            margin: 6px;\n            border-radius: 20px;\n            background: #777777;\n            font-size: 26px;\n            color: #ffffff;\n            opacity: 0.5;\n            transition: 0.2s;\n            border: 1px solid white; }\n            .board .btm .my-cards .mid .my-signs .sign.enabled {\n              opacity: 1;\n              filter: drop-shadow(3px 3px 1px black); }\n            .board .btm .my-cards .mid .my-signs .sign.selectable {\n              cursor: pointer;\n              border: 1px solid gold;\n              background: #d29557; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable:hover {\n              transform: translate(0px, -5px); }\n            .board .btm .my-cards .mid .my-signs .sign.selected {\n              transform: translate(0px, -5px);\n              color: gold; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 36px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 100px;\n          font-size: 18px; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      z-index: 2; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around;\n      flex-wrap: wrap; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em;\n  transition: 0.2s; }\n  .ui-button.ui-button-abort {\n    position: absolute;\n    right: 10px;\n    color: #bd7d1c;\n    background: white;\n    padding: 10px; }\n  .ui-button.ui-button-abort:hover {\n    color: red;\n    background: #2e2e2e; }\n  .ui-button.ui-button-abort:active {\n    color: black; }\n  .ui-button .drop-down {\n    position: absolute;\n    bottom: -100%;\n    left: 0px;\n    border: 1px solid darkgray; }\n    .ui-button .drop-down .choice {\n      background: beige;\n      color: black;\n      cursor: pointer; }\n    .ui-button .drop-down .choice:hover {\n      color: white;\n      background: black; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n.alert-play-hand {\n  animation: flashing-red 1.6s infinite;\n  pointer-events: none; }\n\n@keyframes flashing-red {\n  0% {\n    background: transparent; }\n  50% {\n    background: rgba(255, 0, 0, 0.247); }\n  100% {\n    background: transparent; } }\n", ""]);
 
 
 
@@ -24318,7 +24381,7 @@ exports.push([module.i, ".ui-my-player-card {\n  box-shadow: 0px 0px 30px black;
 
 exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none;\n      width: 120%;\n      height: 120%; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .chat {\n    position: absolute;\n    top: 20px;\n    align-self: center;\n    justify-self: center;\n    background: white;\n    color: black;\n    font-family: initial;\n    font-size: 16px; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n.img-flashing::after {\n  content: '';\n  background: rgba(255, 255, 255, 0.678);\n  width: 50%;\n  height: 200%;\n  transform-origin: center;\n  position: absolute;\n  transform-origin: bottom;\n  animation: img-flash 0.6s forwards; }\n\n@keyframes img-flash {\n  0% {\n    transform: translate(-500%, -100%) rotate(45deg); }\n  100% {\n    transform: translate(0%, 0%) rotate(45deg); } }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
+exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none;\n      width: 120%;\n      height: 120%; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .chat {\n    position: absolute;\n    top: 20px;\n    align-self: center;\n    justify-self: center;\n    background: white;\n    color: black;\n    font-family: initial;\n    font-size: 16px;\n    width: 100%; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n.img-flashing::after {\n  content: '';\n  background: rgba(255, 255, 255, 0.678);\n  width: 50%;\n  height: 200%;\n  transform-origin: center;\n  position: absolute;\n  transform-origin: bottom;\n  animation: img-flash 0.6s forwards; }\n\n@keyframes img-flash {\n  0% {\n    transform: translate(-500%, -100%) rotate(45deg); }\n  100% {\n    transform: translate(0%, 0%) rotate(45deg); } }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
 
 
 

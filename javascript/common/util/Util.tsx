@@ -183,3 +183,10 @@ export function debounce(func: Function, wait: number, immediate: boolean = fals
 		if (callNow) func.apply(context, args);
 	};
 };
+
+
+export function toArr<T>(set: Set<T>): T[] {
+  let res: T[] = []
+  set.forEach(s => res.push(s))
+  return res
+}

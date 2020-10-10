@@ -6,6 +6,7 @@ import { HintType } from "../common/ServerHint";
 import { UIPosition, Button } from "../common/PlayerAction";
 import { CardPos } from "../common/transit/CardPos";
 import Multimap from "../common/util/Multimap";
+import GameContext from "../common/GameContext";
 
 export function getNumberOfFactions(manager: GameManager): number {
     let revealed = manager.getSortedByCurr(true).filter(p => (p as FactionPlayerInfo).isRevealed())
@@ -59,6 +60,33 @@ export function getFactionsWithLeastMembers(manager: GameManager): Set<Faction> 
 }
 
 /**
+ * 玩家是否可以surrender
+ * @param player 
+ * @param manager 
+ */
+export function canSurrender(player: string, context: GameContext): boolean {
+    if(!context) {
+        return false
+    }
+    let remaining = context.playerInfos.filter(p => !p.isDead)
+    console.log('Can Surrender?', remaining)
+    if(remaining.length <= 2) {
+        return true
+    }
+    let facs = new Set<Faction>()
+    for(let p of remaining) {
+        if(!(p as FactionPlayerInfo).isRevealed()) {
+            return false
+        }
+        if(p.player.id === player) {
+            continue
+        }
+        facs.add(p.getFaction())
+    }
+    return facs.size === 1
+}
+
+/**
  * Return 是否按要求弃置了牌
  * @param manager 
  * @param target 
@@ -82,7 +110,13 @@ export async function askAbandonBasicCard(manager: GameManager, target: PlayerIn
     return true
 }
 
-
+/**
+ * 令玩家弃置一张装备
+ * @param manager 
+ * @param target 受害者
+ * @param msg 提示
+ * @param canCancel 是否可以取消 
+ */
 export async function askAbandonEquip(manager: GameManager, target: PlayerInfo, msg: string, canCancel: boolean): Promise<boolean> {
     let nonEquip = target.getCards(CardPos.HAND).filter(c => !c.type.isEquipment()).map(c => c.id)
     let resp = await manager.sendHint(target.player.id, {

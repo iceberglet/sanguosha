@@ -10,7 +10,7 @@ import { Clickability } from '../player-actions/PlayerActionDriver'
 import Pubsub from '../../common/util/PubSub'
 import { ServerHintTransit, Rescind, HintType, CustomRequest } from '../../common/ServerHint'
 import EffectProducer from '../effect/EffectProducer'
-import { TextFlashEffect, CardTransit, CurrentPlayerEffect, SkinRequest, VoiceRequest } from '../../common/transit/EffectTransit'
+import { TextFlashEffect, CardTransit, CurrentPlayerEffect, SkinRequest, VoiceRequest, SurrenderRequest } from '../../common/transit/EffectTransit'
 import FactionPlayerInfo from '../../game-mode-faction/FactionPlayerInfo'
 import IdentityWarPlayerInfo from '../../game-mode-identity/IdentityWarPlayerInfo'
 import { ScreenPosObtainer } from './ScreenPosObtainer'
@@ -25,6 +25,7 @@ import { UIRollingLogger, UILogger } from './UILogger'
 import { audioManager } from '../audio-manager/AudioManager'
 import RuleModal from './UIRuleModal'
 import { debounce, Mask, throttle } from '../../common/util/Util'
+import { canSurrender } from '../../game-mode-faction/FactionWarUtil'
 
 type UIBoardProp = {
     myId: string
@@ -309,12 +310,12 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                     <UIButton display={showDistance? '隐藏距离' : '显示距离'} 
                             onClick={()=>{this.setState({showDistance: !showDistance})}} 
                             disabled={false} />
-                    {/* <UIButton display={'更换皮肤'} 
-                            onClick={debounce(()=>{context.sendToServer(new SkinRequest())}, 1000)} 
-                            disabled={false} /> */}
                     <UIButton display={hideCards? '拿起牌' : '扣牌'} 
                             onClick={()=>{this.setState({hideCards: !hideCards})}} 
                             disabled={false} />
+                    <UIButton display={'投降'} 
+                            onClick={()=>confirm('你真的想要投降?') && context.sendToServer(new SurrenderRequest(myId))} 
+                            disabled={!canSurrender(myId, context)} />
                 </div>
             </div>
             <Mask isMasked={!!context.getMsg()} maskClass={'alert-play-hand'}/>
