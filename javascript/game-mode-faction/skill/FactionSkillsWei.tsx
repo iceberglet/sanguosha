@@ -29,6 +29,7 @@ import { MoveCardOnField } from "../../server/engine/MoveCardOp";
 import { GrabCard, ShunShou } from "../../server/engine/SingleRuseOp";
 import FactionPlayerInfo from "../FactionPlayerInfo";
 import { CustomUIData, XunXunData } from "../../client/card-panel/CustomUIRegistry";
+import GameClientContext from "../../client/GameClientContext";
 
 export abstract class SkillForDamageTaken extends SimpleConditionalSkill<DamageOp> {
 
@@ -544,6 +545,27 @@ export class JuShou extends SimpleConditionalSkill<StageStartFlow> {
     displayName = '据守'
     description = '结束阶段开始时，你可以发动此技能。然后你摸X张牌，选择一项：1.弃置一张不为装备牌的手牌；2.使用一张装备牌。若X大于2，则你将武将牌翻面。（X为此时亮明势力数）'
 
+    public bootstrapClient(context: GameClientContext, player: PlayerInfo) {
+        let buttons = [
+            new Button('equip', '装备').inDirect(),
+            new Button('drop', '弃置')
+        ]
+
+        playerActionDriverProvider.registerSpecial(this.id, (hint)=>{
+            return new PlayerActionDriverDefiner('据守')
+                    .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>true, ()=>'[据守] 选择一张手牌')
+                    .expectChoose([UIPosition.BUTTONS], 1, 1, (id, context, chosen)=>{
+                        let card = context.interpret(chosen.getArr(UIPosition.MY_HAND)[0])
+                        if(card.type.isEquipment()) {
+                            return true
+                        } else {
+                            return id !== 'equip'
+                        }
+                    }, ()=>'选择操作')
+                    .build(hint, buttons)
+        })
+    }
+
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<StageStartFlow>(StageStartFlow, this)
     }
@@ -552,24 +574,25 @@ export class JuShou extends SimpleConditionalSkill<StageStartFlow> {
         return event.info.player.id === this.playerId && event.stage === Stage.ROUND_END
     }
     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
-        this.playSound(manager, 2)
+        this.invokeEffects(manager)
+
         let myself = manager.context.getPlayer(this.playerId)
         let x = getNumberOfFactions(manager)
         console.log('[据守] 场上亮明势力数为', x)
-        manager.log(`${this.playerId} 发动了 ${this.displayName}`)
         await new TakeCardOp(myself, x).perform(manager)
         let resp = await manager.sendHint(this.playerId, {
-            hintType: HintType.CHOOSE_CARD,
-            hintMsg: '[据守] 选择一张手牌, 若为装备则使用, 否则弃置',
-            quantity: 1,
-            minQuantity: 1,
-            positions: [UIPosition.MY_HAND]
+            hintType: HintType.SPECIAL,
+            specialId: this.id,
+            hintMsg: '[据守] 选择一张手牌, 若为装备则使用, 否则弃置'
         })
 
         let card = resp.getCardsAtPos(CardPos.HAND)[0]
         console.log('[据守] 弃置' + card)
-        if(card.type.isEquipment()) {
+        if(card.type.isEquipment() && resp.button === 'equip') {
             //装备
+            card.description = `${this.playerId} 装备`
+            manager.sendToWorkflow(this.playerId, CardPos.HAND, [card], false, true)
+            await manager.events.publish(new CardBeingUsedEvent(this.playerId, [[card, CardPos.HAND]], card.type))
             await new EquipOp(myself, card).perform(manager)
         } else {
             delete card.as

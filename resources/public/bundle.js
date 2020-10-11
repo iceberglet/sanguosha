@@ -8698,81 +8698,22 @@ exports.default = FactionWarGeneral;
 FactionWarGeneral.soldier_male = new FactionWarGeneral('guo_soldier_male', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0).withSkin(0);
 FactionWarGeneral.soldier_female = new FactionWarGeneral('guo_soldier_female', exports.DUMMY_GENERAL_NAME, General_1.Faction.UNKNOWN, 0).withSkin(0);
 //17
-FactionWarGeneral.cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', General_1.Faction.WEI, 2.5, '奸雄');
-FactionWarGeneral.si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', General_1.Faction.WEI, 1.5, '反馈', '鬼才');
-FactionWarGeneral.xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', General_1.Faction.WEI, 2, '刚烈');
-FactionWarGeneral.zhang_liao = new FactionWarGeneral('standard_zhang_liao', '张辽', General_1.Faction.WEI, 2, '突袭');
-FactionWarGeneral.xu_chu = new FactionWarGeneral('standard_xu_chu', '许褚', General_1.Faction.WEI, 2, '裸衣');
-FactionWarGeneral.guo_jia = new FactionWarGeneral('standard_guo_jia', '郭嘉', General_1.Faction.WEI, 1.5, '天妒', '遗计');
-FactionWarGeneral.zhen_ji = new FactionWarGeneral('standard_zhen_ji', '甄姬', General_1.Faction.WEI, 1.5, '洛神', '倾国').asFemale();
-FactionWarGeneral.xia_hou_yuan = new FactionWarGeneral('wind_xia_hou_yuan', '夏侯渊', General_1.Faction.WEI, 2, '神速');
-FactionWarGeneral.xu_huang = new FactionWarGeneral('forest_xu_huang', '徐晃', General_1.Faction.WEI, 2, '断粮');
-FactionWarGeneral.dian_wei = new FactionWarGeneral('fire_dian_wei', '典韦', General_1.Faction.WEI, 2, '强袭');
+// public static cao_cao = new FactionWarGeneral('standard_cao_cao', '曹操', Faction.WEI, 2.5, '奸雄')
+// public static si_ma_yi = new FactionWarGeneral('standard_si_ma_yi', '司马懿', Faction.WEI, 1.5, '反馈', '鬼才')
+// public static xia_hou_dun = new FactionWarGeneral('standard_xia_hou_dun', '夏侯惇', Faction.WEI, 2, '刚烈')
+// public static zhang_liao = new FactionWarGeneral('standard_zhang_liao', '张辽', Faction.WEI, 2, '突袭')
+// public static xu_chu = new FactionWarGeneral('standard_xu_chu', '许褚', Faction.WEI, 2, '裸衣')
+// public static guo_jia = new FactionWarGeneral('standard_guo_jia', '郭嘉', Faction.WEI, 1.5, '天妒', '遗计')
+// public static zhen_ji = new FactionWarGeneral('standard_zhen_ji', '甄姬', Faction.WEI, 1.5, '洛神', '倾国').asFemale() as FactionWarGeneral
+// public static xia_hou_yuan = new FactionWarGeneral('wind_xia_hou_yuan', '夏侯渊', Faction.WEI, 2, '神速')
+// public static xu_huang = new FactionWarGeneral('forest_xu_huang', '徐晃', Faction.WEI, 2, '断粮')
+// public static dian_wei = new FactionWarGeneral('fire_dian_wei', '典韦', Faction.WEI, 2, '强袭')
 FactionWarGeneral.cao_ren = new FactionWarGeneral('wind_cao_ren', '曹仁', General_1.Faction.WEI, 2, '据守').withSkin(4);
 FactionWarGeneral.xun_yu = new FactionWarGeneral('fire_xun_yu', '荀彧', General_1.Faction.WEI, 1.5, '驱虎', '节命');
 FactionWarGeneral.cao_pi = new FactionWarGeneral('guo_cao_pi', '曹丕', General_1.Faction.WEI, 1.5, '行殇', '放逐');
 FactionWarGeneral.yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', General_1.Faction.WEI, 2, '骁果');
 FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', General_1.Faction.WEI, 2, '巧变');
 FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', General_1.Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田');
-FactionWarGeneral.li_dian = new FactionWarGeneral('bound_li_dian', '李典', General_1.Faction.WEI, 1.5, '恂恂', '忘隙');
-// // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
-//18
-FactionWarGeneral.liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', General_1.Faction.SHU, 2, '仁德');
-FactionWarGeneral.guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', General_1.Faction.SHU, 2.5, '武圣');
-FactionWarGeneral.zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', General_1.Faction.SHU, 2, '咆哮');
-FactionWarGeneral.zhao_yun = new FactionWarGeneral('standard_zhao_yun', '赵云', General_1.Faction.SHU, 2, '龙胆');
-FactionWarGeneral.ma_chao = new FactionWarGeneral('standard_ma_chao', '马超', General_1.Faction.SHU, 2, '马术', '铁骑');
-FactionWarGeneral.huang_zhong = new FactionWarGeneral('standard_huang_zhong', '黄忠', General_1.Faction.SHU, 2, '烈弓');
-FactionWarGeneral.wei_yan = new FactionWarGeneral('wind_wei_yan', '魏延', General_1.Faction.SHU, 2, '狂骨');
-FactionWarGeneral.wo_long = new FactionWarGeneral('fire_wo_long', '诸葛亮', General_1.Faction.SHU, 1.5, '八阵', '火计', '看破');
-FactionWarGeneral.sha_mo_ke = new FactionWarGeneral('guo_sha_mo_ke', '沙摩柯', General_1.Faction.SHU, 2, '蒺藜').withSkin(0);
-FactionWarGeneral.liu_shan = new FactionWarGeneral('mountain_liu_shan', '刘禅', General_1.Faction.SHU, 1.5, '享乐', '放权');
-FactionWarGeneral.huang_yue_ying = new FactionWarGeneral('standard_huang_yue_ying', '黄月英', General_1.Faction.SHU, 1.5, '集智', '奇才').asFemale();
-FactionWarGeneral.meng_huo = new FactionWarGeneral('forest_meng_huo', '孟获', General_1.Faction.SHU, 2, '祸首', '再起');
-FactionWarGeneral.zhu_rong = new FactionWarGeneral('forest_zhu_rong', '祝融', General_1.Faction.SHU, 2, '巨象', '烈刃').asFemale();
-FactionWarGeneral.pang_tong = new FactionWarGeneral('fire_pang_tong', '庞统', General_1.Faction.SHU, 1.5, '连环', '涅槃');
-FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫人', General_1.Faction.SHU, 1.5, '淑慎', '神智').asFemale();
-FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成').withSkin(2);
-FactionWarGeneral.zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '观星', '空城');
-FactionWarGeneral.jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', General_1.Faction.SHU, 2, '挑衅', '遗志', '天覆').hpDelta(0, -0.5);
-//18
-FactionWarGeneral.sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', General_1.Faction.WU, 2, '制衡');
-FactionWarGeneral.gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', General_1.Faction.WU, 2, '奇袭');
-FactionWarGeneral.huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', General_1.Faction.WU, 2, '苦肉');
-FactionWarGeneral.tai_shi_ci = new FactionWarGeneral('fire_tai_shi_ci', '太史慈', General_1.Faction.WU, 2, '天义');
-FactionWarGeneral.lu_xun = new FactionWarGeneral('standard_lu_xun', '陆逊', General_1.Faction.WU, 1.5, '谦逊', '度势');
-FactionWarGeneral.sun_shang_xiang = new FactionWarGeneral('standard_sun_shang_xiang', '孙尚香', General_1.Faction.WU, 1.5, '枭姬', '结姻').asFemale();
-FactionWarGeneral.er_zhang = new FactionWarGeneral('mountain_er_zhang', '张昭张纮', General_1.Faction.WU, 1.5, '直谏', '固政');
-FactionWarGeneral.zhou_yu = new FactionWarGeneral('standard_zhou_yu', '周瑜', General_1.Faction.WU, 1.5, '英姿', '反间');
-FactionWarGeneral.da_qiao = new FactionWarGeneral('standard_da_qiao', '大乔', General_1.Faction.WU, 1.5, '国色', '流离').asFemale();
-FactionWarGeneral.sun_jian = new FactionWarGeneral('forest_sun_jian', '孙坚', General_1.Faction.WU, 2.5, '英魂');
-FactionWarGeneral.xiao_qiao = new FactionWarGeneral('wind_xiao_qiao', '小乔', General_1.Faction.WU, 1.5, '天香', '红颜').asFemale();
-FactionWarGeneral.lu_su = new FactionWarGeneral('forest_lu_su', '鲁肃', General_1.Faction.WU, 1.5, '好施', '缔盟');
-FactionWarGeneral.xu_sheng = new FactionWarGeneral('fame_xu_sheng', '徐盛', General_1.Faction.WU, 2, '疑城').withSkin(4);
-FactionWarGeneral.lv_meng = new FactionWarGeneral('standard_lv_meng', '吕蒙', General_1.Faction.WU, 2, '克己', '谋断');
-FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi', '陈武董袭', General_1.Faction.WU, 2, '断绁', '奋命').withSkin(2);
-FactionWarGeneral.zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', General_1.Faction.WU, 2, '不屈', '奋激').setCardName('创');
-FactionWarGeneral.sun_ce = new FactionWarGeneral('guo_sun_ce', '孙策', General_1.Faction.WU, 2, '激昂', '鹰扬', '魂殇').hpDelta(0, -0.5);
-FactionWarGeneral.lv_fan = new FactionWarGeneral('guo_lv_fan', '吕范', General_1.Faction.WU, 1.5, '调度', '典财').withSkin(0);
-//18
-FactionWarGeneral.hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', General_1.Faction.QUN, 1.5, '除疠', '急救');
-FactionWarGeneral.lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', General_1.Faction.QUN, 2.5, '无双');
-FactionWarGeneral.diao_chan = new FactionWarGeneral('standard_diao_chan', '貂蝉', General_1.Faction.QUN, 1.5, '闭月', '离间').asFemale();
-FactionWarGeneral.yan_liang_wen_chou = new FactionWarGeneral('fire_yan_liang_wen_chou', '颜良文丑', General_1.Faction.QUN, 2, '双雄');
-FactionWarGeneral.jia_xu = new FactionWarGeneral('forest_jia_xu', '贾诩', General_1.Faction.QUN, 1.5, '完杀', '乱武', '帷幕');
-FactionWarGeneral.he_tai_hou = new FactionWarGeneral('guo_he_tai_hou', '何太后', General_1.Faction.QUN, 1.5, '鸩毒', '戚乱').asFemale();
-FactionWarGeneral.zhang_xiu = new FactionWarGeneral('guo_zhang_xiu', '张绣', General_1.Faction.QUN, 2, '附敌', '从谏');
-FactionWarGeneral.pang_de = new FactionWarGeneral('fire_pang_de', '庞德', General_1.Faction.QUN, 2, '马术(庞)', '鞬出');
-FactionWarGeneral.ma_teng = new FactionWarGeneral('guo_ma_teng', '马腾', General_1.Faction.QUN, 2, '马术(腾)', '雄异').withSkin(3);
-FactionWarGeneral.zhang_jiao = new FactionWarGeneral('wind_zhang_jiao', '张角', General_1.Faction.QUN, 1.5, '雷击', '鬼道');
-FactionWarGeneral.yuan_shao = new FactionWarGeneral('fire_yuan_shao', '袁绍', General_1.Faction.QUN, 2, '乱击');
-FactionWarGeneral.tian_feng = new FactionWarGeneral('guo_tian_feng', '田丰', General_1.Faction.QUN, 1.5, '死谏', '随势').withSkin(3);
-FactionWarGeneral.li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', General_1.Faction.QUN, 2, '凶算').withSkin(0);
-FactionWarGeneral.ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', General_1.Faction.QUN, 1.5, '矢北', '渐营').withSkin(4);
-FactionWarGeneral.xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', General_1.Faction.QUN, 1.5, '锋略', '谋识').withSkin(0);
-FactionWarGeneral.pan_feng = new FactionWarGeneral('guo_pan_feng', '潘凤', General_1.Faction.QUN, 2, '狂斧');
-FactionWarGeneral.cai_wen_ji = new FactionWarGeneral('mountain_cai_wen_ji', '蔡文姬', General_1.Faction.QUN, 1.5, '悲歌', '断肠').asFemale();
-FactionWarGeneral.dong_zhuo = new FactionWarGeneral('forest_dong_zhuo', '董卓', General_1.Faction.QUN, 2, '横征', '暴凌', '崩坏');
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
 exports.generalPairs = new Multimap_1.Pairs();
@@ -9289,7 +9230,6 @@ function canSurrender(player, context) {
         return false;
     }
     let remaining = context.playerInfos.filter(p => !p.isDead);
-    console.log('Can Surrender?', remaining);
     if (remaining.length <= 2) {
         return true;
     }
@@ -13123,6 +13063,26 @@ class JuShou extends Skill_1.SimpleConditionalSkill {
         this.displayName = '据守';
         this.description = '结束阶段开始时，你可以发动此技能。然后你摸X张牌，选择一项：1.弃置一张不为装备牌的手牌；2.使用一张装备牌。若X大于2，则你将武将牌翻面。（X为此时亮明势力数）';
     }
+    bootstrapClient(context, player) {
+        let buttons = [
+            new PlayerAction_1.Button('equip', '装备').inDirect(),
+            new PlayerAction_1.Button('drop', '弃置')
+        ];
+        PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint) => {
+            return new PlayerActionDriverDefiner_1.default('据守')
+                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => true, () => '[据守] 选择一张手牌')
+                .expectChoose([PlayerAction_1.UIPosition.BUTTONS], 1, 1, (id, context, chosen) => {
+                let card = context.interpret(chosen.getArr(PlayerAction_1.UIPosition.MY_HAND)[0]);
+                if (card.type.isEquipment()) {
+                    return true;
+                }
+                else {
+                    return id !== 'equip';
+                }
+            }, () => '选择操作')
+                .build(hint, buttons);
+        });
+    }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
     }
@@ -13131,23 +13091,23 @@ class JuShou extends Skill_1.SimpleConditionalSkill {
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.playSound(manager, 2);
+            this.invokeEffects(manager);
             let myself = manager.context.getPlayer(this.playerId);
             let x = FactionWarUtil_1.getNumberOfFactions(manager);
             console.log('[据守] 场上亮明势力数为', x);
-            manager.log(`${this.playerId} 发动了 ${this.displayName}`);
             yield new TakeCardOp_1.default(myself, x).perform(manager);
             let resp = yield manager.sendHint(this.playerId, {
-                hintType: ServerHint_1.HintType.CHOOSE_CARD,
-                hintMsg: '[据守] 选择一张手牌, 若为装备则使用, 否则弃置',
-                quantity: 1,
-                minQuantity: 1,
-                positions: [PlayerAction_1.UIPosition.MY_HAND]
+                hintType: ServerHint_1.HintType.SPECIAL,
+                specialId: this.id,
+                hintMsg: '[据守] 选择一张手牌, 若为装备则使用, 否则弃置'
             });
             let card = resp.getCardsAtPos(CardPos_1.CardPos.HAND)[0];
             console.log('[据守] 弃置' + card);
-            if (card.type.isEquipment()) {
+            if (card.type.isEquipment() && resp.button === 'equip') {
                 //装备
+                card.description = `${this.playerId} 装备`;
+                manager.sendToWorkflow(this.playerId, CardPos_1.CardPos.HAND, [card], false, true);
+                yield manager.events.publish(new Generic_1.CardBeingUsedEvent(this.playerId, [[card, CardPos_1.CardPos.HAND]], card.type));
                 yield new EquipOp_1.EquipOp(myself, card).perform(manager);
             }
             else {

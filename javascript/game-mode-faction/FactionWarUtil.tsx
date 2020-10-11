@@ -69,7 +69,6 @@ export function canSurrender(player: string, context: GameContext): boolean {
         return false
     }
     let remaining = context.playerInfos.filter(p => !p.isDead)
-    console.log('Can Surrender?', remaining)
     if(remaining.length <= 2) {
         return true
     }
