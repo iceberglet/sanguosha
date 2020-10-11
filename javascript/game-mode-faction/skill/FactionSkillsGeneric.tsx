@@ -132,6 +132,7 @@ export async function removeGeneral(manager: GameManager, skillRepo: SkillRepo, 
     for(let s of skillRepo.getSkills(p.player.id)) {
         if(s.position === skillPos) {
             s.isGone = true
+            s.onRemoval(manager.context)
         }
     }
     //disable the abilities

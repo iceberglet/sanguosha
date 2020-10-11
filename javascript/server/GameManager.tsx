@@ -113,9 +113,6 @@ export default class GameManager {
                     this.currentPlayer = onHold
                 }
                 this.goToNextPlayer()
-                if(this.manualEnding) {
-                    throw this.manualEnding
-                }
             } catch (err) {
                 if(err instanceof PlayerDeadInHisRound) {
                     console.log('Player died in his round. Proceeding to next player...')
@@ -395,6 +392,9 @@ export default class GameManager {
     }
 
     private checkDeath() {
+        if(this.manualEnding) {
+            throw this.manualEnding
+        }
         if(this.currPlayer().isDead) {
             throw new PlayerDeadInHisRound()
         }

@@ -6,6 +6,7 @@ import { Mark, PlayerInfo } from "./PlayerInfo";
 import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
 import { RevealGeneralEvent } from "../game-mode-faction/FactionWarInitializer";
 import GameClientContext from "../client/GameClientContext";
+import GameContext from "./GameContext";
 
 
 export interface EventRegistryForSkills {
@@ -161,13 +162,16 @@ export abstract class Skill extends SkillStatus {
         //no-op by default
     }
 
-    public onRemoval(skillRegistry: EventRegistryForSkills, manager: GameManager) {
+    public onRemoval(context: GameContext) {
         //还原马术?
-
     }
 
     public async onPlayerAction(act: PlayerAct, event: any, manager: GameManager): Promise<void> {
         throw 'Forgot to override me?'
+    }
+
+    public isInactive(): boolean {
+        return this.isDisabled || !this.isRevealed || this.isGone
     }
 
 

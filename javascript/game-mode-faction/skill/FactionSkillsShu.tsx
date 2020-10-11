@@ -36,6 +36,7 @@ import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp"
 import { CustomUIData, GuanXingData } from "../../client/card-panel/CustomUIRegistry"
 import { DropOthersCardRequest } from "../../server/engine/DropCardOp"
 import { areInFormation } from "./FactionSkillsGeneric"
+import GameContext from "../../common/GameContext"
 
 const REN_DE_SLASH = [SlashType.RED, SlashType.BLACK, SlashType.FIRE, SlashType.THUNDER]
 
@@ -232,7 +233,7 @@ export class PaoXiao extends SimpleConditionalSkill<SlashOP> {
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<SlashOP>(SlashOP, this)
         skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async (stage: StageStartFlow)=>{
-            if(!this.isDisabled && this.isRevealed && stage.stage === Stage.ROUND_BEGIN && this.playerId === stage.info.player.id) {
+            if(!this.isInactive() && stage.stage === Stage.ROUND_BEGIN && this.playerId === stage.info.player.id) {
                 console.log('[咆哮] 增加 900 出杀次数')
                 manager.roundStats.slashMax += 900
                 //回合开始的时候重置我们出杀的次数
@@ -252,7 +253,7 @@ export class PaoXiao extends SimpleConditionalSkill<SlashOP> {
         return false
     }
     public async onStatusUpdated(manager: GameManager) {
-        if(!this.isDisabled && this.isRevealed && manager.currPlayer().player.id === this.playerId) {
+        if(!this.isInactive() && manager.currPlayer().player.id === this.playerId) {
             console.log('[咆哮] 增加 900 出杀次数')
             manager.roundStats.slashMax += 900
             //重置才能让效果发生
@@ -476,15 +477,24 @@ export class MaShu extends Skill {
     isLocked = true
     hiddenType = HiddenType.REVEAL_IN_MY_USE_CARD
 
+    onRemoval(context: GameContext) {
+        if(this.isApplied) {
+            let me = context.getPlayer(this.playerId)
+            this.isApplied = false
+            console.log(`[${this.id}] Remove, 失效, 计算与他人距离时不再减1`, this.playerId)
+            me.distanceModTargetingOthers += 1
+        }
+    }
+
     async onStatusUpdated(manager: GameManager) {
         let me = manager.context.getPlayer(this.playerId)
-        if(!this.isApplied && !this.isDisabled && this.isRevealed) {
+        if(!this.isApplied && !this.isInactive()) {
             console.log(`[${this.id}] 生效, 计算与他人距离时减1`, this.playerId)
             me.distanceModTargetingOthers -= 1
             manager.broadcast(me, PlayerInfo.sanitize)
             this.isApplied = true
         }
-        if(this.isApplied && this.isDisabled) {
+        if(this.isApplied && this.isInactive()) {
             console.log(`[${this.id}] 失效, 计算与他人距离时不再减1`, this.playerId)
             me.distanceModTargetingOthers += 1
             manager.broadcast(me, PlayerInfo.sanitize)
@@ -584,7 +594,7 @@ export class KanPo extends Skill {
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.onEvent<WuXieContext>(WuXieContext, this.playerId, async (context: WuXieContext) => {
-            if(this.isDisabled || (!this.isRevealed && !this.isForewarned)) {
+            if(this.isDisabled || this.isGone || (!this.isRevealed && !this.isForewarned)) {
                 return
             }
             console.log('[看破] 预发动')
@@ -790,7 +800,7 @@ export class QiCai extends Skill {
     }
 
     public async onStatusUpdated(manager: GameManager): Promise<void> {
-        if(!this.isDisabled && this.isRevealed) {
+        if(!this.isInactive()) {
             console.log('[奇才] 生效', this.playerId)
             this.isWorking = true
             if(manager.currPlayer().player.id === this.playerId) {
@@ -798,8 +808,7 @@ export class QiCai extends Skill {
                 manager.roundStats.shunshouReach = 99
                 manager.reissue()
             }
-        }
-        if(this.isDisabled) {
+        } else {
             console.log('[奇才] 失效', this.playerId)
             this.isWorking = false
             if(manager.currPlayer().player.id === this.playerId) {
@@ -1272,7 +1281,7 @@ export class KongCheng extends Skill {
         skillRegistry.on<SlashCompute>(SlashCompute, new KongChengCancellor(this))
         skillRegistry.on<JueDou>(JueDou, new KongChengCancellor(this))
         const onCardAway= async (away: CardAwayEvent)=>{
-            if(this.isRevealed && !this.isDisabled && away.player === this.playerId && 
+            if(!this.isInactive() && away.player === this.playerId && 
                 manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length === 0) {
                 this.invokeEffects(manager)
             }
@@ -1340,7 +1349,7 @@ export class YiZhi extends Skill {
     hiddenType = HiddenType.NONE
 
     async onStatusUpdated(manager: GameManager, repo: SkillRepo) {
-        if(!this.isGone && !this.isDisabled && this.isRevealed) {
+        if(!this.isInactive()) {
             this.isGone = true
 
             try {
@@ -1378,7 +1387,7 @@ export class TianFu extends Skill {
     myKanPo: KanPoJiangWei
 
     async onStatusUpdated(manager: GameManager, repo: SkillRepo) {
-        if(!this.isGone && !this.isDisabled && this.isRevealed) {
+        if(!this.isInactive()) {
             this.isGone = true
 
             console.log(`[${this.id}] 生效增加姜维的看破技能`)

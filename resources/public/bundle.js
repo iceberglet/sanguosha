@@ -2907,6 +2907,7 @@ class UIBoard extends React.Component {
                 if (s.isGone) {
                     if (matchIdx >= 0) {
                         console.log('删除技能', s);
+                        state.skillButtons[matchIdx].skill.onRemoval(context);
                         state.skillButtons.splice(matchIdx, 1);
                     }
                     else {
@@ -5311,13 +5312,16 @@ class Skill extends SkillStatus {
             //no-op by default
         });
     }
-    onRemoval(skillRegistry, manager) {
+    onRemoval(context) {
         //还原马术?
     }
     onPlayerAction(act, event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             throw 'Forgot to override me?';
         });
+    }
+    isInactive() {
+        return this.isDisabled || !this.isRevealed || this.isGone;
     }
     playSound(manager, counts) {
         let random = Math.ceil(Math.random() * counts);
@@ -7971,7 +7975,7 @@ class FactionWarGameHoster {
             var _a;
             console.log('玩家投降', s.player);
             if (FactionWarUtil_1.canSurrender(s.player, (_a = this.manager) === null || _a === void 0 ? void 0 : _a.context) && !this.manager.manualEnding) {
-                this.manager.log(`${s.player} 投降了 回合结束即结算胜负`);
+                this.manager.log(`${s.player} 投降了`);
                 this.manager.broadcast(s);
                 let winners = this.manager.getSortedByCurr(true).filter(p => p.player.id !== s.player).map(p => p.player.id);
                 this.manager.manualEnding = new GameEnding_1.default(winners);
@@ -9527,6 +9531,7 @@ function removeGeneral(manager, skillRepo, player, isMain) {
         for (let s of skillRepo.getSkills(p.player.id)) {
             if (s.position === skillPos) {
                 s.isGone = true;
+                s.onRemoval(manager.context);
             }
         }
         //disable the abilities
@@ -10843,6 +10848,7 @@ class DuanChange extends Skill_1.SimpleConditionalSkill {
             for (let s of this.skillRepo.getSkills(event.killer.player.id)) {
                 if (s.position === position) {
                     s.isGone = true;
+                    s.onRemoval(manager.context);
                 }
             }
             //disable the abilities
@@ -11273,7 +11279,7 @@ class PaoXiao extends Skill_1.SimpleConditionalSkill {
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SlashOp_1.SlashOP, this);
         skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (stage) => __awaiter(this, void 0, void 0, function* () {
-            if (!this.isDisabled && this.isRevealed && stage.stage === Stage_1.Stage.ROUND_BEGIN && this.playerId === stage.info.player.id) {
+            if (!this.isInactive() && stage.stage === Stage_1.Stage.ROUND_BEGIN && this.playerId === stage.info.player.id) {
                 console.log('[咆哮] 增加 900 出杀次数');
                 manager.roundStats.slashMax += 900;
                 //回合开始的时候重置我们出杀的次数
@@ -11294,7 +11300,7 @@ class PaoXiao extends Skill_1.SimpleConditionalSkill {
     }
     onStatusUpdated(manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isDisabled && this.isRevealed && manager.currPlayer().player.id === this.playerId) {
+            if (!this.isInactive() && manager.currPlayer().player.id === this.playerId) {
                 console.log('[咆哮] 增加 900 出杀次数');
                 manager.roundStats.slashMax += 900;
                 //重置才能让效果发生
@@ -11523,16 +11529,24 @@ class MaShu extends Skill_1.Skill {
         this.isLocked = true;
         this.hiddenType = Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD;
     }
+    onRemoval(context) {
+        if (this.isApplied) {
+            let me = context.getPlayer(this.playerId);
+            this.isApplied = false;
+            console.log(`[${this.id}] Remove, 失效, 计算与他人距离时不再减1`, this.playerId);
+            me.distanceModTargetingOthers += 1;
+        }
+    }
     onStatusUpdated(manager) {
         return __awaiter(this, void 0, void 0, function* () {
             let me = manager.context.getPlayer(this.playerId);
-            if (!this.isApplied && !this.isDisabled && this.isRevealed) {
+            if (!this.isApplied && !this.isInactive()) {
                 console.log(`[${this.id}] 生效, 计算与他人距离时减1`, this.playerId);
                 me.distanceModTargetingOthers -= 1;
                 manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
                 this.isApplied = true;
             }
-            if (this.isApplied && this.isDisabled) {
+            if (this.isApplied && this.isInactive()) {
                 console.log(`[${this.id}] 失效, 计算与他人距离时不再减1`, this.playerId);
                 me.distanceModTargetingOthers += 1;
                 manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
@@ -11633,7 +11647,7 @@ class KanPo extends Skill_1.Skill {
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.onEvent(WuXieOp_1.WuXieContext, this.playerId, (context) => __awaiter(this, void 0, void 0, function* () {
-            if (this.isDisabled || (!this.isRevealed && !this.isForewarned)) {
+            if (this.isDisabled || this.isGone || (!this.isRevealed && !this.isForewarned)) {
                 return;
             }
             console.log('[看破] 预发动');
@@ -11864,7 +11878,7 @@ class QiCai extends Skill_1.Skill {
     }
     onStatusUpdated(manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isDisabled && this.isRevealed) {
+            if (!this.isInactive()) {
                 console.log('[奇才] 生效', this.playerId);
                 this.isWorking = true;
                 if (manager.currPlayer().player.id === this.playerId) {
@@ -11873,7 +11887,7 @@ class QiCai extends Skill_1.Skill {
                     manager.reissue();
                 }
             }
-            if (this.isDisabled) {
+            else {
                 console.log('[奇才] 失效', this.playerId);
                 this.isWorking = false;
                 if (manager.currPlayer().player.id === this.playerId) {
@@ -12371,7 +12385,7 @@ class KongCheng extends Skill_1.Skill {
         skillRegistry.on(SlashOp_1.SlashCompute, new KongChengCancellor(this));
         skillRegistry.on(SingleRuseOp_1.JueDou, new KongChengCancellor(this));
         const onCardAway = (away) => __awaiter(this, void 0, void 0, function* () {
-            if (this.isRevealed && !this.isDisabled && away.player === this.playerId &&
+            if (!this.isInactive() && away.player === this.playerId &&
                 manager.context.getPlayer(this.playerId).getCards(CardPos_1.CardPos.HAND).length === 0) {
                 this.invokeEffects(manager);
             }
@@ -12443,7 +12457,7 @@ class YiZhi extends Skill_1.Skill {
     }
     onStatusUpdated(manager, repo) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isGone && !this.isDisabled && this.isRevealed) {
+            if (!this.isInactive()) {
                 this.isGone = true;
                 try {
                     let teacher = repo.getSkill(this.playerId, '观星');
@@ -12486,7 +12500,7 @@ class TianFu extends Skill_1.Skill {
     }
     onStatusUpdated(manager, repo) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isGone && !this.isDisabled && this.isRevealed) {
+            if (!this.isInactive()) {
                 this.isGone = true;
                 console.log(`[${this.id}] 生效增加姜维的看破技能`);
                 this.myKanPo = new KanPoJiangWei(this.playerId);
@@ -14044,7 +14058,7 @@ class YingZi extends Skill_1.SimpleConditionalSkill {
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(TakeCardOp_1.TakeCardStageOp, this);
         skillRegistry.onEvent(DropCardOp_1.default, this.playerId, (dropOp) => __awaiter(this, void 0, void 0, function* () {
-            if (!this.isDisabled && this.isRevealed && dropOp.player.player.id === this.playerId &&
+            if (!this.isInactive() && dropOp.player.player.id === this.playerId &&
                 dropOp.timeline === DropCardOp_1.DropTimeline.BEFORE) {
                 let me = manager.context.getPlayer(this.playerId);
                 // this.invokeEffects(manager)
@@ -14536,10 +14550,11 @@ class HongYan extends Skill_1.Skill {
         super(...arguments);
         this.id = '红颜';
         this.displayName = '红颜';
-        this.description = '出牌阶段，你可明置此武将牌；你的黑桃牌视为红桃牌。';
+        this.description = '出牌阶段，你可明置此武将牌；锁定技，你的黑桃牌视为红桃牌。';
         this.hiddenType = Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD;
+        this.isLocked = true;
         this.interpret = (card) => {
-            if (this.isDisabled || !this.isRevealed) {
+            if (this.isInactive()) {
                 return card;
             }
             let res = ICard_1.mimicCard(card);
@@ -14555,6 +14570,9 @@ class HongYan extends Skill_1.Skill {
     }
     bootstrapServer(skillRegistry, manager) {
         manager.context.registerInterpreter(this.playerId, this.interpret);
+    }
+    onRemoval(context) {
+        context.registerInterpreter(this.playerId, null);
     }
 }
 exports.HongYan = HongYan;
@@ -15098,7 +15116,7 @@ class HunShang extends Skill_1.Skill {
     }
     onStatusUpdated(manager, repo) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!this.isGone && !this.isDisabled && this.isRevealed) {
+            if (!this.isInactive()) {
                 this.isGone = true;
                 console.log(`[${this.id}] 生效增加孙策技能`);
                 let myNew = new YingZiCe(this.playerId);
@@ -16333,9 +16351,6 @@ class GameManager {
                         this.currentPlayer = onHold;
                     }
                     this.goToNextPlayer();
-                    if (this.manualEnding) {
-                        throw this.manualEnding;
-                    }
                 }
                 catch (err) {
                     if (err instanceof Operation_1.PlayerDeadInHisRound) {
@@ -16596,6 +16611,9 @@ class GameManager {
         });
     }
     checkDeath() {
+        if (this.manualEnding) {
+            throw this.manualEnding;
+        }
         if (this.currPlayer().isDead) {
             throw new Operation_1.PlayerDeadInHisRound();
         }

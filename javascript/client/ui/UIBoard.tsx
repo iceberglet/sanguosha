@@ -24,7 +24,7 @@ import { SkillStatus } from '../../common/Skill'
 import { UIRollingLogger, UILogger } from './UILogger'
 import { audioManager } from '../audio-manager/AudioManager'
 import RuleModal from './UIRuleModal'
-import { debounce, Mask, throttle } from '../../common/util/Util'
+import { Mask, throttle } from '../../common/util/Util'
 import { canSurrender } from '../../game-mode-faction/FactionWarUtil'
 
 type UIBoardProp = {
@@ -133,6 +133,7 @@ export default class UIBoard extends React.Component<UIBoardProp, State> {
                 if(s.isGone) {
                     if(matchIdx >= 0) {
                         console.log('删除技能', s)
+                        state.skillButtons[matchIdx].skill.onRemoval(context)
                         state.skillButtons.splice(matchIdx, 1)
                     } else {
                         console.log('未找到技能', s)

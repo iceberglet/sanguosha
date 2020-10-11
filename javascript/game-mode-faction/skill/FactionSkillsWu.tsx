@@ -32,6 +32,7 @@ import { DoTieSuo } from "../../server/engine/MultiRuseOp"
 import AskSavingOp from "../../server/engine/AskSavingOp"
 import { PlayerInfo } from "../../common/PlayerInfo"
 import { factionsSame } from "../../common/General"
+import GameContext from "../../common/GameContext"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -145,7 +146,7 @@ export class YingZi extends SimpleConditionalSkill<TakeCardStageOp> {
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<TakeCardStageOp>(TakeCardStageOp, this)
         skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async (dropOp)=>{
-            if(!this.isDisabled && this.isRevealed && dropOp.player.player.id === this.playerId && 
+            if(!this.isInactive() && dropOp.player.player.id === this.playerId && 
                     dropOp.timeline === DropTimeline.BEFORE) {
                 let me = manager.context.getPlayer(this.playerId)
                 // this.invokeEffects(manager)
@@ -629,8 +630,9 @@ export class GuZheng extends SimpleConditionalSkill<DropCardOp>{
 export class HongYan extends Skill {
     id = '红颜'
     displayName = '红颜'
-    description = '出牌阶段，你可明置此武将牌；你的黑桃牌视为红桃牌。'
+    description = '出牌阶段，你可明置此武将牌；锁定技，你的黑桃牌视为红桃牌。'
     hiddenType = HiddenType.REVEAL_IN_MY_USE_CARD
+    isLocked = true
 
     bootstrapClient(context: GameClientContext) {
         context.registerInterpreter(this.playerId, this.interpret)
@@ -640,8 +642,12 @@ export class HongYan extends Skill {
         manager.context.registerInterpreter(this.playerId, this.interpret)
     }
 
+    onRemoval(context: GameContext) {
+        context.registerInterpreter(this.playerId, null)
+    }
+
     interpret=(card: ICard) => {
-        if(this.isDisabled || !this.isRevealed) {
+        if(this.isInactive()) {
             return card
         }
         let res = mimicCard(card)
@@ -1185,7 +1191,7 @@ export class HunShang extends Skill {
     myYingHun: YingHunCe
 
     async onStatusUpdated(manager: GameManager, repo: SkillRepo) {
-        if(!this.isGone && !this.isDisabled && this.isRevealed) {
+        if(!this.isInactive()) {
             this.isGone = true
 
             console.log(`[${this.id}] 生效增加孙策技能`)

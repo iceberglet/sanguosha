@@ -55,7 +55,7 @@ export default class FactionWarGameHoster implements GameHoster {
         registry.pubsub.on<SurrenderRequest>(SurrenderRequest, s=>{
             console.log('玩家投降', s.player)
             if(canSurrender(s.player, this.manager?.context) && !this.manager.manualEnding) {
-                this.manager.log(`${s.player} 投降了 回合结束即结算胜负`)
+                this.manager.log(`${s.player} 投降了`)
                 this.manager.broadcast(s)
                 let winners = this.manager.getSortedByCurr(true).filter(p => p.player.id !== s.player).map(p => p.player.id)
                 this.manager.manualEnding = new GameEnding(winners)

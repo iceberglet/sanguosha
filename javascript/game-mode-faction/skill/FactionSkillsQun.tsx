@@ -1238,6 +1238,7 @@ export class DuanChange extends SimpleConditionalSkill<DeathOp> {
         for(let s of this.skillRepo.getSkills(event.killer.player.id)) {
             if(s.position === position) {
                 s.isGone = true
+                s.onRemoval(manager.context)
             }
         }
 
