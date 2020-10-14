@@ -279,7 +279,7 @@ export class LuoYi extends SimpleConditionalSkill<TakeCardStageOp> {
     }
 
     endEffect = async (stageEnd: StageEndFlow): Promise<void> => {
-        console.log('某人的回合结束了')
+        // console.log('某人的回合结束了')
         if(stageEnd.isFor(this.playerId, Stage.ROUND_END)) {
             console.log('[裸衣] 穿回去...')
             this.isTriggered = false

@@ -9927,7 +9927,7 @@ class LuanWu extends Skill_1.Skill {
                     extraButtons: [new PlayerAction_1.Button(PlayerAction_1.Button.CANCEL.id, '放弃')]
                 });
                 if (resp.isCancel()) {
-                    yield new DamageOp_2.default(act.source, t, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+                    yield new DamageOp_2.default(t, t, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
                 }
                 else {
                     yield manager.resolver.on(resp, manager);
@@ -12828,7 +12828,7 @@ class LuoYi extends Skill_1.SimpleConditionalSkill {
             }
         });
         this.endEffect = (stageEnd) => __awaiter(this, void 0, void 0, function* () {
-            console.log('某人的回合结束了');
+            // console.log('某人的回合结束了')
             if (stageEnd.isFor(this.playerId, Stage_1.Stage.ROUND_END)) {
                 console.log('[裸衣] 穿回去...');
                 this.isTriggered = false;
@@ -14601,7 +14601,7 @@ class TianXiang extends Skill_1.SimpleConditionalSkill {
         this.id = '天香';
         this.displayName = '天香';
         this.description = '当你受到伤害时，你可以弃置一张红桃手牌,防止此次伤害并选择一名其他角色，' +
-            '你选择一项：令其受到1点伤害，然后摸X张牌（X为其已损失体力值且至多为5）；令其失去1点体力，然后其获得你弃置的牌。';
+            '你选择一项：令来源对其造成1点伤害，然后摸X张牌（X为其已损失体力值且至多为5）；令其失去1点体力，然后其获得你弃置的牌。';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint) => {
@@ -14638,13 +14638,13 @@ class TianXiang extends Skill_1.SimpleConditionalSkill {
             //弃置牌
             yield resp.dropCardsFromSource('[天香] 弃置');
             if (resp.button === 'damage') {
-                yield new DamageOp_1.default(source, target, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
+                yield new DamageOp_1.default(event.source, target, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
                 if (!target.isDead && target.hp < target.maxHp) {
-                    yield new TakeCardOp_1.default(target, target.maxHp - target.hp).perform(manager);
+                    yield new TakeCardOp_1.default(target, Math.max(5, target.maxHp - target.hp)).perform(manager);
                 }
             }
             else {
-                yield new DamageOp_1.default(source, target, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+                yield new DamageOp_1.default(target, target, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
                 if (!target.isDead) {
                     yield manager.takeFromWorkflow(target.player.id, CardPos_1.CardPos.HAND, [resp.getSingleCardAndPos()[0]]);
                 }

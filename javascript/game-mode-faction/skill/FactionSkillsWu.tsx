@@ -664,7 +664,7 @@ export class TianXiang extends SimpleConditionalSkill<DamageOp> {
     id = '天香'
     displayName = '天香'
     description = '当你受到伤害时，你可以弃置一张红桃手牌,防止此次伤害并选择一名其他角色，'+
-                '你选择一项：令其受到1点伤害，然后摸X张牌（X为其已损失体力值且至多为5）；令其失去1点体力，然后其获得你弃置的牌。'
+                '你选择一项：令来源对其造成1点伤害，然后摸X张牌（X为其已损失体力值且至多为5）；令其失去1点体力，然后其获得你弃置的牌。'
 
     public bootstrapClient() {
         playerActionDriverProvider.registerSpecial(this.id, (hint)=>{
@@ -704,12 +704,12 @@ export class TianXiang extends SimpleConditionalSkill<DamageOp> {
         //弃置牌
         await resp.dropCardsFromSource('[天香] 弃置')
         if(resp.button === 'damage') {
-            await new DamageOp(source, target, 1, [], DamageSource.SKILL).perform(manager)
+            await new DamageOp(event.source, target, 1, [], DamageSource.SKILL).perform(manager)
             if(!target.isDead && target.hp < target.maxHp) {
-                await new TakeCardOp(target, target.maxHp - target.hp).perform(manager)
+                await new TakeCardOp(target, Math.max(5, target.maxHp - target.hp)).perform(manager)
             }
         } else {
-            await new DamageOp(source, target, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+            await new DamageOp(target, target, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
             if(!target.isDead) {
                 await manager.takeFromWorkflow(target.player.id, CardPos.HAND, [resp.getSingleCardAndPos()[0]])
             }

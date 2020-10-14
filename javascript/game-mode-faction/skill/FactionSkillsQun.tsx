@@ -341,7 +341,7 @@ export class LuanWu extends Skill {
                 extraButtons: [new Button(Button.CANCEL.id, '放弃')]
             })
             if(resp.isCancel()) {
-                await new DamageOp(act.source, t, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+                await new DamageOp(t, t, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
             } else {
                 await manager.resolver.on(resp, manager)
             }
