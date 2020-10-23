@@ -10,6 +10,7 @@ import OverlayTrigger from "react-bootstrap/OverlayTrigger";
 import Tooltip from "react-bootstrap/Tooltip";
 import { describer } from '../../common/util/Describer'
 
+export const CardWidth = 109
 type CallBack = (id: Card)=>void
 type PosCallBack = (id: string, ref: React.RefObject<HTMLDivElement>)=>void
 

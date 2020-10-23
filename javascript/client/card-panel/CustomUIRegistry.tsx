@@ -1,6 +1,6 @@
 import * as React from 'react'
 import Card from '../../common/cards/Card'
-import UICard, { UICardHolder } from '../ui/UICard'
+import UICard, { CardWidth, UICardHolder } from '../ui/UICard'
 import { ElementStatus } from '../ui/UIBoard'
 import { DragDropContext, Draggable, Droppable, DropResult, Sensor, SensorAPI } from 'react-beautiful-dnd'
 import { CardMovementEvent, TOP, BTM } from '../../common/transit/CardPos'
@@ -111,7 +111,7 @@ class GuanXing extends React.Component<MountableProp<GuanXingData, boolean>, Gua
         super(p)
         this.style = {
             display: 'flex',
-            width: 115 * p.commonUI.size + 'px',
+            width: CardWidth * p.commonUI.size + 'px',
             height: '154px',
         }
         this.state = {
@@ -160,7 +160,7 @@ class GuanXing extends React.Component<MountableProp<GuanXingData, boolean>, Gua
             if(event.fromPos !== event.toPos) {
                 y = event.fromPos === TOP? RowHeight: -RowHeight
             }
-            x = (event.to - event.from) * 115
+            x = (event.to - event.from) * CardWidth
             let lock = api.tryGetLock(event.item)
             let drag = lock.fluidLift({x: 0, y: 0})
             for(let i = 0; i < 20; i++) {
@@ -327,7 +327,7 @@ class XunXun extends React.Component<MountableProp<XunXunData, boolean>, XunXunS
             if(event.fromPos !== event.toPos) {
                 y = event.fromPos === TOP? RowHeight: -RowHeight
             }
-            x = (event.to - event.from) * 115
+            x = (event.to - event.from) * CardWidth
             let lock = api.tryGetLock(event.item)
             let drag = lock.fluidLift({x: 0, y: 0})
             for(let i = 0; i < 20; i++) {

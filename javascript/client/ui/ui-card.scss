@@ -21,7 +21,7 @@
     // transition-duration: 0.3s;
     z-index: 2;
     flex-grow: 1;
-    max-width: 115px;
+    max-width: 109px;
     margin: 6px;
     margin-right: 0px;
     width: 0px;
@@ -85,8 +85,8 @@
 }
 
 .ui-card {
-    min-width: 115px;
-    max-width: 115px;
+    min-width: 109px;
+    max-width: 109px;
     height: 155px;
     position: relative;
     // padding-right: 10px;
@@ -102,7 +102,7 @@
         position: absolute;
         width: 105px;
         height: 145px;
-        border: 5px solid #272727;
+        border: 2px solid black;
         border-radius: 7px;
         filter: drop-shadow(2px 4px 4px #272727);
         -webkit-backface-visibility: hidden;
@@ -113,7 +113,7 @@
         position: absolute;
         width: 105px;
         height: 145px;
-        border: 5px solid #272727;
+        border: 2px solid black;
         border-radius: 7px;
         filter: drop-shadow(2px 4px 4px #272727);
         transform: rotateY(180deg);

@@ -109,7 +109,7 @@
             flex-grow: 1;
             display: flex;
             position: relative;
-            height: 180px;
+            height: 168px;
             flex-grow: 1;
             // background-color: #161616a2;
             background-image: url('ui/bak.png');
@@ -128,7 +128,7 @@
                 z-index: 3;  //要高过手牌栏
                 
                 .my-signs {
-                    height: 36px;
+                    height: 30px;
                     display: flex;
                     padding-left: 10px;
                     align-items: center;
@@ -168,7 +168,7 @@
                 }
     
                 .my-judge {
-                    height: 36px;
+                    height: 30px;
                     display: flex;
                 }
     
@@ -209,7 +209,7 @@
             top: 0px;
             right: 0px;
             width: 360px;
-            height: 70px;
+            height: 82px;
             display: flex;
             align-items: center;
             justify-content: space-around;
