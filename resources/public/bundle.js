@@ -18478,10 +18478,6 @@ class ZhuQue extends Equipment {
         super(...arguments);
         this.performEffect = (op) => __awaiter(this, void 0, void 0, function* () {
             if (op.damageType === DamageOp_1.DamageType.NORMAL && op.source.player.id === this.player) {
-                if (op.cards.length > 1 || (op.cards.length === 1 && op.cards[0].as)) {
-                    console.log('[装备] 此牌已经被转化, 无法再来一次朱雀羽扇');
-                    return;
-                }
                 //询问是否发动
                 let resp = yield this.manager.sendHint(this.player, {
                     hintType: ServerHint_1.HintType.MULTI_CHOICE,

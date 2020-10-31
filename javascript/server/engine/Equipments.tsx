@@ -113,10 +113,6 @@ export class ZhuQue extends Equipment {
 
     performEffect = async (op: SlashOP): Promise<void> => {
         if(op.damageType === DamageType.NORMAL && op.source.player.id === this.player) {
-            if(op.cards.length > 1 || (op.cards.length === 1 && op.cards[0].as)) {
-                console.log('[装备] 此牌已经被转化, 无法再来一次朱雀羽扇')
-                return
-            }
             //询问是否发动
             let resp = await this.manager.sendHint(this.player, {
                 hintType: HintType.MULTI_CHOICE,
