@@ -155,18 +155,21 @@ export class DropCardRequest {
         let cardsAndPos = resp.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
         console.log('玩家弃牌: ', targetId, cardsAndPos)
 
+        let cardStr = ''
+
         for(let cp of cardsAndPos) {
             let p: CardPos = cp[0]
             let toDrop = cp[1].map(card => {
                 delete card.as
                 card.description = `[${targetId}] 弃置`
                 this.dropped.push(card)
+                cardStr + card
                 return card
             })
             manager.sendToWorkflow(targetId, p, toDrop, false)
             await manager.events.publish(new CardBeingDroppedEvent(targetId, toDrop.map(d => [d, p])))
         }
-        manager.log(`[${targetId}] 弃置 ${cardsAndPos.map(c => c[0])}`)
+        manager.log(`[${targetId}] 弃置 ${cardStr}`)
         return true
     }
 }
