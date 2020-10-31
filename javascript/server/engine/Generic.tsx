@@ -63,9 +63,25 @@ export function cardAmountAt(info: PlayerInfo, poses: UIPosition[]): number {
             size += info.getCards(CardPos.HAND).length
         } else if (p === UIPosition.MY_EQUIP) {
             size += info.getCards(CardPos.EQUIP).length
+        } else if (p === UIPosition.MY_JUDGE) {
+            size += info.getCards(CardPos.JUDGE).length
         }
     })
     return size
+}
+
+export function cardsAt(info: PlayerInfo, poses: UIPosition[]): Array<[CardPos, Card[]]> {
+    let res: Array<[CardPos, Card[]]> = []
+    poses.forEach(p => {
+        if(p === UIPosition.MY_HAND) {
+            res.push([CardPos.HAND, info.getCards(CardPos.HAND)])
+        } else if (p === UIPosition.MY_EQUIP) {
+            res.push([CardPos.HAND, info.getCards(CardPos.EQUIP)])
+        } else if (p === UIPosition.MY_JUDGE) {
+            res.push([CardPos.HAND, info.getCards(CardPos.JUDGE)])
+        }
+    })
+    return res
 }
 
 export function gatherCards(info: PlayerInfo, poses: CardPos[], aggressor: string = null): {[key: string]: Array<Card>} {

@@ -18233,28 +18233,36 @@ class DropCardRequest {
      */
     perform(targetId, amount, manager, hintMsg, positions = [PlayerAction_1.UIPosition.MY_HAND], cancelable = false) {
         return __awaiter(this, void 0, void 0, function* () {
-            let size = Math.min(amount, Generic_1.cardAmountAt(manager.context.getPlayer(targetId), positions));
+            let victim = manager.context.getPlayer(targetId);
+            let size = Math.min(amount, Generic_1.cardAmountAt(victim, positions));
             if (size <= 0) {
                 console.error('How???');
                 return false;
             }
-            let resp = yield manager.sendHint(targetId, {
-                hintType: ServerHint_1.HintType.CHOOSE_CARD,
-                hintMsg,
-                quantity: size,
-                positions: positions,
-                extraButtons: cancelable ? [PlayerAction_1.Button.CANCEL] : []
-            });
-            if (resp.isCancel()) {
-                if (!cancelable) {
-                    throw 'How is this possible?';
+            let cardsAndPos;
+            if (amount >= size && !cancelable) {
+                //都得弃
+                cardsAndPos = Generic_1.cardsAt(victim, positions);
+            }
+            else {
+                let resp = yield manager.sendHint(targetId, {
+                    hintType: ServerHint_1.HintType.CHOOSE_CARD,
+                    hintMsg,
+                    quantity: size,
+                    positions: positions,
+                    extraButtons: cancelable ? [PlayerAction_1.Button.CANCEL] : []
+                });
+                if (resp.isCancel()) {
+                    if (!cancelable) {
+                        throw 'How is this possible?';
+                    }
+                    else {
+                        return false;
+                    }
                 }
-                else {
-                    return false;
-                }
+                cardsAndPos = resp.getPosAndCards(CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP);
             }
             //remove these cards
-            let cardsAndPos = resp.getPosAndCards(CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP);
             console.log('玩家弃牌: ', targetId, cardsAndPos);
             let cardStr = '';
             for (let cp of cardsAndPos) {
@@ -19011,7 +19019,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.turnOver = exports.findCard = exports.gatherCards = exports.cardAmountAt = exports.CardObtainedEvent = exports.CardBeingTakenEvent = exports.CardBeingDroppedEvent = exports.CardBeingUsedEvent = exports.CardAwayEvent = void 0;
+exports.turnOver = exports.findCard = exports.gatherCards = exports.cardsAt = exports.cardAmountAt = exports.CardObtainedEvent = exports.CardBeingTakenEvent = exports.CardBeingDroppedEvent = exports.CardBeingUsedEvent = exports.CardAwayEvent = void 0;
 const Card_1 = __webpack_require__(/*! ../../common/cards/Card */ "./javascript/common/cards/Card.tsx");
 const CardPos_1 = __webpack_require__(/*! ../../common/transit/CardPos */ "./javascript/common/transit/CardPos.tsx");
 const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
@@ -19079,10 +19087,29 @@ function cardAmountAt(info, poses) {
         else if (p === PlayerAction_1.UIPosition.MY_EQUIP) {
             size += info.getCards(CardPos_1.CardPos.EQUIP).length;
         }
+        else if (p === PlayerAction_1.UIPosition.MY_JUDGE) {
+            size += info.getCards(CardPos_1.CardPos.JUDGE).length;
+        }
     });
     return size;
 }
 exports.cardAmountAt = cardAmountAt;
+function cardsAt(info, poses) {
+    let res = [];
+    poses.forEach(p => {
+        if (p === PlayerAction_1.UIPosition.MY_HAND) {
+            res.push([CardPos_1.CardPos.HAND, info.getCards(CardPos_1.CardPos.HAND)]);
+        }
+        else if (p === PlayerAction_1.UIPosition.MY_EQUIP) {
+            res.push([CardPos_1.CardPos.HAND, info.getCards(CardPos_1.CardPos.EQUIP)]);
+        }
+        else if (p === PlayerAction_1.UIPosition.MY_JUDGE) {
+            res.push([CardPos_1.CardPos.HAND, info.getCards(CardPos_1.CardPos.JUDGE)]);
+        }
+    });
+    return res;
+}
+exports.cardsAt = cardsAt;
 function gatherCards(info, poses, aggressor = null) {
     let count = 0;
     let res = {};

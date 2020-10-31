@@ -4,7 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, ServerHint } from "../../common/ServerHint";
-import { CardBeingDroppedEvent, gatherCards, findCard, cardAmountAt } from "./Generic";
+import { CardBeingDroppedEvent, gatherCards, findCard, cardAmountAt, cardsAt } from "./Generic";
 import Card from "../../common/cards/Card";
 
 export enum DropTimeline {
@@ -129,30 +129,38 @@ export class DropCardRequest {
                         positions: UIPosition[] = [UIPosition.MY_HAND],
                         cancelable: boolean = false): Promise<boolean> {
 
-        let size = Math.min(amount, cardAmountAt(manager.context.getPlayer(targetId), positions))
+        let victim = manager.context.getPlayer(targetId)
+        let size = Math.min(amount, cardAmountAt(victim, positions))
         if(size <= 0) {
             console.error('How???')
             return false
         }
 
-        let resp = await manager.sendHint(targetId, {
-            hintType: HintType.CHOOSE_CARD,
-            hintMsg,
-            quantity: size,
-            positions: positions,
-            extraButtons: cancelable? [Button.CANCEL] : []
-        })
-        
-        if(resp.isCancel()) {
-            if(!cancelable) {
-                throw 'How is this possible?'
-            } else {
-                return false
+        let cardsAndPos: Array<[CardPos, Card[]]>
+        if(amount >= size && !cancelable) {
+            //都得弃
+            cardsAndPos = cardsAt(victim, positions)
+        } else {
+            let resp = await manager.sendHint(targetId, {
+                hintType: HintType.CHOOSE_CARD,
+                hintMsg,
+                quantity: size,
+                positions: positions,
+                extraButtons: cancelable? [Button.CANCEL] : []
+            })
+            if(resp.isCancel()) {
+                if(!cancelable) {
+                    throw 'How is this possible?'
+                } else {
+                    return false
+                }
             }
+            cardsAndPos = resp.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
         }
 
+        
+
         //remove these cards
-        let cardsAndPos = resp.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
         console.log('玩家弃牌: ', targetId, cardsAndPos)
 
         let cardStr = ''
