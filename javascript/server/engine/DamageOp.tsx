@@ -49,7 +49,7 @@ export enum DamageTimeline {
 }
 
 export enum DamageSource {
-    SLASH, DUEL, NAN_MAN, WAN_JIAN, SKILL, SHAN_DIAN, HUO_GONG, TIE_SUO
+    SLASH, DUEL, NAN_MAN, WAN_JIAN, SKILL, SHAN_DIAN, HUO_GONG
 }
 
 // function fromSlash(type: CardType) {
@@ -78,6 +78,10 @@ export default class DamageOp extends Operation<void> {
                         public type: DamageType = DamageType.NORMAL,
                         public doChain: boolean = true) {
         super()
+        if(this.source && this.source.isDead) {
+            //比如典韦自杀攻击
+            this.source = null
+        }
     }
 
     public isFrom(player: string) {
@@ -165,7 +169,7 @@ export default class DamageOp extends Operation<void> {
                 //player might die half way...
                 if(!player.isDead) {
                     console.log('[伤害结算] 连环伤害:', player.player.id)
-                    await new DamageOp(this.source, player, this.amount, this.cards, DamageSource.TIE_SUO, this.type, false).perform(manager)
+                    await new DamageOp(this.source, player, this.amount, this.cards, this.damageSource, this.type, false).perform(manager)
                 }
             }
         }

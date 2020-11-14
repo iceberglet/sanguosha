@@ -498,27 +498,16 @@ export class FuDi extends SkillForDamageTaken {
     
     id = '附敌'
     displayName = '附敌'
-    description = '当你受到伤害后，你可以交给伤害来源一张手牌。若如此做，你对与其势力相同的角色中体力值最多且不小于你的一名角色造成1点伤害。'
+    description = '当你受到来自其他角色的伤害后，你可以交给伤害来源一张手牌。若如此做，你对与其势力相同的角色中体力值最多且不小于你的一名角色造成1点伤害。'
 
-    bootstrapClient() {
-        playerActionDriverProvider.registerSpecial(this.id, (hint, context)=>{
-            return new PlayerActionDriverDefiner('附敌')
-                        .expectChoose([UIPosition.MY_HAND], 1, 1, (id, context)=>true, ()=>'(附敌)选择一张手牌交给伤害来源: ' + hint.sourcePlayer)
-                        .expectChoose([UIPosition.PLAYER], 1, 1, (id, context)=>{
-                            return !!hint.forbidden.find(c => c === id)
-                        }, ()=>`(附敌)选择与${hint.sourcePlayer}势力相同角色中体力最多且不小于你的一名角色`)
-                        .expectAnyButton('点击确定发动附敌')
-                        .build(hint, [Button.OK])
-        })
-    }
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
     }
     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
-        return this.isMyDamage(event) && this.damageFromOthers(event) && this.triggerable(event, manager).length > 0
+        return this.isMyDamage(event) && this.damageFromOthers(event) && event.target.hasCardAt(CardPos.HAND) //&& this.triggerable(event, manager).length > 0
     }
 
-    private triggerable(event: DamageOp, manager: GameManager): string[] {
+    private getChoices(event: DamageOp, manager: GameManager): string[] {
         let fac = event.source.getFaction()
         let me = event.target
         let choices: string[]
@@ -542,12 +531,11 @@ export class FuDi extends SkillForDamageTaken {
     }
 
     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
-        let resp = await manager.sendHint(this.playerId, {
-            hintType: HintType.SPECIAL,
-            specialId: this.id,
-            hintMsg: '(附敌)选择一张手牌交给对方',
-            sourcePlayer: event.source.player.id,
-            forbidden: this.triggerable(event, manager),
+        let resp = await manager.sendHint(event.target.player.id, {
+            hintType: HintType.CHOOSE_CARD,
+            hintMsg: `请选择一张手牌交给${event.source}`,
+            quantity: 1,
+            positions: [UIPosition.MY_HAND],
             extraButtons: [Button.CANCEL]
         })
         if(resp.isCancel()) {
@@ -556,7 +544,23 @@ export class FuDi extends SkillForDamageTaken {
         this.invokeEffects(manager, [event.source.player.id])
         let card = resp.getSingleCardAndPos()[0]
         manager.transferCards(this.playerId, event.source.player.id, CardPos.HAND, CardPos.HAND, [card])
-        await new DamageOp(event.target, event.source, 1, [], DamageSource.SKILL).perform(manager)
+
+        let victims = this.getChoices(event, manager)
+        if(victims.length > 0) {
+            let victim: PlayerInfo
+            if(victims.length === 1) {
+                victim = manager.context.getPlayer(victims[0])
+            } else {
+                let ask = await manager.sendHint(this.playerId, {
+                    hintType: HintType.CHOOSE_PLAYER,
+                    hintMsg: '[附敌] 请选择附敌要造成伤害的对象',
+                    minQuantity: 1, quantity: 1,
+                    forbidden: victims
+                })
+                victim = ask.targets[0]
+            }
+            await new DamageOp(event.target, victim, 1, [], DamageSource.SKILL).perform(manager)
+        }
     }
 }
 

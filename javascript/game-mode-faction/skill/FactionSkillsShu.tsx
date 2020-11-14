@@ -888,7 +888,8 @@ export class NiePan extends SimpleConditionalSkill<AskSavingOp> {
         me.isDrunk = false
         me.isChained = false
         me.isTurnedOver = false
-        me.hp = 3
+        me.hp = 0
+        await new HealOp(me, me, 3).perform(manager)
         manager.broadcast(me, PlayerInfo.sanitize)
         this.invokeEffects(manager)
         
@@ -1026,7 +1027,7 @@ export class LieRen extends SimpleConditionalSkill<DamageOp> {
     }
 }
 
-
+//涅槃可以直接回很多点
 export class ShuShen extends SimpleConditionalSkill<HealOp> {
     id = '淑慎'
     displayName = '淑慎'

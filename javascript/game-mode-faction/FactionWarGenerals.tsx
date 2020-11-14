@@ -119,6 +119,11 @@ export default class FactionWarGeneral extends General {
     public static cai_wen_ji = new FactionWarGeneral('mountain_cai_wen_ji', '蔡文姬', Faction.QUN, 1.5, '悲歌', '断肠').asFemale() as FactionWarGeneral
     public static dong_zhuo = new FactionWarGeneral('forest_dong_zhuo', '董卓', Faction.QUN, 2, '横征', '暴凌', '崩坏')
 
+    // public static zhang_ren = new FactionWarGeneral('guo_zhang_ren', '张任', Faction.QUN, 2, '穿心', '锋矢')
+    // public static kong_rong = new FactionWarGeneral('guo_kong_rong', '孔融', Faction.QUN, 1.5, '名士', '礼让')
+    // public static ji_ling = new FactionWarGeneral('guo_ji_ling', '纪灵', Faction.QUN, 2, '双刃')
+    // public static yu_ji = new FactionWarGeneral('wind_yu_ji', '于吉', Faction.QUN, 1.5, '千幻')
+
 
 
 
@@ -135,12 +140,7 @@ export default class FactionWarGeneral extends General {
     // public static ding_feng = new FactionWarGeneral('guo_ding_feng', '丁奉', Faction.WU, 2, '短兵', '奋迅')
     // public static jiang_qin = new FactionWarGeneral('guo_jiang_qin', '蒋钦', Faction.WU, 2, '尚义', '鸟翔')
 
-
-    // public static kong_rong = new FactionWarGeneral('guo_kong_rong', '孔融', Faction.QUN, 1.5, '名士', '礼让')
-    // public static ji_ling = new FactionWarGeneral('guo_ji_ling', '纪灵', Faction.QUN, 2, '双刃')
     // public static zou_shi = new FactionWarGeneral('guo_zou_shi', '邹氏', Faction.QUN, 1.5, '祸水', '倾城').asFemale() as FactionWarGeneral
-    // public static zhang_ren = new FactionWarGeneral('guo_zhang_ren', '张任', Faction.QUN, 2, '穿心', '锋矢')
-    // public static yu_ji = new FactionWarGeneral('wind_yu_ji', '于吉', Faction.QUN, 1.5, '千幻')
     
     
     
@@ -174,7 +174,7 @@ generalPairs.registerPair('曹仁', '曹洪')
 
 generalPairs.registerPair('孙策', '大乔')
 generalPairs.registerPair('孙策', '周瑜')
-generalPairs.registerPair('孙策', '太史慈')
+generalPairs.registerPair('孙权', '太史慈')
 generalPairs.registerPair('孙权', '周泰')
 generalPairs.registerPair('周瑜', '黄盖')
 generalPairs.registerPair('周瑜', '小乔')

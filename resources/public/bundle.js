@@ -8377,11 +8377,11 @@ doAdd('skin_gan_ning_2', -20, -30, 120, -110, -50, 200);
 doAdd('skin_gan_ning_3', -40, 10, 120, -140, -10, 200);
 doAdd('skin_gan_ning_4', -90, 10, 120, -190, -10, 200);
 doAdd('skin_gan_ning_5', -20, -10, 120, -70, -30, 200);
-doAdd('skin_guan_yu_1', -40, 0, 120, -110, 0, 200);
-doAdd('skin_guan_yu_2', -40, 0, 120, -90, -20, 200);
-doAdd('skin_guan_yu_3', -30, 0, 120, -100, 0, 200);
-doAdd('skin_guan_yu_4', -30, 0, 120, -70, -20, 200);
-doAdd('skin_guan_yu_5', -30, 0, 120, -90, 0, 200);
+doAdd('skin_guan_yu_1', -50, 0, 150, -110, 0, 200);
+doAdd('skin_guan_yu_2', -50, 0, 150, -90, -20, 200);
+doAdd('skin_guan_yu_3', -40, 0, 150, -100, 0, 200);
+doAdd('skin_guan_yu_4', -30, 0, 150, -70, -20, 200);
+doAdd('skin_guan_yu_5', -30, 0, 150, -90, 0, 200);
 doAdd('skin_guo_jia_1', -60, -30, 120, -140, -60, 200);
 doAdd('skin_guo_jia_2', -35, 0, 120, -110, 0, 200);
 doAdd('skin_guo_jia_3', -65, -20, 120, -140, -40, 200);
@@ -8799,7 +8799,7 @@ exports.generalPairs.registerPair('曹丕', '甄姬');
 exports.generalPairs.registerPair('曹仁', '曹洪');
 exports.generalPairs.registerPair('孙策', '大乔');
 exports.generalPairs.registerPair('孙策', '周瑜');
-exports.generalPairs.registerPair('孙策', '太史慈');
+exports.generalPairs.registerPair('孙权', '太史慈');
 exports.generalPairs.registerPair('孙权', '周泰');
 exports.generalPairs.registerPair('周瑜', '黄盖');
 exports.generalPairs.registerPair('周瑜', '小乔');
@@ -10084,26 +10084,15 @@ class FuDi extends FactionSkillsWei_1.SkillForDamageTaken {
         super(...arguments);
         this.id = '附敌';
         this.displayName = '附敌';
-        this.description = '当你受到伤害后，你可以交给伤害来源一张手牌。若如此做，你对与其势力相同的角色中体力值最多且不小于你的一名角色造成1点伤害。';
-    }
-    bootstrapClient() {
-        PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint, context) => {
-            return new PlayerActionDriverDefiner_1.default('附敌')
-                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => true, () => '(附敌)选择一张手牌交给伤害来源: ' + hint.sourcePlayer)
-                .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id, context) => {
-                return !!hint.forbidden.find(c => c === id);
-            }, () => `(附敌)选择与${hint.sourcePlayer}势力相同角色中体力最多且不小于你的一名角色`)
-                .expectAnyButton('点击确定发动附敌')
-                .build(hint, [PlayerAction_1.Button.OK]);
-        });
+        this.description = '当你受到来自其他角色的伤害后，你可以交给伤害来源一张手牌。若如此做，你对与其势力相同的角色中体力值最多且不小于你的一名角色造成1点伤害。';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_2.default, this);
     }
     conditionFulfilled(event, manager) {
-        return this.isMyDamage(event) && this.damageFromOthers(event) && this.triggerable(event, manager).length > 0;
+        return this.isMyDamage(event) && this.damageFromOthers(event) && event.target.hasCardAt(CardPos_1.CardPos.HAND); //&& this.triggerable(event, manager).length > 0
     }
-    triggerable(event, manager) {
+    getChoices(event, manager) {
         let fac = event.source.getFaction();
         let me = event.target;
         let choices;
@@ -10129,12 +10118,11 @@ class FuDi extends FactionSkillsWei_1.SkillForDamageTaken {
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            let resp = yield manager.sendHint(this.playerId, {
-                hintType: ServerHint_1.HintType.SPECIAL,
-                specialId: this.id,
-                hintMsg: '(附敌)选择一张手牌交给对方',
-                sourcePlayer: event.source.player.id,
-                forbidden: this.triggerable(event, manager),
+            let resp = yield manager.sendHint(event.target.player.id, {
+                hintType: ServerHint_1.HintType.CHOOSE_CARD,
+                hintMsg: `请选择一张手牌交给${event.source}`,
+                quantity: 1,
+                positions: [PlayerAction_1.UIPosition.MY_HAND],
                 extraButtons: [PlayerAction_1.Button.CANCEL]
             });
             if (resp.isCancel()) {
@@ -10143,7 +10131,23 @@ class FuDi extends FactionSkillsWei_1.SkillForDamageTaken {
             this.invokeEffects(manager, [event.source.player.id]);
             let card = resp.getSingleCardAndPos()[0];
             manager.transferCards(this.playerId, event.source.player.id, CardPos_1.CardPos.HAND, CardPos_1.CardPos.HAND, [card]);
-            yield new DamageOp_2.default(event.target, event.source, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
+            let victims = this.getChoices(event, manager);
+            if (victims.length > 0) {
+                let victim;
+                if (victims.length === 1) {
+                    victim = manager.context.getPlayer(victims[0]);
+                }
+                else {
+                    let ask = yield manager.sendHint(this.playerId, {
+                        hintType: ServerHint_1.HintType.CHOOSE_PLAYER,
+                        hintMsg: '[附敌] 请选择附敌要造成伤害的对象',
+                        minQuantity: 1, quantity: 1,
+                        forbidden: victims
+                    });
+                    victim = ask.targets[0];
+                }
+                yield new DamageOp_2.default(event.target, victim, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
+            }
         });
     }
 }
@@ -11971,7 +11975,8 @@ class NiePan extends Skill_1.SimpleConditionalSkill {
             me.isDrunk = false;
             me.isChained = false;
             me.isTurnedOver = false;
-            me.hp = 3;
+            me.hp = 0;
+            yield new HealOp_1.default(me, me, 3).perform(manager);
             manager.broadcast(me, PlayerInfo_1.PlayerInfo.sanitize);
             this.invokeEffects(manager);
             yield new TakeCardOp_1.default(manager.context.getPlayer(this.playerId), 3).perform(manager);
@@ -12120,6 +12125,7 @@ class LieRen extends Skill_1.SimpleConditionalSkill {
     }
 }
 exports.LieRen = LieRen;
+//涅槃可以直接回很多点
 class ShuShen extends Skill_1.SimpleConditionalSkill {
     constructor() {
         super(...arguments);
@@ -17640,7 +17646,6 @@ var DamageSource;
     DamageSource[DamageSource["SKILL"] = 4] = "SKILL";
     DamageSource[DamageSource["SHAN_DIAN"] = 5] = "SHAN_DIAN";
     DamageSource[DamageSource["HUO_GONG"] = 6] = "HUO_GONG";
-    DamageSource[DamageSource["TIE_SUO"] = 7] = "TIE_SUO";
 })(DamageSource = exports.DamageSource || (exports.DamageSource = {}));
 // function fromSlash(type: CardType) {
 //     switch(type) {
@@ -17667,6 +17672,10 @@ class DamageOp extends Operation_1.Operation {
         this.type = type;
         this.doChain = doChain;
         this.timeline = DamageTimeline.DOING_DAMAGE;
+        if (this.source && this.source.isDead) {
+            //比如典韦自杀攻击
+            this.source = null;
+        }
     }
     isFrom(player) {
         return this.source && this.source.player.id === player;
@@ -17741,7 +17750,7 @@ class DamageOp extends Operation_1.Operation {
                     //player might die half way...
                     if (!player.isDead) {
                         console.log('[伤害结算] 连环伤害:', player.player.id);
-                        yield new DamageOp(this.source, player, this.amount, this.cards, DamageSource.TIE_SUO, this.type, false).perform(manager);
+                        yield new DamageOp(this.source, player, this.amount, this.cards, this.damageSource, this.type, false).perform(manager);
                     }
                 }
             }
