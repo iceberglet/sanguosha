@@ -18,7 +18,7 @@ import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
 import DropCardOp, { DropCardRequest, DropTimeline, DropOthersCardRequest, SelectACardAt } from "../../server/engine/DropCardOp"
 import { Suits, any, toChinese } from "../../common/util/Util"
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp"
-import { SlashCompute } from "../../server/engine/SlashOp"
+import { SlashCompute, SlashOP } from "../../server/engine/SlashOp"
 import { Timeline, RuseOp } from "../../server/Operation"
 import { YiYiDaiLao } from '../FactionWarActionResolver'
 import HealOp from "../../server/engine/HealOp"
@@ -287,7 +287,7 @@ export class GuoSe extends Skill {
     }
 }
 
-export class LiuLi extends SimpleConditionalSkill<SlashCompute> {
+export class LiuLi extends SimpleConditionalSkill<SlashOP> {
     id = '流离'
     displayName = '流离'
     description = '当你成为【杀】的目标时，你可以弃置一张牌并将此【杀】转移给你攻击范围内的一名其他角色。'
@@ -308,14 +308,14 @@ export class LiuLi extends SimpleConditionalSkill<SlashCompute> {
     }
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-        skillRegistry.on<SlashCompute>(SlashCompute, this)
+        skillRegistry.on<SlashOP>(SlashOP, this)
     }
 
-    public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
-        return event.timeline === Timeline.BECOME_TARGET && event.target.player.id === this.playerId
+    public conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
+        return event.timeline === Timeline.BECOME_TARGET && event.hasTarget(this.playerId)
     }
 
-    public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+    public async doInvoke(event: SlashOP, manager: GameManager): Promise<void> {
         let resp = await manager.sendHint(this.playerId, {
             hintType: HintType.SPECIAL,
             specialId: this.id,
@@ -330,8 +330,8 @@ export class LiuLi extends SimpleConditionalSkill<SlashCompute> {
         let target = resp.targets[0]
         this.invokeEffects(manager, [target.player.id])
         await resp.dropCardsFromSource(this.displayName)
-        event.target = target
-
+        event.removeTarget(this.playerId)
+        event.targets.push(target)
     }
 }
 
@@ -349,13 +349,13 @@ class SingleRuseCancellor<T extends RuseOp<any>> implements SkillTrigger<T> {
     }
 
     conditionFulfilled(event: T, manager: GameManager): boolean {
-        return event.timeline === Timeline.BECOME_TARGET && event.target.player.id === this.skill.playerId 
+        return event.timeline === Timeline.BECOME_TARGET && event.getTarget().player.id === this.skill.playerId 
                 && event.ruseType === this.cardType
     }
 
     async doInvoke(event: T, manager: GameManager): Promise<void> {
         this.skill.invokeEffects(manager)
-        event.abort = true
+        event.removeTarget(this.skill.playerId)
     }
 }
 
@@ -837,7 +837,7 @@ export class DiMeng extends SimpleConditionalSkill<TakeCardStageOp> {
 
 }
 
-export class YiCheng extends SimpleConditionalSkill<SlashCompute> {
+export class YiCheng extends SimpleConditionalSkill<SlashOP> {
 
     id = '疑城'
     displayName = '疑城'
@@ -845,22 +845,49 @@ export class YiCheng extends SimpleConditionalSkill<SlashCompute> {
 
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-        skillRegistry.on<SlashCompute>(SlashCompute, this)
+        skillRegistry.on<SlashOP>(SlashOP, this)
     }
 
-    public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
-        return (event.target.player.id === this.playerId || FactionPlayerInfo.factionSame(event.target, manager.context.getPlayer(this.playerId))) && 
-                event.timeline === Timeline.AFTER_BECOMING_TARGET
+    public conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
+        let buddies = this.getBuddies(event, manager)
+        return buddies.length > 0
     }
 
-    invokeMsg(event: SlashCompute, manager: GameManager): string {
-        return `对${event.target}发动疑城令其摸一张牌然后弃置一张牌`
+    invokeMsg(event: SlashOP, manager: GameManager): string {
+        return `对${event.targets[0]}发动疑城令其摸一张牌然后弃置一张牌`
     }
 
-    public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
-        this.invokeEffects(manager, [event.target.player.id])
-        await new TakeCardOp(event.target, 1).perform(manager)
-        await new DropCardRequest().perform(event.target.player.id, 1, manager, '(疑城)请弃置一张牌', [UIPosition.MY_HAND, UIPosition.MY_EQUIP])
+    public async doInvoke(event: SlashOP, manager: GameManager): Promise<void> {
+        let buddies = this.getBuddies(event, manager)
+        let isFirst = true
+        for(let b of buddies) {
+            let activate = true
+            if(isFirst) {
+                isFirst = false
+            } else {
+                //do ask first
+                let ask = await manager.sendHint(this.playerId, {
+                    hintType: HintType.MULTI_CHOICE,
+                    hintMsg: `是否对${b}发动疑城`,
+                    extraButtons: [new Button('yes', '发动'), new Button('no', '不发动')]
+                })
+                if(ask.button !== 'yes') {
+                    activate = false
+                }
+            }
+            if(activate) {
+                this.invokeEffects(manager, [b.player.id])
+                await new TakeCardOp(b, 1).perform(manager)
+                await new DropCardRequest().perform(b.player.id, 1, manager, '(疑城)请弃置一张牌', [UIPosition.MY_HAND, UIPosition.MY_EQUIP])
+            }
+        }
+    }
+
+    private getBuddies(event: SlashOP, manager: GameManager) {
+        return event.targets.filter(t => {
+            (t.player.id === this.playerId || FactionPlayerInfo.factionSame(t, manager.context.getPlayer(this.playerId))) && 
+            event.timeline === Timeline.AFTER_BECOMING_TARGET
+        })
     }
 }
 
@@ -1061,7 +1088,7 @@ export class FenJi extends SimpleConditionalSkill<StageStartFlow> {
     }
 }
 
-class RedSlashTrigger implements SkillTrigger<SlashCompute> {
+class RedSlashTrigger implements SkillTrigger<SlashOP> {
 
     needRepeatedCheck = false
     
@@ -1071,12 +1098,12 @@ class RedSlashTrigger implements SkillTrigger<SlashCompute> {
         return this.skill
     }
 
-    invokeMsg(event: SlashCompute, manager: GameManager): string {
+    invokeMsg(event: SlashOP, manager: GameManager): string {
         return '发动' + this.skill.displayName
     }
 
-    conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
-        if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.target.player.id === this.skill.playerId) {
+    conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
+        if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.hasTarget(this.skill.playerId)) {
             return event.color === 'red'
         }
         if(event.timeline === Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
@@ -1085,7 +1112,7 @@ class RedSlashTrigger implements SkillTrigger<SlashCompute> {
         return false
     }
 
-    async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+    async doInvoke(event: SlashOP, manager: GameManager): Promise<void> {
         this.skill.invokeEffects(manager)
         await new TakeCardOp(manager.context.getPlayer(this.skill.playerId), 1).perform(manager)
     }
@@ -1106,7 +1133,7 @@ class JueDouTrigger implements SkillTrigger<JueDou> {
     }
 
     conditionFulfilled(event: JueDou, manager: GameManager): boolean {
-        if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.target.player.id === this.skill.playerId) {
+        if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.getTarget().player.id === this.skill.playerId) {
             return true
         }
         if(event.timeline === Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
@@ -1128,7 +1155,7 @@ export class JiAng extends Skill {
     description = '当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-        skillRegistry.on<SlashCompute>(SlashCompute, new RedSlashTrigger(this))
+        skillRegistry.on<SlashOP>(SlashOP, new RedSlashTrigger(this))
         skillRegistry.on<JueDou>(JueDou, new JueDouTrigger(this))
     }
 }

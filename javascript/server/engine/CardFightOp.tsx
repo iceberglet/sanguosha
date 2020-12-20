@@ -11,6 +11,9 @@ import { CardBeingDroppedEvent } from "./Generic";
 
 //必须有手牌
 export function canCardFight(a: string, b: string, manager: GameManager) {
+    if(a === b) {
+        return false
+    }
     let me = manager.context.getPlayer(a)
     let target = manager.context.getPlayer(b)
     return me.getCards(CardPos.HAND).length > 0 && target.getCards(CardPos.HAND).length > 0

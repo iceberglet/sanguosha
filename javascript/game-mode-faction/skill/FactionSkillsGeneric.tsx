@@ -112,15 +112,32 @@ export function areInFormation(a: string, b: string, context: GameContext) {
     return false
 }
 
-export function isSieged(a: string, context: GameContext) {
-    let upCursor = context.cursor(a)
+
+export type SiegeContext = {
+    siegers: [string, string]
+    victim: string
+}
+/**
+ * 检查围攻关系
+ * @param victim 
+ * @param sieger 
+ * @param context 
+ */
+export function getSiegeContext(victim: string, sieger: string, context: GameContext): SiegeContext {
+    let upCursor = context.cursor(victim)
     let me = upCursor.get()
     let up = upCursor.up().get()
     let down = upCursor.down().down().get()
-    if(factionsSame(up.getFaction(), down.getFaction()) && up !== down && factionDiffers(up.getFaction(), me.getFaction())) {
-        return true
+    if(sieger !== up.player.id && sieger !== down.player.id) {
+        return null
     }
-    return false
+    if(factionsSame(up.getFaction(), down.getFaction()) && up !== down && factionDiffers(up.getFaction(), me.getFaction())) {
+        return {
+            siegers: [up.player.id, down.player.id],
+            victim
+        }
+    }
+    return null
 }
 
 
@@ -143,8 +160,10 @@ export async function removeGeneral(manager: GameManager, skillRepo: SkillRepo, 
     //todo: remove skin fields
     if(isMain) {
         p.general = newGeneral
+        p.isGeneralRevealed = true
     } else {
         p.subGeneral = newGeneral
+        p.isSubGeneralRevealed = true
     }
     manager.broadcast(p as PlayerInfo, PlayerInfo.sanitize)
 }

@@ -58,19 +58,22 @@ export abstract class Equipment {
 export abstract class Weapon extends Equipment {
     
     async onEquipped(): Promise<void> {
-        this.manager.equipmentRegistry.on<SlashCompute>(SlashCompute, this.player, this.performEffect)
+        this.manager.equipmentRegistry.on<SlashOP>(SlashCompute, this.player, this.performEffect)
     }
 
     async onDropped(): Promise<void> {
-        this.manager.equipmentRegistry.off<SlashCompute>(SlashCompute, this.player, this.performEffect)
+        this.manager.equipmentRegistry.off<SlashOP>(SlashCompute, this.player, this.performEffect)
     }
 
     abstract myType(): CardType
 
-    abstract async doEffect(op: SlashCompute): Promise<void>
+    abstract async doEffect(op: SlashOP): Promise<void>
 
-    performEffect = async (op: SlashCompute) => {
+    performEffect = async (op: SlashOP) => {
         if(op.source.player.id !== this.player) {
+            return
+        }
+        if(!op.hasTarget(this.player)) {
             return
         }
         let potential = op.source.getCards(CardPos.EQUIP).find(c => c.type === this.myType())
@@ -88,15 +91,15 @@ export class QingGang extends Weapon {
         return CardType.QING_GANG
     }
 
-    async doEffect(op: SlashCompute) {
+    async doEffect(op: SlashOP) {
         if(op.timeline === Timeline.AFTER_CONFIRMING_TARGET) {
             this.show()
             this.manager.log(`${this.player} 的青釭剑效果触发`)
             // console.log('[装备] 青釭技能发动, 无视防具:', shield.id)
-            BlockedEquipment.block(op.target.player.id, this.cardType.name)
+            BlockedEquipment.block(this.player, this.cardType.name)
         } else if(op.timeline === Timeline.COMPUTE_FINISH){
             // console.log('[装备] 青釭技能结算完毕, 恢复防具:', shield.id)
-            BlockedEquipment.release(op.target.player.id, this.cardType.name)
+            BlockedEquipment.release(this.player, this.cardType.name)
         }
     }
 }
@@ -135,27 +138,30 @@ export class CiXiong extends Weapon {
         return CardType.CI_XIONG
     }
 
-    async doEffect(op: SlashCompute) {
-        if(op.timeline === Timeline.AFTER_CONFIRMING_TARGET && this.differentSex(op.source, op.target)) {
-            //询问是否发动
-            let resp = await this.manager.sendHint(this.player, {
-                hintType: HintType.MULTI_CHOICE,
-                hintMsg: `是否对 ${op.target.player.id} 发动雌雄双股剑`,
-                extraButtons: [Button.OK, Button.CANCEL]
-            })
-            if(!resp.isCancel()) {
-                this.show()
-                console.log(`[装备] ${this.player} 发动了雌雄双股剑`)
-                this.manager.log(`${this.player} 发动了雌雄双股剑的效果`)
-                let resp = await new DropCardRequest().perform(op.target.player.id, 1, this.manager, 
-                    `${this.player} 对你发动了雌雄双股剑, 请弃置一张手牌或点击取消令其摸一张牌`, [UIPosition.MY_HAND], true)
-                
-                //若按了取消
-                if(!resp) {
-                    console.log(`[装备] ${op.target} 选择让 ${this.player} 摸一张牌`)
-                    await new TakeCardOp(op.source, 1).perform(this.manager)
-                } else {
-                    console.log(`[装备] ${op.target} 选择弃置了牌`)
+    async doEffect(op: SlashOP) {
+        if(op.timeline === Timeline.AFTER_CONFIRMING_TARGET) {
+            let ts = op.targets.filter(t => this.differentSex(op.source, t))
+            for(let t of ts) {
+                //询问是否发动
+                let resp = await this.manager.sendHint(this.player, {
+                    hintType: HintType.MULTI_CHOICE,
+                    hintMsg: `是否对 ${t} 发动雌雄双股剑`,
+                    extraButtons: [Button.OK, Button.CANCEL]
+                })
+                if(!resp.isCancel()) {
+                    this.show()
+                    console.log(`[装备] ${this.player} 发动了雌雄双股剑`)
+                    this.manager.log(`${this.player} 发动了雌雄双股剑的效果`)
+                    let resp = await new DropCardRequest().perform(t.player.id, 1, this.manager, 
+                        `${this.player} 对你发动了雌雄双股剑, 请弃置一张手牌或点击取消令其摸一张牌`, [UIPosition.MY_HAND], true)
+                    
+                    //若按了取消
+                    if(!resp) {
+                        console.log(`[装备] ${t} 选择让 ${this.player} 摸一张牌`)
+                        await new TakeCardOp(op.source, 1).perform(this.manager)
+                    } else {
+                        console.log(`[装备] ${t} 选择弃置了牌`)
+                    }
                 }
             }
         }
@@ -425,21 +431,21 @@ export class TengJia extends Equipment {
     
     async onEquipped(): Promise<void> {
         this.manager.equipmentRegistry.on<DamageOp>(DamageOp, this.player, this.amplifyFire)
-        this.manager.equipmentRegistry.on<SlashCompute>(SlashCompute, this.player, this.abortSlash)
+        this.manager.equipmentRegistry.on<SlashOP>(SlashOP, this.player, this.abortSlash)
         this.manager.equipmentRegistry.on<WanJian>(WanJian, this.player, this.abortAOE)
         this.manager.equipmentRegistry.on<NanMan>(NanMan, this.player, this.abortAOE)
     }
 
     async onDropped(): Promise<void> {
         this.manager.equipmentRegistry.off<DamageOp>(DamageOp, this.player, this.amplifyFire)
-        this.manager.equipmentRegistry.off<SlashCompute>(SlashCompute, this.player, this.abortSlash)
+        this.manager.equipmentRegistry.off<SlashOP>(SlashOP, this.player, this.abortSlash)
         this.manager.equipmentRegistry.off<WanJian>(WanJian, this.player, this.abortAOE)
         this.manager.equipmentRegistry.off<NanMan>(NanMan, this.player, this.abortAOE)
     }
 
-    abortSlash = async (slashOp: SlashCompute): Promise<void> => {
-        if(slashOp.target.player.id === this.player && 
-            slashOp.timeline === Timeline.AFTER_CONFIRMING_TARGET &&
+    abortSlash = async (slashOp: SlashOP): Promise<void> => {
+        if(slashOp.hasTarget(this.player) && 
+            slashOp.timeline === Timeline.AFTER_BECOMING_TARGET &&
             slashOp.damageType === DamageType.NORMAL) {
             if(BlockedEquipment.isBlocked(this.player)) {
                 console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name)
@@ -450,7 +456,8 @@ export class TengJia extends Equipment {
             this.manager.log(`${this.player} 的藤甲触发`)
             this.manager.broadcast(new PlaySound(`audio/equip/teng_jia_good.ogg`))
             this.manager.broadcast(new TextFlashEffect(this.player, [], '藤甲_好'))
-            slashOp.abort = true
+            slashOp.removeTarget(this.player)
+            // slashOp.abort = true
             //todo: show effect
         }
     }
@@ -497,15 +504,15 @@ export class TengJia extends Equipment {
 export class RenWang extends Equipment {
     
     async onEquipped(): Promise<void> {
-        this.manager.equipmentRegistry.on<SlashCompute>(SlashCompute, this.player, this.abortSlash)
+        this.manager.equipmentRegistry.on<SlashOP>(SlashOP, this.player, this.abortSlash)
     }
 
     async onDropped(): Promise<void> {
-        this.manager.equipmentRegistry.off<SlashCompute>(SlashCompute, this.player, this.abortSlash)
+        this.manager.equipmentRegistry.off<SlashOP>(SlashOP, this.player, this.abortSlash)
     }
 
-    abortSlash = async (slashOp: SlashCompute) => {
-        if(slashOp.target.player.id === this.player && 
+    abortSlash = async (slashOp: SlashOP) => {
+        if(slashOp.hasTarget(this.player) && 
             slashOp.timeline === Timeline.AFTER_CONFIRMING_TARGET && 
             slashOp.color === 'black') {
             if(BlockedEquipment.isBlocked(this.player)) {
@@ -515,7 +522,7 @@ export class RenWang extends Equipment {
             this.show()
             this.manager.log(`${this.player} 的仁王盾令此杀无效`)
             console.log(`[装备] 仁王盾令 ${slashOp.source.player.id} 的杀无效`)
-            slashOp.abort = true
+            slashOp.removeTarget(this.player)
         }
     }
 }

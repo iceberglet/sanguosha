@@ -484,9 +484,9 @@ export class ShenSu extends SimpleConditionalSkill<StageStartFlow> {
                 manager.roundStats.skipStages.set(Stage.USE_CARD, true)
                 //出杀
                 manager.broadcast(new TextFlashEffect(this.playerId, [target.player.id], '神速'))
-                await new SlashCompute(manager.context.getPlayer(this.playerId),
-                                        target,
-                                        [], 1, 1, DamageType.NORMAL, 'n.a.').perform(manager)
+                await new SlashOP(manager.context.getPlayer(this.playerId),
+                                        [target],
+                                        [], 1, DamageType.NORMAL, 'n.a.').perform(manager)
             }
         }
     }

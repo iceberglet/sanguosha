@@ -17,7 +17,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 export abstract class SingleRuse<T> extends RuseOp<T> {
 
     public constructor(public readonly source: PlayerInfo, 
-                        public readonly target: PlayerInfo, 
+                        readonly target: PlayerInfo, 
                         public readonly cards: Card[],
                         public readonly ruseType: CardType) {
         super(target, cards, ruseType)

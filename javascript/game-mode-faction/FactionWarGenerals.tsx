@@ -1,9 +1,14 @@
 import { General, Faction } from "../common/General"
 import {Pairs} from "../common/util/Multimap"
+import FactionPlayerInfo from "./FactionPlayerInfo"
 
 
 export const allGenerals = new Map<string, FactionWarGeneral>()
 export const DUMMY_GENERAL_NAME = '士兵'
+
+export function hasSub(p: FactionPlayerInfo) {
+    return p.isRevealed() && (!p.isSubGeneralRevealed || (p.subGeneral.name !== DUMMY_GENERAL_NAME))
+}
 
 export default class FactionWarGeneral extends General {
 
@@ -57,9 +62,9 @@ export default class FactionWarGeneral extends General {
     public static deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田')
     public static li_dian = new FactionWarGeneral('bound_li_dian', '李典', Faction.WEI, 1.5, '恂恂', '忘隙')
 
-    // // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
+    // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
 
-    //18
+    // 18
     public static liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', Faction.SHU, 2, '仁德')  
     public static guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', Faction.SHU, 2.5, '武圣')
     public static zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', Faction.SHU, 2, '咆哮')
@@ -79,7 +84,7 @@ export default class FactionWarGeneral extends General {
     public static zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', Faction.SHU, 1.5, '观星', '空城')
     public static jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', Faction.SHU, 2, '挑衅', '遗志', '天覆').hpDelta(0, -0.5)
 
-    //18
+    // 18
     public static sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', Faction.WU, 2, '制衡')
     public static gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', Faction.WU, 2, '奇袭')
     public static huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', Faction.WU, 2, '苦肉')
@@ -99,7 +104,7 @@ export default class FactionWarGeneral extends General {
     public static sun_ce = new FactionWarGeneral('guo_sun_ce', '孙策', Faction.WU, 2, '激昂', '鹰扬', '魂殇').hpDelta(0, -0.5)
     public static lv_fan = new FactionWarGeneral('guo_lv_fan', '吕范', Faction.WU, 1.5, '调度', '典财').withSkin(0)
 
-    //18
+    // 18
     public static hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', Faction.QUN, 1.5, '除疠', '急救')
     public static lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', Faction.QUN, 2.5, '无双')
     public static diao_chan = new FactionWarGeneral('standard_diao_chan', '貂蝉', Faction.QUN, 1.5, '闭月', '离间').asFemale() as FactionWarGeneral
@@ -113,16 +118,15 @@ export default class FactionWarGeneral extends General {
     public static yuan_shao = new FactionWarGeneral('fire_yuan_shao', '袁绍', Faction.QUN, 2, '乱击')
     public static tian_feng = new FactionWarGeneral('guo_tian_feng', '田丰', Faction.QUN, 1.5, '死谏', '随势').withSkin(3)
     public static li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', Faction.QUN, 2, '凶算').withSkin(0)
-    public static ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', Faction.QUN, 1.5, '矢北', '渐营').withSkin(4)
-    public static xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', Faction.QUN, 1.5, '锋略', '谋识').withSkin(0)
     public static pan_feng = new FactionWarGeneral('guo_pan_feng', '潘凤', Faction.QUN, 2, '狂斧')
     public static cai_wen_ji = new FactionWarGeneral('mountain_cai_wen_ji', '蔡文姬', Faction.QUN, 1.5, '悲歌', '断肠').asFemale() as FactionWarGeneral
     public static dong_zhuo = new FactionWarGeneral('forest_dong_zhuo', '董卓', Faction.QUN, 2, '横征', '暴凌', '崩坏')
 
-    // public static zhang_ren = new FactionWarGeneral('guo_zhang_ren', '张任', Faction.QUN, 2, '穿心', '锋矢')
-    // public static kong_rong = new FactionWarGeneral('guo_kong_rong', '孔融', Faction.QUN, 1.5, '名士', '礼让')
-    // public static ji_ling = new FactionWarGeneral('guo_ji_ling', '纪灵', Faction.QUN, 2, '双刃')
-    // public static yu_ji = new FactionWarGeneral('wind_yu_ji', '于吉', Faction.QUN, 1.5, '千幻')
+
+    public static zhang_ren = new FactionWarGeneral('guo_zhang_ren', '张任', Faction.QUN, 2, '穿心', '锋矢').withSkin(0)
+    public static kong_rong = new FactionWarGeneral('guo_kong_rong', '孔融', Faction.QUN, 1.5, '名士', '礼让').withSkin(0)
+    public static ji_ling = new FactionWarGeneral('guo_ji_ling', '纪灵', Faction.QUN, 2, '双刃').withSkin(0)
+    // public static yu_ji = new FactionWarGeneral('wind_yu_ji', '于吉', Faction.QUN, 1.5, '千幻').withSkin(0)
 
 
 
@@ -142,6 +146,8 @@ export default class FactionWarGeneral extends General {
 
     // public static zou_shi = new FactionWarGeneral('guo_zou_shi', '邹氏', Faction.QUN, 1.5, '祸水', '倾城').asFemale() as FactionWarGeneral
     
+    // public static ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', Faction.QUN, 1.5, '矢北', '渐营').withSkin(4)
+    // public static xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', Faction.QUN, 1.5, '锋略', '谋识').withSkin(0)
     
     
     

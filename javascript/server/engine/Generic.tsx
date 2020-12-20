@@ -12,7 +12,7 @@ export abstract class CardAwayEvent {
     cards: Array<[Card, CardPos]>
 
     isCardFrom(playerId: string) {
-        return this.player === playerId && (this.cards[0][1] === CardPos.HAND || this.cards[0][1] === CardPos.EQUIP)
+        return this.player === playerId && this.cards.length > 0 && (this.cards[0][1] === CardPos.HAND || this.cards[0][1] === CardPos.EQUIP)
     }
 }
 
@@ -46,7 +46,6 @@ export class CardBeingTakenEvent extends CardAwayEvent {
 export class CardObtainedEvent {
     constructor(public readonly player: string, public readonly cards: Array<[Card, CardPos]>) {}
 }
-
 
 
 const cardPosNames = new Map<string, CardPos>([

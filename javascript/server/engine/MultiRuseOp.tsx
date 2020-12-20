@@ -23,8 +23,8 @@ export abstract class MultiRuse extends UseEventOperation<void> {
     public constructor(public readonly cards: Card[],
                         public readonly source: PlayerInfo,
                         public readonly ruseType: CardType,
-                        public readonly targets: PlayerInfo[]) {
-        super()
+                        readonly targets: PlayerInfo[]) {
+        super(targets)
         console.log('[MultiRuseOp] 多目标锦囊牌', ruseType.name, targets.map(t => t.player.id))
     }
 

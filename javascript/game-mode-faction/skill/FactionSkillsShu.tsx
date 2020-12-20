@@ -399,7 +399,7 @@ export class LongDan extends SimpleConditionalSkill<SlashDodgedEvent> {
 
 }
 
-export class TieQi extends SimpleConditionalSkill<SlashCompute> {
+export class TieQi extends SimpleConditionalSkill<SlashOP> {
     
     id = '铁骑'
     displayName = '铁骑'
@@ -407,7 +407,7 @@ export class TieQi extends SimpleConditionalSkill<SlashCompute> {
     cache = new Set<GeneralSkillStatusUpdate>()
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-        skillRegistry.on<SlashCompute>(SlashCompute, this)
+        skillRegistry.on<SlashOP>(SlashOP, this)
         skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async (flow: StageEndFlow)=>{
             if(flow.info.player.id === this.playerId && flow.stage === Stage.ROUND_END) {
                 console.log('[铁骑] 恢复玩家技能', this.cache.size)
@@ -419,52 +419,54 @@ export class TieQi extends SimpleConditionalSkill<SlashCompute> {
             }
         })
     }
-    public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
+    public conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
         return event.source.player.id === this.playerId && event.timeline === Timeline.AFTER_CONFIRMING_TARGET
     }
-    public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
-        this.invokeEffects(manager, [event.target.player.id])
-        let judgeCard = await new JudgeOp('铁骑判定', this.playerId).perform(manager)
-        console.log('[铁骑] 判定牌为', judgeCard.id)
-        let target = event.target as FactionPlayerInfo
-        if(target.isRevealed()) {
-            console.log('[铁骑] 选择将要失效的武将牌')
-            let choice: Button[] = []
-            if(target.isGeneralRevealed) {
-                choice.push(new Button('main', '封禁主将技能: ' + target.general.name))
+    public async doInvoke(event: SlashOP, manager: GameManager): Promise<void> {
+        for(let t of event.targets) {
+            this.invokeEffects(manager, [t.player.id])
+            let judgeCard = await new JudgeOp('铁骑判定', this.playerId).perform(manager)
+            console.log('[铁骑] 判定牌为', judgeCard.id)
+            let target = t as FactionPlayerInfo
+            if(target.isRevealed()) {
+                console.log('[铁骑] 选择将要失效的武将牌')
+                let choice: Button[] = []
+                if(target.isGeneralRevealed) {
+                    choice.push(new Button('main', '封禁主将技能: ' + target.general.name))
+                }
+                if(target.isSubGeneralRevealed) {
+                    choice.push(new Button('sub', '封禁副将技能: ' + target.subGeneral.name))
+                }
+                let resp = await manager.sendHint(this.playerId, {
+                    hintType: HintType.MULTI_CHOICE,
+                    hintMsg: '请选择对 '+target+' 使用[铁骑]要封禁的武将牌',
+                    extraButtons: choice
+                })
+                //封禁技能??
+                console.log('[铁骑] 封禁', target.player.id, resp.button)
+                manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === 'main'? '主将' : '副将'} 的非锁定技`)
+                let u = new GeneralSkillStatusUpdate(this.id, target, resp.button as SkillPosition, false)
+                this.cache.add(u)
+                await manager.events.publish(u)
             }
-            if(target.isSubGeneralRevealed) {
-                choice.push(new Button('sub', '封禁副将技能: ' + target.subGeneral.name))
-            }
-            let resp = await manager.sendHint(this.playerId, {
-                hintType: HintType.MULTI_CHOICE,
-                hintMsg: '请选择对 '+target+' 使用[铁骑]要封禁的武将牌',
-                extraButtons: choice
+            let suit = manager.interpret(this.playerId, judgeCard).suit
+            let ask = await manager.sendHint(target.player.id, {
+                hintType: HintType.CHOOSE_CARD,
+                hintMsg: `请弃置一张花色为[${Suits[suit]}]的手牌, 否则不能出闪`,
+                quantity: 1,
+                positions: [UIPosition.MY_HAND, UIPosition.MY_EQUIP],
+                extraButtons: [Button.CANCEL],
+                suits: [suit]
             })
-            //封禁技能??
-            console.log('[铁骑] 封禁', target.player.id, resp.button)
-            manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === 'main'? '主将' : '副将'} 的非锁定技`)
-            let u = new GeneralSkillStatusUpdate(this.id, target, resp.button as SkillPosition, false)
-            this.cache.add(u)
-            await manager.events.publish(u)
-        }
-        let suit = manager.interpret(this.playerId, judgeCard).suit
-        let ask = await manager.sendHint(target.player.id, {
-            hintType: HintType.CHOOSE_CARD,
-            hintMsg: `请弃置一张花色为[${Suits[suit]}]的手牌, 否则不能出闪`,
-            quantity: 1,
-            positions: [UIPosition.MY_HAND, UIPosition.MY_EQUIP],
-            extraButtons: [Button.CANCEL],
-            suits: [suit]
-        })
-        if(ask.isCancel()) {
-            console.log('[铁骑] 对方没有弃置同花色牌, 无法出闪')
-            event.undodgeable = true
-        } else {
-            console.log('[铁骑] 对方弃置了牌以获得出闪的权利')
-            let cardAndPos = ask.getSingleCardAndPos()
-            manager.sendToWorkflow(target.player.id, cardAndPos[1], [cardAndPos[0]])
-            await manager.events.publish(new CardBeingDroppedEvent(target.player.id, [cardAndPos]))
+            if(ask.isCancel()) {
+                console.log('[铁骑] 对方没有弃置同花色牌, 无法出闪')
+                event.undodegables.add(target.player.id)
+            } else {
+                console.log('[铁骑] 对方弃置了牌以获得出闪的权利')
+                let cardAndPos = ask.getSingleCardAndPos()
+                manager.sendToWorkflow(target.player.id, cardAndPos[1], [cardAndPos[0]])
+                await manager.events.publish(new CardBeingDroppedEvent(target.player.id, [cardAndPos]))
+            }
         }
     }
 }
@@ -634,22 +636,22 @@ export class KuangGu extends SimpleConditionalSkill<DamageOp> {
     }
 }
 
-export class LieGong extends SimpleConditionalSkill<SlashCompute> {
+export class LieGong extends SimpleConditionalSkill<SlashOP> {
     id = '烈弓'
     displayName = '烈弓'
     description = '当你于出牌阶段内使用【杀】指定一个目标后，若该角色的手牌数不小于你的体力值或不大于你的攻击范围，则你可以令其不能使用【闪】响应此【杀】。'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-        skillRegistry.on<SlashCompute>(SlashCompute, this)
+        skillRegistry.on<SlashOP>(SlashOP, this)
     }
-    public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
+    public conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
         return event.source.player.id === this.playerId && event.timeline === Timeline.AFTER_CONFIRMING_TARGET &&
-            (event.target.getCards(CardPos.HAND).length >= event.source.hp || event.target.getCards(CardPos.HAND).length <= event.source.getReach())
+            (event.getTarget().getCards(CardPos.HAND).length >= event.source.hp || event.getTarget().getCards(CardPos.HAND).length <= event.source.getReach())
     }
-    public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+    public async doInvoke(event: SlashOP, manager: GameManager): Promise<void> {
         console.log('[烈弓] 发动, 不能闪')
-        this.invokeEffects(manager, [event.target.player.id])
-        event.undodgeable = true
+        this.invokeEffects(manager, [event.getTarget().player.id])
+        event.undodegables.add(event.getTarget().player.id)
     }
 }
 
@@ -691,19 +693,19 @@ export class JiLi extends SimpleConditionalSkill<CardBeingUsedEvent> {
     }
 }
 
-export class XiangLe extends SimpleConditionalSkill<SlashCompute> {
+export class XiangLe extends SimpleConditionalSkill<SlashOP> {
     id = '享乐'
     displayName = '享乐'
     description = '锁定技，当你成为一名角色使用【杀】的目标后，除非该角色弃置一张基本牌，否则此【杀】对你无效。'
     isLocked = true
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-        skillRegistry.on<SlashCompute>(SlashCompute, this)
+        skillRegistry.on<SlashOP>(SlashOP, this)
     }
-    public conditionFulfilled(event: SlashCompute, manager: GameManager): boolean {
-        return event.target.player.id === this.playerId && event.timeline === Timeline.AFTER_BECOMING_TARGET
+    public conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
+        return event.hasTarget(this.playerId) && event.timeline === Timeline.AFTER_BECOMING_TARGET
     }
-    public async doInvoke(event: SlashCompute, manager: GameManager): Promise<void> {
+    public async doInvoke(event: SlashOP, manager: GameManager): Promise<void> {
         console.log('[享乐] 发动')
         this.invokeEffects(manager, [event.source.player.id])
         let abandonned = await askAbandonBasicCard(manager, event.source, '请弃置一张基本牌否则你的杀无效', true)
@@ -711,7 +713,7 @@ export class XiangLe extends SimpleConditionalSkill<SlashCompute> {
             console.log('[享乐] 弃置了基本牌, 杀继续生效')
         } else {
             console.log('[享乐] 使杀无效化')
-            event.abort = true
+            event.removeTarget(this.playerId)
         }
     }
 }
@@ -1236,7 +1238,7 @@ export class GuanXing extends SimpleConditionalSkill<StageStartFlow> {
 }
 
 
-export class KongChengCancellor<T extends (RuseOp<any> | SlashCompute)> implements SkillTrigger<T> {
+export class KongChengCancellor<T extends (RuseOp<any> | SlashOP)> implements SkillTrigger<T> {
 
     needRepeatedCheck = false
 
@@ -1252,11 +1254,11 @@ export class KongChengCancellor<T extends (RuseOp<any> | SlashCompute)> implemen
 
     conditionFulfilled(event: T, manager: GameManager): boolean {
         if(manager.context.getPlayer(this.skill.playerId).getCards(CardPos.HAND).length === 0) {
-            if(event.timeline === Timeline.BECOME_TARGET && event.target.player.id === this.skill.playerId) {
+            if(event.timeline === Timeline.BECOME_TARGET && event.getTarget().player.id === this.skill.playerId) {
                 if(event instanceof RuseOp && event.ruseType === CardType.JUE_DOU) {
                     return true
                 }
-                if(event instanceof SlashCompute) {
+                if(event instanceof SlashOP) {
                     return true
                 }
             }
@@ -1266,7 +1268,7 @@ export class KongChengCancellor<T extends (RuseOp<any> | SlashCompute)> implemen
 
     async doInvoke(event: T, manager: GameManager): Promise<void> {
         this.skill.invokeEffects(manager)
-        event.abort = true
+        event.removeTarget(this.skill.playerId)
     }
 }
 
@@ -1279,7 +1281,7 @@ export class KongCheng extends Skill {
     isLocked = true
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
-        skillRegistry.on<SlashCompute>(SlashCompute, new KongChengCancellor(this))
+        skillRegistry.on<SlashOP>(SlashOP, new KongChengCancellor(this))
         skillRegistry.on<JueDou>(JueDou, new KongChengCancellor(this))
         const onCardAway= async (away: CardAwayEvent)=>{
             if(!this.isInactive() && away.player === this.playerId && 

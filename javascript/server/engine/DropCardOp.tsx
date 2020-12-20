@@ -30,6 +30,7 @@ export default class DropCardOp extends Operation<void> {
         await manager.events.publish(this);
 
         let amount = Math.max(this.player.getCards(CardPos.HAND).length - this.limit, 0)
+        console.log('[弃牌阶段] ', this.player.getCards(CardPos.HAND).length, this.limit)
 
         if(amount > 0) {
             let request = new DropCardRequest()
@@ -130,7 +131,7 @@ export class DropCardRequest {
                         cancelable: boolean = false): Promise<boolean> {
 
         let victim = manager.context.getPlayer(targetId)
-        let size = Math.min(amount, cardAmountAt(victim, positions))
+        let size = cardAmountAt(victim, positions)
         if(size <= 0) {
             console.error('How???')
             return false
@@ -144,7 +145,7 @@ export class DropCardRequest {
             let resp = await manager.sendHint(targetId, {
                 hintType: HintType.CHOOSE_CARD,
                 hintMsg,
-                quantity: size,
+                quantity: amount,
                 positions: positions,
                 extraButtons: cancelable? [Button.CANCEL] : []
             })
@@ -158,10 +159,8 @@ export class DropCardRequest {
             cardsAndPos = resp.getPosAndCards(CardPos.HAND, CardPos.EQUIP)
         }
 
-        
-
         //remove these cards
-        console.log('玩家弃牌: ', targetId, cardsAndPos)
+        console.log('玩家弃牌: ', targetId, cardsAndPos.map(cp => CardPos[cp[0]] + ': ' + cp[1]))
 
         let cardStr = ''
 

@@ -16,7 +16,31 @@ export abstract class Operation<T> {
 export abstract class UseEventOperation<T> extends Operation<T> {
     
     public timeline = Timeline.CHOOSING_TARGET
-    public abort: boolean = false
+
+    constructor(public readonly targets: PlayerInfo[]) {
+        super()
+    }
+
+    getTarget() {
+        if(this.targets.length !== 1) {
+            console.error('目标不唯一!!', this.targets)
+            // return this.targets[0]
+        }
+        return this.targets[0]
+    }
+
+    hasTarget(t: string) {
+        return this.targets.findIndex(tt => tt.player.id === t) > -1
+    }
+
+    removeTarget(target: string) {
+        let idx = this.targets.findIndex(t => t.player.id === target)
+        if(idx > -1) {
+            this.targets.splice(idx, 1)
+        } else {
+            console.error('Failed to remove target', target, this)
+        }
+    }
 
     /**
      * 结算下一步
@@ -32,15 +56,16 @@ export abstract class UseEventOperation<T> extends Operation<T> {
                         Timeline.AFTER_BECOMING_TARGET]) {
             this.timeline = t
             await manager.events.publish(this)
-            if(this.abort) {
-                await this.onAborted(manager)
-                return
-            }
         }
-        let res = await this.doPerform(manager)
-        this.timeline = Timeline.COMPUTE_FINISH
-        await manager.events.publish(this)
-        return res
+        if(this.targets.length === 0) {
+            await this.onAborted(manager)
+            return null
+        } else {
+            let res = await this.doPerform(manager)
+            this.timeline = Timeline.COMPUTE_FINISH
+            await manager.events.publish(this)
+            return res
+        }
     }
 
     public async onAborted(manager: GameManager): Promise<void> {
@@ -55,7 +80,7 @@ export abstract class RuseOp<T> extends UseEventOperation<T> {
     constructor(public readonly target: PlayerInfo,
                 public readonly cards: Card[],
                 public readonly ruseType: CardType) {
-        super()
+        super([target])
     }
 }
 

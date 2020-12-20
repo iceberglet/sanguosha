@@ -26,6 +26,7 @@ export class StageEndFlow extends StageEvent {
 }
 
 export class InStageStart extends StageEvent {
+    endStage: boolean = false
 }
 
 export class InStageEnd extends StageEvent { 

@@ -377,13 +377,16 @@ export default class GameManager {
         await new StageStartFlow(info, stage).perform(this)
         this.checkDeath()
         if(!this.roundStats.skipStages.get(stage)) {
-            await new InStageStart(info, stage).perform(this)
-            this.setPlayerAndStage(this.currPlayer().player.id, stage)
-            this.broadcast(this.currEffect)
-            if(midProcessor) {
-                await midProcessor()
+            let inStageStart = new InStageStart(info, stage)
+            await inStageStart.perform(this)
+            if(!inStageStart.endStage) {
+                this.setPlayerAndStage(this.currPlayer().player.id, stage)
+                this.broadcast(this.currEffect)
+                if(midProcessor) {
+                    await midProcessor()
+                }
+                await new InStageEnd(info, stage).perform(this)
             }
-            await new InStageEnd(info, stage).perform(this)
         }
         this.checkDeath()
         await new StageEndFlow(info, stage).perform(this)

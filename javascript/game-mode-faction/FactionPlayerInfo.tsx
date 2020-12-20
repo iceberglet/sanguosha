@@ -219,6 +219,10 @@ export default class FactionPlayerInfo extends PlayerInfo {
     static factionSame(a: PlayerInfo, b: PlayerInfo): boolean {
         return factionsSame(a.getFaction(), b.getFaction()) || (a === b && (a as FactionPlayerInfo).isRevealed())
     }
+
+    toString() {
+        return super.toString()
+    }
 }
 
 const Color: {[key: string]: string} = {

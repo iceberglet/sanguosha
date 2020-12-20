@@ -7032,6 +7032,9 @@ class FactionPlayerInfo extends PlayerInfo_1.PlayerInfo {
     static factionSame(a, b) {
         return General_1.factionsSame(a.getFaction(), b.getFaction()) || (a === b && a.isRevealed());
     }
+    toString() {
+        return super.toString();
+    }
 }
 exports.default = FactionPlayerInfo;
 const Color = {
@@ -8285,8 +8288,8 @@ doAdd('fire_pang_de', -25, -25, 150, -60, -30, 170);
 doAdd('wind_zhang_jiao', -45, -25, 150, -100, -30, 170);
 doAdd('mountain_cai_wen_ji', -55, -55, 150, -100, -60, 170);
 doAdd('guo_ma_teng', -45, -15, 150, -80, -30, 170);
-doAdd('guo_kong_rong', -55, -55, 150, -60, -10, 170);
-doAdd('guo_ji_ling', -55, -55, 150, -75, -10, 170);
+doAdd('guo_kong_rong', -35, -15, 150, -60, -10, 170);
+doAdd('guo_ji_ling', -55, -15, 150, -75, -10, 170);
 doAdd('guo_tian_feng', -35, -5, 150, -55, 0, 170);
 doAdd('guo_pan_feng', -55, -5, 150, -95, 0, 170);
 doAdd('guo_zou_shi', -35, -20, 120, -105, -20, 170);
@@ -8666,11 +8669,15 @@ exports.toFactionWarAvatarStyle = toFactionWarAvatarStyle;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generalPairs = exports.DUMMY_GENERAL_NAME = exports.allGenerals = void 0;
+exports.generalPairs = exports.hasSub = exports.DUMMY_GENERAL_NAME = exports.allGenerals = void 0;
 const General_1 = __webpack_require__(/*! ../common/General */ "./javascript/common/General.tsx");
 const Multimap_1 = __webpack_require__(/*! ../common/util/Multimap */ "./javascript/common/util/Multimap.tsx");
 exports.allGenerals = new Map();
 exports.DUMMY_GENERAL_NAME = '士兵';
+function hasSub(p) {
+    return p.isRevealed() && (!p.isSubGeneralRevealed || (p.subGeneral.name !== exports.DUMMY_GENERAL_NAME));
+}
+exports.hasSub = hasSub;
 class FactionWarGeneral extends General_1.General {
     constructor(id, name, faction, hp, ...abilities) {
         super(id, name, faction, hp, abilities);
@@ -8716,8 +8723,8 @@ FactionWarGeneral.yue_jin = new FactionWarGeneral('guo_yue_jin', '乐进', Gener
 FactionWarGeneral.zhang_he = new FactionWarGeneral('mountain_zhang_he', '张郃', General_1.Faction.WEI, 2, '巧变');
 FactionWarGeneral.deng_ai = new FactionWarGeneral('mountain_deng_ai', '邓艾', General_1.Faction.WEI, 2, '屯田', '资粮', '急袭').hpDelta(-0.5, 0).setCardName('田');
 FactionWarGeneral.li_dian = new FactionWarGeneral('bound_li_dian', '李典', General_1.Faction.WEI, 1.5, '恂恂', '忘隙');
-// // public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
-//18
+// public static xun_you = new FactionWarGeneral('fame_xun_you', '荀攸', Faction.WEI, 1.5, '奇策', '智愚')
+// 18
 FactionWarGeneral.liu_bei = new FactionWarGeneral('standard_liu_bei', '刘备', General_1.Faction.SHU, 2, '仁德');
 FactionWarGeneral.guan_yu = new FactionWarGeneral('standard_guan_yu', '关羽', General_1.Faction.SHU, 2.5, '武圣');
 FactionWarGeneral.zhang_fei = new FactionWarGeneral('standard_zhang_fei', '张飞', General_1.Faction.SHU, 2, '咆哮');
@@ -8736,7 +8743,7 @@ FactionWarGeneral.gan_fu_ren = new FactionWarGeneral('guo_gan_fu_ren', '甘夫�
 FactionWarGeneral.jiang_wan_fei_yi = new FactionWarGeneral('guo_jiang_wan_fei_yi', '蒋琬费祎', General_1.Faction.SHU, 1.5, '生息', '守成').withSkin(2);
 FactionWarGeneral.zhu_ge_liang = new FactionWarGeneral('standard_zhu_ge_liang', '诸葛亮', General_1.Faction.SHU, 1.5, '观星', '空城');
 FactionWarGeneral.jiang_wei = new FactionWarGeneral('mountain_jiang_wei', '姜维', General_1.Faction.SHU, 2, '挑衅', '遗志', '天覆').hpDelta(0, -0.5);
-//18
+// 18
 FactionWarGeneral.sun_quan = new FactionWarGeneral('standard_sun_quan', '孙权', General_1.Faction.WU, 2, '制衡');
 FactionWarGeneral.gan_ning = new FactionWarGeneral('standard_gan_ning', '甘宁', General_1.Faction.WU, 2, '奇袭');
 FactionWarGeneral.huang_gai = new FactionWarGeneral('standard_huang_gai', '黄盖', General_1.Faction.WU, 2, '苦肉');
@@ -8755,7 +8762,7 @@ FactionWarGeneral.chen_wu_dong_xi = new FactionWarGeneral('guo_chen_wu_dong_xi',
 FactionWarGeneral.zhou_tai = new FactionWarGeneral('wind_zhou_tai', '周泰', General_1.Faction.WU, 2, '不屈', '奋激').setCardName('创');
 FactionWarGeneral.sun_ce = new FactionWarGeneral('guo_sun_ce', '孙策', General_1.Faction.WU, 2, '激昂', '鹰扬', '魂殇').hpDelta(0, -0.5);
 FactionWarGeneral.lv_fan = new FactionWarGeneral('guo_lv_fan', '吕范', General_1.Faction.WU, 1.5, '调度', '典财').withSkin(0);
-//18
+// 18
 FactionWarGeneral.hua_tuo = new FactionWarGeneral('standard_hua_tuo', '华佗', General_1.Faction.QUN, 1.5, '除疠', '急救');
 FactionWarGeneral.lv_bu = new FactionWarGeneral('standard_lv_bu', '吕布', General_1.Faction.QUN, 2.5, '无双');
 FactionWarGeneral.diao_chan = new FactionWarGeneral('standard_diao_chan', '貂蝉', General_1.Faction.QUN, 1.5, '闭月', '离间').asFemale();
@@ -8769,11 +8776,12 @@ FactionWarGeneral.zhang_jiao = new FactionWarGeneral('wind_zhang_jiao', '张角'
 FactionWarGeneral.yuan_shao = new FactionWarGeneral('fire_yuan_shao', '袁绍', General_1.Faction.QUN, 2, '乱击');
 FactionWarGeneral.tian_feng = new FactionWarGeneral('guo_tian_feng', '田丰', General_1.Faction.QUN, 1.5, '死谏', '随势').withSkin(3);
 FactionWarGeneral.li_jue_guo_si = new FactionWarGeneral('guo_li_jue_guo_si', '李傕郭汜', General_1.Faction.QUN, 2, '凶算').withSkin(0);
-FactionWarGeneral.ju_shou = new FactionWarGeneral('fame_zu_shou', '沮授', General_1.Faction.QUN, 1.5, '矢北', '渐营').withSkin(4);
-FactionWarGeneral.xun_chen = new FactionWarGeneral('guo_xun_chen', '荀谌', General_1.Faction.QUN, 1.5, '锋略', '谋识').withSkin(0);
 FactionWarGeneral.pan_feng = new FactionWarGeneral('guo_pan_feng', '潘凤', General_1.Faction.QUN, 2, '狂斧');
 FactionWarGeneral.cai_wen_ji = new FactionWarGeneral('mountain_cai_wen_ji', '蔡文姬', General_1.Faction.QUN, 1.5, '悲歌', '断肠').asFemale();
 FactionWarGeneral.dong_zhuo = new FactionWarGeneral('forest_dong_zhuo', '董卓', General_1.Faction.QUN, 2, '横征', '暴凌', '崩坏');
+FactionWarGeneral.zhang_ren = new FactionWarGeneral('guo_zhang_ren', '张任', General_1.Faction.QUN, 2, '穿心', '锋矢').withSkin(0);
+FactionWarGeneral.kong_rong = new FactionWarGeneral('guo_kong_rong', '孔融', General_1.Faction.QUN, 1.5, '名士', '礼让').withSkin(0);
+FactionWarGeneral.ji_ling = new FactionWarGeneral('guo_ji_ling', '纪灵', General_1.Faction.QUN, 2, '双刃').withSkin(0);
 //https://baike.baidu.com/item/%E7%8F%A0%E8%81%94%E7%92%A7%E5%90%88/19307118
 //珠联璧合
 exports.generalPairs = new Multimap_1.Pairs();
@@ -9412,7 +9420,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeGeneral = exports.isSieged = exports.areInFormation = exports.areNeighbor = void 0;
+exports.removeGeneral = exports.getSiegeContext = exports.areInFormation = exports.areNeighbor = void 0;
 const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
 const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
@@ -9512,17 +9520,29 @@ function areInFormation(a, b, context) {
     return false;
 }
 exports.areInFormation = areInFormation;
-function isSieged(a, context) {
-    let upCursor = context.cursor(a);
+/**
+ * 检查围攻关系
+ * @param victim
+ * @param sieger
+ * @param context
+ */
+function getSiegeContext(victim, sieger, context) {
+    let upCursor = context.cursor(victim);
     let me = upCursor.get();
     let up = upCursor.up().get();
     let down = upCursor.down().down().get();
-    if (General_1.factionsSame(up.getFaction(), down.getFaction()) && up !== down && General_1.factionDiffers(up.getFaction(), me.getFaction())) {
-        return true;
+    if (sieger !== up.player.id && sieger !== down.player.id) {
+        return null;
     }
-    return false;
+    if (General_1.factionsSame(up.getFaction(), down.getFaction()) && up !== down && General_1.factionDiffers(up.getFaction(), me.getFaction())) {
+        return {
+            siegers: [up.player.id, down.player.id],
+            victim
+        };
+    }
+    return null;
 }
-exports.isSieged = isSieged;
+exports.getSiegeContext = getSiegeContext;
 function removeGeneral(manager, skillRepo, player, isMain) {
     return __awaiter(this, void 0, void 0, function* () {
         let p = manager.context.getPlayer(player);
@@ -9541,9 +9561,11 @@ function removeGeneral(manager, skillRepo, player, isMain) {
         //todo: remove skin fields
         if (isMain) {
             p.general = newGeneral;
+            p.isGeneralRevealed = true;
         }
         else {
             p.subGeneral = newGeneral;
+            p.isSubGeneralRevealed = true;
         }
         manager.broadcast(p, PlayerInfo_1.PlayerInfo.sanitize);
     });
@@ -9572,7 +9594,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BengHuai = exports.BaoLing = exports.HengZheng = exports.BeiGe = exports.DuanChange = exports.KuangFu = exports.MouShi = exports.FengLue = exports.JianYing = exports.ShiBei = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
+exports.QianHuan = exports.FengShi = exports.ChuanXin = exports.ShuangRen = exports.LiRang = exports.MingShi = exports.BengHuai = exports.BaoLing = exports.HengZheng = exports.BeiGe = exports.DuanChange = exports.KuangFu = exports.XiongSuan = exports.SuiShiDeath = exports.SuiShiDying = exports.SuiShi = exports.SiJian = exports.LuanJi = exports.XiongYi = exports.JianChu = exports.MaShuTeng = exports.MaShuPang = exports.LeiJi = exports.GuiDao = exports.CongJian = exports.FuDi = exports.QiLuan = exports.ZhenDu = exports.WeiMu = exports.LuanWu = exports.WanSha = exports.ShuangXiong = exports.BiYue = exports.LiJian = exports.WuShuang = exports.JiJiu = exports.ChuLi = void 0;
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
 const PlayerActionDriverProvider_1 = __webpack_require__(/*! ../../client/player-actions/PlayerActionDriverProvider */ "./javascript/client/player-actions/PlayerActionDriverProvider.tsx");
 const ServerHint_1 = __webpack_require__(/*! ../../common/ServerHint */ "./javascript/common/ServerHint.tsx");
@@ -9604,7 +9626,6 @@ const WineOp_1 = __webpack_require__(/*! ../../server/engine/WineOp */ "./javasc
 const DeathOp_1 = __webpack_require__(/*! ../../server/engine/DeathOp */ "./javascript/server/engine/DeathOp.tsx");
 const FactionSkillsWei_1 = __webpack_require__(/*! ./FactionSkillsWei */ "./javascript/game-mode-faction/skill/FactionSkillsWei.tsx");
 const General_2 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
-const DamageOp_2 = __webpack_require__(/*! ../../server/engine/DamageOp */ "./javascript/server/engine/DamageOp.tsx");
 const DodgeOp_1 = __webpack_require__(/*! ../../server/engine/DodgeOp */ "./javascript/server/engine/DodgeOp.tsx");
 const FactionSkillsShu_1 = __webpack_require__(/*! ./FactionSkillsShu */ "./javascript/game-mode-faction/skill/FactionSkillsShu.tsx");
 const FactionWarUtil_1 = __webpack_require__(/*! ../FactionWarUtil */ "./javascript/game-mode-faction/FactionWarUtil.tsx");
@@ -9614,6 +9635,7 @@ const EquipOp_1 = __webpack_require__(/*! ../../server/engine/EquipOp */ "./java
 const SingleRuseOp_2 = __webpack_require__(/*! ../../server/engine/SingleRuseOp */ "./javascript/server/engine/SingleRuseOp.tsx");
 const FactionWarGenerals_1 = __webpack_require__(/*! ../FactionWarGenerals */ "./javascript/game-mode-faction/FactionWarGenerals.tsx");
 const FactionSkillsGeneric_1 = __webpack_require__(/*! ./FactionSkillsGeneric */ "./javascript/game-mode-faction/skill/FactionSkillsGeneric.tsx");
+const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTransit */ "./javascript/common/transit/EffectTransit.tsx");
 /**
     [Q]华佗判定【闪电】后受到【闪电】的伤害时，是否可以发动【急救】技能?
     [A]不可以，因为华佗判定【闪电】即说明华佗处于自己回合内，不符合【急救】的发动条件。同理，华佗在自己回合内被【刚烈】或者【天香】等技能影响而进入濒死状态，也不能发动【急救】技能。
@@ -9721,15 +9743,15 @@ class WuShuangSlash extends Skill_1.SimpleTrigger {
     }
     doInvoke(slash, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.skill.invokeEffects(manager, [slash.target.player.id]);
-            slash.dodgeRequired = 2;
+            this.skill.invokeEffects(manager, [slash.getTarget().player.id]);
+            slash.dodgesRequired = 2;
         });
     }
 }
 class WuShuangJueDou extends Skill_1.SimpleTrigger {
     conditionFulfilled(jueDou, manager) {
         return jueDou.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET &&
-            (jueDou.source.player.id === this.skill.playerId || jueDou.target.player.id === this.skill.playerId);
+            (jueDou.source.player.id === this.skill.playerId || jueDou.getTarget().player.id === this.skill.playerId);
     }
     doInvoke(jueDou, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -9753,7 +9775,7 @@ class WuShuang extends Skill_1.Skill {
         this.isLocked = true;
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(SlashOp_1.SlashCompute, new WuShuangSlash(this, manager));
+        skillRegistry.on(SlashOp_1.SlashOP, new WuShuangSlash(this, manager));
         skillRegistry.on(SingleRuseOp_1.JueDou, new WuShuangJueDou(this, manager));
     }
 }
@@ -9928,7 +9950,7 @@ class LuanWu extends Skill_1.Skill {
                     extraButtons: [new PlayerAction_1.Button(PlayerAction_1.Button.CANCEL.id, '放弃')]
                 });
                 if (resp.isCancel()) {
-                    yield new DamageOp_2.default(t, t, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+                    yield new DamageOp_1.default(t, t, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
                 }
                 else {
                     yield manager.resolver.on(resp, manager);
@@ -9996,7 +10018,7 @@ class WeiMu extends Skill_1.SimpleConditionalSkill {
         skillRegistry.on(FactionWarActionResolver_1.YiYiDaiLao, cancellor);
     }
     conditionFulfilled(event, manager) {
-        return event.timeline === Operation_1.Timeline.BECOME_TARGET && event.target.player.id === this.playerId &&
+        return event.timeline === Operation_1.Timeline.BECOME_TARGET && event.getTarget().player.id === this.playerId &&
             ICard_1.deriveColor(event.cards.map(c => manager.interpret(this.playerId, c).suit)) === 'black';
     }
     invokeMsg(event, manager) {
@@ -10005,7 +10027,7 @@ class WeiMu extends Skill_1.SimpleConditionalSkill {
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             this.invokeEffects(manager, [], `${this.playerId} 发动了 ${this.displayName} 使 ${event.ruseType.name} 失效`);
-            event.abort = true;
+            event.removeTarget(this.playerId);
         });
     }
 }
@@ -10040,7 +10062,7 @@ class ZhenDu extends Skill_1.SimpleConditionalSkill {
             this.invokeEffects(manager, [event.info.player.id]);
             yield new WineOp_1.default(event.info).perform(manager);
             if (event.info.player.id !== this.playerId) {
-                yield new DamageOp_2.default(manager.context.getPlayer(this.playerId), event.info, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
+                yield new DamageOp_1.default(manager.context.getPlayer(this.playerId), event.info, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
             }
         });
     }
@@ -10087,7 +10109,7 @@ class FuDi extends FactionSkillsWei_1.SkillForDamageTaken {
         this.description = '当你受到来自其他角色的伤害后，你可以交给伤害来源一张手牌。若如此做，你对与其势力相同的角色中体力值最多且不小于你的一名角色造成1点伤害。';
     }
     bootstrapServer(skillRegistry) {
-        skillRegistry.on(DamageOp_2.default, this);
+        skillRegistry.on(DamageOp_1.default, this);
     }
     conditionFulfilled(event, manager) {
         return this.isMyDamage(event) && this.damageFromOthers(event) && event.target.hasCardAt(CardPos_1.CardPos.HAND); //&& this.triggerable(event, manager).length > 0
@@ -10146,7 +10168,7 @@ class FuDi extends FactionSkillsWei_1.SkillForDamageTaken {
                     });
                     victim = ask.targets[0];
                 }
-                yield new DamageOp_2.default(event.target, victim, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
+                yield new DamageOp_1.default(event.target, victim, 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
             }
         });
     }
@@ -10161,7 +10183,7 @@ class CongJian extends Skill_1.SimpleConditionalSkill {
         this.isLocked = true;
     }
     bootstrapServer(skillRegistry) {
-        skillRegistry.on(DamageOp_2.default, this);
+        skillRegistry.on(DamageOp_1.default, this);
     }
     conditionFulfilled(event, manager) {
         //回合内受到伤害
@@ -10255,7 +10277,7 @@ class LeiJi extends Skill_1.SimpleConditionalSkill {
             let card = yield new JudgeOp_1.default('雷击判定', target).perform(manager);
             let suit = manager.interpret(target, card).suit;
             if (suit === 'spade') {
-                yield new DamageOp_2.default(manager.context.getPlayer(this.playerId), choice.targets[0], 2, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.THUNDER).perform(manager);
+                yield new DamageOp_1.default(manager.context.getPlayer(this.playerId), choice.targets[0], 2, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.THUNDER).perform(manager);
             }
             else {
                 manager.log(`雷击判定为${Util_1.Suits[suit]}, 失效`);
@@ -10286,25 +10308,25 @@ class JianChu extends Skill_1.SimpleConditionalSkill {
         this.description = '当你使用【杀】指定一个目标后，你可以弃置其一张牌，若弃置的牌：是装备牌，该角色不能使用【闪】；不是装备牌，该角色获得此【杀】。';
     }
     bootstrapServer(skillRegistry) {
-        skillRegistry.on(SlashOp_1.SlashCompute, this);
+        skillRegistry.on(SlashOp_1.SlashOP, this);
     }
     conditionFulfilled(event, manager) {
         return event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.playerId &&
-            event.target.player.id !== this.playerId && event.target.hasOwnCards();
+            event.getTarget().player.id !== this.playerId && event.getTarget().hasOwnCards();
     }
     invokeMsg(event, manager) {
-        return `对${event.target}发动鞬出`;
+        return `对${event.getTarget()}发动鞬出`;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             let me = manager.context.getPlayer(this.playerId);
-            let cardAndPos = yield new DropCardOp_1.DropOthersCardRequest().perform(manager, me, event.target, `${this.displayName}弃置对方一张牌`, [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP]);
-            this.invokeEffects(manager, [event.target.player.id]);
+            let cardAndPos = yield new DropCardOp_1.DropOthersCardRequest().perform(manager, me, event.getTarget(), `${this.displayName}弃置对方一张牌`, [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP]);
+            this.invokeEffects(manager, [event.getTarget().player.id]);
             if (cardAndPos[0].type.isEquipment()) {
-                event.undodgeable = true;
+                event.undodegables.add(event.getTarget().player.id);
             }
             else {
-                yield manager.takeFromWorkflow(event.target.player.id, CardPos_1.CardPos.HAND, event.cards);
+                yield manager.takeFromWorkflow(event.getTarget().player.id, CardPos_1.CardPos.HAND, event.cards);
             }
         });
     }
@@ -10499,7 +10521,7 @@ class SuiShiDeath extends Skill_1.SimpleTrigger {
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             this.skill.invokeEffects(manager);
-            yield new DamageOp_2.default(this.player, this.player, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+            yield new DamageOp_1.default(this.player, this.player, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
         });
     }
     invokeMsg(event, manager) {
@@ -10541,7 +10563,7 @@ class XiongSuan extends Skill_1.Skill {
             manager.broadcast(act.source, PlayerInfo_1.PlayerInfo.sanitize);
             this.invokeEffects(manager, [act.targets[0].player.id]);
             yield act.dropCardsFromSource('凶算弃置');
-            yield new DamageOp_2.default(act.source, act.targets[0], 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
+            yield new DamageOp_1.default(act.source, act.targets[0], 1, [], DamageOp_1.DamageSource.SKILL).perform(manager);
             if (act.source.isDead) {
                 console.log('[凶算] 把自己整死了...');
                 return;
@@ -10583,198 +10605,174 @@ class XiongSuan extends Skill_1.Skill {
     }
 }
 exports.XiongSuan = XiongSuan;
-class ShiBei extends FactionSkillsWei_1.SkillForDamageTaken {
-    constructor() {
-        super(...arguments);
-        this.id = '矢北';
-        this.displayName = '矢北';
-        this.description = '锁定技，当你受到伤害后：若此伤害是你本回合第一次受到伤害，则你回复1点体力；若不是你本回合第一次受到伤害，则你失去1点体力。';
-        this.isLocked = true;
-        this.hasTakenDamageThisRound = false;
-    }
-    bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(DamageOp_2.default, this);
-        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
-            if (event.stage === Stage_1.Stage.ROUND_BEGIN) {
-                this.hasTakenDamageThisRound = false;
-            }
-        }));
-    }
-    conditionFulfilled(event, manager) {
-        return this.isMyDamage(event);
-    }
-    doInvoke(event, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.invokeEffects(manager);
-            let me = manager.context.getPlayer(this.playerId);
-            if (this.hasTakenDamageThisRound) {
-                yield new DamageOp_2.default(me, me, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
-            }
-            else {
-                this.hasTakenDamageThisRound = true;
-                yield new HealOp_1.default(me, me, 1).perform(manager);
-            }
-        });
-    }
-}
-exports.ShiBei = ShiBei;
-class JianYing extends Skill_1.SimpleConditionalSkill {
-    constructor() {
-        super(...arguments);
-        this.id = '渐营';
-        this.displayName = '渐营';
-        this.description = '当你于出牌阶段内使用牌时，若此牌与你于此阶段内使用的上一张牌点数或花色相同，则你可以摸一张牌。';
-    }
-    bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(Generic_1.CardBeingUsedEvent, this);
-        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
-            if (event.stage === Stage_1.Stage.ROUND_BEGIN) {
-                this.lastSuit = null;
-                this.lastSize = -1;
-            }
-        }));
-    }
-    conditionFulfilled(event, manager) {
-        if (manager.currEffect.player === this.playerId && manager.currEffect.stage === Stage_1.Stage.USE_CARD &&
-            event.player === this.playerId && event.cards.length === 1) {
-            let res = false, card = event.cards[0][0];
-            if (card.suit === this.lastSuit || event.cards[0][0].size.size === this.lastSize) {
-                res = true;
-            }
-            this.lastSize = card.size.size;
-            this.lastSuit = card.suit;
-            return res;
-        }
-        return false;
-    }
-    doInvoke(event, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            this.invokeEffects(manager);
-            yield new TakeCardOp_1.default(manager.context.getPlayer(this.playerId), 1).perform(manager);
-        });
-    }
-}
-exports.JianYing = JianYing;
-class FengLue extends Skill_1.SimpleConditionalSkill {
-    constructor() {
-        super(...arguments);
-        this.id = '锋略';
-        this.displayName = '锋略';
-        this.description = '出牌阶段开始时，你可以与一名角色拼点，若你赢，该角色将其区域内的各一张牌交给你(手牌,装备,判定)；若你没赢，你交给其一张牌。拼点结算后你可以令其获得你拼点的牌。';
-    }
-    bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(StageFlows_1.StageStartFlow, this);
-    }
-    conditionFulfilled(event, manager) {
-        return event.isFor(this.playerId, Stage_1.Stage.USE_CARD) &&
-            manager.context.getPlayer(this.playerId).getCards(CardPos_1.CardPos.HAND).length > 0 &&
-            !manager.roundStats.skipStages.get(Stage_1.Stage.USE_CARD);
-    }
-    doInvoke(event, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            let forbidden = manager.getSortedByCurr(false).filter(p => p.getCards(CardPos_1.CardPos.HAND).length === 0).map(p => p.player.id);
-            let resp = yield manager.sendHint(this.playerId, {
-                hintType: ServerHint_1.HintType.CHOOSE_PLAYER,
-                hintMsg: '请选择锋略拼点的对象',
-                minQuantity: 1, quantity: 1,
-                forbidden: [this.playerId, ...forbidden],
-                extraButtons: [PlayerAction_1.Button.CANCEL]
-            });
-            if (resp.isCancel()) {
-                return;
-            }
-            let target = resp.targets[0];
-            let me = manager.context.getPlayer(this.playerId);
-            this.invokeEffects(manager, [target.player.id]);
-            let fight = new CardFightOp_1.default(me, target, this.displayName);
-            let success = yield fight.perform(manager);
-            if (success) {
-                for (let pos of [CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP, CardPos_1.CardPos.JUDGE]) {
-                    let c = yield DropCardOp_1.SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${me}`, pos);
-                    if (c) {
-                        manager.log(`(锋略) ${target} 交给了 ${me} ${CardPos_1.isCardPosHidden(c[1]) ? '一张手牌' : c[0]}`);
-                        yield manager.transferCards(target.player.id, me.player.id, pos, CardPos_1.CardPos.HAND, [c[0]]);
-                    }
-                }
-            }
-            else {
-                let c = yield DropCardOp_1.SelectACardAt(manager, me, me, `(锋略)请选择一张牌交给${target}`, CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP);
-                if (c) {
-                    manager.log(`(锋略) ${me} 交给了 ${target} ${CardPos_1.isCardPosHidden(c[1]) ? '一张手牌' : c[0]}`);
-                    yield manager.transferCards(me.player.id, target.player.id, c[1], CardPos_1.CardPos.HAND, [c[0]]);
-                }
-            }
-            let letHimTake = yield manager.sendHint(this.playerId, {
-                hintType: ServerHint_1.HintType.MULTI_CHOICE,
-                hintMsg: `是否令${target}获得你的拼点牌${fight.initiatorCard}?`,
-                extraButtons: [PlayerAction_1.Button.OK, PlayerAction_1.Button.CANCEL]
-            });
-            if (letHimTake.button === PlayerAction_1.Button.OK.id) {
-                manager.log(`(锋略) ${target} 获得了 ${me} 的拼点牌 ${fight.initiatorCard}`);
-                yield manager.takeFromWorkflow(target.player.id, CardPos_1.CardPos.HAND, [fight.initiatorCard]);
-            }
-        });
-    }
-}
-exports.FengLue = FengLue;
-class MouShi extends Skill_1.Skill {
-    constructor() {
-        super(...arguments);
-        this.id = '谋识';
-        this.displayName = '谋识';
-        this.description = '出牌阶段限一次，你可以将一张手牌交给一名角色，若如此做，当其于其下回合的出牌阶段内对一名角色造成伤害后，若是此阶段其第一次对该角色造成伤害，你摸一张牌。';
-        this.hiddenType = Skill_1.HiddenType.NONE;
-        this.inTargetRound = false;
-        this.damageDone = new Set();
-    }
-    bootstrapClient() {
-        PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
-            return new PlayerActionDriverDefiner_1.default('谋识')
-                .expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id) => {
-                return id === this.id && !hint.roundStat.customData[this.id];
-            })
-                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, () => true, () => '(谋识)选择一张手牌')
-                .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id) => id !== this.playerId, () => '(谋识)选择一名角色交予此手牌')
-                .expectAnyButton('点击确定发动谋识')
-                .build(hint);
-        });
-    }
-    onPlayerAction(act, ignore, manager) {
-        return __awaiter(this, void 0, void 0, function* () {
-            manager.roundStats.customData[this.id] = true;
-            this.target = act.targets[0].player.id;
-            this.invokeEffects(manager, [this.target]);
-            yield manager.transferCards(this.playerId, this.target, CardPos_1.CardPos.HAND, CardPos_1.CardPos.HAND, [act.getSingleCardAndPos()[0]]);
-            this.damageDone.clear();
-        });
-    }
-    bootstrapServer(skillRegistry, manager) {
-        skillRegistry.onEvent(DamageOp_2.default, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
-            if (event.source && event.source.player.id === this.target && event.timeline === DamageOp_1.DamageTimeline.DID_DAMAGE && this.inTargetRound) {
-                if (!this.damageDone.has(event.target)) {
-                    this.damageDone.add(event.target);
-                    this.invokeEffects(manager, [this.target]);
-                    yield new TakeCardOp_1.default(manager.context.getPlayer(this.playerId), 1).perform(manager);
-                }
-            }
-        }));
-        skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (flow) => __awaiter(this, void 0, void 0, function* () {
-            if (flow.isFor(this.target, Stage_1.Stage.USE_CARD)) {
-                this.inTargetRound = true;
-            }
-            else {
-                this.inTargetRound = false;
-            }
-        }));
-        skillRegistry.onEvent(StageFlows_1.StageEndFlow, this.playerId, (flow) => __awaiter(this, void 0, void 0, function* () {
-            if (flow.isFor(this.target, Stage_1.Stage.USE_CARD)) {
-                this.target = null;
-                this.inTargetRound = false;
-            }
-        }));
-    }
-}
-exports.MouShi = MouShi;
+// export class ShiBei extends SkillForDamageTaken {
+//     id = '矢北'
+//     displayName = '矢北'
+//     description = '锁定技，当你受到伤害后：若此伤害是你本回合第一次受到伤害，则你回复1点体力；若不是你本回合第一次受到伤害，则你失去1点体力。'
+//     isLocked = true
+//     hasTakenDamageThisRound = false
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+//         skillRegistry.on<DamageOp>(DamageOp, this)
+//         skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(event)=>{
+//             if(event.stage === Stage.ROUND_BEGIN) {
+//                 this.hasTakenDamageThisRound = false
+//             }
+//         })
+//     }
+//     public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+//         return this.isMyDamage(event)
+//     }
+//     public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+//         this.invokeEffects(manager)
+//         let me = manager.context.getPlayer(this.playerId)
+//         if(this.hasTakenDamageThisRound) {
+//             await new DamageOp(me, me, 1, [], DamageSource.SKILL, DamageType.ENERGY).perform(manager)
+//         } else {
+//             this.hasTakenDamageThisRound = true
+//             await new HealOp(me, me, 1).perform(manager)
+//         }
+//     }
+// }
+// export class JianYing extends SimpleConditionalSkill<CardBeingUsedEvent> {
+//     id = '渐营'
+//     displayName = '渐营'
+//     description = '当你于出牌阶段内使用牌时，若此牌与你于此阶段内使用的上一张牌点数或花色相同，则你可以摸一张牌。'
+//     lastSuit: Suit
+//     lastSize: number
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+//         skillRegistry.on<CardBeingUsedEvent>(CardBeingUsedEvent, this)
+//         skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async(event)=>{
+//             if(event.stage === Stage.ROUND_BEGIN) {
+//                 this.lastSuit = null
+//                 this.lastSize = -1
+//             }
+//         })
+//     }
+//     public conditionFulfilled(event: CardBeingUsedEvent, manager: GameManager): boolean {
+//         if(manager.currEffect.player === this.playerId && manager.currEffect.stage === Stage.USE_CARD &&
+//                 event.player === this.playerId && event.cards.length === 1) {
+//             let res = false, card = event.cards[0][0]
+//             if(card.suit === this.lastSuit || event.cards[0][0].size.size === this.lastSize) {
+//                 res = true
+//             }
+//             this.lastSize = card.size.size
+//             this.lastSuit = card.suit
+//             return res
+//         }
+//         return false
+//     }
+//     public async doInvoke(event: CardBeingUsedEvent, manager: GameManager): Promise<void> {
+//         this.invokeEffects(manager)
+//         await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+//     }
+// }
+// export class FengLue extends SimpleConditionalSkill<StageStartFlow> {
+//     id = '锋略'
+//     displayName = '锋略'
+//     description = '出牌阶段开始时，你可以与一名角色拼点，若你赢，该角色将其区域内的各一张牌交给你(手牌,装备,判定)；若你没赢，你交给其一张牌。拼点结算后你可以令其获得你拼点的牌。'
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+//         skillRegistry.on<StageStartFlow>(StageStartFlow, this)
+//     }
+//     public conditionFulfilled(event: StageStartFlow, manager: GameManager): boolean {
+//         return event.isFor(this.playerId, Stage.USE_CARD) && 
+//                 manager.context.getPlayer(this.playerId).getCards(CardPos.HAND).length > 0 &&
+//                 !manager.roundStats.skipStages.get(Stage.USE_CARD)
+//     }
+//     public async doInvoke(event: StageStartFlow, manager: GameManager): Promise<void> {
+//         let forbidden = manager.getSortedByCurr(false).filter(p => p.getCards(CardPos.HAND).length === 0).map(p => p.player.id)
+//         let resp = await manager.sendHint(this.playerId, {
+//             hintType: HintType.CHOOSE_PLAYER,
+//             hintMsg: '请选择锋略拼点的对象',
+//             minQuantity: 1, quantity: 1,
+//             forbidden: [this.playerId, ...forbidden],
+//             extraButtons: [Button.CANCEL]
+//         })
+//         if(resp.isCancel()) {
+//             return
+//         }
+//         let target = resp.targets[0]
+//         let me = manager.context.getPlayer(this.playerId)
+//         this.invokeEffects(manager, [target.player.id])
+//         let fight = new CardFightOp(me, target, this.displayName)
+//         let success = await fight.perform(manager)
+//         if(success) {
+//             for(let pos of [CardPos.HAND, CardPos.EQUIP, CardPos.JUDGE]) {
+//                 let c = await SelectACardAt(manager, target, target, `(锋略)请选择一张牌交给${me}`, pos)
+//                 if(c) {
+//                     manager.log(`(锋略) ${target} 交给了 ${me} ${isCardPosHidden(c[1])? '一张手牌' : c[0]}`)
+//                     await manager.transferCards(target.player.id, me.player.id, pos, CardPos.HAND, [c[0]])
+//                 }
+//             }
+//         } else {
+//             let c = await SelectACardAt(manager, me, me, `(锋略)请选择一张牌交给${target}`, CardPos.HAND, CardPos.EQUIP)
+//             if(c) {
+//                 manager.log(`(锋略) ${me} 交给了 ${target} ${isCardPosHidden(c[1])? '一张手牌' : c[0]}`)
+//                 await manager.transferCards(me.player.id, target.player.id, c[1], CardPos.HAND, [c[0]])
+//             }
+//         }
+//         let letHimTake = await manager.sendHint(this.playerId, {
+//             hintType: HintType.MULTI_CHOICE,
+//             hintMsg: `是否令${target}获得你的拼点牌${fight.initiatorCard}?`,
+//             extraButtons: [Button.OK, Button.CANCEL]
+//         })
+//         if(letHimTake.button === Button.OK.id) {
+//             manager.log(`(锋略) ${target} 获得了 ${me} 的拼点牌 ${fight.initiatorCard}`)
+//             await manager.takeFromWorkflow(target.player.id, CardPos.HAND, [fight.initiatorCard])
+//         }
+//     }
+// }
+// export class MouShi extends Skill {
+//     id = '谋识'
+//     displayName = '谋识'
+//     description = '出牌阶段限一次，你可以将一张手牌交给一名角色，若如此做，当其于其下回合的出牌阶段内对一名角色造成伤害后，若是此阶段其第一次对该角色造成伤害，你摸一张牌。'
+//     hiddenType = HiddenType.NONE
+//     target: string
+//     inTargetRound = false
+//     damageDone: Set<PlayerInfo> = new Set<PlayerInfo>()
+//     bootstrapClient() {
+//         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
+//             return new PlayerActionDriverDefiner('谋识')
+//                         .expectChoose([UIPosition.MY_SKILL], 1, 1, (id)=>{
+//                             return id === this.id && !hint.roundStat.customData[this.id]
+//                         })
+//                         .expectChoose([UIPosition.MY_HAND], 1, 1, ()=>true, ()=>'(谋识)选择一张手牌')
+//                         .expectChoose([UIPosition.PLAYER], 1, 1, (id)=>id !== this.playerId, ()=>'(谋识)选择一名角色交予此手牌')
+//                         .expectAnyButton('点击确定发动谋识')
+//                         .build(hint)
+//         })
+//     }
+//     async onPlayerAction(act: PlayerAct, ignore: any, manager: GameManager): Promise<void> {
+//         manager.roundStats.customData[this.id] = true
+//         this.target = act.targets[0].player.id
+//         this.invokeEffects(manager, [this.target])
+//         await manager.transferCards(this.playerId, this.target, CardPos.HAND, CardPos.HAND, [act.getSingleCardAndPos()[0]])
+//         this.damageDone.clear()
+//     }
+//     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+//         skillRegistry.onEvent<DamageOp>(DamageOp, this.playerId, async (event)=>{
+//             if(event.source && event.source.player.id === this.target && event.timeline === DamageTimeline.DID_DAMAGE && this.inTargetRound) {
+//                 if(!this.damageDone.has(event.target)) {
+//                     this.damageDone.add(event.target)
+//                     this.invokeEffects(manager, [this.target])
+//                     await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+//                 }
+//             }
+//         })
+//         skillRegistry.onEvent<StageStartFlow>(StageStartFlow, this.playerId, async (flow)=>{
+//             if(flow.isFor(this.target, Stage.USE_CARD)) {
+//                 this.inTargetRound = true
+//             } else {
+//                 this.inTargetRound = false
+//             }
+//         })
+//         skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async (flow)=>{
+//             if(flow.isFor(this.target, Stage.USE_CARD)) {
+//                 this.target = null
+//                 this.inTargetRound = false
+//             }
+//         })
+//     }
+// }
 class KuangFu extends Skill_1.SimpleConditionalSkill {
     constructor() {
         super(...arguments);
@@ -10783,7 +10781,7 @@ class KuangFu extends Skill_1.SimpleConditionalSkill {
         this.description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。';
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(DamageOp_2.default, this);
+        skillRegistry.on(DamageOp_1.default, this);
     }
     conditionFulfilled(event, manager) {
         if (event.source && event.source.player.id === this.playerId && event.target.player.id !== this.playerId &&
@@ -10870,7 +10868,7 @@ class BeiGe extends Skill_1.SimpleConditionalSkill {
         this.description = '当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。';
     }
     bootstrapServer(skillRegistry) {
-        skillRegistry.on(DamageOp_2.default, this);
+        skillRegistry.on(DamageOp_1.default, this);
     }
     conditionFulfilled(event, manager) {
         if (event.damageSource === DamageOp_1.DamageSource.SLASH && event.timeline === DamageOp_1.DamageTimeline.TAKEN_DAMAGE &&
@@ -10952,7 +10950,7 @@ class BaoLing extends Skill_1.SimpleConditionalSkill {
     conditionFulfilled(event, manager) {
         if (event.isFor(this.playerId, Stage_1.Stage.USE_CARD)) {
             let me = manager.context.getPlayer(this.playerId);
-            return me.isSubGeneralRevealed && me.subGeneral.name !== FactionWarGenerals_1.DUMMY_GENERAL_NAME;
+            return FactionWarGenerals_1.hasSub(me);
         }
         return false;
     }
@@ -11011,7 +11009,7 @@ class BengHuai extends Skill_1.SimpleConditionalSkill {
             this.invokeEffects(manager);
             let me = manager.context.getPlayer(this.playerId);
             if (resp.button === 'hp') {
-                yield new DamageOp_2.default(me, me, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+                yield new DamageOp_1.default(me, me, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
             }
             else {
                 me.changeMax(-1);
@@ -11021,14 +11019,242 @@ class BengHuai extends Skill_1.SimpleConditionalSkill {
     }
 }
 exports.BengHuai = BengHuai;
-// 名士 锁定技，当你受到伤害时，若伤害来源有暗置的武将牌，此伤害-1。
-// 礼让 当你的牌因弃置而置入弃牌堆时，你可以将其中的任意张牌交给其他角色。
-// 双刃 出牌阶段开始时，你可以与一名角色拼点。若你赢，你视为对其或与其势力相同的另一名角色使用一张【杀】；若你没赢，你结束出牌阶段。
+class MingShi extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '名士';
+        this.displayName = '名士';
+        this.description = '锁定技，当你受到伤害时，若伤害来源有暗置的武将牌，此伤害-1。';
+        this.isLocked = true;
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(DamageOp_1.default, this);
+    }
+    conditionFulfilled(event, manager) {
+        let source = event.source;
+        return source && !(source.isGeneralRevealed && source.isSubGeneralRevealed) && event.target.player.id === this.playerId
+            && event.timeline === DamageOp_1.DamageTimeline.TAKING_DAMAGE
+            && event.type !== DamageOp_1.DamageType.ENERGY;
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.invokeEffects(manager, [event.target.player.id]);
+            //此伤害-1。
+            event.amount -= 1;
+        });
+    }
+}
+exports.MingShi = MingShi;
+class LiRang extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '礼让';
+        this.displayName = '礼让';
+        this.description = '当你的牌因弃置而置入弃牌堆时，你可以将其中的任意张牌交给其他角色。';
+    }
+    bootstrapClient() {
+        PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint) => {
+            let cards = new Set(hint.forbidden);
+            return new PlayerActionDriverDefiner_1.default('礼让')
+                .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 2, (id, context) => cards.has(id), () => hint.hintMsg)
+                .expectChoose([PlayerAction_1.UIPosition.PLAYER], 1, 1, (id, context) => id !== this.playerId, //不能是自己
+            () => '选择将牌交给的对象')
+                .expectAnyButton('点击确认将牌交给指定对象')
+                .build(hint, [PlayerAction_1.Button.OK]);
+        });
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(Generic_1.CardBeingDroppedEvent, this);
+    }
+    conditionFulfilled(event, manager) {
+        return event.isCardFrom(this.playerId);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            //要扔的牌
+            let cards = event.cards.map(c => c[0]).filter(c => manager.stillInWorkflow(c));
+            console.log('[礼让] 弃置了牌', cards);
+            let me = manager.context.getPlayer(this.playerId);
+            //只给孔融认为自己牌拿到了手
+            manager.send(me.player.id, EffectTransit_1.CardTransit.fromWorkflow(me.player.id, CardPos_1.CardPos.HAND, cards));
+            // await manager.takeFromWorkflow(this.playerId, CardPos.HAND, cards)
+            let aborted = false;
+            while (cards.length > 0 && !aborted) {
+                let resp = yield manager.sendHint(this.playerId, {
+                    hintType: ServerHint_1.HintType.SPECIAL,
+                    specialId: this.id,
+                    hintMsg: `选择将弃置的牌交给另一名角色`,
+                    forbidden: cards.map(c => c.id),
+                    extraButtons: [PlayerAction_1.Button.CANCEL]
+                });
+                if (!resp.isCancel()) {
+                    //选卡然后选人
+                    this.invokeEffects(manager, [resp.targets[0].player.id]);
+                    let sent = resp.getCardsAtPos(CardPos_1.CardPos.HAND);
+                    let target = resp.targets[0];
+                    cards = cards.filter(c => sent.findIndex(s => s.id === c.id) < 0);
+                    console.log('[礼让] 给了牌', sent.map(s => s.toString()), target);
+                    console.log('[礼让] 剩下', cards.length);
+                    //从手中拿掉
+                    manager.send(me.player.id, EffectTransit_1.CardTransit.toWorkflow(me.player.id, CardPos_1.CardPos.HAND, sent, false, false));
+                    yield Util_1.delay(300);
+                    //然后正式发出
+                    yield manager.takeFromWorkflow(target.player.id, CardPos_1.CardPos.HAND, sent);
+                }
+                else {
+                    aborted = true;
+                }
+            }
+            if (cards.length > 0) {
+                //剩下的扔掉
+                manager.send(me.player.id, EffectTransit_1.CardTransit.toWorkflow(me.player.id, CardPos_1.CardPos.HAND, cards, false, false));
+            }
+        });
+    }
+}
+exports.LiRang = LiRang;
+class ShuangRen extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '双刃';
+        this.displayName = '双刃';
+        this.description = '出牌阶段开始时，你可以与一名角色拼点。若你赢，你视为对其或与其势力相同的另一名角色使用一张【杀】；若你没赢，你结束出牌阶段。';
+    }
+    bootstrapServer(skillRegistry) {
+        skillRegistry.on(StageFlows_1.InStageStart, this);
+    }
+    conditionFulfilled(event, manager) {
+        return event.isFor(this.playerId, Stage_1.Stage.USE_CARD);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            //选择一个有手牌的人
+            let forbidden = manager.context.playerInfos.filter(p => !CardFightOp_1.canCardFight(p.player.id, this.playerId, manager));
+            let resp = yield manager.sendHint(this.playerId, {
+                hintType: ServerHint_1.HintType.CHOOSE_PLAYER,
+                hintMsg: '请选择发动双刃拼点的对象',
+                forbidden: forbidden.map(f => f.player.id),
+                minQuantity: 1,
+                quantity: 1,
+                extraButtons: [PlayerAction_1.Button.CANCEL]
+            });
+            if (resp.isCancel()) {
+                return;
+            }
+            let me = manager.context.getPlayer(this.playerId), target = resp.targets[0];
+            this.invokeEffects(manager, [target.player.id]);
+            let success = yield new CardFightOp_1.default(me, target, this.displayName).perform(manager);
+            if (success) {
+                let toSlash = target;
+                //查看是否需要选择出杀的对象
+                if (target.isRevealed()) {
+                    let notToSlash = manager.context.playerInfos.filter(p => {
+                        let pl = p;
+                        return pl.isDead || pl.player.id === this.playerId || (pl.isRevealed() && General_1.factionDiffers(target.getFaction(), pl.getFaction()));
+                    });
+                    let ask = yield manager.sendHint(this.playerId, {
+                        hintType: ServerHint_1.HintType.CHOOSE_PLAYER,
+                        hintMsg: '请选择发动双刃出杀的对象',
+                        forbidden: notToSlash.map(f => f.player.id),
+                        minQuantity: 1,
+                        quantity: 1
+                    });
+                    toSlash = ask.targets[0];
+                }
+                this.invokeEffects(manager, [toSlash.player.id]);
+                yield new SlashOp_1.SlashOP(manager.context.getPlayer(this.playerId), [toSlash], [], 1, DamageOp_1.DamageType.NORMAL, 'n.a.').perform(manager);
+            }
+            else {
+                event.endStage = true;
+            }
+        });
+    }
+}
+exports.ShuangRen = ShuangRen;
+class ChuanXin extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '穿心';
+        this.displayName = '穿心';
+        this.description = `当你于出牌阶段内使用【杀】或【决斗】对目标角色造成伤害时，若其与你势力不同且有副将，你可以防止此伤害。若如此做，该角色选择一项：1.弃置装备区里的所有牌，若如此做，其失去1点体力；2.移除副将。`;
+    }
+    bootstrapServer(skillRegistry, manager, repo) {
+        skillRegistry.on(DamageOp_1.default, this);
+        this.skillRepo = repo;
+    }
+    conditionFulfilled(event, manager) {
+        let t = event.target;
+        return (event.damageSource === DamageOp_1.DamageSource.DUEL || event.damageSource === DamageOp_1.DamageSource.SLASH) &&
+            event.source && event.source.player.id === this.playerId && manager.currPlayer().player.id === this.playerId &&
+            manager.currEffect.stage === Stage_1.Stage.USE_CARD && event.timeline === DamageOp_1.DamageTimeline.DOING_DAMAGE &&
+            t.isRevealed() && General_1.factionDiffers(event.source.getFaction(), t.getFaction()) &&
+            FactionWarGenerals_1.hasSub(t);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            event.amount = -999;
+            let choices = [new PlayerAction_1.Button('drop', '弃置装备区里的所有牌，然后失去1点体力'), new PlayerAction_1.Button('remove', '移除你的副将')];
+            if (!event.target.hasCardAt(CardPos_1.CardPos.EQUIP)) {
+                choices[0].disable();
+            }
+            this.invokeEffects(manager, [event.target.player.id]);
+            let ask = yield manager.sendHint(event.target.player.id, {
+                hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                hintMsg: '你受到穿心之痛, 请选择',
+                extraButtons: choices
+            });
+            if (ask.button === 'drop') {
+                let equips = event.target.getCards(CardPos_1.CardPos.EQUIP).slice();
+                equips.forEach(e => e.description = `${event.target} 穿心弃置`);
+                console.log('[穿心] 弃置装备', equips.map(e => e.toString()));
+                manager.sendToWorkflow(event.target.player.id, CardPos_1.CardPos.EQUIP, equips, false);
+                let toDrop = equips.map(e => { return [e, CardPos_1.CardPos.EQUIP]; });
+                yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(event.target.player.id, toDrop));
+                yield new DamageOp_1.default(event.target, event.target, 1, [], DamageOp_1.DamageSource.SKILL, DamageOp_1.DamageType.ENERGY).perform(manager);
+            }
+            else {
+                yield FactionSkillsGeneric_1.removeGeneral(manager, this.skillRepo, event.target.player.id, false);
+            }
+        });
+    }
+}
+exports.ChuanXin = ChuanXin;
+class FengShi extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '锋矢';
+        this.displayName = '锋矢';
+        this.description = `阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，可令该角色弃置装备区里的一张牌。`;
+    }
+    bootstrapServer(skillRegistry, manager, repo) {
+        skillRegistry.on(SlashOp_1.SlashOP, this);
+    }
+    conditionFulfilled(event, manager) {
+        if (event.targets.length > 1) {
+            return false;
+        }
+        let siegeContext = FactionSkillsGeneric_1.getSiegeContext(event.getTarget().player.id, this.playerId, manager.context);
+        return event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.getTarget().hasCardAt(CardPos_1.CardPos.EQUIP) &&
+            siegeContext && (siegeContext.siegers[0] === this.playerId || siegeContext.siegers[1] === this.playerId);
+    }
+    doInvoke(event, manager) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield new DropCardOp_1.DropCardRequest().perform(event.getTarget().player.id, 1, manager, `${this.playerId} 发动锋矢令你弃置一张装备`, [PlayerAction_1.UIPosition.MY_EQUIP]);
+        });
+    }
+}
+exports.FengShi = FengShi;
+class QianHuan extends Skill_1.SimpleConditionalSkill {
+    constructor() {
+        super(...arguments);
+        this.id = '千幻';
+        this.displayName = '千幻';
+        this.description = '当与你势力相同的一名角色受到伤害后，你可以将一张与你武将牌上花色均不同的牌置于你的武将牌上。当一名与你势力相同的角色成为基本牌或锦囊牌的唯一目标时，你可以移去一张“千幻”牌，取消之。';
+    }
+}
+exports.QianHuan = QianHuan;
 // 祸水 出牌阶段，你可以明置此武将牌；你的回合内，其他角色不能明置其武将牌。
 // 倾城 出牌阶段，你可以弃置一张黑色牌并选择一名武将牌均明置的其他角色，然后你暗置其一张武将牌。然后若你以此法弃置的牌是黑色装备牌，则你可以再选择另一名武将牌均明置的其他角色，暗置其一张武将牌。
-// 千幻 当与你势力相同的一名角色受到伤害后，你可以将一张与你武将牌上花色均不同的牌置于你的武将牌上。当一名与你势力相同的角色成为基本牌或锦囊牌的唯一目标时，你可以移去一张“千幻”牌，取消之。
-// 穿心 可预亮,当你于出牌阶段内使用【杀】或【决斗】对目标角色造成伤害时，若其与你势力不同且有副将，你可以防止此伤害。若如此做，该角色选择一项：1.弃置装备区里的所有牌，若如此做，其失去1点体力；2.移除副将。
-// 锋矢 阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，可令该角色弃置装备区里的一张牌。
 
 
 /***/ }),
@@ -11458,7 +11684,7 @@ class TieQi extends Skill_1.SimpleConditionalSkill {
         this.cache = new Set();
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(SlashOp_1.SlashCompute, this);
+        skillRegistry.on(SlashOp_1.SlashOP, this);
         skillRegistry.onEvent(StageFlows_1.StageEndFlow, this.playerId, (flow) => __awaiter(this, void 0, void 0, function* () {
             if (flow.info.player.id === this.playerId && flow.stage === Stage_1.Stage.ROUND_END) {
                 console.log('[铁骑] 恢复玩家技能', this.cache.size);
@@ -11475,49 +11701,51 @@ class TieQi extends Skill_1.SimpleConditionalSkill {
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.invokeEffects(manager, [event.target.player.id]);
-            let judgeCard = yield new JudgeOp_1.default('铁骑判定', this.playerId).perform(manager);
-            console.log('[铁骑] 判定牌为', judgeCard.id);
-            let target = event.target;
-            if (target.isRevealed()) {
-                console.log('[铁骑] 选择将要失效的武将牌');
-                let choice = [];
-                if (target.isGeneralRevealed) {
-                    choice.push(new PlayerAction_1.Button('main', '封禁主将技能: ' + target.general.name));
+            for (let t of event.targets) {
+                this.invokeEffects(manager, [t.player.id]);
+                let judgeCard = yield new JudgeOp_1.default('铁骑判定', this.playerId).perform(manager);
+                console.log('[铁骑] 判定牌为', judgeCard.id);
+                let target = t;
+                if (target.isRevealed()) {
+                    console.log('[铁骑] 选择将要失效的武将牌');
+                    let choice = [];
+                    if (target.isGeneralRevealed) {
+                        choice.push(new PlayerAction_1.Button('main', '封禁主将技能: ' + target.general.name));
+                    }
+                    if (target.isSubGeneralRevealed) {
+                        choice.push(new PlayerAction_1.Button('sub', '封禁副将技能: ' + target.subGeneral.name));
+                    }
+                    let resp = yield manager.sendHint(this.playerId, {
+                        hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                        hintMsg: '请选择对 ' + target + ' 使用[铁骑]要封禁的武将牌',
+                        extraButtons: choice
+                    });
+                    //封禁技能??
+                    console.log('[铁骑] 封禁', target.player.id, resp.button);
+                    manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === 'main' ? '主将' : '副将'} 的非锁定技`);
+                    let u = new Skill_1.GeneralSkillStatusUpdate(this.id, target, resp.button, false);
+                    this.cache.add(u);
+                    yield manager.events.publish(u);
                 }
-                if (target.isSubGeneralRevealed) {
-                    choice.push(new PlayerAction_1.Button('sub', '封禁副将技能: ' + target.subGeneral.name));
-                }
-                let resp = yield manager.sendHint(this.playerId, {
-                    hintType: ServerHint_1.HintType.MULTI_CHOICE,
-                    hintMsg: '请选择对 ' + target + ' 使用[铁骑]要封禁的武将牌',
-                    extraButtons: choice
+                let suit = manager.interpret(this.playerId, judgeCard).suit;
+                let ask = yield manager.sendHint(target.player.id, {
+                    hintType: ServerHint_1.HintType.CHOOSE_CARD,
+                    hintMsg: `请弃置一张花色为[${Util_1.Suits[suit]}]的手牌, 否则不能出闪`,
+                    quantity: 1,
+                    positions: [PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP],
+                    extraButtons: [PlayerAction_1.Button.CANCEL],
+                    suits: [suit]
                 });
-                //封禁技能??
-                console.log('[铁骑] 封禁', target.player.id, resp.button);
-                manager.log(`${this.playerId} ${this.displayName}封禁了 ${target} 的 ${resp.button === 'main' ? '主将' : '副将'} 的非锁定技`);
-                let u = new Skill_1.GeneralSkillStatusUpdate(this.id, target, resp.button, false);
-                this.cache.add(u);
-                yield manager.events.publish(u);
-            }
-            let suit = manager.interpret(this.playerId, judgeCard).suit;
-            let ask = yield manager.sendHint(target.player.id, {
-                hintType: ServerHint_1.HintType.CHOOSE_CARD,
-                hintMsg: `请弃置一张花色为[${Util_1.Suits[suit]}]的手牌, 否则不能出闪`,
-                quantity: 1,
-                positions: [PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP],
-                extraButtons: [PlayerAction_1.Button.CANCEL],
-                suits: [suit]
-            });
-            if (ask.isCancel()) {
-                console.log('[铁骑] 对方没有弃置同花色牌, 无法出闪');
-                event.undodgeable = true;
-            }
-            else {
-                console.log('[铁骑] 对方弃置了牌以获得出闪的权利');
-                let cardAndPos = ask.getSingleCardAndPos();
-                manager.sendToWorkflow(target.player.id, cardAndPos[1], [cardAndPos[0]]);
-                yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(target.player.id, [cardAndPos]));
+                if (ask.isCancel()) {
+                    console.log('[铁骑] 对方没有弃置同花色牌, 无法出闪');
+                    event.undodegables.add(target.player.id);
+                }
+                else {
+                    console.log('[铁骑] 对方弃置了牌以获得出闪的权利');
+                    let cardAndPos = ask.getSingleCardAndPos();
+                    manager.sendToWorkflow(target.player.id, cardAndPos[1], [cardAndPos[0]]);
+                    yield manager.events.publish(new Generic_1.CardBeingDroppedEvent(target.player.id, [cardAndPos]));
+                }
             }
         });
     }
@@ -11702,17 +11930,17 @@ class LieGong extends Skill_1.SimpleConditionalSkill {
         this.description = '当你于出牌阶段内使用【杀】指定一个目标后，若该角色的手牌数不小于你的体力值或不大于你的攻击范围，则你可以令其不能使用【闪】响应此【杀】。';
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(SlashOp_1.SlashCompute, this);
+        skillRegistry.on(SlashOp_1.SlashOP, this);
     }
     conditionFulfilled(event, manager) {
         return event.source.player.id === this.playerId && event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET &&
-            (event.target.getCards(CardPos_1.CardPos.HAND).length >= event.source.hp || event.target.getCards(CardPos_1.CardPos.HAND).length <= event.source.getReach());
+            (event.getTarget().getCards(CardPos_1.CardPos.HAND).length >= event.source.hp || event.getTarget().getCards(CardPos_1.CardPos.HAND).length <= event.source.getReach());
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('[烈弓] 发动, 不能闪');
-            this.invokeEffects(manager, [event.target.player.id]);
-            event.undodgeable = true;
+            this.invokeEffects(manager, [event.getTarget().player.id]);
+            event.undodegables.add(event.getTarget().player.id);
         });
     }
 }
@@ -11768,10 +11996,10 @@ class XiangLe extends Skill_1.SimpleConditionalSkill {
         this.isLocked = true;
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(SlashOp_1.SlashCompute, this);
+        skillRegistry.on(SlashOp_1.SlashOP, this);
     }
     conditionFulfilled(event, manager) {
-        return event.target.player.id === this.playerId && event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET;
+        return event.hasTarget(this.playerId) && event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -11783,7 +12011,7 @@ class XiangLe extends Skill_1.SimpleConditionalSkill {
             }
             else {
                 console.log('[享乐] 使杀无效化');
-                event.abort = true;
+                event.removeTarget(this.playerId);
             }
         });
     }
@@ -12358,11 +12586,11 @@ class KongChengCancellor {
     }
     conditionFulfilled(event, manager) {
         if (manager.context.getPlayer(this.skill.playerId).getCards(CardPos_1.CardPos.HAND).length === 0) {
-            if (event.timeline === Operation_1.Timeline.BECOME_TARGET && event.target.player.id === this.skill.playerId) {
+            if (event.timeline === Operation_1.Timeline.BECOME_TARGET && event.getTarget().player.id === this.skill.playerId) {
                 if (event instanceof Operation_1.RuseOp && event.ruseType === Card_1.CardType.JUE_DOU) {
                     return true;
                 }
-                if (event instanceof SlashOp_1.SlashCompute) {
+                if (event instanceof SlashOp_1.SlashOP) {
                     return true;
                 }
             }
@@ -12372,7 +12600,7 @@ class KongChengCancellor {
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             this.skill.invokeEffects(manager);
-            event.abort = true;
+            event.removeTarget(this.skill.playerId);
         });
     }
 }
@@ -12388,7 +12616,7 @@ class KongCheng extends Skill_1.Skill {
         this.isLocked = true;
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(SlashOp_1.SlashCompute, new KongChengCancellor(this));
+        skillRegistry.on(SlashOp_1.SlashOP, new KongChengCancellor(this));
         skillRegistry.on(SingleRuseOp_1.JueDou, new KongChengCancellor(this));
         const onCardAway = (away) => __awaiter(this, void 0, void 0, function* () {
             if (!this.isInactive() && away.player === this.playerId &&
@@ -13067,7 +13295,7 @@ class ShenSu extends Skill_1.SimpleConditionalSkill {
                     manager.roundStats.skipStages.set(Stage_1.Stage.USE_CARD, true);
                     //出杀
                     manager.broadcast(new EffectTransit_1.TextFlashEffect(this.playerId, [target.player.id], '神速'));
-                    yield new SlashOp_1.SlashCompute(manager.context.getPlayer(this.playerId), target, [], 1, 1, DamageOp_1.DamageType.NORMAL, 'n.a.').perform(manager);
+                    yield new SlashOp_1.SlashOP(manager.context.getPlayer(this.playerId), [target], [], 1, DamageOp_1.DamageType.NORMAL, 'n.a.').perform(manager);
                 }
             }
         });
@@ -14244,10 +14472,10 @@ class LiuLi extends Skill_1.SimpleConditionalSkill {
         });
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(SlashOp_1.SlashCompute, this);
+        skillRegistry.on(SlashOp_1.SlashOP, this);
     }
     conditionFulfilled(event, manager) {
-        return event.timeline === Operation_1.Timeline.BECOME_TARGET && event.target.player.id === this.playerId;
+        return event.timeline === Operation_1.Timeline.BECOME_TARGET && event.hasTarget(this.playerId);
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -14264,7 +14492,8 @@ class LiuLi extends Skill_1.SimpleConditionalSkill {
             let target = resp.targets[0];
             this.invokeEffects(manager, [target.player.id]);
             yield resp.dropCardsFromSource(this.displayName);
-            event.target = target;
+            event.removeTarget(this.playerId);
+            event.targets.push(target);
         });
     }
 }
@@ -14282,13 +14511,13 @@ class SingleRuseCancellor {
         return '发动' + this.skill.displayName;
     }
     conditionFulfilled(event, manager) {
-        return event.timeline === Operation_1.Timeline.BECOME_TARGET && event.target.player.id === this.skill.playerId
+        return event.timeline === Operation_1.Timeline.BECOME_TARGET && event.getTarget().player.id === this.skill.playerId
             && event.ruseType === this.cardType;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             this.skill.invokeEffects(manager);
-            event.abort = true;
+            event.removeTarget(this.skill.playerId);
         });
     }
 }
@@ -14787,20 +15016,47 @@ class YiCheng extends Skill_1.SimpleConditionalSkill {
         this.description = '当与你势力相同的一名角色成为【杀】的目标后，你可以令该角色摸一张牌然后弃置一张牌。';
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(SlashOp_1.SlashCompute, this);
+        skillRegistry.on(SlashOp_1.SlashOP, this);
     }
     conditionFulfilled(event, manager) {
-        return (event.target.player.id === this.playerId || FactionPlayerInfo_1.default.factionSame(event.target, manager.context.getPlayer(this.playerId))) &&
-            event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET;
+        let buddies = this.getBuddies(event, manager);
+        return buddies.length > 0;
     }
     invokeMsg(event, manager) {
-        return `对${event.target}发动疑城令其摸一张牌然后弃置一张牌`;
+        return `对${event.targets[0]}发动疑城令其摸一张牌然后弃置一张牌`;
     }
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.invokeEffects(manager, [event.target.player.id]);
-            yield new TakeCardOp_1.default(event.target, 1).perform(manager);
-            yield new DropCardOp_1.DropCardRequest().perform(event.target.player.id, 1, manager, '(疑城)请弃置一张牌', [PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP]);
+            let buddies = this.getBuddies(event, manager);
+            let isFirst = true;
+            for (let b of buddies) {
+                let activate = true;
+                if (isFirst) {
+                    isFirst = false;
+                }
+                else {
+                    //do ask first
+                    let ask = yield manager.sendHint(this.playerId, {
+                        hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                        hintMsg: `是否对${b}发动疑城`,
+                        extraButtons: [new PlayerAction_1.Button('yes', '发动'), new PlayerAction_1.Button('no', '不发动')]
+                    });
+                    if (ask.button !== 'yes') {
+                        activate = false;
+                    }
+                }
+                if (activate) {
+                    this.invokeEffects(manager, [b.player.id]);
+                    yield new TakeCardOp_1.default(b, 1).perform(manager);
+                    yield new DropCardOp_1.DropCardRequest().perform(b.player.id, 1, manager, '(疑城)请弃置一张牌', [PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP]);
+                }
+            }
+        });
+    }
+    getBuddies(event, manager) {
+        return event.targets.filter(t => {
+            (t.player.id === this.playerId || FactionPlayerInfo_1.default.factionSame(t, manager.context.getPlayer(this.playerId))) &&
+                event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET;
         });
     }
 }
@@ -15020,7 +15276,7 @@ class RedSlashTrigger {
         return '发动' + this.skill.displayName;
     }
     conditionFulfilled(event, manager) {
-        if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.target.player.id === this.skill.playerId) {
+        if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.hasTarget(this.skill.playerId)) {
             return event.color === 'red';
         }
         if (event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
@@ -15047,7 +15303,7 @@ class JueDouTrigger {
         return '发动' + this.skill.displayName;
     }
     conditionFulfilled(event, manager) {
-        if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.target.player.id === this.skill.playerId) {
+        if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.getTarget().player.id === this.skill.playerId) {
             return true;
         }
         if (event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
@@ -15070,7 +15326,7 @@ class JiAng extends Skill_1.Skill {
         this.description = '当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。';
     }
     bootstrapServer(skillRegistry, manager) {
-        skillRegistry.on(SlashOp_1.SlashCompute, new RedSlashTrigger(this));
+        skillRegistry.on(SlashOp_1.SlashOP, new RedSlashTrigger(this));
         skillRegistry.on(SingleRuseOp_1.JueDou, new JueDouTrigger(this));
     }
 }
@@ -15487,16 +15743,21 @@ exports.FactionSkillProviders.register('随势', pid => new FactionSkillsQun_1.S
 exports.FactionSkillProviders.register('死谏', pid => new FactionSkillsQun_1.SiJian(pid));
 exports.FactionSkillProviders.register('乱击', pid => new FactionSkillsQun_1.LuanJi(pid));
 exports.FactionSkillProviders.register('凶算', pid => new FactionSkillsQun_1.XiongSuan(pid));
-exports.FactionSkillProviders.register('矢北', pid => new FactionSkillsQun_1.ShiBei(pid));
-exports.FactionSkillProviders.register('渐营', pid => new FactionSkillsQun_1.JianYing(pid));
-exports.FactionSkillProviders.register('锋略', pid => new FactionSkillsQun_1.FengLue(pid));
-exports.FactionSkillProviders.register('谋识', pid => new FactionSkillsQun_1.MouShi(pid));
+// FactionSkillProviders.register('矢北', pid => new ShiBei(pid))
+// FactionSkillProviders.register('渐营', pid => new JianYing(pid))
+// FactionSkillProviders.register('锋略', pid => new FengLue(pid))
+// FactionSkillProviders.register('谋识', pid => new MouShi(pid))
 exports.FactionSkillProviders.register('狂斧', pid => new FactionSkillsQun_1.KuangFu(pid));
 exports.FactionSkillProviders.register('悲歌', pid => new FactionSkillsQun_1.BeiGe(pid));
 exports.FactionSkillProviders.register('断肠', pid => new FactionSkillsQun_1.DuanChange(pid));
 exports.FactionSkillProviders.register('横征', pid => new FactionSkillsQun_1.HengZheng(pid));
 exports.FactionSkillProviders.register('暴凌', pid => new FactionSkillsQun_1.BaoLing(pid));
 exports.FactionSkillProviders.register('崩坏', pid => new FactionSkillsQun_1.BengHuai(pid));
+exports.FactionSkillProviders.register('穿心', pid => new FactionSkillsQun_1.ChuanXin(pid));
+exports.FactionSkillProviders.register('锋矢', pid => new FactionSkillsQun_1.FengShi(pid));
+exports.FactionSkillProviders.register('礼让', pid => new FactionSkillsQun_1.LiRang(pid));
+exports.FactionSkillProviders.register('名士', pid => new FactionSkillsQun_1.MingShi(pid));
+exports.FactionSkillProviders.register('双刃', pid => new FactionSkillsQun_1.ShuangRen(pid));
 class FactionWarSkillRepo {
     constructor(manager, skillRegistry) {
         this.manager = manager;
@@ -16622,13 +16883,16 @@ class GameManager {
             yield new StageFlows_1.StageStartFlow(info, stage).perform(this);
             this.checkDeath();
             if (!this.roundStats.skipStages.get(stage)) {
-                yield new StageFlows_1.InStageStart(info, stage).perform(this);
-                this.setPlayerAndStage(this.currPlayer().player.id, stage);
-                this.broadcast(this.currEffect);
-                if (midProcessor) {
-                    yield midProcessor();
+                let inStageStart = new StageFlows_1.InStageStart(info, stage);
+                yield inStageStart.perform(this);
+                if (!inStageStart.endStage) {
+                    this.setPlayerAndStage(this.currPlayer().player.id, stage);
+                    this.broadcast(this.currEffect);
+                    if (midProcessor) {
+                        yield midProcessor();
+                    }
+                    yield new StageFlows_1.InStageEnd(info, stage).perform(this);
                 }
-                yield new StageFlows_1.InStageEnd(info, stage).perform(this);
             }
             this.checkDeath();
             yield new StageFlows_1.StageEndFlow(info, stage).perform(this);
@@ -16801,10 +17065,29 @@ class Operation {
 }
 exports.Operation = Operation;
 class UseEventOperation extends Operation {
-    constructor() {
-        super(...arguments);
+    constructor(targets) {
+        super();
+        this.targets = targets;
         this.timeline = Timeline.CHOOSING_TARGET;
-        this.abort = false;
+    }
+    getTarget() {
+        if (this.targets.length !== 1) {
+            console.error('目标不唯一!!', this.targets);
+            // return this.targets[0]
+        }
+        return this.targets[0];
+    }
+    hasTarget(t) {
+        return this.targets.findIndex(tt => tt.player.id === t) > -1;
+    }
+    removeTarget(target) {
+        let idx = this.targets.findIndex(t => t.player.id === target);
+        if (idx > -1) {
+            this.targets.splice(idx, 1);
+        }
+        else {
+            console.error('Failed to remove target', target, this);
+        }
     }
     /**
      * 结算下一步
@@ -16821,15 +17104,17 @@ class UseEventOperation extends Operation {
                 Timeline.AFTER_BECOMING_TARGET]) {
                 this.timeline = t;
                 yield manager.events.publish(this);
-                if (this.abort) {
-                    yield this.onAborted(manager);
-                    return;
-                }
             }
-            let res = yield this.doPerform(manager);
-            this.timeline = Timeline.COMPUTE_FINISH;
-            yield manager.events.publish(this);
-            return res;
+            if (this.targets.length === 0) {
+                yield this.onAborted(manager);
+                return null;
+            }
+            else {
+                let res = yield this.doPerform(manager);
+                this.timeline = Timeline.COMPUTE_FINISH;
+                yield manager.events.publish(this);
+                return res;
+            }
         });
     }
     onAborted(manager) {
@@ -16841,7 +17126,7 @@ class UseEventOperation extends Operation {
 exports.UseEventOperation = UseEventOperation;
 class RuseOp extends UseEventOperation {
     constructor(target, cards, ruseType) {
-        super();
+        super([target]);
         this.target = target;
         this.cards = cards;
         this.ruseType = ruseType;
@@ -17474,6 +17759,9 @@ const CustomUIRegistry_1 = __webpack_require__(/*! ../../client/card-panel/Custo
 const Generic_1 = __webpack_require__(/*! ./Generic */ "./javascript/server/engine/Generic.tsx");
 //必须有手牌
 function canCardFight(a, b, manager) {
+    if (a === b) {
+        return false;
+    }
     let me = manager.context.getPlayer(a);
     let target = manager.context.getPlayer(b);
     return me.getCards(CardPos_1.CardPos.HAND).length > 0 && target.getCards(CardPos_1.CardPos.HAND).length > 0;
@@ -18145,6 +18433,7 @@ class DropCardOp extends Operation_1.Operation {
             this.limit = this.player.hp;
             yield manager.events.publish(this);
             let amount = Math.max(this.player.getCards(CardPos_1.CardPos.HAND).length - this.limit, 0);
+            console.log('[弃牌阶段] ', this.player.getCards(CardPos_1.CardPos.HAND).length, this.limit);
             if (amount > 0) {
                 let request = new DropCardRequest();
                 yield request.perform(myId, amount, manager, `弃牌阶段 请弃置${amount}张手牌`);
@@ -18243,7 +18532,7 @@ class DropCardRequest {
     perform(targetId, amount, manager, hintMsg, positions = [PlayerAction_1.UIPosition.MY_HAND], cancelable = false) {
         return __awaiter(this, void 0, void 0, function* () {
             let victim = manager.context.getPlayer(targetId);
-            let size = Math.min(amount, Generic_1.cardAmountAt(victim, positions));
+            let size = Generic_1.cardAmountAt(victim, positions);
             if (size <= 0) {
                 console.error('How???');
                 return false;
@@ -18257,7 +18546,7 @@ class DropCardRequest {
                 let resp = yield manager.sendHint(targetId, {
                     hintType: ServerHint_1.HintType.CHOOSE_CARD,
                     hintMsg,
-                    quantity: size,
+                    quantity: amount,
                     positions: positions,
                     extraButtons: cancelable ? [PlayerAction_1.Button.CANCEL] : []
                 });
@@ -18272,7 +18561,7 @@ class DropCardRequest {
                 cardsAndPos = resp.getPosAndCards(CardPos_1.CardPos.HAND, CardPos_1.CardPos.EQUIP);
             }
             //remove these cards
-            console.log('玩家弃牌: ', targetId, cardsAndPos);
+            console.log('玩家弃牌: ', targetId, cardsAndPos.map(cp => CardPos_1.CardPos[cp[0]] + ': ' + cp[1]));
             let cardStr = '';
             for (let cp of cardsAndPos) {
                 let p = cp[0];
@@ -18451,6 +18740,9 @@ class Weapon extends Equipment {
             if (op.source.player.id !== this.player) {
                 return;
             }
+            if (!op.hasTarget(this.player)) {
+                return;
+            }
             let potential = op.source.getCards(CardPos_1.CardPos.EQUIP).find(c => c.type === this.myType());
             if (potential) {
                 yield this.doEffect(op);
@@ -18482,11 +18774,11 @@ class QingGang extends Weapon {
                 this.show();
                 this.manager.log(`${this.player} 的青釭剑效果触发`);
                 // console.log('[装备] 青釭技能发动, 无视防具:', shield.id)
-                exports.BlockedEquipment.block(op.target.player.id, this.cardType.name);
+                exports.BlockedEquipment.block(this.player, this.cardType.name);
             }
             else if (op.timeline === Operation_1.Timeline.COMPUTE_FINISH) {
                 // console.log('[装备] 青釭技能结算完毕, 恢复防具:', shield.id)
-                exports.BlockedEquipment.release(op.target.player.id, this.cardType.name);
+                exports.BlockedEquipment.release(this.player, this.cardType.name);
             }
         });
     }
@@ -18530,25 +18822,28 @@ class CiXiong extends Weapon {
     }
     doEffect(op) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (op.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && this.differentSex(op.source, op.target)) {
-                //询问是否发动
-                let resp = yield this.manager.sendHint(this.player, {
-                    hintType: ServerHint_1.HintType.MULTI_CHOICE,
-                    hintMsg: `是否对 ${op.target.player.id} 发动雌雄双股剑`,
-                    extraButtons: [PlayerAction_1.Button.OK, PlayerAction_1.Button.CANCEL]
-                });
-                if (!resp.isCancel()) {
-                    this.show();
-                    console.log(`[装备] ${this.player} 发动了雌雄双股剑`);
-                    this.manager.log(`${this.player} 发动了雌雄双股剑的效果`);
-                    let resp = yield new DropCardOp_1.DropCardRequest().perform(op.target.player.id, 1, this.manager, `${this.player} 对你发动了雌雄双股剑, 请弃置一张手牌或点击取消令其摸一张牌`, [PlayerAction_1.UIPosition.MY_HAND], true);
-                    //若按了取消
-                    if (!resp) {
-                        console.log(`[装备] ${op.target} 选择让 ${this.player} 摸一张牌`);
-                        yield new TakeCardOp_1.default(op.source, 1).perform(this.manager);
-                    }
-                    else {
-                        console.log(`[装备] ${op.target} 选择弃置了牌`);
+            if (op.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET) {
+                let ts = op.targets.filter(t => this.differentSex(op.source, t));
+                for (let t of ts) {
+                    //询问是否发动
+                    let resp = yield this.manager.sendHint(this.player, {
+                        hintType: ServerHint_1.HintType.MULTI_CHOICE,
+                        hintMsg: `是否对 ${t} 发动雌雄双股剑`,
+                        extraButtons: [PlayerAction_1.Button.OK, PlayerAction_1.Button.CANCEL]
+                    });
+                    if (!resp.isCancel()) {
+                        this.show();
+                        console.log(`[装备] ${this.player} 发动了雌雄双股剑`);
+                        this.manager.log(`${this.player} 发动了雌雄双股剑的效果`);
+                        let resp = yield new DropCardOp_1.DropCardRequest().perform(t.player.id, 1, this.manager, `${this.player} 对你发动了雌雄双股剑, 请弃置一张手牌或点击取消令其摸一张牌`, [PlayerAction_1.UIPosition.MY_HAND], true);
+                        //若按了取消
+                        if (!resp) {
+                            console.log(`[装备] ${t} 选择让 ${this.player} 摸一张牌`);
+                            yield new TakeCardOp_1.default(op.source, 1).perform(this.manager);
+                        }
+                        else {
+                            console.log(`[装备] ${t} 选择弃置了牌`);
+                        }
                     }
                 }
             }
@@ -18822,8 +19117,8 @@ class TengJia extends Equipment {
     constructor() {
         super(...arguments);
         this.abortSlash = (slashOp) => __awaiter(this, void 0, void 0, function* () {
-            if (slashOp.target.player.id === this.player &&
-                slashOp.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET &&
+            if (slashOp.hasTarget(this.player) &&
+                slashOp.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET &&
                 slashOp.damageType === DamageOp_1.DamageType.NORMAL) {
                 if (exports.BlockedEquipment.isBlocked(this.player)) {
                     console.warn('[装备] 被无视, 无法发动 ' + this.cardType.name);
@@ -18834,7 +19129,8 @@ class TengJia extends Equipment {
                 this.manager.log(`${this.player} 的藤甲触发`);
                 this.manager.broadcast(new EffectTransit_1.PlaySound(`audio/equip/teng_jia_good.ogg`));
                 this.manager.broadcast(new EffectTransit_1.TextFlashEffect(this.player, [], '藤甲_好'));
-                slashOp.abort = true;
+                slashOp.removeTarget(this.player);
+                // slashOp.abort = true
                 //todo: show effect
             }
         });
@@ -18877,7 +19173,7 @@ class TengJia extends Equipment {
     onEquipped() {
         return __awaiter(this, void 0, void 0, function* () {
             this.manager.equipmentRegistry.on(DamageOp_1.default, this.player, this.amplifyFire);
-            this.manager.equipmentRegistry.on(SlashOp_1.SlashCompute, this.player, this.abortSlash);
+            this.manager.equipmentRegistry.on(SlashOp_1.SlashOP, this.player, this.abortSlash);
             this.manager.equipmentRegistry.on(MultiRuseOp_1.WanJian, this.player, this.abortAOE);
             this.manager.equipmentRegistry.on(MultiRuseOp_1.NanMan, this.player, this.abortAOE);
         });
@@ -18885,7 +19181,7 @@ class TengJia extends Equipment {
     onDropped() {
         return __awaiter(this, void 0, void 0, function* () {
             this.manager.equipmentRegistry.off(DamageOp_1.default, this.player, this.amplifyFire);
-            this.manager.equipmentRegistry.off(SlashOp_1.SlashCompute, this.player, this.abortSlash);
+            this.manager.equipmentRegistry.off(SlashOp_1.SlashOP, this.player, this.abortSlash);
             this.manager.equipmentRegistry.off(MultiRuseOp_1.WanJian, this.player, this.abortAOE);
             this.manager.equipmentRegistry.off(MultiRuseOp_1.NanMan, this.player, this.abortAOE);
         });
@@ -18896,7 +19192,7 @@ class RenWang extends Equipment {
     constructor() {
         super(...arguments);
         this.abortSlash = (slashOp) => __awaiter(this, void 0, void 0, function* () {
-            if (slashOp.target.player.id === this.player &&
+            if (slashOp.hasTarget(this.player) &&
                 slashOp.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET &&
                 slashOp.color === 'black') {
                 if (exports.BlockedEquipment.isBlocked(this.player)) {
@@ -18906,18 +19202,18 @@ class RenWang extends Equipment {
                 this.show();
                 this.manager.log(`${this.player} 的仁王盾令此杀无效`);
                 console.log(`[装备] 仁王盾令 ${slashOp.source.player.id} 的杀无效`);
-                slashOp.abort = true;
+                slashOp.removeTarget(this.player);
             }
         });
     }
     onEquipped() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.manager.equipmentRegistry.on(SlashOp_1.SlashCompute, this.player, this.abortSlash);
+            this.manager.equipmentRegistry.on(SlashOp_1.SlashOP, this.player, this.abortSlash);
         });
     }
     onDropped() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.manager.equipmentRegistry.off(SlashOp_1.SlashCompute, this.player, this.abortSlash);
+            this.manager.equipmentRegistry.off(SlashOp_1.SlashOP, this.player, this.abortSlash);
         });
     }
 }
@@ -19037,7 +19333,7 @@ const EffectTransit_1 = __webpack_require__(/*! ../../common/transit/EffectTrans
 //todo: remember 之后的手牌数, 用以发动渐营 + 死谏 避免技能相互作用条件不满足无法发动
 class CardAwayEvent {
     isCardFrom(playerId) {
-        return this.player === playerId && (this.cards[0][1] === CardPos_1.CardPos.HAND || this.cards[0][1] === CardPos_1.CardPos.EQUIP);
+        return this.player === playerId && this.cards.length > 0 && (this.cards[0][1] === CardPos_1.CardPos.HAND || this.cards[0][1] === CardPos_1.CardPos.EQUIP);
     }
 }
 exports.CardAwayEvent = CardAwayEvent;
@@ -19463,7 +19759,7 @@ const Generic_1 = __webpack_require__(/*! ./Generic */ "./javascript/server/engi
 const HealOp_1 = __webpack_require__(/*! ./HealOp */ "./javascript/server/engine/HealOp.tsx");
 class MultiRuse extends Operation_1.UseEventOperation {
     constructor(cards, source, ruseType, targets) {
-        super();
+        super(targets);
         this.cards = cards;
         this.source = source;
         this.ruseType = ruseType;
@@ -20098,17 +20394,19 @@ function PlaySlashOpNoCards(manager, source, targets, slashType) {
     });
 }
 exports.PlaySlashOpNoCards = PlaySlashOpNoCards;
-class SlashOP extends Operation_1.Operation {
+class SlashOP extends Operation_1.UseEventOperation {
     constructor(source, targets, cards, damageAmount, damageType, color) {
-        super();
+        super(targets);
         this.source = source;
         this.targets = targets;
         this.cards = cards;
         this.damageAmount = damageAmount;
         this.damageType = damageType;
         this.color = color;
+        this.undodegables = new Set();
+        this.dodgesRequired = 1;
     }
-    perform(manager) {
+    doPerform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
             yield manager.events.publish(this);
             //醒酒
@@ -20122,14 +20420,16 @@ class SlashOP extends Operation_1.Operation {
                     console.warn('[Slash Op] Player already dead, not doing slash on him', t.player.id);
                     return;
                 }
-                yield new SlashCompute(this.source, t, this.cards, 1, this.damageAmount, this.damageType, this.color).perform(manager);
+                yield new SlashCompute(this.source, t, this.cards, this.dodgesRequired, this.damageAmount, this.damageType, this.color, this.undodegables.has(t.player.id)).perform(manager);
             }
         });
     }
 }
 exports.SlashOP = SlashOP;
-class SlashCompute extends Operation_1.UseEventOperation {
-    constructor(source, target, cards, dodgeRequired, damageAmount, damageType, color) {
+class SlashCompute extends Operation_1.Operation {
+    constructor(source, target, cards, dodgeRequired, damageAmount, damageType, color, 
+    //不可被闪避?
+    undodgeable) {
         super();
         this.source = source;
         this.target = target;
@@ -20138,10 +20438,9 @@ class SlashCompute extends Operation_1.UseEventOperation {
         this.damageAmount = damageAmount;
         this.damageType = damageType;
         this.color = color;
-        //不可被闪避?
-        this.undodgeable = false;
+        this.undodgeable = undodgeable;
     }
-    doPerform(manager) {
+    perform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.undodgeable) {
                 yield new DamageOp_1.default(this.source, this.target, this.damageAmount, this.cards, DamageOp_1.DamageSource.SLASH, this.damageType).perform(manager);
@@ -20263,6 +20562,10 @@ class StageEndFlow extends StageEvent {
 }
 exports.StageEndFlow = StageEndFlow;
 class InStageStart extends StageEvent {
+    constructor() {
+        super(...arguments);
+        this.endStage = false;
+    }
 }
 exports.InStageStart = InStageStart;
 class InStageEnd extends StageEvent {

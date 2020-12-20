@@ -103,7 +103,11 @@ export async function PlaySlashOpNoCards(manager: GameManager, source: PlayerInf
     await new SlashOP(source, targets, [], 1, slashType.damageType, slashType.color).perform(manager)
 }
 
-export class SlashOP extends Operation<void> {
+export class SlashOP extends UseEventOperation<void> {
+
+    public undodegables = new Set<string>()
+    public dodgesRequired = 1
+
     constructor(public readonly source: PlayerInfo,
                 public targets: PlayerInfo[],
                 public readonly cards: Card[],
@@ -111,10 +115,10 @@ export class SlashOP extends Operation<void> {
                 public damageType: DamageType,
                 public color: Color
                 ) {
-        super()
+        super(targets)
     }
 
-    public async perform(manager: GameManager): Promise<void> {
+    public async doPerform(manager: GameManager): Promise<void> {
         await manager.events.publish(this)
         //醒酒
         if(this.source.isDrunk) {
@@ -128,15 +132,13 @@ export class SlashOP extends Operation<void> {
                 console.warn('[Slash Op] Player already dead, not doing slash on him', t.player.id)
                 return
             }
-            await new SlashCompute(this.source, t, this.cards, 1, this.damageAmount, this.damageType, this.color).perform(manager)
+            await new SlashCompute(this.source, t, this.cards, this.dodgesRequired, this.damageAmount, this.damageType, this.color, this.undodegables.has(t.player.id)).perform(manager)
         }
     }
 }
 
-export class SlashCompute extends UseEventOperation<void> {
+export class SlashCompute extends Operation<void> {
 
-    //不可被闪避?
-    public undodgeable = false
 
     constructor(public readonly source: PlayerInfo,
                 public target: PlayerInfo,
@@ -144,12 +146,14 @@ export class SlashCompute extends UseEventOperation<void> {
                 public dodgeRequired: number,
                 public readonly damageAmount: number,
                 public damageType: DamageType,
-                public color: Color
+                public color: Color,
+                //不可被闪避?
+                private readonly undodgeable: boolean
                 ) {
         super()
     }
     
-    public async doPerform(manager: GameManager): Promise<void> {
+    public async perform(manager: GameManager): Promise<void> {
         if(this.undodgeable) {
             await new DamageOp(this.source, this.target, this.damageAmount, this.cards, DamageSource.SLASH, this.damageType).perform(manager)
             return
