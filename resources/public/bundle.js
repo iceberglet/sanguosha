@@ -10082,7 +10082,7 @@ class QiLuan extends Skill_1.SimpleConditionalSkill {
             if (op.timeline !== DeathOp_1.DeathTimeline.BEFORE_REVEAL) {
                 return;
             }
-            if (op.killer.player.id === this.playerId) {
+            if (op.killer && op.killer.player.id === this.playerId) {
                 this.bounty += 3;
             }
             else {

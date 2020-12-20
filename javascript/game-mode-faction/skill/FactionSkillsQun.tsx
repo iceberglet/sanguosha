@@ -476,7 +476,7 @@ export class QiLuan extends SimpleConditionalSkill<StageEndFlow> {
             if(op.timeline !== DeathTimeline.BEFORE_REVEAL) {
                 return
             }
-            if(op.killer.player.id === this.playerId) {
+            if(op.killer && op.killer.player.id === this.playerId) {
                 this.bounty += 3
             } else {
                 this.bounty += 1
