@@ -17,7 +17,7 @@ export abstract class UseEventOperation<T> extends Operation<T> {
     
     public timeline = Timeline.CHOOSING_TARGET
 
-    constructor(public readonly targets: PlayerInfo[]) {
+    constructor(public readonly targets: PlayerInfo[], public readonly whatIsThis: string) {
         super()
     }
 
@@ -80,7 +80,7 @@ export abstract class RuseOp<T> extends UseEventOperation<T> {
     constructor(public readonly target: PlayerInfo,
                 public readonly cards: Card[],
                 public readonly ruseType: CardType) {
-        super([target])
+        super([target], ruseType.name)
     }
 }
 

@@ -1,6 +1,6 @@
 import { Skill, HiddenType, SimpleConditionalSkill, EventRegistryForSkills, SkillTrigger, SimpleTrigger, SkillRepo, GeneralSkillStatusUpdate, SkillPosition } from "../../common/Skill";
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
-import { HintType } from "../../common/ServerHint";
+import { CardSelectionResult, HintType } from "../../common/ServerHint";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { factionDiffers, factionsSame } from "../../common/General";
@@ -18,14 +18,14 @@ import { isSuitRed, isSuitBlack, deriveColor } from "../../common/cards/ICard"
 import Card, { CardType, Color, Suit } from "../../common/cards/Card";
 import { CardBeingUsedEvent, CardAwayEvent, CardBeingDroppedEvent, CardBeingTakenEvent, turnOver } from "../../server/engine/Generic";
 import { SlashCompute, SlashOP } from "../../server/engine/SlashOp";
-import { Timeline, RuseOp } from "../../server/Operation";
+import { Timeline, RuseOp, UseEventOperation } from "../../server/Operation";
 import { JueDou, ShunShou, GuoHe, WuZhong, JieDao, HuoGong } from "../../server/engine/SingleRuseOp";
 import { StageStartFlow, StageEndFlow, InStageStart } from "../../server/engine/StageFlows";
 import { Stage } from "../../common/Stage";
 import JudgeOp, { JudgeTimeline } from "../../server/engine/JudgeOp";
 import DamageOp, { DamageSource, DamageType, DamageTimeline, EnterDyingEvent } from "../../server/engine/DamageOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
-import { DoTieSuo, MultiRuse, WanJian, NanMan, WuGu, TaoYuan } from "../../server/engine/MultiRuseOp";
+import { DoTieSuo, MultiRuse, WanJian, NanMan, WuGu, TaoYuan, TieSuo } from "../../server/engine/MultiRuseOp";
 import { YiYiDaiLao, ZhiJiZhiBi, YuanJiao } from "../FactionWarActionResolver";
 import WineOp from "../../server/engine/WineOp";
 import DeathOp, { DeathTimeline } from "../../server/engine/DeathOp";
@@ -33,7 +33,7 @@ import { SkillForDamageTaken } from "./FactionSkillsWei";
 import {Faction} from '../../common/General'
 import { DodgePlayed } from "../../server/engine/DodgeOp";
 import { MaShu } from "./FactionSkillsShu";
-import { getFactionsWithLeastMembers, getFactionMembers } from "../FactionWarUtil";
+import { getFactionsWithLeastMembers, getFactionMembers, getFactionIfRevealNow } from "../FactionWarUtil";
 import { registerPeach } from "../../client/player-actions/PlayerActionDrivers";
 import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp";
 import { EquipOp } from "../../server/engine/EquipOp";
@@ -376,6 +376,10 @@ class MultiRuseCancellor<T extends MultiRuse> implements SkillTrigger<T> {
     conditionFulfilled(event: T, manager: GameManager): boolean {
         return event.timeline === Timeline.BECOME_TARGET && !!event.targets.find(t => t.player.id === this.getSkill().playerId) &&
                 deriveColor(event.cards.map(c => manager.interpret(this.getSkill().playerId, c).suit)) === 'black'
+    }
+
+    public getSkillTriggerer(event: T, manager: GameManager): string {
+        return this.skill.playerId
     }
 
     async doInvoke(event: T, manager: GameManager): Promise<void> {
@@ -1483,8 +1487,6 @@ export class LiRang extends SimpleConditionalSkill<CardBeingDroppedEvent> {
                 let sent = resp.getCardsAtPos(CardPos.HAND)
                 let target = resp.targets[0]
                 cards = cards.filter(c => sent.findIndex(s => s.id === c.id) < 0)
-                console.log('[礼让] 给了牌', sent.map(s => s.toString()), target)
-                console.log('[礼让] 剩下', cards.length)
                 //从手中拿掉
                 manager.send(me.player.id, CardTransit.toWorkflow(me.player.id, CardPos.HAND, sent, false, false))
                 await delay(300)
@@ -1538,18 +1540,30 @@ export class ShuangRen extends SimpleConditionalSkill<InStageStart> {
             let toSlash: PlayerInfo = target
             //查看是否需要选择出杀的对象
             if(target.isRevealed()) {
+                let candidates: PlayerInfo[] = []
                 let notToSlash: PlayerInfo[] = manager.context.playerInfos.filter(p => {
                     let pl = p as FactionPlayerInfo
-                    return pl.isDead || pl.player.id === this.playerId || (pl.isRevealed() && factionDiffers(target.getFaction(), pl.getFaction()))
+                    if(pl.isDead || pl.player.id === this.playerId) {
+                        return true
+                    }
+                    if(pl.isRevealed() && factionDiffers(target.getFaction(), pl.getFaction())) {
+                        return true
+                    }
+                    candidates.push(pl)
+                    return false
                 })
-                let ask = await manager.sendHint(this.playerId, {
-                    hintType: HintType.CHOOSE_PLAYER,
-                    hintMsg: '请选择发动双刃出杀的对象',
-                    forbidden: notToSlash.map(f => f.player.id),
-                    minQuantity: 1,
-                    quantity: 1
-                })
-                toSlash = ask.targets[0]
+                if(candidates.length === 1) {
+                    toSlash = candidates[0]
+                } else {
+                    let ask = await manager.sendHint(this.playerId, {
+                        hintType: HintType.CHOOSE_PLAYER,
+                        hintMsg: '请选择发动双刃出杀的对象',
+                        forbidden: notToSlash.map(f => f.player.id),
+                        minQuantity: 1,
+                        quantity: 1
+                    })
+                    toSlash = ask.targets[0]
+                }
             }
             
             this.invokeEffects(manager, [toSlash.player.id])
@@ -1578,7 +1592,7 @@ export class ChuanXin extends SimpleConditionalSkill<DamageOp> {
         return (event.damageSource === DamageSource.DUEL || event.damageSource === DamageSource.SLASH) &&
             event.source && event.source.player.id === this.playerId && manager.currPlayer().player.id === this.playerId &&
             manager.currEffect.stage === Stage.USE_CARD && event.timeline === DamageTimeline.DOING_DAMAGE &&
-            t.isRevealed() && factionDiffers(event.source.getFaction(), t.getFaction()) &&
+            t.isRevealed() && factionDiffers(getFactionIfRevealNow(event.source, manager), t.getFaction()) &&
             hasSub(t)
     }
     
@@ -1634,12 +1648,132 @@ export class FengShi extends SimpleConditionalSkill<SlashOP> {
     }
 }
 
+
+class QianHuanTrigger implements SkillTrigger<UseEventOperation<any>> {
+    needRepeatedCheck: boolean = false
+    
+    constructor(private skill: QianHuan) {
+        
+    }
+
+    public getSkillTriggerer(event: UseEventOperation<any>, manager: GameManager): string {
+        return this.skill.playerId
+    }
+    getSkill(): Skill {
+        return this.skill
+    }
+    invokeMsg(event: UseEventOperation<any>, manager: GameManager): string {
+        return `发动千幻抵消${event.whatIsThis}对${event.targets[0]}的效果`
+    }
+    conditionFulfilled(event: UseEventOperation<any>, manager: GameManager): boolean {
+        if(event.targets.length !== 1 || event.timeline !== Timeline.BECOME_TARGET) {
+            return false
+        }
+        let t = event.getTarget() as FactionPlayerInfo
+        let me = manager.context.getPlayer(this.skill.playerId)
+        let pos = this.skill.position === 'main'? CardPos.ON_GENERAL: CardPos.ON_SUB_GENERAL
+        return t.isRevealed() && factionsSame(t.getFaction(), getFactionIfRevealNow(me, manager)) && me.getCards(pos).length > 0
+    }
+    async doInvoke(event: UseEventOperation<any>, manager: GameManager): Promise<void> {
+        let me = manager.context.getPlayer(this.skill.playerId)
+        let pos = this.skill.position === 'main'? CardPos.ON_GENERAL: CardPos.ON_SUB_GENERAL
+        let cards = me.getCards(pos)
+        //询问移除哪张千幻牌
+        let resp = await manager.sendHint(this.skill.playerId, {
+            hintType: HintType.UI_PANEL,
+            hintMsg: '请选择使用哪一张幻',
+            customRequest: {
+                data: {
+                    rowsOfCard: {
+                        '幻': cards
+                    },
+                    title: '千幻',
+                    chooseSize: 1
+                },
+                mode: 'choose'
+            }
+        })
+        let res = resp.customData as CardSelectionResult
+        let card = cards[res[0].idx]
+
+        //移除之
+        manager.sendToWorkflow(this.skill.playerId, pos, [card], false)
+        this.skill.invokeEffects(manager)
+        this.skill.allowedSuits.add(manager.interpret(this.skill.playerId, card).suit)
+
+        //取消目标
+        event.removeTarget(event.getTarget().player.id)
+        return
+    }
+    
+}
+
 export class QianHuan extends SimpleConditionalSkill<DamageOp> {
     
     id = '千幻'
     displayName = '千幻'
     description = '当与你势力相同的一名角色受到伤害后，你可以将一张与你武将牌上花色均不同的牌置于你的武将牌上。当一名与你势力相同的角色成为基本牌或锦囊牌的唯一目标时，你可以移去一张“千幻”牌，取消之。'
+    allowedSuits = new Set<Suit>(['club', 'heart', 'diamond', 'spade'])
 
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+        let remover = new QianHuanTrigger(this)
+        skillRegistry.on<UseEventOperation<any>>(WanJian, remover)
+        skillRegistry.on<UseEventOperation<any>>(NanMan, remover)
+        skillRegistry.on<UseEventOperation<any>>(WuGu, remover)
+        skillRegistry.on<UseEventOperation<any>>(TaoYuan, remover)
+        skillRegistry.on<UseEventOperation<any>>(TieSuo, remover)
+
+        skillRegistry.on<UseEventOperation<any>>(YiYiDaiLao, remover)
+        skillRegistry.on<UseEventOperation<any>>(ZhiJiZhiBi, remover)
+        skillRegistry.on<UseEventOperation<any>>(YuanJiao, remover)
+        skillRegistry.on<UseEventOperation<any>>(JueDou, remover)
+        skillRegistry.on<UseEventOperation<any>>(HuoGong, remover)
+        skillRegistry.on<UseEventOperation<any>>(JieDao, remover)
+
+        skillRegistry.on<UseEventOperation<any>>(GuoHe, remover)
+        skillRegistry.on<UseEventOperation<any>>(ShunShou, remover)
+
+        skillRegistry.on<UseEventOperation<any>>(UseDelayedRuseOp, remover)
+
+        skillRegistry.on<UseEventOperation<any>>(SlashOP, remover)
+        //todo: 桃, 酒
+        // skillRegistry.on<UseEventOperation<any>>(WuZhong, remover)
+        // skillRegistry.on<UseEventOperation<any>>(SlashOP, remover)
+    }
+
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        if(event.timeline !== DamageTimeline.TAKEN_DAMAGE) {
+            return false
+        }
+        let t = event.target as FactionPlayerInfo
+        let me = manager.context.getPlayer(this.playerId)
+        return t.isRevealed() && factionsSame(t.getFaction(), getFactionIfRevealNow(me, manager)) && me.hasOwnCards()
+    }
+    
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        //选择一张花色与已有的不同的
+        let resp = await manager.sendHint(this.playerId, {
+            hintType: HintType.CHOOSE_CARD,
+            hintMsg: '[千幻] 请选择放置于武将牌上作为\'幻\'的牌',
+            quantity: 1,
+            positions: [UIPosition.MY_HAND, UIPosition.MY_EQUIP],
+            extraButtons: [Button.CANCEL],
+            suits: [...this.allowedSuits]
+        })
+
+        //先发给workflow让大家看看
+        if(resp.isCancel()) {
+            return
+        }
+
+        let cardAndPos = resp.getSingleCardAndPos()
+        cardAndPos[0].description = '幻'
+        manager.sendToWorkflow(this.playerId, cardAndPos[1], [cardAndPos[0]], false)
+        this.invokeEffects(manager)
+        this.allowedSuits.delete(manager.interpret(this.playerId, cardAndPos[0]).suit)
+        await manager.takeFromWorkflow(this.playerId, this.position === 'main'? CardPos.ON_GENERAL: CardPos.ON_SUB_GENERAL, [cardAndPos[0]])
+    }
 
 }
 

@@ -237,6 +237,7 @@ export abstract class PlayerInfo {
         this.isDead = true
         this.isChained = false
         this.isTurnedOver = false
+        this.isDrunk = false
     }
 
     getAllCards(): Array<[Card, CardPos]> {

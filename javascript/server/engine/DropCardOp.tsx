@@ -13,6 +13,7 @@ export enum DropTimeline {
 //弃牌阶段
 export default class DropCardOp extends Operation<void> {
 
+    //手牌上限
     limit = 0
     timeline: DropTimeline = DropTimeline.BEFORE
     dropped: Card[] = []
@@ -30,7 +31,7 @@ export default class DropCardOp extends Operation<void> {
         await manager.events.publish(this);
 
         let amount = Math.max(this.player.getCards(CardPos.HAND).length - this.limit, 0)
-        console.log('[弃牌阶段] ', this.player.getCards(CardPos.HAND).length, this.limit)
+        console.log('[弃牌阶段] 手牌数:', this.player.getCards(CardPos.HAND).length, ' 上限 ', this.limit)
 
         if(amount > 0) {
             let request = new DropCardRequest()

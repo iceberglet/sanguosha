@@ -20,10 +20,10 @@ import { SlashCompute, SlashOP } from "../../server/engine/SlashOp";
 import { EquipOp } from "../../server/engine/EquipOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
 import DeathOp, { DeathTimeline } from "../../server/engine/DeathOp";
-import { PlayerInfo } from "../../common/PlayerInfo";
+import { Mark, PlayerInfo } from "../../common/PlayerInfo";
 import PlayerAct from "../../server/context/PlayerAct";
 import CardFightOp from "../../server/engine/CardFightOp";
-import { DropCardRequest } from "../../server/engine/DropCardOp";
+import DropCardOp, { DropCardRequest, DropTimeline } from "../../server/engine/DropCardOp";
 import { getNumberOfFactions, askAbandonBasicCard, askAbandonEquip } from "../FactionWarUtil";
 import { MoveCardOnField } from "../../server/engine/MoveCardOp";
 import { GrabCard, ShunShou } from "../../server/engine/SingleRuseOp";
@@ -1266,6 +1266,76 @@ export class WangXi extends SkillForDamageTaken {
     }
 }
 
+export class HengJiang extends SkillForDamageTaken {
+
+    id = '横江'
+    displayName = '横江'
+    description = '当你受到1点伤害后，你可以令当前回合角色本回合的手牌上限-1。然后若其弃牌阶段内没有弃牌，则你摸一张牌。'
+    //在发动横江后发生
+    expectDrop = false
+
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<DamageOp>(DamageOp, this)
+        skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async(dropCardOp: DropCardOp)=>{
+            if(dropCardOp.timeline === DropTimeline.BEFORE) {
+                //check for 横江
+                let marks = this.getMarksOfCurrentPlayer(manager)
+                let hengJiang = marks[this.id]
+                if(hengJiang) {
+                    let amount = Number.parseInt(hengJiang.substring(2))
+                    console.log('[横江] 需要多弃', amount, hengJiang)
+                    dropCardOp.limit -= amount
+                }
+                delete marks[this.id]
+                manager.broadcast(manager.currPlayer(), PlayerInfo.sanitize)
+            } else {
+                console.log('[横江] 弃牌阶段结束, expectDrop flag存在且弃牌阶段未弃牌, 横江摸一张牌')
+                //check for 横江 拿牌
+                if(this.expectDrop && dropCardOp.dropped.length === 0) {
+                    //摸一张牌
+                    await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+                }
+                this.expectDrop = false
+            }
+        })
+        skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async(stageEnd: StageEndFlow)=>{
+            //若结束时仍然有flag说明弃牌阶段被跳过了!
+            if(this.expectDrop && stageEnd.stage === Stage.DROP_CARD) {
+                console.log('[横江] 弃牌阶段结束, expectDrop flag依然存在, 说明弃牌阶段跳过了, 摸一张牌')
+                this.invokeEffects(manager)
+                let marks = this.getMarksOfCurrentPlayer(manager)
+                delete marks[this.id]
+                await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+                manager.broadcast(manager.currPlayer(), PlayerInfo.sanitize)
+                this.expectDrop = false
+            }
+        })
+    }
+
+    public getMarksOfCurrentPlayer(manager: GameManager): Mark {
+        let player = manager.currPlayer() as FactionPlayerInfo
+        //always put on main
+        return player.mainMark
+    }
+
+    public conditionFulfilled(event: DamageOp, manager: GameManager): boolean {
+        return this.isMyDamage(event) && this.damageFromOthers(event)
+    }
+    public async doInvoke(event: DamageOp, manager: GameManager): Promise<void> {
+        this.expectDrop = true
+        let mark = this.getMarksOfCurrentPlayer(manager)
+        let hengJiang = mark[this.id]
+        if(!hengJiang) {
+            mark[this.id] = this.id + '1'
+        } else {
+            let curr = Number.parseInt(hengJiang.substring(2))
+            mark[this.id] = this.id + (curr + 1)
+        }
+        this.invokeEffects(manager, [manager.currPlayer().player.id])
+        manager.broadcast(manager.currPlayer(), PlayerInfo.sanitize)
+    }
+}
+
 // export class XunYou extends Skill {
 //     id = '奇策'
 //     displayName = '奇策'
@@ -1323,12 +1393,6 @@ export class WangXi extends Skill<DamageOp> {
 
     displayName = '忘隙'
     description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。'
-}
-
-export class HengJiang extends Skill<DamageOp> {
-
-    displayName = '横江'
-    description = '当你受到1点伤害后，你可以令当前回合角色本回合的手牌上限-1。然后若其弃牌阶段内没有弃牌，则你摸一张牌。'
 }
 
  */

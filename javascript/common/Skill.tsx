@@ -111,6 +111,13 @@ export interface SkillTrigger<T> {
      * @param manager GameManager
      */
     doInvoke(event: T, manager: GameManager): Promise<void>
+
+    /**
+     * 技能发动找谁问?
+     * @param event 事件 
+     * @param manager GameManager
+     */
+    getSkillTriggerer(event: T, manager: GameManager): string;
 }
 
 export abstract class Skill extends SkillStatus {
@@ -219,6 +226,10 @@ export abstract class SimpleTrigger<T> implements SkillTrigger<T> {
     invokeMsg(event: T, manager: GameManager): string {
         return '发动' + this.getSkill().displayName
     }
+
+    getSkillTriggerer(event: T, manager: GameManager): string {
+        return this.player.player.id
+    }
 }
 
 /**
@@ -266,6 +277,10 @@ export abstract class SimpleConditionalSkill<T> extends Skill implements SkillTr
      */
     public async doInvoke(event: T, manager: GameManager): Promise<void> {
         return
+    }
+
+    public getSkillTriggerer(event: T, manager: GameManager): string {
+        return this.playerId
     }
 }
 

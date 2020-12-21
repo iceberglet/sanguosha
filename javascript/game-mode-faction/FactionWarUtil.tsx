@@ -133,3 +133,27 @@ export async function askAbandonEquip(manager: GameManager, target: PlayerInfo, 
     await resp.dropCardsFromSource(target.player.id + ' 弃置')
     return true
 }
+
+/**
+ * 计算该玩家的势力
+ * 若已明置, 则取明置的势力
+ * 否则, 返回*如果此刻明置的话*会成为的势力
+ * @param player 
+ * @param manager 
+ */
+export function getFactionIfRevealNow(player: PlayerInfo, manager: GameManager) {
+    let p = player as FactionPlayerInfo
+    if(p.isRevealed()) {
+        return p.getFaction()
+    }
+    let numberOfFriends = manager.context.playerInfos
+                        // .filter(pp => (pp as FactionPlayerInfo).isRevealed())
+                        // getFaction 已经会返回UNKNOWN / YE
+                        .filter(pp => pp.player.id !== p.player.id && pp.getFaction().name === p.getFaction().name)
+                        .length
+    //若场上势力相同的加上你已经超过了全体玩家的一半, 则你成为野
+    if(numberOfFriends + 1 > manager.context.playerInfos.length / 2) {
+        return Faction.YE
+    }
+    return p.general.faction
+}

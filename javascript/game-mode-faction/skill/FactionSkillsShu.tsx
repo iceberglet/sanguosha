@@ -37,6 +37,7 @@ import { CustomUIData, GuanXingData } from "../../client/card-panel/CustomUIRegi
 import { DropOthersCardRequest } from "../../server/engine/DropCardOp"
 import { areInFormation } from "./FactionSkillsGeneric"
 import GameContext from "../../common/GameContext"
+import { RemoveGeneralEvent, RevealGeneralEvent } from "../FactionWarInitializer"
 
 const REN_DE_SLASH = [SlashType.RED, SlashType.BLACK, SlashType.FIRE, SlashType.THUNDER]
 
@@ -1252,6 +1253,10 @@ export class KongChengCancellor<T extends (RuseOp<any> | SlashOP)> implements Sk
         return '发动' + this.skill.displayName
     }
 
+    getSkillTriggerer(event: T, manager: GameManager): string {
+        return this.skill.playerId
+    }
+
     conditionFulfilled(event: T, manager: GameManager): boolean {
         if(manager.context.getPlayer(this.skill.playerId).getCards(CardPos.HAND).length === 0) {
             if(event.timeline === Timeline.BECOME_TARGET && event.getTarget().player.id === this.skill.playerId) {
@@ -1434,8 +1439,53 @@ export class TianFu extends Skill {
         })
     }
 }
-// 遗志 副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。
-// 天覆 主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。
+
+
+export class GuiXiu extends SimpleConditionalSkill<RevealGeneralEvent> {
+    
+    id = '闺秀'
+    displayName = '闺秀'
+    description = '当你明置此武将牌时，你可以摸两张牌；当你移除此武将牌时，你可以回复1点体力。'
+    
+    public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        skillRegistry.on<RevealGeneralEvent>(RevealGeneralEvent, this)
+        skillRegistry.onEvent<RemoveGeneralEvent>(RemoveGeneralEvent, this.playerId, async(event: RemoveGeneralEvent)=>{
+            if(event.playerId === this.playerId) {
+                if(event.isMain === (this.position === 'sub')) {
+                    let me = manager.context.getPlayer(this.playerId)
+                    await new HealOp(me, me, 1).perform(manager)
+                }
+            }
+        })
+    }
+    public conditionFulfilled(event: RevealGeneralEvent, manager: GameManager): boolean {
+        return event.playerId === this.playerId && ((event.mainReveal && this.position === 'main') || (event.subReveal && this.position === 'sub'))
+    }
+    public async doInvoke(event: RevealGeneralEvent, manager: GameManager): Promise<void> {
+        this.invokeEffects(manager)
+        await new TakeCardOp(manager.context.getPlayer(this.playerId), 2).perform(manager)
+    }
+
+}
+
+export class CunSi extends Skill {
+    
+    id = '存嗣'
+    displayName = '存嗣'
+    description = '出牌阶段，你可以移除此武将牌并选择一名角色，然后其获得技能“勇决”（若与你势力相同的一名角色于其回合内使用的第一张牌为【杀】，则该角色可以在此【杀】结算完成后获得之），若你没有获得“勇决”，则获得“勇决”的角色摸两张牌。'
+    
+
+}
+
+export class YongJue extends Skill {
+    
+    id = '勇决'
+    displayName = '勇决'
+    description = '若与你势力相同的一名角色于其回合内使用的第一张牌为【杀】，则此【杀】结算后进入弃牌堆时，该角色可以在此【杀】结算完成后获得之'
+    
+    
+
+}
 
 // 潜袭 准备阶段，你可以进行判定，然后你选择距离为1的一名角色，直到回合结束，该角色不能使用或打出与结果颜色相同的手牌。
 // 闺秀 当你明置此武将牌时，你可以摸两张牌；当你移除此武将牌时，你可以回复1点体力。

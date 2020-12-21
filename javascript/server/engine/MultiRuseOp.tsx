@@ -14,6 +14,7 @@ import { HintType } from "../../common/ServerHint";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardObtainedEvent } from "./Generic";
 import HealOp from "./HealOp";
+import { BlockedEquipment } from "./Equipments";
 
 
 export abstract class MultiRuse extends UseEventOperation<void> {
@@ -24,7 +25,7 @@ export abstract class MultiRuse extends UseEventOperation<void> {
                         public readonly source: PlayerInfo,
                         public readonly ruseType: CardType,
                         readonly targets: PlayerInfo[]) {
-        super(targets)
+        super(targets, ruseType.name)
         console.log('[MultiRuseOp] 多目标锦囊牌', ruseType.name, targets.map(t => t.player.id))
     }
 
@@ -43,14 +44,14 @@ export abstract class MultiRuse extends UseEventOperation<void> {
                 continue
             }
 
-            await this.beforeWuXie(manager, t)
-
-            if(await context.doOneRound(t)) {
-                console.log(`[MultiRuseOp] 针对${t.player.id}的锦囊牌被无懈掉了了`)
-                continue
+            if(await this.beforeWuXie(manager, t)) {
+                if(await context.doOneRound(t)) {
+                    console.log(`[MultiRuseOp] 针对${t.player.id}的锦囊牌被无懈掉了了`)
+                    continue
+                }
+                console.log(`[MultiRuseOp] ${this.ruseType.name} 开始对 ${t.player.id} 的结算`)
+                await this.doForOne(t, manager)
             }
-            console.log(`[MultiRuseOp] ${this.ruseType.name} 开始对 ${t.player.id} 的结算`)
-            await this.doForOne(t, manager)
         }
         await this.onDone(manager)
     }
@@ -63,8 +64,16 @@ export abstract class MultiRuse extends UseEventOperation<void> {
         //no-op by default
     }
 
-    public async beforeWuXie(manager: GameManager, effectBearer: PlayerInfo) {
-        //no-op by default
+    /**
+     * invoked before asking for Wu Xie
+     * return whether to continue counting effect or not
+     * e.g. 桃园结义对满血玩家无效也不可无懈可击
+     * @param manager 
+     * @param effectBearer 
+     */
+    public async beforeWuXie(manager: GameManager, effectBearer: PlayerInfo): Promise<boolean> {
+        //return true by default
+        return true
     }
 
     public abstract async doForOne(target: PlayerInfo, manager: GameManager): Promise<void>;
@@ -107,6 +116,25 @@ export class NanMan extends MultiRuse {
         this.damageDealer = source
     }
 
+    async beforeWuXie(manager: GameManager, info: PlayerInfo) {
+        //对藤甲无效
+        if(!info.getCards(CardPos.EQUIP).find(c => c.type === CardType.TENG_JIA)) {
+            return true
+        }
+
+        if(BlockedEquipment.isBlocked(info.player.id)) {
+            console.warn('[装备] 被无视, 无法发动')
+            return true
+        }
+        
+        console.log(`[装备] 藤甲将 ${info} 移出万箭/南蛮的影响对象`)
+        manager.log(`${info} 的藤甲触发`)
+        manager.broadcast(new PlaySound(`audio/equip/teng_jia_good.ogg`))
+        manager.broadcast(new TextFlashEffect(info.player.id, [], '藤甲_好'))
+        this.removeTarget(info.player.id)
+        return false
+    }
+    
     public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         let issuer = this.source
         let slashed = await new AskForSlashOp(target, issuer, `${this.source} 使用南蛮, 请出杀`).perform(manager)
@@ -126,6 +154,25 @@ export class WanJianDodgedEvent {
 
 export class WanJian extends MultiRuse {
 
+    async beforeWuXie(manager: GameManager, info: PlayerInfo) {
+        //对藤甲无效
+        if(!info.getCards(CardPos.EQUIP).find(c => c.type === CardType.TENG_JIA)) {
+            return true
+        }
+
+        if(BlockedEquipment.isBlocked(info.player.id)) {
+            console.warn('[装备] 被无视, 无法发动')
+            return true
+        }
+        
+        console.log(`[装备] 藤甲将 ${info} 移出万箭/南蛮的影响对象`)
+        manager.log(`${info} 的藤甲触发`)
+        manager.broadcast(new PlaySound(`audio/equip/teng_jia_good.ogg`))
+        manager.broadcast(new TextFlashEffect(info.player.id, [], '藤甲_好'))
+        this.removeTarget(info.player.id)
+        return false
+    }
+
     public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         let dodgeOp = new DodgeOp(target, this.source, 1, `${this.source} 的万箭齐发, 请出闪`)
         let dodged = await dodgeOp.perform(manager)
@@ -141,6 +188,11 @@ export class WanJian extends MultiRuse {
 }
 
 export class TaoYuan extends MultiRuse {
+
+    async beforeWuXie(manager: GameManager, info: PlayerInfo) {
+        //对满血的人无效
+        return info.hp < info.maxHp
+    }
 
     public async doForOne(target: PlayerInfo, manager: GameManager): Promise<void> {
         console.log('[MultiRuseOp] ',  target.player.id, '桃园加血~')
@@ -201,6 +253,7 @@ export class WuGu extends MultiRuse {
 
     async beforeWuXie(manager: GameManager, info: PlayerInfo) {
         this.broadCastCurrent(`${info.player.id} 即将选牌`, manager)
+        return true
     }
 
     private broadCastCurrent(title: string, manager: GameManager) {

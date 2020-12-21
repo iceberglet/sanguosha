@@ -9,7 +9,7 @@ import DeathOp, { DeathTimeline } from "../../server/engine/DeathOp";
 import GameManager from "../../server/GameManager";
 import FactionPlayerInfo from "../FactionPlayerInfo";
 import FactionWarGeneral from "../FactionWarGenerals";
-import { RevealPlayerEvent } from "../FactionWarInitializer";
+import { RemoveGeneralEvent, RevealPlayerEvent } from "../FactionWarInitializer";
 
 
 enum FormationType {
@@ -154,6 +154,7 @@ export async function removeGeneral(manager: GameManager, skillRepo: SkillRepo, 
     }
     //disable the abilities
     await manager.events.publish(new GeneralSkillStatusUpdate(this.displayName, p, skillPos, false, true))
+    await manager.events.publish(new RemoveGeneralEvent(player, isMain))
 
     let currentGender = (isMain? p.general: p.subGeneral).gender
     let newGeneral = currentGender === 'M'? FactionWarGeneral.soldier_male : FactionWarGeneral.soldier_female

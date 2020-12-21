@@ -115,7 +115,7 @@ export class SlashOP extends UseEventOperation<void> {
                 public damageType: DamageType,
                 public color: Color
                 ) {
-        super(targets)
+        super(targets, '杀')
     }
 
     public async doPerform(manager: GameManager): Promise<void> {

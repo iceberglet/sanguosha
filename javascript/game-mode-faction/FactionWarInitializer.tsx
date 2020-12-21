@@ -16,12 +16,24 @@ import initializeEquipments from "./FactionWarEquipmentInitializer";
 import { generalPairs } from "./FactionWarGenerals";
 import DropCardOp, {DropTimeline} from "../server/engine/DropCardOp";
 
+/**
+ * 翻开一张武将牌
+ * 如果势力未确认会触发 RevealPlayerEvent
+ */
 export class RevealGeneralEvent {
     public constructor(public readonly playerId: string, 
                         public readonly mainReveal: boolean,
                         public readonly subReveal: boolean) {}
 }
 
+export class RemoveGeneralEvent {
+    public constructor(public readonly playerId: string, 
+                        public readonly isMain: boolean) {}
+}
+
+/**
+ * 势力被确认
+ */
 export class RevealPlayerEvent {
     public constructor(public readonly player: PlayerInfo) {}
 }

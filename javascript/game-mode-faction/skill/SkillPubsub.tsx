@@ -108,7 +108,10 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
                 //不需要反复确认的技能可以直接请求继续发动
                 choices = choices.filter(c => !c[0] || !c[0].needRepeatedCheck || invocable(c[0], obj, this.manager))
                 
-                resp = await this.manager.sendHint(player, {
+                //应该不可能存在多个skill triggerer的情况!
+                let askWho = choices[0][0].getSkillTriggerer(obj, this.manager)
+
+                resp = await this.manager.sendHint(askWho, {
                     hintType: HintType.MULTI_CHOICE,
                     hintMsg: '请选择发动技能或取消',
                     extraButtons: choices.map(c => c[1])

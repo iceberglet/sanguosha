@@ -233,7 +233,9 @@ export default class FactionWarGameHoster implements GameHoster {
     generateGeneralChoices(playerNo: number) {
         let choices: Array<Array<FactionWarGeneral>> = []
 
+        // console.log(allGenerals.size)
         let gs = flattenMap(allGenerals).map(g => g[1])
+        // console.log(gs.map(g => g.name))
         shuffle(gs)
         let equalSize = Math.min(Math.floor(gs.length / playerNo), generalsToPickFrom)
         if(equalSize < 3) {
@@ -255,9 +257,11 @@ export default class FactionWarGameHoster implements GameHoster {
                     continue
                 }
                 facs.add(candidate.faction)
+                // console.log('Adding for', i, cursor, gs[cursor].name)
                 choice.push(gs.splice(cursor, 1)[0])
             }
             if(choice.length < equalSize) {
+                // console.log('Adding remaining for', i, gs.map(g => g.name))
                 choice.push(...gs.splice(0, equalSize - choice.length))
             }
             choices.push(choice)

@@ -33,6 +33,7 @@ import AskSavingOp from "../../server/engine/AskSavingOp"
 import { PlayerInfo } from "../../common/PlayerInfo"
 import { factionsSame } from "../../common/General"
 import GameContext from "../../common/GameContext"
+import { getFactionIfRevealNow } from "../FactionWarUtil"
 
 export class ZhiHeng extends Skill {
     id = '制衡'
@@ -351,6 +352,10 @@ class SingleRuseCancellor<T extends RuseOp<any>> implements SkillTrigger<T> {
     conditionFulfilled(event: T, manager: GameManager): boolean {
         return event.timeline === Timeline.BECOME_TARGET && event.getTarget().player.id === this.skill.playerId 
                 && event.ruseType === this.cardType
+    }
+
+    getSkillTriggerer(event: T, manager: GameManager): string {
+        return this.skill.playerId
     }
 
     async doInvoke(event: T, manager: GameManager): Promise<void> {
@@ -884,8 +889,10 @@ export class YiCheng extends SimpleConditionalSkill<SlashOP> {
     }
 
     private getBuddies(event: SlashOP, manager: GameManager) {
+        let me = manager.context.getPlayer(this.playerId)
+        let myFac = getFactionIfRevealNow(me, manager)
         return event.targets.filter(t => {
-            (t.player.id === this.playerId || FactionPlayerInfo.factionSame(t, manager.context.getPlayer(this.playerId))) && 
+            (t.player.id === this.playerId || factionsSame(t.getFaction(), myFac)) && 
             event.timeline === Timeline.AFTER_BECOMING_TARGET
         })
     }
@@ -1102,6 +1109,10 @@ class RedSlashTrigger implements SkillTrigger<SlashOP> {
         return '发动' + this.skill.displayName
     }
 
+    getSkillTriggerer(event: SlashOP, manager: GameManager): string {
+        return this.skill.playerId
+    }
+
     conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
         if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.hasTarget(this.skill.playerId)) {
             return event.color === 'red'
@@ -1140,6 +1151,10 @@ class JueDouTrigger implements SkillTrigger<JueDou> {
             return true
         }
         return false
+    }
+
+    getSkillTriggerer(event: JueDou, manager: GameManager): string {
+        return this.skill.playerId
     }
 
     async doInvoke(event: JueDou, manager: GameManager): Promise<void> {
@@ -1344,13 +1359,20 @@ export class DiaoDuo extends SimpleConditionalSkill<EquipOp> {
     }
 
     public conditionFulfilled(event: EquipOp, manager: GameManager): boolean {
-        let me = manager.context.getPlayer(this.playerId)
-        return FactionPlayerInfo.factionSame(event.beneficiary, me) && event.beneficiary === event.source
+        let lvFan = manager.context.getPlayer(this.playerId) as FactionPlayerInfo
+        if((this.position === 'main' && lvFan.isGeneralRevealed) || (this.position === 'sub' && lvFan.isSubGeneralRevealed)) {
+            let me = event.beneficiary as FactionPlayerInfo
+            return event.beneficiary === event.source && factionsSame(getFactionIfRevealNow(me, manager), lvFan.getFaction())
+        }
+    }
+
+    public getSkillTriggerer(event: EquipOp, manager: GameManager): string {
+        return event.beneficiary.player.id
     }
 
     public async doInvoke(event: EquipOp, manager: GameManager): Promise<void> {
         this.invokeEffects(manager)
-        await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+        await new TakeCardOp(event.source, 1).perform(manager)
     }
 }
 
