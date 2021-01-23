@@ -169,6 +169,10 @@ export abstract class Skill extends SkillStatus {
         //no-op by default
     }
 
+    /**
+     * UI level on removal
+     * @param context 
+     */
     public onRemoval(context: GameContext) {
         //还原马术?
     }
@@ -218,7 +222,7 @@ export abstract class SimpleTrigger<T> implements SkillTrigger<T> {
     }
 
     abstract conditionFulfilled(event: T, manager: GameManager): boolean 
-    abstract async doInvoke(event: T, manager: GameManager): Promise<void>
+    abstract doInvoke(event: T, manager: GameManager): Promise<void>
 
     getSkill(): Skill {
         return this.skill

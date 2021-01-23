@@ -119,7 +119,7 @@ export class SlashOP extends UseEventOperation<void> {
     }
 
     public async doPerform(manager: GameManager): Promise<void> {
-        await manager.events.publish(this)
+        // await manager.events.publish(this)
         //醒酒
         if(this.source.isDrunk) {
             this.damageAmount += 1

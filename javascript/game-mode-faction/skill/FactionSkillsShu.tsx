@@ -14,7 +14,7 @@ import Card, { CardType } from "../../common/cards/Card"
 import { slashTargetFilter, registerSlashPlayingHand, registerPlaySlash, registerSlash } from "../../client/player-actions/PlayerActionDrivers"
 import WineOp from "../../server/engine/WineOp"
 import PeachOp from "../../server/engine/PeachOp"
-import PlaySlashOp, { SlashOP, AskForSlashOp, SlashDodgedEvent, SlashCompute, PlaySlashOpNoCards, SlashType } from "../../server/engine/SlashOp"
+import PlaySlashOp, { SlashOP, AskForSlashOp, SlashDodgedEvent, PlaySlashOpNoCards, SlashType } from "../../server/engine/SlashOp"
 import { isSuitRed, isSuitBlack } from "../../common/cards/ICard"
 import { CardBeingUsedEvent, CardBeingDroppedEvent, CardAwayEvent, CardBeingTakenEvent } from "../../server/engine/Generic"
 import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp"
@@ -243,7 +243,7 @@ export class PaoXiao extends SimpleConditionalSkill<SlashOP> {
         })
     }
     public conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
-        if(event.source.player.id === this.playerId) {
+        if(event.source.player.id === this.playerId && event.timeline === Timeline.CHOOSING_TARGET) {
             if(manager.roundStats.slashCount > 1) {
                 //出多次杀就咆哮
                 this.playSound(manager, 2)
@@ -1259,7 +1259,8 @@ export class KongChengCancellor<T extends (RuseOp<any> | SlashOP)> implements Sk
 
     conditionFulfilled(event: T, manager: GameManager): boolean {
         if(manager.context.getPlayer(this.skill.playerId).getCards(CardPos.HAND).length === 0) {
-            if(event.timeline === Timeline.BECOME_TARGET && event.getTarget().player.id === this.skill.playerId) {
+            //todo: 和流离有冲突!! 如果先流离了空城可能不会被触发!
+            if(event.timeline === Timeline.BECOME_TARGET && event.hasTarget(this.skill.playerId)) {
                 if(event instanceof RuseOp && event.ruseType === CardType.JUE_DOU) {
                     return true
                 }
@@ -1483,7 +1484,7 @@ export class YongJue extends Skill {
     displayName = '勇决'
     description = '若与你势力相同的一名角色于其回合内使用的第一张牌为【杀】，则此【杀】结算后进入弃牌堆时，该角色可以在此【杀】结算完成后获得之'
     
-    
+
 
 }
 

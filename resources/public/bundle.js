@@ -9785,7 +9785,7 @@ class JiJiu extends Skill_1.Skill {
             card.description = `${goodman} 对 ${deadman} 使用 ${card.type.name}`;
             //桃牌扔进workflow
             manager.sendToWorkflow(goodman, cardAndPos[1], [card]);
-            yield manager.events.publish(new Generic_1.CardBeingUsedEvent(goodman, [cardAndPos], card.type, false, false));
+            yield manager.events.publish(new Generic_1.CardBeingUsedEvent(goodman, [cardAndPos], card.type, true, false));
             yield new HealOp_1.default(ask.goodman, ask.deadman, 1).perform(manager);
         });
     }
@@ -11696,7 +11696,7 @@ class PaoXiao extends Skill_1.SimpleConditionalSkill {
         }));
     }
     conditionFulfilled(event, manager) {
-        if (event.source.player.id === this.playerId) {
+        if (event.source.player.id === this.playerId && event.timeline === Operation_1.Timeline.CHOOSING_TARGET) {
             if (manager.roundStats.slashCount > 1) {
                 //出多次杀就咆哮
                 this.playSound(manager, 2);
@@ -12767,7 +12767,8 @@ class KongChengCancellor {
     }
     conditionFulfilled(event, manager) {
         if (manager.context.getPlayer(this.skill.playerId).getCards(CardPos_1.CardPos.HAND).length === 0) {
-            if (event.timeline === Operation_1.Timeline.BECOME_TARGET && event.getTarget().player.id === this.skill.playerId) {
+            //todo: 和流离有冲突!! 如果先流离了空城可能不会被触发!
+            if (event.timeline === Operation_1.Timeline.BECOME_TARGET && event.hasTarget(this.skill.playerId)) {
                 if (event instanceof Operation_1.RuseOp && event.ruseType === Card_1.CardType.JUE_DOU) {
                     return true;
                 }
@@ -15579,11 +15580,13 @@ class RedSlashTrigger {
         return this.skill.playerId;
     }
     conditionFulfilled(event, manager) {
-        if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.hasTarget(this.skill.playerId)) {
-            return event.color === 'red';
+        if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.hasTarget(this.skill.playerId) && event.color === 'red') {
+            console.log('[激昂] 被红杀摸牌');
+            return true;
         }
-        if (event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
-            return event.color === 'red';
+        else if (event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId && event.color === 'red') {
+            console.log('[激昂] 出红杀摸牌');
+            return true;
         }
         return false;
     }
@@ -15607,9 +15610,11 @@ class JueDouTrigger {
     }
     conditionFulfilled(event, manager) {
         if (event.timeline === Operation_1.Timeline.AFTER_BECOMING_TARGET && event.getTarget().player.id === this.skill.playerId) {
+            console.log('[激昂] 被决斗摸牌');
             return true;
         }
         if (event.timeline === Operation_1.Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
+            console.log('[激昂] 出决斗摸牌');
             return true;
         }
         return false;
@@ -16325,17 +16330,20 @@ class SequenceAwareSkillPubSub {
                 }
                 //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
                 //小心一个技能使得另一个技能无法发动 (先渐营再死谏就囧了)
-                choices.push([null, PlayerAction_1.Button.CANCEL]);
+                // choices.push([null, Button.CANCEL])
                 let resp;
-                while (choices.length > 1) {
+                while (choices.length > 0) {
                     //不需要反复确认的技能可以直接请求继续发动
                     choices = choices.filter(c => !c[0] || !c[0].needRepeatedCheck || Skill_1.invocable(c[0], obj, this.manager));
                     //应该不可能存在多个skill triggerer的情况!
+                    if (!choices[0][0]) {
+                        console.error('No SkillTrigger? ', choices);
+                    }
                     let askWho = choices[0][0].getSkillTriggerer(obj, this.manager);
                     resp = yield this.manager.sendHint(askWho, {
                         hintType: ServerHint_1.HintType.MULTI_CHOICE,
                         hintMsg: '请选择发动技能或取消',
-                        extraButtons: choices.map(c => c[1])
+                        extraButtons: [...choices.map(c => c[1]), PlayerAction_1.Button.CANCEL]
                     });
                     if (!resp.isCancel()) {
                         let skillId = resp.button;
@@ -19073,12 +19081,12 @@ class Weapon extends Equipment {
     }
     onEquipped() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.manager.equipmentRegistry.on(SlashOp_1.SlashCompute, this.player, this.performEffect);
+            this.manager.equipmentRegistry.on(SlashCompute, this.player, this.performEffect);
         });
     }
     onDropped() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.manager.equipmentRegistry.off(SlashOp_1.SlashCompute, this.player, this.performEffect);
+            this.manager.equipmentRegistry.off(SlashCompute, this.player, this.performEffect);
         });
     }
 }
@@ -20778,7 +20786,7 @@ class SlashOP extends Operation_1.UseEventOperation {
     }
     doPerform(manager) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield manager.events.publish(this);
+            // await manager.events.publish(this)
             //醒酒
             if (this.source.isDrunk) {
                 this.damageAmount += 1;

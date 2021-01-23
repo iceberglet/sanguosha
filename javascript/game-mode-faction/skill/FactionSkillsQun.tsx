@@ -17,7 +17,7 @@ import HealOp from "../../server/engine/HealOp";
 import { isSuitRed, isSuitBlack, deriveColor } from "../../common/cards/ICard"
 import Card, { CardType, Color, Suit } from "../../common/cards/Card";
 import { CardBeingUsedEvent, CardAwayEvent, CardBeingDroppedEvent, CardBeingTakenEvent, turnOver } from "../../server/engine/Generic";
-import { SlashCompute, SlashOP } from "../../server/engine/SlashOp";
+import { SlashOP } from "../../server/engine/SlashOp";
 import { Timeline, RuseOp, UseEventOperation } from "../../server/Operation";
 import { JueDou, ShunShou, GuoHe, WuZhong, JieDao, HuoGong } from "../../server/engine/SingleRuseOp";
 import { StageStartFlow, StageEndFlow, InStageStart } from "../../server/engine/StageFlows";
@@ -137,7 +137,7 @@ export class JiJiu extends Skill {
         card.description = `${goodman} 对 ${deadman} 使用 ${card.type.name}`                
         //桃牌扔进workflow
         manager.sendToWorkflow(goodman, cardAndPos[1], [card])
-        await manager.events.publish(new CardBeingUsedEvent(goodman, [cardAndPos], card.type, false, false))
+        await manager.events.publish(new CardBeingUsedEvent(goodman, [cardAndPos], card.type, true, false))
         await new HealOp(ask.goodman, ask.deadman, 1).perform(manager)
     }
 }

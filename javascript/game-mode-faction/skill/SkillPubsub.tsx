@@ -102,19 +102,22 @@ export class SequenceAwareSkillPubSub implements EventRegistryForSkills, GameEve
             //在一个技能发动后最好确认剩下的技能依然可以发动,以免尴尬 (奋命拆掉了谋断的装备牌啥的)
             //小心一个技能使得另一个技能无法发动 (先渐营再死谏就囧了)
             
-            choices.push([null, Button.CANCEL])
+            // choices.push([null, Button.CANCEL])
             let resp: PlayerAct
-            while(choices.length > 1) {
+            while(choices.length > 0) {
                 //不需要反复确认的技能可以直接请求继续发动
                 choices = choices.filter(c => !c[0] || !c[0].needRepeatedCheck || invocable(c[0], obj, this.manager))
                 
                 //应该不可能存在多个skill triggerer的情况!
+                if(!choices[0][0]) {
+                    console.error('No SkillTrigger? ', choices)
+                }
                 let askWho = choices[0][0].getSkillTriggerer(obj, this.manager)
 
                 resp = await this.manager.sendHint(askWho, {
                     hintType: HintType.MULTI_CHOICE,
                     hintMsg: '请选择发动技能或取消',
-                    extraButtons: choices.map(c => c[1])
+                    extraButtons: [...choices.map(c => c[1]), Button.CANCEL]
                 })
                 if(!resp.isCancel()) {
                     let skillId = resp.button

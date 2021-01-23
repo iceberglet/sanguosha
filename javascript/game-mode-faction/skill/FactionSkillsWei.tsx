@@ -16,7 +16,7 @@ import { playerActionDriverProvider } from "../../client/player-actions/PlayerAc
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { isSuitBlack } from "../../common/cards/ICard";
 import Card, { CardType } from "../../common/cards/Card";
-import { SlashCompute, SlashOP } from "../../server/engine/SlashOp";
+import { SlashOP } from "../../server/engine/SlashOp";
 import { EquipOp } from "../../server/engine/EquipOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
 import DeathOp, { DeathTimeline } from "../../server/engine/DeathOp";
@@ -1275,6 +1275,7 @@ export class HengJiang extends SkillForDamageTaken {
     expectDrop = false
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
+        let me = manager.context.getPlayer(this.playerId)
         skillRegistry.on<DamageOp>(DamageOp, this)
         skillRegistry.onEvent<DropCardOp>(DropCardOp, this.playerId, async(dropCardOp: DropCardOp)=>{
             if(dropCardOp.timeline === DropTimeline.BEFORE) {
@@ -1291,9 +1292,9 @@ export class HengJiang extends SkillForDamageTaken {
             } else {
                 console.log('[横江] 弃牌阶段结束, expectDrop flag存在且弃牌阶段未弃牌, 横江摸一张牌')
                 //check for 横江 拿牌
-                if(this.expectDrop && dropCardOp.dropped.length === 0) {
+                if(this.expectDrop && dropCardOp.dropped.length === 0 && !me.isDead) {
                     //摸一张牌
-                    await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
+                    await new TakeCardOp(me, 1).perform(manager)
                 }
                 this.expectDrop = false
             }
@@ -1301,11 +1302,13 @@ export class HengJiang extends SkillForDamageTaken {
         skillRegistry.onEvent<StageEndFlow>(StageEndFlow, this.playerId, async(stageEnd: StageEndFlow)=>{
             //若结束时仍然有flag说明弃牌阶段被跳过了!
             if(this.expectDrop && stageEnd.stage === Stage.DROP_CARD) {
-                console.log('[横江] 弃牌阶段结束, expectDrop flag依然存在, 说明弃牌阶段跳过了, 摸一张牌')
-                this.invokeEffects(manager)
+                if(!me.isDead) {
+                    console.log('[横江] 弃牌阶段结束, expectDrop flag依然存在, 说明弃牌阶段跳过了, 摸一张牌')
+                    this.invokeEffects(manager)
+                    await new TakeCardOp(me, 1).perform(manager)
+                }
                 let marks = this.getMarksOfCurrentPlayer(manager)
                 delete marks[this.id]
-                await new TakeCardOp(manager.context.getPlayer(this.playerId), 1).perform(manager)
                 manager.broadcast(manager.currPlayer(), PlayerInfo.sanitize)
                 this.expectDrop = false
             }

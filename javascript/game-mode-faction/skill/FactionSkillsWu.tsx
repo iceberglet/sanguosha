@@ -18,7 +18,7 @@ import { StageStartFlow, StageEndFlow } from "../../server/engine/StageFlows"
 import DropCardOp, { DropCardRequest, DropTimeline, DropOthersCardRequest, SelectACardAt } from "../../server/engine/DropCardOp"
 import { Suits, any, toChinese } from "../../common/util/Util"
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp"
-import { SlashCompute, SlashOP } from "../../server/engine/SlashOp"
+import { SlashOP } from "../../server/engine/SlashOp"
 import { Timeline, RuseOp } from "../../server/Operation"
 import { YiYiDaiLao } from '../FactionWarActionResolver'
 import HealOp from "../../server/engine/HealOp"
@@ -1114,11 +1114,12 @@ class RedSlashTrigger implements SkillTrigger<SlashOP> {
     }
 
     conditionFulfilled(event: SlashOP, manager: GameManager): boolean {
-        if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.hasTarget(this.skill.playerId)) {
-            return event.color === 'red'
-        }
-        if(event.timeline === Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
-            return event.color === 'red'
+        if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.hasTarget(this.skill.playerId) && event.color === 'red') {
+            console.log('[激昂] 被红杀摸牌')
+            return true
+        } else if(event.timeline === Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId && event.color === 'red') {
+            console.log('[激昂] 出红杀摸牌')
+            return true
         }
         return false
     }
@@ -1145,9 +1146,11 @@ class JueDouTrigger implements SkillTrigger<JueDou> {
 
     conditionFulfilled(event: JueDou, manager: GameManager): boolean {
         if(event.timeline === Timeline.AFTER_BECOMING_TARGET && event.getTarget().player.id === this.skill.playerId) {
+            console.log('[激昂] 被决斗摸牌')
             return true
         }
         if(event.timeline === Timeline.AFTER_CONFIRMING_TARGET && event.source.player.id === this.skill.playerId) {
+            console.log('[激昂] 出决斗摸牌')
             return true
         }
         return false

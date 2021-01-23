@@ -1,5 +1,5 @@
 import GameManager from "../GameManager";
-import { SlashCompute, SlashDodgedEvent, SlashOP } from "./SlashOp";
+import { SlashDodgedEvent, SlashOP } from "./SlashOp";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardType } from "../../common/cards/Card";
 import { Timeline } from "../Operation";
@@ -9,11 +9,9 @@ import DamageOp, { DamageType, DamageTimeline, DamageSource } from "./DamageOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { DropCardRequest, DropOthersCardRequest } from "./DropCardOp";
 import TakeCardOp from "./TakeCardOp";
-import { checkThat } from "../../common/util/Util";
 import { CardBeingDroppedEvent } from "./Generic";
 import { StageStartFlow } from "./StageFlows";
 import { Stage } from "../../common/Stage";
-import { WanJian, NanMan } from "./MultiRuseOp";
 import { isSuitRed } from "../../common/cards/ICard";
 import DodgeOp from "./DodgeOp";
 import JudgeOp from "./JudgeOp";
