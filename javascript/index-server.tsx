@@ -74,12 +74,12 @@ wss.on('connection', (ws: WebSocket) => {
 });
 
 if(serverConfig.url) {
-    server.listen(8080, serverConfig.url, ()=>{
-        console.log('Server running on 8080')
+    server.listen(serverConfig.port, serverConfig.url, ()=>{
+        console.log('Server running on 7758')
     })
 } else {
-    server.listen(8080, ()=>{
-        console.log('Server running on 8080')
+    server.listen(7758, ()=>{
+        console.log('Server running on 7758')
     })
 }
 

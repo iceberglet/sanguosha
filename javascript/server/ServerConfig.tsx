@@ -6,7 +6,8 @@ console.log(file);
 
 type Config = {
     players: number,
-    url: string
+    url: string,
+    port: number
 }
 
 export const serverConfig = JSON.parse(file) as Config

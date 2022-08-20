@@ -140,6 +140,13 @@ export function getSiegeContext(victim: string, sieger: string, context: GameCon
     return null
 }
 
+export function hasGeneral(p: FactionPlayerInfo, atMain: boolean) {
+    if(atMain) {
+        return p.general !== FactionWarGeneral.soldier_male && p.general !== FactionWarGeneral.soldier_female
+    } else {
+        return p.subGeneral !== FactionWarGeneral.soldier_male && p.subGeneral !== FactionWarGeneral.soldier_female
+    }
+}
 
 export async function removeGeneral(manager: GameManager, skillRepo: SkillRepo, player: string, isMain: boolean) {
     let p = manager.context.getPlayer(player) as FactionPlayerInfo

@@ -44,8 +44,8 @@ export const BlockedEquipment = new EquipBlockedPlayers()
 
 export abstract class Equipment {
     constructor(protected player: string, protected cardType: CardType, protected manager: GameManager) {}
-    abstract async onEquipped(): Promise<void>
-    abstract async onDropped(): Promise<void>
+    abstract onEquipped(): Promise<void>
+    abstract onDropped(): Promise<void>
     protected show() {
         let type = this.cardType
         this.manager.broadcast(new PlaySound(`audio/equip/${type.id}.ogg`))
@@ -56,16 +56,16 @@ export abstract class Equipment {
 export abstract class Weapon extends Equipment {
     
     async onEquipped(): Promise<void> {
-        this.manager.equipmentRegistry.on<SlashOP>(SlashCompute, this.player, this.performEffect)
+        this.manager.equipmentRegistry.on<SlashOP>(SlashOP, this.player, this.performEffect)
     }
 
     async onDropped(): Promise<void> {
-        this.manager.equipmentRegistry.off<SlashOP>(SlashCompute, this.player, this.performEffect)
+        this.manager.equipmentRegistry.off<SlashOP>(SlashOP, this.player, this.performEffect)
     }
 
     abstract myType(): CardType
 
-    abstract async doEffect(op: SlashOP): Promise<void>
+    abstract doEffect(op: SlashOP): Promise<void>
 
     performEffect = async (op: SlashOP) => {
         if(op.source.player.id !== this.player) {

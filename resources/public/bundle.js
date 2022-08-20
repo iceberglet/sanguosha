@@ -5283,6 +5283,8 @@ class Skill extends SkillStatus {
         this.disabledForMain = false;
         this.disabledForSub = false;
         this.description = '暂无 (Please override this field)';
+        this.hint = '暂无提示 (Please override this field)';
+        this.counter = '暂无弱点 (Please override this field)';
     }
     toStatus() {
         let s = new SkillStatus(this.playerId);
@@ -5314,6 +5316,10 @@ class Skill extends SkillStatus {
             //no-op by default
         });
     }
+    /**
+     * UI level on removal
+     * @param context
+     */
     onRemoval(context) {
         //还原马术?
     }
@@ -9472,7 +9478,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.removeGeneral = exports.getSiegeContext = exports.areInFormation = exports.areNeighbor = void 0;
+exports.removeGeneral = exports.hasGeneral = exports.getSiegeContext = exports.areInFormation = exports.areNeighbor = void 0;
 const General_1 = __webpack_require__(/*! ../../common/General */ "./javascript/common/General.tsx");
 const PlayerInfo_1 = __webpack_require__(/*! ../../common/PlayerInfo */ "./javascript/common/PlayerInfo.tsx");
 const Skill_1 = __webpack_require__(/*! ../../common/Skill */ "./javascript/common/Skill.tsx");
@@ -9596,6 +9602,15 @@ function getSiegeContext(victim, sieger, context) {
     return null;
 }
 exports.getSiegeContext = getSiegeContext;
+function hasGeneral(p, atMain) {
+    if (atMain) {
+        return p.general !== FactionWarGenerals_1.default.soldier_male && p.general !== FactionWarGenerals_1.default.soldier_female;
+    }
+    else {
+        return p.subGeneral !== FactionWarGenerals_1.default.soldier_male && p.subGeneral !== FactionWarGenerals_1.default.soldier_female;
+    }
+}
+exports.hasGeneral = hasGeneral;
 function removeGeneral(manager, skillRepo, player, isMain) {
     return __awaiter(this, void 0, void 0, function* () {
         let p = manager.context.getPlayer(player);
@@ -9709,6 +9724,7 @@ class ChuLi extends Skill_1.Skill {
         this.displayName = '除疠';
         this.description = '出牌阶段限一次，你可以选择至多三名势力各不相同或未确定势力的其他角色，然后你弃置你和这些角色的各一张牌。被弃置黑桃牌的角色各摸一张牌。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '因为能同时拆三个不同势力, 是相当容易招仇恨的技能. 另外因为小乔没有黑桃, 可以白嫖';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -9758,6 +9774,7 @@ class JiJiu extends Skill_1.Skill {
         this.id = '急救';
         this.displayName = '急救';
         this.description = '你的回合外，你可以将一张红色牌当【桃】使用。';
+        this.hint = '拥有者常常忘了这是你的回合外. 另外, 红色装备牌也是桃';
     }
     bootstrapClient() {
         PlayerActionDrivers_1.registerPeach((definer, hint) => {
@@ -9827,6 +9844,7 @@ class WuShuang extends Skill_1.Skill {
         this.displayName = '无双';
         this.description = '锁定技，你使用的【杀】需两张【闪】才能抵消；与你进行【决斗】的角色每次需打出两张【杀】。';
         this.isLocked = true;
+        this.hint = '很适合配合貂蝉离间, 纪灵的双刃, 张任的穿心, 颜良文丑的双雄, 潘凤的狂斧';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SlashOp_1.SlashOP, new WuShuangSlash(this, manager));
@@ -9841,6 +9859,7 @@ class LiJian extends Skill_1.Skill {
         this.displayName = '离间';
         this.description = '出牌阶段限一次，你可以弃置一张牌并选择两名其他男性角色，然后令其中一名男性角色视为对另一名男性角色使用一张【决斗】。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '请参考国战双将下性别的判定. 注意你可以弃装备牌, 比如狮子';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -9872,6 +9891,7 @@ class BiYue extends Skill_1.SimpleConditionalSkill {
         this.id = '闭月';
         this.displayName = '闭月';
         this.description = '结束阶段，你可以摸一张牌。';
+        this.hint = '防御神技, 增加过牌, 单挑十分好用';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -9893,11 +9913,12 @@ class ShuangXiong extends Skill_1.SimpleConditionalSkill {
         this.id = '双雄';
         this.displayName = '双雄';
         this.description = '摸牌阶段，你可以改为进行判定，你获得生效后的判定牌，然后本回合你可以将与判定结果颜色不同的一张手牌当【决斗】使用。';
+        this.hint = '一波流, 需要手牌够多来支撑, 所以要么配合刷牌技能(马腾), 要么配合爆发收人头赏金, 要么配合袁绍(拿先驱, 珠联璧合)';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
             let color = hint.roundStat.customData[this.id];
-            return new PlayerActionDriverDefiner_1.default('离间')
+            return new PlayerActionDriverDefiner_1.default('双雄')
                 .expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id, context) => {
                 return id === this.id && !!color;
             })
@@ -9947,6 +9968,7 @@ class WanSha extends Skill_1.SimpleConditionalSkill {
         this.displayName = '完杀';
         this.description = '锁定技，你的回合内，只有你和处于濒死状态的角色才能使用【桃】。';
         this.isLocked = true;
+        this.hint = '非常克制地方抱团, 但也小心踩了自己的脚...';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(AskSavingOp_1.AskSavingAround, this);
@@ -9969,6 +9991,7 @@ class LuanWu extends Skill_1.Skill {
         this.displayName = '乱武';
         this.description = '限定技，出牌阶段，你可以令所有其他角色除非对各自距离最小的另一名角色使用一张【杀】，否则失去1点体力。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '注意发动时机, 小心踩了自己的脚... 注意失去体力死掉的不算任何人杀死的';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -10054,6 +10077,7 @@ class WeiMu extends Skill_1.SimpleConditionalSkill {
         this.displayName = '帷幕';
         this.description = '锁定技，当你成为黑色锦囊牌的目标时，则取消之。';
         this.isLocked = true;
+        this.hint = '红色的负面锦囊只有万箭, 一张过拆一张顺手的样子';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SingleRuseOp_1.ShunShou, this);
@@ -10095,6 +10119,7 @@ class ZhenDu extends Skill_1.SimpleConditionalSkill {
         this.id = '鸩毒';
         this.displayName = '鸩毒';
         this.description = '一名角色的出牌阶段开始时，你可以弃置一张手牌，然后该角色视为使用一张【酒】，若该角色不是你，你对其造成1点伤害。';
+        this.hint = '一旦进入残局, 何太后就要出来搞事情';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -10132,6 +10157,7 @@ class QiLuan extends Skill_1.SimpleConditionalSkill {
         this.displayName = '戚乱';
         this.description = '一名角色的回合结束时，你每杀死过一名其他角色，便摸三张牌；每有一名其他角色死亡(不是你杀死)，你摸一张牌。';
         this.bounty = 0;
+        this.hint = '爆发神技. 因为威力太大, 甚至可以让敌人不再内斗, 甚至面对毒酒会互相出桃救援';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageEndFlow, this);
@@ -10164,6 +10190,7 @@ class FuDi extends FactionSkillsWei_1.SkillForDamageTaken {
         this.id = '附敌';
         this.displayName = '附敌';
         this.description = '当你受到来自其他角色的伤害后，你可以交给伤害来源一张手牌。若如此做，你对与其势力相同的角色中体力值最多且不小于你的一名角色造成1点伤害。';
+        this.hint = '配合从谏让夏侯惇直呼内行. 注意若敌人势力血量都比你小就会白给手牌';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -10238,6 +10265,7 @@ class CongJian extends Skill_1.SimpleConditionalSkill {
         this.displayName = '从谏';
         this.description = '锁定技，当你于回合外造成伤害时或于回合内受到伤害时，伤害值+1。';
         this.isLocked = true;
+        this.hint = '所以不要给张绣配李傕郭汜, 而且怕何太后的毒, 或者决斗踩自己的脚. 配个吕布, 配合貂蝉离间则爽歪歪';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -10269,6 +10297,7 @@ class GuiDao extends Skill_1.SimpleConditionalSkill {
         this.id = '鬼道';
         this.displayName = '鬼道';
         this.description = '当一名角色的判定牌生效前，你可以打出一张黑色牌替换之。';
+        this.hint = '包括你的装备牌';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(JudgeOp_1.default, this);
@@ -10309,6 +10338,7 @@ class LeiJi extends Skill_1.SimpleConditionalSkill {
         this.id = '雷击';
         this.displayName = '雷击';
         this.description = '当你使用或打出【闪】时，你可以令一名其他角色进行判定，若结果为黑桃，你对该角色造成2点雷电伤害。';
+        this.hint = '大家都很熟悉的技能了';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DodgeOp_1.DodgePlayed, this);
@@ -10363,6 +10393,7 @@ class JianChu extends Skill_1.SimpleConditionalSkill {
         this.id = '鞬出';
         this.displayName = '鞬出';
         this.description = '当你使用【杀】指定一个目标后，你可以弃置其一张牌，若弃置的牌：是装备牌，该角色不能使用【闪】；不是装备牌，该角色获得此【杀】。';
+        this.hint = '搭配纪灵, 张任, 潘凤都有不错的效果. 即使对方没有装备牌, 也可以弃掉对方可能的闪和桃';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(SlashOp_1.SlashOP, this);
@@ -10396,6 +10427,7 @@ class XiongYi extends Skill_1.Skill {
         this.displayName = '雄异';
         this.description = '限定技，出牌阶段，你可以令与你势力相同的所有角色各摸三张牌，然后若你的势力是全场角色最少的势力，则你回复1点体力。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '马老板发工资了!';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -10452,6 +10484,7 @@ class LuanJi extends Skill_1.Skill {
         this.displayName = '乱击';
         this.description = '你可以将两张手牌当【万箭齐发】使用（不能使用本回合此前发动此技能时已用过的花色）。若如此做，其他与你同势力角色使用【闪】响应此【万箭齐发】时，其可摸一张牌。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '一般袁绍如果要先亮, 尽量只亮单袁绍, 那样队友孔融就不怕你的万箭';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -10497,6 +10530,7 @@ class SiJian extends Skill_1.SimpleConditionalSkill {
         this.displayName = '死谏';
         this.description = '当你失去最后的手牌时，你可以弃置一名其他角色的一张牌。';
         this.needRepeatedCheck = false;
+        this.hint = '用得好可以和随势联动, 用牌伤害濒死的人->死谏弃他的防御牌->濒死->摸牌->继续';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(Generic_1.CardBeingDroppedEvent, this);
@@ -10539,6 +10573,7 @@ class SuiShi extends Skill_1.Skill {
         this.description = '锁定技，当其他角色进入濒死状态时，若伤害来源与你势力相同，你摸一张牌；当其他角色死亡时，若其与你势力相同，你失去1点体力。';
         this.needRepeatedCheck = false;
         this.isLocked = true;
+        this.hint = '用得好可以达到联营的效果. 配合连弩堪比李典忘隙, 田丰的南蛮万箭可以尽量留着, 用来收人头刷牌';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DamageOp_1.EnterDyingEvent, new SuiShiDying(this, manager));
@@ -10593,6 +10628,7 @@ class XiongSuan extends Skill_1.Skill {
         this.displayName = '凶算';
         this.description = '限定技，出牌阶段，你可以弃置一张手牌并选择与你势力相同的一名角色，对其造成1点伤害，' +
             '然后你摸三张牌。若该角色有已发动的限定技，则你选择其一个限定技，此回合结束时视为该限定技未发动过。';
+        this.hint = '可以修复队友/自己的限定技, 如果修复凶算本身, 效果类似于苦肉';
         this.toRestore = null;
     }
     bootstrapClient() {
@@ -10836,6 +10872,7 @@ class KuangFu extends Skill_1.SimpleConditionalSkill {
         this.id = '狂斧';
         this.displayName = '狂斧';
         this.description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。';
+        this.hint = '可以修复队友/自己的限定技, 如果修复凶算本身, 效果类似于苦肉';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -10883,13 +10920,14 @@ class DuanChange extends Skill_1.SimpleConditionalSkill {
         this.displayName = '断肠';
         this.description = '锁定技，当你死亡时，你令杀死你的角色失去一张武将牌的所有技能。';
         this.isLocked = true;
+        this.hint = '毒菜的标志技能';
     }
     bootstrapServer(skillRegistry, manager, repo) {
         skillRegistry.on(DeathOp_1.default, this);
         this.skillRepo = repo;
     }
     conditionFulfilled(event, manager) {
-        if (event.deceased.player.id === this.playerId && event.timeline === DeathOp_1.DeathTimeline.IN_DEATH && event.killer) {
+        if (event.deceased.player.id === this.playerId && event.timeline === DeathOp_1.DeathTimeline.IN_DEATH && event.killer && !event.killer.isDead) {
             return true;
         }
         return false;
@@ -10897,21 +10935,29 @@ class DuanChange extends Skill_1.SimpleConditionalSkill {
     doInvoke(event, manager) {
         return __awaiter(this, void 0, void 0, function* () {
             this.invokeEffects(manager, [event.killer.player.id]);
+            let buttons = [new PlayerAction_1.Button('main', '主将的技能'), new PlayerAction_1.Button('sub', '副将的技能')];
+            let killer = event.killer;
+            if (!FactionSkillsGeneric_1.hasGeneral(killer, true)) {
+                buttons[0].disable();
+            }
+            if (!FactionSkillsGeneric_1.hasGeneral(killer, false)) {
+                buttons[1].disable();
+            }
             let resp = yield manager.sendHint(this.playerId, {
                 hintType: ServerHint_1.HintType.MULTI_CHOICE,
-                hintMsg: `请选择令${event.killer}失去哪一张武将牌的技能`,
-                extraButtons: [new PlayerAction_1.Button('main', '主将的技能'), new PlayerAction_1.Button('sub', '副将的技能')]
+                hintMsg: `请选择令${killer}失去哪一张武将牌的技能`,
+                extraButtons: buttons
             });
             let position = resp.button;
             //set isGone = true so client side does not have them any more
-            for (let s of this.skillRepo.getSkills(event.killer.player.id)) {
+            for (let s of this.skillRepo.getSkills(killer.player.id)) {
                 if (s.position === position) {
                     s.isGone = true;
                     s.onRemoval(manager.context);
                 }
             }
             //disable the abilities
-            yield manager.events.publish(new Skill_1.GeneralSkillStatusUpdate(this.displayName, event.killer, position, false, true));
+            yield manager.events.publish(new Skill_1.GeneralSkillStatusUpdate(this.displayName, killer, position, false, true));
         });
     }
 }
@@ -10923,6 +10969,7 @@ class BeiGe extends Skill_1.SimpleConditionalSkill {
         this.id = '悲歌';
         this.displayName = '悲歌';
         this.description = '当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。';
+        this.hint = '骚扰别人出杀, 难得的令其他人翻面的技能';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -10968,6 +11015,7 @@ class HengZheng extends Skill_1.SimpleConditionalSkill {
         this.id = '横征';
         this.displayName = '横征';
         this.description = '摸牌阶段，若你的体力值为1或你没有手牌，则你可以改为获得每名其他角色区域里的一张牌。';
+        this.hint = '技能过于强大, 拥有者一般都要藏着等待发动时机';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -10999,6 +11047,7 @@ class BaoLing extends Skill_1.SimpleConditionalSkill {
         this.description = '主将技，锁定技，出牌阶段结束时，若你有副将，则你移除副将，然后加3点体力上限，回复3点体力，并获得“崩坏”。';
         this.isLocked = true;
         this.disabledForSub = true;
+        this.hint = '可以配合后期废柴的将, 比如孔融张任, 扔了不心疼 :)';
     }
     bootstrapServer(skillRegistry, manager, skillRepo) {
         skillRegistry.on(StageFlows_1.StageEndFlow, this);
@@ -11038,6 +11087,7 @@ class BengHuai extends Skill_1.SimpleConditionalSkill {
         this.isLocked = true;
         this.disabledForMain = true;
         this.disabledForSub = true;
+        this.hint = '没啥好说的负面技';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -11083,6 +11133,7 @@ class MingShi extends Skill_1.SimpleConditionalSkill {
         this.displayName = '名士';
         this.description = '锁定技，当你受到伤害时，若伤害来源有暗置的武将牌，此伤害-1。';
         this.isLocked = true;
+        this.hint = '所以要大杀四方的时候要在回合开始时双亮, 避免砍到孔融的尴尬局面';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -11108,6 +11159,7 @@ class LiRang extends Skill_1.SimpleConditionalSkill {
         this.id = '礼让';
         this.displayName = '礼让';
         this.description = '当你的牌因弃置而置入弃牌堆时，你可以将其中的任意张牌交给其他角色。';
+        this.hint = '以逸待劳可以不浪费牌甚至形成配合, 如果刘备是一边的就特别环保';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint) => {
@@ -11174,6 +11226,7 @@ class ShuangRen extends Skill_1.SimpleConditionalSkill {
         this.id = '双刃';
         this.displayName = '双刃';
         this.description = '出牌阶段开始时，你可以与一名角色拼点。若你赢，你视为对其或与其势力相同的另一名角色使用一张【杀】；若你没赢，你结束出牌阶段。';
+        this.hint = '双刃就是双刃剑. 配合庞德吕布相当不错';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(StageFlows_1.InStageStart, this);
@@ -11245,6 +11298,7 @@ class ChuanXin extends Skill_1.SimpleConditionalSkill {
         this.id = '穿心';
         this.displayName = '穿心';
         this.description = `当你于出牌阶段内使用【杀】或【决斗】对目标角色造成伤害时，若其与你势力不同且有副将，你可以防止此伤害。若如此做，该角色选择一项：1.弃置装备区里的所有牌，若如此做，其失去1点体力；2.移除副将。`;
+        this.hint = '杀人诛心之技能';
     }
     bootstrapServer(skillRegistry, manager, repo) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -11293,6 +11347,7 @@ class FengShi extends Skill_1.SimpleConditionalSkill {
         this.id = '锋矢';
         this.displayName = '锋矢';
         this.description = `阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，可令该角色弃置装备区里的一张牌。`;
+        this.hint = '没啥特别的';
     }
     bootstrapServer(skillRegistry, manager, repo) {
         skillRegistry.on(SlashOp_1.SlashOP, this);
@@ -11374,6 +11429,7 @@ class QianHuan extends Skill_1.SimpleConditionalSkill {
         this.displayName = '千幻';
         this.description = '当与你势力相同的一名角色受到伤害后，你可以将一张与你武将牌上花色均不同的牌置于你的武将牌上。当一名与你势力相同的角色成为基本牌或锦囊牌的唯一目标时，你可以移去一张“千幻”牌，取消之。';
         this.allowedSuits = new Set(['club', 'heart', 'diamond', 'spade']);
+        this.hint = '可以抵消掉杀, 甚至五谷, 万箭. 注意必须是唯一目标, 所以太史慈的双杀不满足千幻条件';
     }
     bootstrapServer(skillRegistry, manager, repo) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -11502,6 +11558,7 @@ class Rende extends Skill_1.Skill {
         this.description = '出牌阶段每名角色限一次，你可以将任意张手牌交给一名其他角色。当你给出第二张"仁德"牌时，你可以视为使用一张基本牌。';
         this.givenAmount = 0;
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '所以看到刘备不要乱穿藤甲...刘备不缺酒和火杀';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -11632,6 +11689,7 @@ class WuSheng extends Skill_1.Skill {
         this.displayName = '武圣';
         this.description = '你可以将一张红色牌当【杀】使用或打出。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '包括红色装备';
         this.wusheng = (definer, hint) => {
             return definer.expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id) => id === this.id)
                 .expectChoose([PlayerAction_1.UIPosition.MY_HAND, PlayerAction_1.UIPosition.MY_EQUIP], 1, 1, (id, context) => ICard_1.isSuitRed(context.interpret(id).suit), () => '选择一张红色的手牌/装备牌当做杀打出');
@@ -11683,6 +11741,7 @@ class PaoXiao extends Skill_1.SimpleConditionalSkill {
         this.needRepeatedCheck = false;
         this.isLocked = true;
         this.slashNumber = 0;
+        this.hint = '张飞可以适当地留杀, 以保证下回合还可以连续出两张';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SlashOp_1.SlashOP, this);
@@ -11735,6 +11794,7 @@ class LongDan extends Skill_1.SimpleConditionalSkill {
         this.description = '你可以将【杀】当【闪】、【闪】当【杀】使用或打出。当你通过发动【龙胆】使用的【杀】被一名角色使用的【闪】抵消时，你可以对另一名角色造成1点伤害。' +
             '当一名角色使用的【杀】被你通过发动【龙胆】使用的【闪】抵消时，你可以令另一名其他角色回复1点体力。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '和曹丕一样, 杀赵云的一般是队友...';
         this.longdan = (definer, hint) => {
             return definer.expectChoose([PlayerAction_1.UIPosition.MY_SKILL], 1, 1, (id, context) => id === this.id, () => hint.hintMsg)
                 .expectChoose([PlayerAction_1.UIPosition.MY_HAND], 1, 1, (id, context) => context.interpret(id).type === Card_1.CardType.DODGE, () => '选择一张闪当杀打出');
@@ -11860,6 +11920,7 @@ class TieQi extends Skill_1.SimpleConditionalSkill {
         this.displayName = '铁骑';
         this.description = '当你使用【杀】指定一个目标后，你可以进行判定。然后你选择其一张明置的武将牌，令此武将牌上的所有非锁定技于此回合内失效。最后除非该角色弃置与结果花色相同的一张牌，否则不能使用【闪】。';
         this.cache = new Set();
+        this.hint = '界马超的技能, 专治魏国卖血流和吴国刷牌流. 小乔看了发抖, 曹丕看了吓尿';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SlashOp_1.SlashOP, this);
@@ -11938,6 +11999,7 @@ class MaShu extends Skill_1.Skill {
         this.isApplied = false;
         this.isLocked = true;
         this.hiddenType = Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD;
+        this.hint = '没啥好说的, 经常带来负面影响(借刀,驱虎)';
     }
     onRemoval(context) {
         if (this.isApplied) {
@@ -11972,6 +12034,7 @@ class BaZhen extends Skill_1.SimpleConditionalSkill {
         this.id = '八阵';
         this.displayName = '八阵';
         this.description = '锁定技，若你的装备区里没有防具牌，你视为装备着【八卦阵】'; //'出牌阶段，你可以明置此武将牌。'
+        this.hint = '"二张, 快给诸葛穿上藤甲!"';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DodgeOp_1.default, this);
@@ -11998,6 +12061,7 @@ class HuoJi extends Skill_1.Skill {
         this.displayName = '火计';
         this.description = '你可以将一张红色手牌当【火攻】使用。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '搭配凤雏, 穿上藤甲, 连上自己, 火攻自己...';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -12028,6 +12092,7 @@ class KanPo extends Skill_1.Skill {
         this.id = '看破';
         this.displayName = '看破';
         this.description = '你可以将一张黑色手牌当【无懈可击】使用。'; //'出牌阶段，你可以明置此武将牌。'
+        this.hint = '配合蒋琬费祎, 敌方就不要想用锦囊牌了';
         this.canStillProcess = (manager) => {
             return manager.context.getPlayer(this.playerId)
                 .getCards(CardPos_1.CardPos.HAND)
@@ -12080,6 +12145,7 @@ class KuangGu extends Skill_1.SimpleConditionalSkill {
         this.id = '狂骨';
         this.displayName = '狂骨';
         this.description = '锁定技，当你对距离1以内的一名角色造成1点伤害后，你回复1点体力。';
+        this.hint = '单挑神技';
         this.isLocked = true;
     }
     bootstrapServer(skillRegistry) {
@@ -12106,6 +12172,7 @@ class LieGong extends Skill_1.SimpleConditionalSkill {
         this.id = '烈弓';
         this.displayName = '烈弓';
         this.description = '当你于出牌阶段内使用【杀】指定一个目标后，若该角色的手牌数不小于你的体力值或不大于你的攻击范围，则你可以令其不能使用【闪】响应此【杀】。';
+        this.hint = '没啥好说的';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SlashOp_1.SlashOP, this);
@@ -12132,6 +12199,7 @@ class JiLi extends Skill_1.SimpleConditionalSkill {
         this.playedInThisRound = 0;
         //否则可能反复发动计算
         this.needRepeatedCheck = false;
+        this.hint = '注意假如你有距离为2的武器, 需要首先使用, 因为你使用武器牌的时候你的攻击范围还没变. 沙摩柯回合内有武器很强, 回合外没有武器很强';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(Generic_1.CardBeingUsedEvent, this);
@@ -12172,6 +12240,7 @@ class XiangLe extends Skill_1.SimpleConditionalSkill {
         this.displayName = '享乐';
         this.description = '锁定技，当你成为一名角色使用【杀】的目标后，除非该角色弃置一张基本牌，否则此【杀】对你无效。';
         this.isLocked = true;
+        this.hint = '没啥好说的';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SlashOp_1.SlashOP, this);
@@ -12202,6 +12271,7 @@ class FangQuan extends Skill_1.SimpleConditionalSkill {
         this.displayName = '放权';
         this.description = '你可以跳过出牌阶段，然后此回合结束时，你可以弃置一张手牌并令一名其他角色获得一个额外的回合。';
         this.invoked = false;
+        this.hint = '一般用于配合蜀国厉害的爆发';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint) => {
@@ -12251,6 +12321,7 @@ class JiZhi extends Skill_1.SimpleConditionalSkill {
         this.id = '集智';
         this.displayName = '集智';
         this.description = '当你使用一张非转化的普通锦囊牌时，你可以摸一张牌。';
+        this.hint = '蜀国的核心技能';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(Generic_1.CardBeingUsedEvent, this);
@@ -12276,6 +12347,7 @@ class QiCai extends Skill_1.Skill {
         this.description = '出牌阶段，你可以明置此武将牌；你使用锦囊牌无距离限制。';
         this.isWorking = false;
         this.hiddenType = Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD;
+        this.hint = '没啥好说的';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.onEvent(StageFlows_1.StageStartFlow, this.playerId, (event) => __awaiter(this, void 0, void 0, function* () {
@@ -12317,6 +12389,7 @@ class LianHuan extends Skill_1.Skill {
         this.displayName = '连环';
         this.description = '你可以将一张梅花手牌当【铁索连环】使用或重铸。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '增强过牌能力';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -12355,6 +12428,7 @@ class NiePan extends Skill_1.SimpleConditionalSkill {
         this.id = '涅槃';
         this.displayName = '涅槃';
         this.description = '限定技，当你处于濒死状态时，你可以弃置所有牌，然后复原你的武将牌，摸三张牌，将体力回复至3点。';
+        this.hint = '配合甘夫人可以摸三张牌';
     }
     bootstrapServer(skillRegistry, manager) {
         manager.context.getPlayer(this.playerId).signs['涅'] = {
@@ -12397,6 +12471,7 @@ class HuoShou extends Skill_1.SimpleConditionalSkill {
         this.displayName = '祸首';
         this.description = '锁定技，【南蛮入侵】对你无效；当其他角色使用【南蛮入侵】指定目标后，你代替其成为此牌造成的伤害的来源。';
         this.isLocked = true;
+        this.hint = '让李典哭泣的技能(不能南蛮刷牌了), 但也会莫名其妙的被刚烈,反馈,甚至断肠';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(MultiRuseOp_1.NanMan, this);
@@ -12421,6 +12496,7 @@ class ZaiQi extends Skill_1.SimpleConditionalSkill {
         this.id = '再起';
         this.displayName = '再起';
         this.description = '摸牌阶段，你可以改为亮出牌堆顶的X张牌（X为你已损失的体力值），然后回复等同于其中红桃牌数量的体力，并获得其余的牌。';
+        this.hint = '搭配观星可以比较稳定的回血';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(TakeCardOp_1.TakeCardStageOp, this);
@@ -12473,6 +12549,7 @@ class JuXiang extends Skill_1.SimpleConditionalSkill {
         this.displayName = '巨象';
         this.description = '锁定技，【南蛮入侵】对你无效；当其他角色使用的【南蛮入侵】结算结束后，你获得之。';
         this.isLocked = true;
+        this.hint = '搭配仁德刘, 配合黄月英永动机...巨象收南蛮 > 仁德给月英 > 月英放南蛮';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(MultiRuseOp_1.NanMan, this);
@@ -12509,6 +12586,7 @@ class LieRen extends Skill_1.SimpleConditionalSkill {
         this.id = '烈刃';
         this.displayName = '烈刃';
         this.description = '当你使用【杀】对目标角色造成伤害后，你可以与其拼点，若你赢，你获得其一张牌。';
+        this.hint = '烈刃加咆哮加雌雄双股剑, 对面连渣都不剩了';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -12538,6 +12616,7 @@ class ShuShen extends Skill_1.SimpleConditionalSkill {
         this.id = '淑慎';
         this.displayName = '淑慎';
         this.description = '当你回复1点体力后，你可以令一名其他角色摸一张牌。';
+        this.hint = '敌人更加不敢杀你队友赵云了...';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(HealOp_1.default, this);
@@ -12577,6 +12656,7 @@ class ShenZhi extends Skill_1.SimpleConditionalSkill {
         this.id = '神智';
         this.displayName = '神智';
         this.description = '准备阶段，你可以弃置所有手牌，若你以此法弃置的手牌数不小于你的体力值，你回复1点体力。';
+        this.hint = '单挑挺有用的技能';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -12612,6 +12692,7 @@ class ShengXi extends Skill_1.SimpleConditionalSkill {
         this.description = '弃牌阶段开始时，若你此回合内没有造成过伤害，你可以摸两张牌。';
         this.hasDealtDamage = false;
         this.needRepeatedCheck = false;
+        this.hint = '大量增加过牌的技能';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -12648,6 +12729,7 @@ class ShouCheng extends Skill_1.SimpleConditionalSkill {
         this.displayName = '守成';
         this.description = '当与你势力相同的一名角色于其回合外失去最后手牌时，你可以令其摸一张牌。';
         this.needRepeatedCheck = false;
+        this.hint = '全势力回合外获得连营';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(Generic_1.CardBeingDroppedEvent, this);
@@ -12681,6 +12763,7 @@ class GuanXing extends Skill_1.SimpleConditionalSkill {
         this.id = '观星';
         this.displayName = '观星';
         this.description = '准备阶段，你可以观看牌堆顶的X张牌（X为存活角色数且最多为5），然后以任意顺序放回牌堆顶或牌堆底。';
+        this.hint = '一切皆有可能, 观下家的兵/乐, 观死周泰, 观别人的八卦';
         this.xDeterminer = (manager) => {
             return Math.min(5, manager.getSortedByCurr(true).length);
         };
@@ -12793,6 +12876,7 @@ class KongCheng extends Skill_1.Skill {
         this.id = '空城';
         this.displayName = '空城';
         this.description = '锁定技，当你成为【杀】或【决斗】的目标时，若你没有手牌，你取消此目标。';
+        this.hint = '再加个藤甲就比较无敌了';
         this.needRepeatedCheck = false;
         //你回合外其他角色交给你的牌正面朝上放置于你的武将牌上，摸牌阶段开始时，你获得武将牌上的这些牌。'
         this.isLocked = true;
@@ -12819,6 +12903,7 @@ class TiaoXin extends Skill_1.Skill {
         this.displayName = '挑衅';
         this.description = '出牌阶段限一次，你可以选择一名攻击范围内含有你的角色，然后除非该角色对你使用一张【杀】，否则你弃置其一张牌。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '配合空城/防御装备可以比较安全地挑衅别人...';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -12870,6 +12955,7 @@ class YiZhi extends Skill_1.Skill {
         this.description = '副将技，此武将牌上单独的阴阳鱼个数-1。若你的主将拥有技能“观星”，则将其描述中的X改为5；若你的主将没有技能“观星”，则你拥有技能“观星”。';
         this.disabledForMain = true;
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '一切皆有可能, 观下家的兵/乐, 观死周泰, 观别人的八卦';
     }
     onStatusUpdated(manager, repo) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -12913,6 +12999,7 @@ class TianFu extends Skill_1.Skill {
         this.description = '主将技，阵法技，若当前回合角色与你处于同一队列，你拥有技能“看破”。';
         this.disabledForSub = true;
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '鸡肋';
     }
     onStatusUpdated(manager, repo) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -12964,6 +13051,7 @@ class GuiXiu extends Skill_1.SimpleConditionalSkill {
         this.id = '闺秀';
         this.displayName = '闺秀';
         this.description = '当你明置此武将牌时，你可以摸两张牌；当你移除此武将牌时，你可以回复1点体力。';
+        this.hint = '没啥好说的';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(FactionWarInitializer_1.RevealGeneralEvent, this);
@@ -12993,6 +13081,7 @@ class CunSi extends Skill_1.Skill {
         this.id = '存嗣';
         this.displayName = '存嗣';
         this.description = '出牌阶段，你可以移除此武将牌并选择一名角色，然后其获得技能“勇决”（若与你势力相同的一名角色于其回合内使用的第一张牌为【杀】，则该角色可以在此【杀】结算完成后获得之），若你没有获得“勇决”，则获得“勇决”的角色摸两张牌。';
+        this.hint = '把自己的副将移除, 让张任/蔡文姬哭泣';
     }
 }
 exports.CunSi = CunSi;
@@ -13082,6 +13171,7 @@ class JianXiong extends SkillForDamageTaken {
         this.id = '奸雄';
         this.displayName = '奸雄';
         this.description = '当你受到伤害后，你可以获得造成此伤害的牌。';
+        this.hint = '十分适合吸收万箭南蛮再次施放, 和其他魏国卖血流联动';
         this.isLocked = false;
     }
     bootstrapServer(skillRegistry) {
@@ -13108,6 +13198,7 @@ class FanKui extends SkillForDamageTaken {
         this.id = '反馈';
         this.displayName = '反馈';
         this.description = '当你受到伤害后，你可以获得伤害来源的一张牌。';
+        this.hint = '可以用来反馈队友/地方的明装备牌等用以改判定';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -13154,6 +13245,7 @@ class GuiCai extends Skill_1.SimpleConditionalSkill {
         this.id = '鬼才';
         this.displayName = '鬼才';
         this.description = '当一名角色的判定牌生效前，你可以打出一张手牌代替之。';
+        this.hint = '注意改判定顺序是从当前角色开始, 如果张角在你后面改的话...你懂的';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(JudgeOp_1.default, this);
@@ -13195,6 +13287,7 @@ class GangLie extends SkillForDamageTaken {
         this.id = '刚烈';
         this.displayName = '刚烈';
         this.description = '当你受到伤害后，你可以进行判定，若结果不为红桃，伤害来源弃置两张手牌或受到1点伤害。';
+        this.hint = '可以适当刚烈魏国卖血流队友, 亮明身份的同时达成配合';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -13235,6 +13328,7 @@ class TuXi extends Skill_1.SimpleConditionalSkill {
         this.id = '突袭';
         this.displayName = '突袭';
         this.description = '摸牌阶段，你可以改为获得最多两名角色的各一张手牌。';
+        this.hint = '一般适合在局势明朗的时候使用, 以免拉过多的仇恨. 如果你的另一个将是李典, 你可以通过突袭和恂恂的联动控下家下回合摸的牌';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(TakeCardOp_1.TakeCardStageOp, this);
@@ -13280,6 +13374,7 @@ class LuoYi extends Skill_1.SimpleConditionalSkill {
         this.displayName = '裸衣';
         this.description = '摸牌阶段，你可以少摸一张牌，然后本回合你使用【杀】或【决斗】造成的伤害+1';
         this.id = '裸衣';
+        this.hint = '国战最废技能之一, 大概只有配合主将邓艾(裸衣然后把敌方手牌顺光...)';
         this.isTriggered = false;
         this.changeDamage = (damageOp) => __awaiter(this, void 0, void 0, function* () {
             if (this.isTriggered && damageOp.isFrom(this.playerId) &&
@@ -13323,6 +13418,7 @@ class TianDu extends Skill_1.SimpleConditionalSkill {
         this.id = '天妒';
         this.displayName = '天妒';
         this.description = '当你的判定牌生效后，你可以获得此牌。';
+        this.hint = '配合夏侯惇就是著名的郭得刚组合';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(JudgeOp_1.default, this);
@@ -13349,6 +13445,7 @@ class QinGuo extends Skill_1.Skill {
         this.id = '倾国';
         this.displayName = '倾国';
         this.description = '你可以将一张黑色手牌当【闪】使用或打出。';
+        this.hint = '所以甄姬一般不要留红闪';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.DODGE, (hint) => {
@@ -13382,6 +13479,7 @@ class LuoShen extends Skill_1.SimpleConditionalSkill {
         this.id = '洛神';
         this.displayName = '洛神';
         this.description = '准备阶段，你可以进行判定，若结果为黑色，你可以重复此流程。然后你获得所有的黑色判定牌。';
+        this.hint = '配合天妒可以保证收益至少一张牌. 配合鬼才可以多留黑色手牌尽可能的多洛神';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -13433,6 +13531,7 @@ class ShenSu extends Skill_1.SimpleConditionalSkill {
         this.id = '神速';
         this.displayName = '神速';
         this.description = '你可以做出如下选择：1.跳过判定阶段和摸牌阶段。2.跳过出牌阶段并弃置一张装备牌。你每选择一项，便视为你使用一张无距离限制的【杀】。';
+        this.hint = '从此魏国不怕乐. 注意神速的杀没有花色的普通杀, 不被仁王盾抵挡, 但是会被藤甲抵消';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial('神速', (hint) => {
@@ -13536,6 +13635,7 @@ class DuanLiang extends Skill_1.Skill {
         this.displayName = '断粮';
         this.description = '出牌阶段，你可以明置此武将牌；你可以将一张黑色基本牌或黑色装备牌当【兵粮寸断】使用；你可以对距离为2的角色使用【兵粮寸断】。';
         this.hiddenType = Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD;
+        this.hint = '单挑达人. 团战的话由于消耗牌量大, 适合配合甄姬或者郭嘉这种很容易刷到牌的人';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -13583,6 +13683,7 @@ class JuShou extends Skill_1.SimpleConditionalSkill {
         this.id = '据守';
         this.displayName = '据守';
         this.description = '结束阶段开始时，你可以发动此技能。然后你摸X张牌，选择一项：1.弃置一张不为装备牌的手牌；2.使用一张装备牌。若X大于2，则你将武将牌翻面。（X为此时亮明势力数）';
+        this.hint = '单挑达人. 团战的话摸四张翻面还可以, 摸三张翻面血亏. 如果要发动技能就要注意不要着急在出牌阶段挂装备';
     }
     bootstrapClient(context, player) {
         let buttons = [
@@ -13653,6 +13754,7 @@ class QiangXi extends Skill_1.Skill {
         this.displayName = '强袭';
         this.description = '出牌阶段限一次，你可以失去1点体力或弃置一张武器牌，并对你攻击范围内的一名其他角色造成1点伤害。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '单挑达人. 稳定输出, 即使是自杀也会在死后造成伤害的神';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -13707,6 +13809,7 @@ class XingShang extends Skill_1.SimpleConditionalSkill {
         this.id = '行殇';
         this.displayName = '行殇';
         this.description = '当其他角色死亡时，你可以获得其所有牌。';
+        this.hint = '杀人诛心, 配合连弩李典(忘隙)可以横扫全场';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DeathOp_1.default, this);
@@ -13749,6 +13852,7 @@ class FangZhu extends SkillForDamageTaken {
         this.id = '放逐';
         this.displayName = '放逐';
         this.description = '当你受到伤害后，你可以令一名其他角色翻面，然后该角色摸X张牌（X为你已损失的体力值）。';
+        this.hint = '魏国核心技能, 极大损害他人游戏体验, 过于强大使得敌方不愿意碰曹丕, 队友则拼命想砍曹丕';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -13787,6 +13891,7 @@ class QuHu extends Skill_1.SimpleConditionalSkill {
         this.displayName = '驱虎';
         this.description = '出牌阶段限一次，你可以与体力值大于你的一名角色拼点：若你赢，你令该角色对其攻击范围内的另一名角色造成1点伤害；若你没赢，其对你造成1点伤害。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '可以拿自己的最后一张小点去驱虎卖血换牌, 也可以令敌人砍死队友丧失全部牌';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -13860,6 +13965,7 @@ class JieMing extends SkillForDamageTaken {
         this.id = '节命';
         this.displayName = '节命';
         this.description = '当你受到1点伤害后，你可以令一名角色将手牌摸至X张（X为其体力上限且最多为5）。';
+        this.hint = '卖血流, 不多解释';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -13904,6 +14010,7 @@ class YiJi extends SkillForDamageTaken {
         this.id = '遗计';
         this.displayName = '遗计';
         this.description = '当你受到1点伤害后，你可以观看牌堆顶的两张牌，然后将这些牌交给任意角色。';
+        this.hint = '卖血流, 不多解释';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint) => {
@@ -13973,6 +14080,7 @@ class QiaoBian extends Skill_1.SimpleConditionalSkill {
         this.id = '巧变';
         this.displayName = '巧变';
         this.description = '你可以弃置一张手牌并跳过一个阶段：若跳过摸牌阶段，你可以获得至多两名角色的各一张手牌；若跳过出牌阶段，你可以移动场上的一张牌。';
+        this.hint = '不怕乐, 不怕手牌多要弃牌, 可以把兵/乐扔别人身上, 还可以把狮子在队友身上挪来挪去回血的神技';
     }
     invokeMsg(event) {
         return '[巧变] 跳过' + event.stage.name;
@@ -14044,6 +14152,7 @@ class XiaoGuo extends Skill_1.SimpleConditionalSkill {
         this.id = '骁果';
         this.displayName = '骁果';
         this.description = '其他角色的结束阶段，你可以弃置一张基本牌，然后除非该角色弃置一张装备牌，否则受到你造成的1点伤害。';
+        this.hint = '可以配合队友卖血, 也可以用这种方法让队友弃狮子回血, 也可以欺负没有装备牌的人';
     }
     invokeMsg(stageflow) {
         return `对${stageflow.info.player.id}发动骁果`;
@@ -14088,6 +14197,7 @@ class TunTian extends Skill_1.SimpleConditionalSkill {
         this.id = '屯田';
         this.displayName = '屯田';
         this.description = '当你于回合外失去牌后，你可以进行判定，若结果不为红桃，你可将此牌置于武将牌上，称为“田”；你计算与其他角色的距离-X（X为“田”的数量）。）';
+        this.hint = '所以顺/拆邓艾的装备不怎么影响他的攻击距离. 注意可以配合鬼才刷田...';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(Generic_1.CardBeingUsedEvent, this);
@@ -14127,6 +14237,7 @@ class ZiLiang extends Skill_1.SimpleConditionalSkill {
         this.displayName = '资粮';
         this.description = '副将技，当与你势力相同的一名角色受到伤害后，你可以将一张“田”交给该角色。';
         this.disabledForMain = true;
+        this.hint = '邓艾被低估的技能. 注意你的田没有红桃, 所以资粮桃子不要想了(只有一个方片桃)';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -14174,6 +14285,7 @@ class JiXi extends Skill_1.Skill {
         this.description = '主将技，此武将牌减少半个阴阳鱼；你可以将一张“田”当【顺手牵羊】使用。';
         this.disabledForSub = true;
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '可以把别人扒光的技能, 因为需要田很适合搭配甄姬的倾国或者改判的鬼才';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -14210,6 +14322,7 @@ class XunXun extends Skill_1.SimpleConditionalSkill {
         this.id = '恂恂';
         this.displayName = '恂恂';
         this.description = '摸牌阶段开始时，你可以观看牌堆顶的四张牌，然后将其中的两张牌置于牌堆顶，将其余的牌置于牌堆底。';
+        this.hint = '小观星, 可惜不能观判定牌, 但是可以配合突袭控下家的牌';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(StageFlows_1.InStageStart, this);
@@ -14281,6 +14394,7 @@ class WangXi extends SkillForDamageTaken {
         this.id = '忘隙';
         this.displayName = '忘隙';
         this.description = '当你造成或受到其他角色的1点伤害后，你可以与其各摸一张牌。';
+        this.hint = '魏国又一核心技能, 所以李典最爱南蛮万箭, 可以说李典放南蛮万箭不卖血的统统不是魏';
     }
     bootstrapServer(skillRegistry) {
         skillRegistry.on(DamageOp_1.default, this);
@@ -14317,8 +14431,10 @@ class HengJiang extends SkillForDamageTaken {
         this.description = '当你受到1点伤害后，你可以令当前回合角色本回合的手牌上限-1。然后若其弃牌阶段内没有弃牌，则你摸一张牌。';
         //在发动横江后发生
         this.expectDrop = false;
+        this.hint = '鸡肋';
     }
     bootstrapServer(skillRegistry, manager) {
+        let me = manager.context.getPlayer(this.playerId);
         skillRegistry.on(DamageOp_1.default, this);
         skillRegistry.onEvent(DropCardOp_1.default, this.playerId, (dropCardOp) => __awaiter(this, void 0, void 0, function* () {
             if (dropCardOp.timeline === DropCardOp_1.DropTimeline.BEFORE) {
@@ -14336,9 +14452,9 @@ class HengJiang extends SkillForDamageTaken {
             else {
                 console.log('[横江] 弃牌阶段结束, expectDrop flag存在且弃牌阶段未弃牌, 横江摸一张牌');
                 //check for 横江 拿牌
-                if (this.expectDrop && dropCardOp.dropped.length === 0) {
+                if (this.expectDrop && dropCardOp.dropped.length === 0 && !me.isDead) {
                     //摸一张牌
-                    yield new TakeCardOp_1.default(manager.context.getPlayer(this.playerId), 1).perform(manager);
+                    yield new TakeCardOp_1.default(me, 1).perform(manager);
                 }
                 this.expectDrop = false;
             }
@@ -14346,11 +14462,13 @@ class HengJiang extends SkillForDamageTaken {
         skillRegistry.onEvent(StageFlows_1.StageEndFlow, this.playerId, (stageEnd) => __awaiter(this, void 0, void 0, function* () {
             //若结束时仍然有flag说明弃牌阶段被跳过了!
             if (this.expectDrop && stageEnd.stage === Stage_1.Stage.DROP_CARD) {
-                console.log('[横江] 弃牌阶段结束, expectDrop flag依然存在, 说明弃牌阶段跳过了, 摸一张牌');
-                this.invokeEffects(manager);
+                if (!me.isDead) {
+                    console.log('[横江] 弃牌阶段结束, expectDrop flag依然存在, 说明弃牌阶段跳过了, 摸一张牌');
+                    this.invokeEffects(manager);
+                    yield new TakeCardOp_1.default(me, 1).perform(manager);
+                }
                 let marks = this.getMarksOfCurrentPlayer(manager);
                 delete marks[this.id];
-                yield new TakeCardOp_1.default(manager.context.getPlayer(this.playerId), 1).perform(manager);
                 manager.broadcast(manager.currPlayer(), PlayerInfo_1.PlayerInfo.sanitize);
                 this.expectDrop = false;
             }
@@ -14500,6 +14618,7 @@ class ZhiHeng extends Skill_1.Skill {
         this.displayName = '制衡';
         this.description = '出牌阶段限一次，你可以弃置至多X张牌（X为你的体力上限），然后摸等量的牌。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '孙权经典技能, 没啥好说的. 注意国战制衡有上限';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint, context) => {
@@ -14537,6 +14656,7 @@ class QiXi extends Skill_1.Skill {
         this.displayName = '奇袭';
         this.description = '你可以将一张黑色牌当【过河拆桥】使用。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '牌的消耗量大, 适合搭配过牌能力强的如孙尚香, 二张';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -14571,6 +14691,7 @@ class KuRou extends Skill_1.Skill {
         this.displayName = '苦肉';
         this.description = '出牌阶段限一次，你可以弃一张牌。若如此做，你失去1点体力，然后摸三张牌，此阶段你使用【杀】的次数上限+1';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '可以在不满血的情况下扔狮子苦肉, 也可以搭配孙尚香扔装备苦肉. 搭配太史慈理论上可以达到三张杀杀六次的爆发';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -14604,6 +14725,7 @@ class YingZi extends Skill_1.SimpleConditionalSkill {
         this.displayName = '英姿';
         this.description = '锁定技，摸牌阶段，你多摸一张牌；你的手牌上限等于X（X为你的体力上限）。';
         this.isLocked = true;
+        this.hint = '增加手牌上限大大增强了周瑜的防御能力';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(TakeCardOp_1.TakeCardStageOp, this);
@@ -14637,6 +14759,7 @@ class FanJian extends Skill_1.SimpleConditionalSkill {
         this.displayName = '反间';
         this.description = '出牌阶段限一次，你可以展示一张手牌并交给一名其他角色，其选择一项：1.展示所有手牌，然后弃置你与此牌同花色的牌(包括装备牌)；2.失去1点体力。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '可以用来弃置地方明置的装备牌, 也可以反间弃掉对方的闪/桃';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -14723,6 +14846,7 @@ class GuoSe extends Skill_1.Skill {
         this.displayName = '国色';
         this.description = '你可以将一张方块牌当【乐不思蜀】使用。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '可以搭配孙尚香用方片装备刷牌, 也可以搭配二张捡别人弃置的方片';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -14754,6 +14878,7 @@ class LiuLi extends Skill_1.SimpleConditionalSkill {
         this.id = '流离';
         this.displayName = '流离';
         this.description = '当你成为【杀】的目标时，你可以弃置一张牌并将此【杀】转移给你攻击范围内的一名其他角色。';
+        this.hint = '可以搭配孙尚香用装备流离刷牌';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint) => {
@@ -14827,6 +14952,7 @@ class QianXun extends Skill_1.Skill {
         this.displayName = '谦逊';
         this.description = '锁定技，当你成为【顺手牵羊】或【乐不思蜀】的目标时，则取消之。';
         this.isLocked = true;
+        this.hint = '注意预亮, 不然被乐了/顺了是自己的锅...';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DelayedRuseOp_1.UseDelayedRuseOp, new SingleRuseCancellor(this, Card_1.CardType.LE_BU));
@@ -14841,6 +14967,7 @@ class DuoShi extends Skill_1.Skill {
         this.displayName = '度势';
         this.description = '出牌阶段限四次，你可以将一张红色手牌当【以逸待劳】使用。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '吴国开团神将, 配合孙尚香可以在自己的回合自娱自乐十分钟';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -14874,6 +15001,7 @@ class JieYin extends Skill_1.Skill {
         this.displayName = '结姻';
         this.description = '出牌阶段限一次，你可以弃置两张手牌，令你和一名已受伤的男性角色各回复1点体力。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '注意此技能不要求使用者是女性(比如孙尚香副将配男性主将也是可以发动结姻的)';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -14907,6 +15035,7 @@ class XiaoJi extends Skill_1.SimpleConditionalSkill {
         this.id = '枭姬';
         this.displayName = '枭姬';
         this.description = '当你失去装备区里的牌后，你可以摸两张牌。';
+        this.hint = '孙尚香攒牌爆发技能, 注意如果一次弃置两张装备(比如制衡/以逸待劳)也只能摸两张. 适合搭配队友凌统, 孙坚, 陆逊, 徐盛, 二张弃置/增加你的装备; 双将搭配孙权, 黄盖, 大乔(用方片装备发动国色)';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(Generic_1.CardBeingDroppedEvent, this);
@@ -14936,6 +15065,7 @@ class YingHun extends Skill_1.SimpleConditionalSkill {
         this.id = '英魂';
         this.displayName = '英魂';
         this.description = '准备阶段，若你已受伤，你可以选择一名其他角色并选择一项：1.令其摸X张牌，然后弃置一张牌；2.令其摸一张牌，然后弃置X张牌。（X为你已损失的体力值）';
+        this.hint = '收益最大化是令人摸三弃一或者摸一弃三. 所以当你是满血的情况下等于是白板';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint, context) => {
@@ -14996,6 +15126,7 @@ class TianYi extends Skill_1.Skill {
         this.displayName = '天义';
         this.description = '出牌阶段限一次，你可以与一名角色拼点：若你赢，本回合你可以多使用一张【杀】、使用【杀】无距离限制且可以多选择一个目标；若你没赢，本回合你不能使用【杀】。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '由于拼点输了没有惩罚, 可以将废牌拼掉敌方的手牌. 天义的收益对手牌要求较高(1张拼点牌+2张杀), 适合能爆发刷牌的双将, 例如黄盖,孙权,孙尚香,孙策';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -15034,6 +15165,7 @@ class ZhiJian extends Skill_1.Skill {
         this.displayName = '直谏';
         this.description = '出牌阶段，你可以将手牌中的一张装备牌置于其他角色的装备区里，然后摸一张牌。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '适合配合孙尚香, 凌统这种需要装备牌的队友, 也可以把藤甲装在敌人身上';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -15065,6 +15197,7 @@ class GuZheng extends Skill_1.SimpleConditionalSkill {
         this.id = '固政';
         this.displayName = '固政';
         this.description = '其他角色的弃牌阶段结束时，你可以将此阶段中的一张弃牌返还给该角色，然后你获得其余的弃牌。';
+        this.hint = '适合配合容易积攒大量手牌的爆发型队友, 比如孙尚香. 搭配大乔可以乐全场然后发动<固政>从被乐的人弃牌中找方片无限循环';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DropCardOp_1.default, this);
@@ -15107,6 +15240,7 @@ class HongYan extends Skill_1.Skill {
         this.description = '出牌阶段，你可明置此武将牌；锁定技，你的黑桃牌视为红桃牌。';
         this.hiddenType = Skill_1.HiddenType.REVEAL_IN_MY_USE_CARD;
         this.isLocked = true;
+        this.hint = '注意当你的武将暗置时, 红颜是不会触发的, 即:暗置的小乔不可以用黑桃发动天香, 因为发动天香时尚未明置';
         this.interpret = (card) => {
             if (this.isInactive()) {
                 return card;
@@ -15137,6 +15271,7 @@ class TianXiang extends Skill_1.SimpleConditionalSkill {
         this.displayName = '天香';
         this.description = '当你受到伤害时，你可以弃置一张红桃手牌,防止此次伤害并选择一名其他角色，' +
             '你选择一项：令来源对其造成1点伤害，然后摸X张牌（X为其已损失体力值且至多为5）；令其失去1点体力，然后其获得你弃置的牌。';
+        this.hint = '因为反弹的特性, 小乔只要保持手牌数量够多就能保持低仇恨, 后期单挑更是少有对手. 让人损失体力的特性十分克制魏国卖血流';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint) => {
@@ -15195,6 +15330,7 @@ class HaoShi extends Skill_1.SimpleConditionalSkill {
         this.displayName = '好施';
         this.description = '摸牌阶段，你可以多摸两张牌，然后若你的手牌数大于5，则你将一半的手牌交给手牌最少的一名其他角色。';
         this.hasInvoked = false;
+        this.hint = '可以发动好施将多出来的手牌交给队友, 但是发动好施可能最终手牌数少于不发动, 导致不能缔盟, 所以是非常需要计算的技能';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint, context) => {
@@ -15262,6 +15398,7 @@ class DiMeng extends Skill_1.SimpleConditionalSkill {
         this.displayName = '缔盟';
         this.description = '出牌阶段限一次，你可以选择两名其他角色并弃置X张牌（X为这两名角色手牌数的差），然后令这两名角色交换手牌。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '鲁肃非常招仇恨的技能, 要在保障自己安全的情况下使用, 注意可以弃置装备牌';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -15313,6 +15450,7 @@ class YiCheng extends Skill_1.SimpleConditionalSkill {
         this.id = '疑城';
         this.displayName = '疑城';
         this.description = '当与你势力相同的一名角色成为【杀】的目标后，你可以令该角色摸一张牌然后弃置一张牌。';
+        this.hint = '本身强度不高, 但如果配合/搭配孙尚香/凌统则可以产生联动';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SlashOp_1.SlashOP, this);
@@ -15370,6 +15508,7 @@ class KeJi extends Skill_1.SimpleConditionalSkill {
         this.description = '锁定技，弃牌阶段开始时，若你未于出牌阶段内使用过颜色不同的牌或出牌阶段被跳过，你的手牌上限于此回合内+4';
         this.isLocked = true;
         this.colorsUsed = new Set();
+        this.hint = '保持手牌数量可以极大增强你的回合外防御力. 注意搭配小乔的话你的黑桃是红桃, 不要搞错了你用牌的颜色';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(DropCardOp_1.default, this);
@@ -15408,6 +15547,7 @@ class MouDuan extends Skill_1.SimpleConditionalSkill {
         this.description = '结束阶段开始时，若你于出牌阶段内使用过四种花色或三种类别的牌，则你可以移动场上的一张牌。';
         this.suitsUsed = new Set();
         this.typesUsed = new Set();
+        this.hint = '类似张郃巧变, 使用得当达到奇效, 比如转移队友的乐, 挪动关键装备牌';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -15448,6 +15588,7 @@ class DuanXie extends Skill_1.Skill {
         this.displayName = '断绁';
         this.description = '出牌阶段限一次，你可以令一名其他角色进入连环状态(横置)，然后你若未横置进入连环状态(横置)。';
         this.hiddenType = Skill_1.HiddenType.NONE;
+        this.hint = '一种以命搏命的做法, 在手上/队友有铁索连环时可以很快达到效果最大化: 你和多个敌人连着, 队友可以对你使用属性杀造成大量伤害, 而你也可以通过<奋命>每回合弃置地方大量的牌';
     }
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerProvider(ServerHint_1.HintType.PLAY_HAND, (hint) => {
@@ -15480,6 +15621,7 @@ class FenMing extends Skill_1.SimpleConditionalSkill {
         this.id = '奋命';
         this.displayName = '奋命';
         this.description = '结束阶段，若你处于连环(横置)状态，则你可以弃置所有处于连环(横置)状态的角色的各一张牌。';
+        this.hint = '在手上/队友有铁索连环时可以很快达到效果最大化: 你和多个敌人连着然后通过<奋命>每回合弃置地方大量的牌';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -15514,6 +15656,7 @@ class BuQu extends Skill_1.SimpleConditionalSkill {
         this.isLocked = true;
         //by card sizes
         this.wounds = new Set();
+        this.hint = '注意<不屈>判定成功是直接回复至1点, 所以不管受到多少伤害都是回复至一点. 但是如果<不屈>判定失败, 则按正常流程求桃';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(AskSavingOp_1.default, this);
@@ -15548,6 +15691,7 @@ class FenJi extends Skill_1.SimpleConditionalSkill {
         this.id = '奋激';
         this.displayName = '奋激';
         this.description = '一名角色的结束阶段开始时，若其没有手牌，你可令其摸两张牌。若如此做，你失去1点体力。';
+        this.hint = '可以帮助队友补手牌, 特殊情况下可以破敌方<空城>, 或者配合乐不思蜀和二张刷牌';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(StageFlows_1.StageStartFlow, this);
@@ -15635,6 +15779,7 @@ class JiAng extends Skill_1.Skill {
         this.id = '激昂';
         this.displayName = '激昂';
         this.description = '当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。';
+        this.hint = '注意丈八蛇矛使用两张红牌时也算红色杀';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(SlashOp_1.SlashOP, new RedSlashTrigger(this));
@@ -15648,6 +15793,7 @@ class YingYang extends Skill_1.SimpleConditionalSkill {
         this.id = '鹰扬';
         this.displayName = '鹰扬';
         this.description = '当你拼点的牌亮出后，你可以令此牌的点数+3或-3。(最大为 K 最小为 A )';
+        this.hint = '可以配合需要拼点的队友(如太史慈)';
     }
     bootstrapServer(skillRegistry, manager) {
         skillRegistry.on(CardFightOp_1.default, this);
@@ -15706,6 +15852,7 @@ class HunShang extends Skill_1.Skill {
         this.hiddenType = Skill_1.HiddenType.NONE;
         this.disabledForMain = true;
         this.isLocked = true;
+        this.hint = '由于孙策作为副将一般是三血, 所以不如孙坚的英魂. 但是如果孙坚是主将, 则可以连续发动两次, 而且效果加强';
     }
     onStatusUpdated(manager, repo) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -15803,8 +15950,8 @@ class DiaoDuo extends Skill_1.SimpleConditionalSkill {
         this.id = '调度';
         this.displayName = '调度';
         this.description = '与你势力相同的角色使用装备牌时可以摸一张牌。出牌阶段开始时，你可以获得与你势力相同的一名角色装备区里的一张牌，然后可以将此牌交给另一名角色。';
+        this.hint = '与二张的直谏略有冲突, 配合孙尚香/凌统用装备刷牌收益非常高';
     }
-    // hiddenType = HiddenType.NONE
     bootstrapClient() {
         PlayerActionDriverProvider_1.playerActionDriverProvider.registerSpecial(this.id, (hint, context) => {
             return new PlayerActionDriverDefiner_1.default('调度')
@@ -15849,6 +15996,7 @@ class DianCai extends Skill_1.SimpleConditionalSkill {
         this.displayName = '典财';
         this.description = '其他角色的出牌阶段结束时，若你于此阶段失去了X张或更多的牌(X为你的体力值)，则你可以将手牌摸至体力上限。'; //，然后你可以变更一次副将'
         this.cardLoss = 0;
+        this.hint = '技能决定你的血量越少, 就越有几率发动这个技能. (比如一血一手牌时, 则别人对你出杀就会担心你手中是闪/酒/桃, 然后你就可以补三张牌)';
     }
     bootstrapServer(skillRegistry, manager) {
         const cardLoss = (event) => __awaiter(this, void 0, void 0, function* () {
@@ -19081,12 +19229,12 @@ class Weapon extends Equipment {
     }
     onEquipped() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.manager.equipmentRegistry.on(SlashCompute, this.player, this.performEffect);
+            this.manager.equipmentRegistry.on(SlashOp_1.SlashOP, this.player, this.performEffect);
         });
     }
     onDropped() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.manager.equipmentRegistry.off(SlashCompute, this.player, this.performEffect);
+            this.manager.equipmentRegistry.off(SlashOp_1.SlashOP, this.player, this.performEffect);
         });
     }
 }
@@ -24935,13 +25083,9 @@ var getBox = function getBox(el) {
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/card-panel/card-panel.scss ***!
   \*******************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".ui-mounter {\n  z-index: 99;\n  pointer-events: none; }\n  .ui-mounter > * {\n    pointer-events: initial; }\n\n.duo-card-selection-container {\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .duo-card-selection-container .duo-card-selection-hint {\n    height: 30px; }\n  .duo-card-selection-container .row-name {\n    width: 40px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    letter-spacing: 2px;\n    text-align: center; }\n  .duo-card-selection-container .title {\n    text-align: center; }\n  .duo-card-selection-container .row-of-cards {\n    display: flex;\n    flex: 1 1 0;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    margin: 5px;\n    border: 1px solid white;\n    border-radius: 6px;\n    min-height: 160px;\n    min-width: 150px; }\n  .duo-card-selection-container .button-container {\n    height: 28px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.card-selection-container {\n  width: 60%;\n  max-width: 640px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38;\n  padding: 5px; }\n  .card-selection-container .card-selection-hint {\n    height: 30px; }\n  .card-selection-container .card-selection-row {\n    display: flex;\n    margin-top: 8px; }\n    .card-selection-container .card-selection-row .row-name {\n      width: 40px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      letter-spacing: 2px; }\n    .card-selection-container .card-selection-row .row-of-cards {\n      display: flex;\n      flex-grow: 1;\n      padding: 7px;\n      height: 155px;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      border-radius: 5px;\n      border: 1px solid #b9b9b9; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper {\n        width: 0px;\n        height: 0px;\n        max-width: 120px;\n        flex-grow: 1;\n        position: relative;\n        pointer-events: none;\n        transition: 0.2s; }\n      .card-selection-container .card-selection-row .row-of-cards .card-wrapper:not(:last-child):hover {\n        width: 40px; }\n      .card-selection-container .card-selection-row .row-of-cards .as {\n        position: absolute;\n        height: 20px;\n        top: 80px;\n        background: #d6d696;\n        color: black;\n        border: 1px solid black;\n        border-radius: 3px;\n        text-shadow: 0px 0px 2px #794c4c;\n        width: 80%;\n        left: 7%; }\n  .card-selection-container .button-container {\n    height: 28px;\n    margin-top: 10px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n\n.game-result {\n  min-width: 500px;\n  background-image: url(\"ui/bak.png\");\n  background-repeat: repeat;\n  border-radius: 3px;\n  box-shadow: 0px 0px 5px black; }\n  .game-result .title {\n    padding: 10px; }\n  .game-result .results .winner {\n    color: #1ec91e; }\n  .game-result .results .row {\n    display: flex; }\n    .game-result .results .row .player-name {\n      flex-grow: 1; }\n    .game-result .results .row .col {\n      width: 70px; }\n    .game-result .results .row .col-2 {\n      width: 100px; }\n\n.button-container {\n  pointer-events: initial;\n  padding: 20px; }\n\n.wugu-container {\n  width: 500px; }\n\n.cards-container {\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cards-container .cards-container-title {\n    height: 30px; }\n  .cards-container .cards {\n    display: flex;\n    flex-wrap: wrap;\n    background-image: url(ui/bak.png);\n    background-repeat: repeat;\n    padding: 8px;\n    border: 1px solid gray;\n    border-radius: 4px; }\n\n.cf-container {\n  width: 300px;\n  padding: 10px;\n  background: linear-gradient(45deg, #191b35, #423535);\n  border: 1px solid #161a38; }\n  .cf-container .cf-title {\n    height: 30px; }\n  .cf-container .cf-cards {\n    display: flex;\n    justify-content: space-around;\n    align-items: center; }\n  .cf-container .left {\n    position: relative; }\n    .cf-container .left .win-lose {\n      background-size: contain;\n      background-repeat: no-repeat;\n      background-position: center;\n      animation: symbol-enter 0.5s forwards; }\n    .cf-container .left .win {\n      background-image: url(\"icons/win.png\"); }\n    .cf-container .left .lose {\n      background-image: url(\"icons/lose.png\"); }\n\n@keyframes symbol-enter {\n  0% {\n    transform: scale(3);\n    filter: opacity(0); }\n  100% {\n    transform: scale(1);\n    filter: opacity(1); } }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -24950,13 +25094,9 @@ exports.push([module.i, ".ui-mounter {\n  z-index: 99;\n  pointer-events: none; 
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/card-panel/general-ui.scss ***!
   \*******************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".general-ui {\n  position: relative;\n  width: 150px;\n  height: 220px;\n  overflow: hidden; }\n  .general-ui .avatar {\n    position: absolute;\n    width: 88%;\n    height: 93%;\n    right: 0px;\n    bottom: 0px; }\n  .general-ui .frame {\n    position: absolute;\n    background-size: contain; }\n    .general-ui .frame.wei {\n      background-image: url(\"ui/frame-wei.png\"); }\n    .general-ui .frame.shu {\n      background-image: url(\"ui/frame-shu.png\"); }\n    .general-ui .frame.wu {\n      background-image: url(\"ui/frame-wu.png\"); }\n    .general-ui .frame.qun {\n      background-image: url(\"ui/frame-qun.png\"); }\n  .general-ui .general-name {\n    position: absolute;\n    top: 18%;\n    left: 3%;\n    width: 14%;\n    font-size: 22px;\n    display: flex;\n    align-items: center;\n    height: 100px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    color: #fffcc7;\n    pointer-events: none;\n    text-shadow: 0px 0px 4px black;\n    white-space: nowrap; }\n  .general-ui .hp-container {\n    position: absolute;\n    left: 23%;\n    top: 2%;\n    display: flex; }\n    .general-ui .hp-container .hp {\n      margin-right: 3px; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -24965,13 +25105,9 @@ exports.push([module.i, ".general-ui {\n  position: relative;\n  width: 150px;\n
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/effect/effect-producer.scss ***!
   \********************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".effect-container {\n  pointer-events: none; }\n  .effect-container .ray-container .ray {\n    stroke-width: 2px;\n    stroke: yellow;\n    transition: 2s linear; }\n  .effect-container .text {\n    position: absolute;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    width: 0px;\n    height: 0px;\n    font-size: 35px;\n    color: white;\n    font-family: LiShuFanTi;\n    white-space: nowrap;\n    filter: drop-shadow(0px 0px 10px gold);\n    animation: flash 3s forwards;\n    z-index: 999; }\n  .effect-container .floating-cards {\n    position: absolute;\n    transition: 1.4s;\n    display: flex;\n    justify-content: space-between;\n    animation: fade-in-out 1.6s forwards; }\n    .effect-container .floating-cards .card-holder {\n      width: 0px;\n      height: 0px;\n      display: flex;\n      align-items: center;\n      justify-content: center; }\n  .effect-container .sprite-container {\n    width: 0px;\n    height: 0px;\n    position: absolute;\n    z-index: 999; }\n\n@keyframes fade-in-out {\n  0% {\n    opacity: 0; }\n  30% {\n    opacity: 1; }\n  70% {\n    opacity: 1; }\n  100% {\n    opacity: 0; } }\n\n@keyframes flash {\n  0% {\n    color: transparent; }\n  20% {\n    color: white; }\n  80% {\n    color: white; }\n  100% {\n    color: transparent; } }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -24980,13 +25116,9 @@ exports.push([module.i, ".effect-container {\n  pointer-events: none; }\n  .effe
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/pregame/pregame-ui.scss ***!
   \****************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".general-selection-container {\n  display: flex;\n  padding: 15px;\n  min-width: 80%;\n  min-height: 80%; }\n  .general-selection-container .icon {\n    color: white; }\n  .general-selection-container .overall {\n    height: 20px; }\n  .general-selection-container .player-statuses {\n    position: relative;\n    padding: 8px;\n    min-width: 200px;\n    font-family: cursive; }\n    .general-selection-container .player-statuses .player-status {\n      display: flex; }\n      .general-selection-container .player-statuses .player-status .player-name {\n        flex-grow: 1;\n        align-items: center;\n        display: flex; }\n      .general-selection-container .player-statuses .player-status .seating {\n        width: 40px; }\n      .general-selection-container .player-statuses .player-status .status {\n        width: 70px;\n        align-items: center;\n        display: flex;\n        color: #494949; }\n      .general-selection-container .player-statuses .player-status .status.chosen {\n        color: green; }\n      .general-selection-container .player-statuses .player-status.is-myself {\n        font-weight: 600; }\n        .general-selection-container .player-statuses .player-status.is-myself .player-name {\n          color: white;\n          background: black; }\n    .general-selection-container .player-statuses .heading > * {\n      background: rgba(43, 43, 43, 0.671);\n      color: white !important; }\n  .general-selection-container .player-statuses::before {\n    z-index: -1;\n    content: '';\n    position: absolute;\n    left: 0px;\n    top: 0px;\n    width: 100%;\n    height: 100%;\n    background-image: url(ui/wallpaper.jpg);\n    background-repeat: repeat;\n    filter: brightness(134%); }\n  .general-selection-container .my-choices {\n    padding: 8px;\n    background-image: url(\"ui/bak.png\");\n    background-repeat: repeat;\n    flex-grow: 1;\n    display: flex;\n    flex-direction: column;\n    justify-content: center; }\n    .general-selection-container .my-choices .title {\n      color: white;\n      font-size: 1.4em;\n      margin-bottom: 10px; }\n    .general-selection-container .my-choices .available {\n      display: flex;\n      justify-content: center; }\n      .general-selection-container .my-choices .available .general-wrapper {\n        cursor: pointer;\n        transition: 0.2s;\n        margin: 3px;\n        border: 1px solid black;\n        border-radius: 10px;\n        overflow: hidden;\n        box-shadow: 0px 0px 10px black; }\n        .general-selection-container .my-choices .available .general-wrapper:hover {\n          transform: translate(0px, -10px); }\n        .general-selection-container .my-choices .available .general-wrapper.disabled {\n          cursor: initial;\n          filter: brightness(50%); }\n        .general-selection-container .my-choices .available .general-wrapper.disabled:hover {\n          transform: none; }\n        .general-selection-container .my-choices .available .general-wrapper.highlighted {\n          filter: drop-shadow(0px 0px 10px gold); }\n    .general-selection-container .my-choices .chosen {\n      padding: 5px; }\n      .general-selection-container .my-choices .chosen .place-holder {\n        cursor: pointer;\n        background: grey;\n        transition: 0.2s;\n        margin: 3px;\n        border: 1px solid black;\n        border-radius: 10px;\n        filter: drop-shadow(0px 0px 4px black);\n        overflow: hidden; }\n    .general-selection-container .my-choices .button-container {\n      padding: 5px; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -24995,13 +25127,9 @@ exports.push([module.i, ".general-selection-container {\n  display: flex;\n  pad
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/card-transit.scss ***!
   \*************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".card-transit {\n  pointer-events: none;\n  z-index: 19; }\n  .card-transit .fade-out-enter {\n    opacity: 1; }\n  .card-transit .fade-out-enter-active {\n    opacity: 1; }\n  .card-transit .fade-out-exit {\n    opacity: 1; }\n  .card-transit .fade-out-exit-active {\n    opacity: 0;\n    transition: 0.25s linear; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25010,13 +25138,9 @@ exports.push([module.i, ".card-transit {\n  pointer-events: none;\n  z-index: 19
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/tooltip.scss ***!
   \********************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".tooltip {\n  background: rgba(0, 0, 0, 0.74);\n  padding: 5px;\n  border-radius: 6px;\n  z-index: 999;\n  color: white;\n  font-family: initial;\n  font-size: 0.8em;\n  max-width: 200px; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25025,13 +25149,9 @@ exports.push([module.i, ".tooltip {\n  background: rgba(0, 0, 0, 0.74);\n  paddi
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-board.scss ***!
   \*********************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\");\n  background-size: contain;\n  filter: grayscale(80%);\n  content: \"\";\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%; }\n\n.board {\n  display: flex;\n  flex-direction: column;\n  min-width: 1500px;\n  min-height: 800px; }\n  .board .top {\n    position: relative;\n    flex-grow: 1;\n    display: flex; }\n    .board .top .system-buttons {\n      position: absolute;\n      background: rgba(27, 27, 27, 0.712);\n      color: white;\n      font-family: initial;\n      border-radius: 6px;\n      padding: 5px;\n      font-size: 13px;\n      top: 4px;\n      left: 4px; }\n    .board .top .playground {\n      flex-grow: 1;\n      position: relative;\n      color: white;\n      font-size: 20px;\n      text-shadow: 0px 0px 5px black;\n      padding: 20px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between; }\n      .board .top .playground .deck-info {\n        position: absolute;\n        background: rgba(27, 27, 27, 0.712);\n        color: white;\n        font-family: initial;\n        border-radius: 6px;\n        padding: 5px;\n        font-size: 15px;\n        top: 4px;\n        right: 4px; }\n      .board .top .playground .top-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-around;\n        margin-bottom: 20px;\n        margin-left: 170px;\n        margin-right: 170px;\n        padding-top: 10px; }\n      .board .top .playground .secondary-row {\n        display: flex;\n        flex-direction: row-reverse;\n        justify-content: space-between;\n        margin-bottom: 32px;\n        padding: 10px; }\n      .board .top .playground .go-up {\n        margin-top: -80px; }\n      .board .top .playground .workflow-row {\n        z-index: 90;\n        pointer-events: none; }\n        .board .top .playground .workflow-row .goner {\n          animation: fade-out 3.5s forwards; }\n    .board .top .chat-logger {\n      width: 360px;\n      position: relative;\n      background-color: rgba(59, 30, 30, 0.884);\n      box-shadow: inset 0px 0px 10px #9a9a9a; }\n  .board .btm {\n    position: relative;\n    height: 250px;\n    display: flex;\n    align-items: flex-end; }\n    .board .btm .my-cards {\n      flex-grow: 1;\n      display: flex;\n      position: relative;\n      height: 168px;\n      flex-grow: 1;\n      background-image: url(\"ui/bak.png\");\n      background-repeat: repeat;\n      box-shadow: inset 0px 0px 5px #ffffff;\n      display: flex; }\n      .board .btm .my-cards .mid {\n        position: relative;\n        width: 240px;\n        padding: 4px;\n        background-color: rgba(56, 52, 29, 0.767);\n        box-shadow: inset 0px 0px 5px #ffffff;\n        z-index: 3; }\n        .board .btm .my-cards .mid .my-signs {\n          height: 30px;\n          display: flex;\n          padding-left: 10px;\n          align-items: center; }\n          .board .btm .my-cards .mid .my-signs .sign {\n            width: 20px;\n            height: 20px;\n            margin: 6px;\n            border-radius: 20px;\n            background: #777777;\n            font-size: 26px;\n            color: #ffffff;\n            opacity: 0.5;\n            transition: 0.2s;\n            border: 1px solid white; }\n            .board .btm .my-cards .mid .my-signs .sign.enabled {\n              opacity: 1;\n              filter: drop-shadow(3px 3px 1px black); }\n            .board .btm .my-cards .mid .my-signs .sign.selectable {\n              cursor: pointer;\n              border: 1px solid gold;\n              background: #d29557; }\n            .board .btm .my-cards .mid .my-signs .sign.selectable:hover {\n              transform: translate(0px, -5px); }\n            .board .btm .my-cards .mid .my-signs .sign.selected {\n              transform: translate(0px, -5px);\n              color: gold; }\n        .board .btm .my-cards .mid .my-judge {\n          height: 30px;\n          display: flex; }\n        .board .btm .my-cards .mid .my-equip {\n          height: 100px;\n          font-size: 18px; }\n    .board .btm .player-buttons {\n      position: absolute;\n      top: 0px;\n      left: 220px;\n      right: 360px;\n      height: 70px;\n      display: flex;\n      align-items: center;\n      justify-content: center;\n      z-index: 2; }\n      .board .btm .player-buttons .server-hint-msg {\n        position: absolute;\n        top: -16px;\n        height: 30px;\n        color: white;\n        text-shadow: 0px 0px 4px white;\n        font-size: 24px; }\n    .board .btm .buttons {\n      position: absolute;\n      background-color: rgba(59, 30, 30, 0.884);\n      top: 0px;\n      right: 0px;\n      width: 360px;\n      height: 82px;\n      display: flex;\n      align-items: center;\n      justify-content: space-around;\n      flex-wrap: wrap; }\n\n.ui-button {\n  font-family: LiShuFanTi;\n  font-size: 21px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  background: #653b3b;\n  border: 1px solid #a27373;\n  border-radius: 5px;\n  cursor: pointer;\n  min-width: 100px;\n  margin-right: 5px;\n  line-height: 1em;\n  transition: 0.2s; }\n  .ui-button.ui-button-abort {\n    position: absolute;\n    right: 10px;\n    color: #bd7d1c;\n    background: white;\n    padding: 10px; }\n  .ui-button.ui-button-abort:hover {\n    color: red;\n    background: #2e2e2e; }\n  .ui-button.ui-button-abort:active {\n    color: black; }\n  .ui-button .drop-down {\n    position: absolute;\n    bottom: -100%;\n    left: 0px;\n    border: 1px solid darkgray; }\n    .ui-button .drop-down .choice {\n      background: beige;\n      color: black;\n      cursor: pointer; }\n    .ui-button .drop-down .choice:hover {\n      color: white;\n      background: black; }\n\n.ui-button:hover {\n  background: #6e4b4b; }\n\n.ui-button:focus {\n  outline: none;\n  box-shadow: none; }\n\n.ui-button:active {\n  background: white;\n  color: gold; }\n\n.ui-button:disabled,\n.ui-button[disabled] {\n  background: #4e4e4e;\n  color: lightgray; }\n\n@keyframes fade-out {\n  0% {\n    filter: brightness(100%);\n    opacity: 1; }\n  10% {\n    filter: brightness(50%);\n    opacity: 1; }\n  94% {\n    filter: brightness(50%);\n    opacity: 1; }\n  100% {\n    filter: brightness(50%);\n    opacity: 0; } }\n\n.alert-play-hand {\n  animation: flashing-red 1.6s infinite;\n  pointer-events: none; }\n\n@keyframes flashing-red {\n  0% {\n    background: transparent; }\n  50% {\n    background: rgba(255, 0, 0, 0.247); }\n  100% {\n    background: transparent; } }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25040,13 +25160,9 @@ exports.push([module.i, ".board::before {\n  background-image: url(\"ui/bg.jpg\"
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-card.scss ***!
   \********************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".ui-card-row {\n  position: relative;\n  padding-left: 20px;\n  margin-top: 10px;\n  display: flex;\n  flex-grow: 1;\n  height: 100%;\n  align-items: center; }\n\n.ui-mark-row {\n  position: relative;\n  padding-left: 10px;\n  display: flex;\n  flex-grow: 1;\n  height: 100%;\n  align-items: center; }\n\n.ui-my-row-card-wrapper {\n  z-index: 2;\n  flex-grow: 1;\n  max-width: 109px;\n  margin: 6px;\n  margin-right: 0px;\n  width: 0px;\n  transition: width 0.3s; }\n  .ui-my-row-card-wrapper:hover {\n    width: 40px; }\n\n.ui-card-wrapper {\n  position: absolute;\n  transition-duration: 0.3s;\n  z-index: 2; }\n\n.ui-card.selectable {\n  cursor: pointer;\n  transition: 0.2s; }\n\n.ui-card.selected {\n  transform: translate(0px, -30px) !important; }\n\n.ui-card.selectable:not(.selected):hover > * {\n  transform: translate(0px, -10px); }\n\n.ui-card.selected .back {\n  display: none; }\n\n.ui-card.selectable:not(.selected):hover .back {\n  display: none; }\n\n.ui-card.darkened {\n  filter: brightness(50%); }\n\n.ui-card.flip {\n  animation: flip 0.8s linear forwards; }\n\n.card-placeholder {\n  border: 1px solid black;\n  border-radius: 5px;\n  background-image: url(\"ui/bak.png\");\n  background-repeat: repeat; }\n\n.ui-card {\n  min-width: 109px;\n  max-width: 109px;\n  height: 155px;\n  position: relative;\n  pointer-events: auto;\n  transform-style: preserve-3d; }\n  .ui-card > * {\n    pointer-events: none;\n    transition: 0.2s; }\n  .ui-card .itself {\n    position: absolute;\n    width: 105px;\n    height: 145px;\n    border: 2px solid black;\n    border-radius: 7px;\n    filter: drop-shadow(2px 4px 4px #272727);\n    -webkit-backface-visibility: hidden;\n    backface-visibility: hidden; }\n  .ui-card .back {\n    position: absolute;\n    width: 105px;\n    height: 145px;\n    border: 2px solid black;\n    border-radius: 7px;\n    filter: drop-shadow(2px 4px 4px #272727);\n    transform: rotateY(180deg);\n    -webkit-backface-visibility: hidden;\n    backface-visibility: hidden; }\n  .ui-card .as {\n    position: absolute;\n    height: 20px;\n    top: 80px;\n    background: #d6d696;\n    color: black;\n    border: 1px solid black;\n    border-radius: 3px;\n    text-shadow: 0px 0px 2px #794c4c;\n    width: 80%;\n    left: 7%; }\n  .ui-card .description {\n    position: absolute;\n    height: 70px;\n    width: 86%;\n    left: 6px;\n    bottom: 7px;\n    display: flex;\n    flex-direction: column-reverse;\n    align-items: center;\n    font-family: Verdana, Geneva, Tahoma, sans-serif;\n    font-size: 11px;\n    color: black;\n    text-shadow: 0px 0px 4px white;\n    filter: drop-shadow(0px 0px 4px white); }\n  .ui-card .top-left-container {\n    position: absolute;\n    top: 5px;\n    left: 5px;\n    display: flex;\n    flex-direction: column;\n    align-items: center; }\n    .ui-card .top-left-container .suit {\n      font-weight: 600;\n      font-size: 20px;\n      text-shadow: 0px 0px 4px white;\n      margin-top: -6px;\n      margin-left: 2px; }\n    .ui-card .top-left-container .number {\n      font-family: sans-serif;\n      font-weight: 600;\n      font-size: 18px;\n      text-shadow: 0px 0px 4px white;\n      letter-spacing: -2px; }\n    .ui-card .top-left-container .heart {\n      color: red; }\n    .ui-card .top-left-container .diamond {\n      color: red; }\n    .ui-card .top-left-container .spade {\n      color: black; }\n    .ui-card .top-left-container .club {\n      color: black; }\n\n.judge-cards {\n  margin-right: 2px; }\n\n@keyframes flip {\n  0% {\n    transform: rotateY(180deg); }\n  100% {\n    transform: rotateY(0deg); } }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25055,13 +25171,9 @@ exports.push([module.i, ".ui-card-row {\n  position: relative;\n  padding-left: 
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-equip.scss ***!
   \*********************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".ui-equip-grid {\n  position: relative;\n  height: 100%; }\n  .ui-equip-grid .equip-row.selected {\n    transform: translate(15px, 0px); }\n  .ui-equip-grid .equip-row.selectable {\n    cursor: pointer; }\n  .ui-equip-grid .equip-row {\n    transition: 0.3s;\n    position: absolute;\n    height: 25%;\n    width: 100%;\n    z-index: 9; }\n    .ui-equip-grid .equip-row .equip {\n      box-shadow: inset 0px 0px 3px black;\n      position: relative;\n      width: 100%;\n      height: 100%;\n      display: flex;\n      align-items: center;\n      background: #d8dac6;\n      color: #333131;\n      text-shadow: 0px 0px 1px black; }\n      .ui-equip-grid .equip-row .equip .corner {\n        max-height: 50%;\n        position: absolute; }\n      .ui-equip-grid .equip-row .equip .corner-top-left {\n        left: 0px;\n        top: 0px;\n        transform: rotate(90deg); }\n      .ui-equip-grid .equip-row .equip .corner-btm-left {\n        left: 0px;\n        bottom: 0px;\n        transform: rotate(); }\n      .ui-equip-grid .equip-row .equip .corner-top-right {\n        top: 0px;\n        right: 0px;\n        transform: rotate(180deg); }\n      .ui-equip-grid .equip-row .equip .corner-btm-right {\n        right: 0px;\n        bottom: 0px;\n        transform: rotate(270deg); }\n      .ui-equip-grid .equip-row .equip .icon {\n        height: 100%;\n        margin-left: 5px; }\n      .ui-equip-grid .equip-row .equip .icon .big {\n        box-shadow: 0 0 8px 8px #d8dac6 inset; }\n      .ui-equip-grid .equip-row .equip .text-one {\n        margin-left: 3px;\n        font-size: 1.2em;\n        width: 12%; }\n      .ui-equip-grid .equip-row .equip .text-two {\n        margin-left: 5px;\n        width: 50%;\n        font-size: 1.2em; }\n      .ui-equip-grid .equip-row .equip .suit {\n        font-size: 18px;\n        position: absolute;\n        text-shadow: 0px 0px 4px white;\n        right: 5px; }\n      .ui-equip-grid .equip-row .equip .number {\n        font-family: sans-serif;\n        font-weight: 600;\n        text-shadow: 0px 0px 4px white;\n        position: absolute;\n        right: 20px; }\n      .ui-equip-grid .equip-row .equip .heart {\n        color: red; }\n      .ui-equip-grid .equip-row .equip .diamond {\n        color: red; }\n      .ui-equip-grid .equip-row .equip .club {\n        color: black; }\n      .ui-equip-grid .equip-row .equip .spade {\n        color: black; }\n\n.equipment-enter {\n  opacity: 0;\n  transform: translate(0px, -20px);\n  transition: 5s; }\n\n.equipment-enter-active {\n  opacity: 1;\n  transform: translate(0px, 0px);\n  transition: 0.3s;\n  z-index: 20; }\n\n.equipment-exit {\n  opacity: 1; }\n\n.equipment-exit-active {\n  opacity: 0;\n  transform: translate(0px, 60px);\n  transition: 0.6s !important;\n  z-index: 20; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25070,13 +25182,9 @@ exports.push([module.i, ".ui-equip-grid {\n  position: relative;\n  height: 100%
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-logger.scss ***!
   \**********************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".logger-container {\n  display: flex;\n  flex-direction: column-reverse;\n  font-size: 12px;\n  font-family: initial;\n  color: #cccccc;\n  overflow-y: scroll; }\n  .logger-container .log-row {\n    padding-bottom: 2px;\n    padding-left: 2px;\n    padding-right: 2px;\n    line-height: 1em; }\n\n.logger-roller {\n  position: absolute;\n  width: 100%;\n  top: 220px;\n  pointer-events: none;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center; }\n  .logger-roller .log-row {\n    line-height: 1em; }\n  .logger-roller .log-row:nth-child(1) {\n    opacity: 60%; }\n  .logger-roller .log-row:nth-child(2) {\n    opacity: 80%; }\n  .logger-roller .log-row:nth-child(3) {\n    opacity: 100%; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25085,13 +25193,9 @@ exports.push([module.i, ".logger-container {\n  display: flex;\n  flex-direction
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-login.scss ***!
   \*********************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".login-panel {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  width: 100%;\n  height: 100%;\n  padding-bottom: 40px; }\n  .login-panel .prompt {\n    font-size: 24px;\n    margin-bottom: 20px; }\n  .login-panel .name-input {\n    margin-bottom: 20px; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25100,13 +25204,9 @@ exports.push([module.i, ".login-panel {\n  display: flex;\n  flex-direction: col
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-modal.scss ***!
   \*********************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".modal-backdrop.fade {\n  opacity: 0; }\n\n.modal-backdrop.show {\n  opacity: .5; }\n\n.modal-backdrop {\n  position: fixed;\n  top: 0;\n  left: 0;\n  z-index: 1040;\n  width: 100vw;\n  height: 100vh;\n  background-color: #000; }\n\n.modal-open .modal {\n  overflow-x: hidden;\n  overflow-y: auto; }\n\n.modal {\n  position: fixed;\n  top: 0;\n  left: 0;\n  z-index: 1050;\n  display: none;\n  width: 100%;\n  height: 100%;\n  overflow: hidden;\n  outline: 0; }\n\n.fade {\n  transition: opacity .15s linear; }\n\n.modal.fade .modal-dialog {\n  transition: -webkit-transform .3s ease-out;\n  transition: transform .3s ease-out;\n  transition: transform .3s ease-out,-webkit-transform .3s ease-out;\n  -webkit-transform: translate(0, -50px);\n  transform: translate(0, -50px); }\n\n.modal.show .modal-dialog {\n  -webkit-transform: none;\n  transform: none; }\n\n.modal-dialog {\n  margin: auto;\n  position: relative;\n  width: auto;\n  pointer-events: none;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  margin-top: 50px; }\n  .modal-dialog .modal-content {\n    position: relative;\n    display: -ms-flexbox;\n    display: flex;\n    -ms-flex-direction: column;\n    flex-direction: column;\n    max-width: 80%;\n    pointer-events: auto;\n    background-image: url(\"ui/bak.png\");\n    background-repeat: repeat;\n    color: white;\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: .3rem;\n    outline: 0;\n    font-family: initial; }\n    .modal-dialog .modal-content .modal-header {\n      display: -ms-flexbox;\n      display: flex;\n      -ms-flex-align: start;\n      align-items: flex-start;\n      -ms-flex-pack: justify;\n      justify-content: space-between;\n      padding: 1rem 1rem;\n      border-bottom: 1px solid #dee2e6;\n      border-top-left-radius: calc(.3rem - 1px);\n      border-top-right-radius: calc(.3rem - 1px); }\n      .modal-dialog .modal-content .modal-header .close {\n        cursor: pointer; }\n    .modal-dialog .modal-content .modal-body {\n      position: relative;\n      -ms-flex: 1 1 auto;\n      flex: 1 1 auto;\n      padding: 1rem;\n      max-width: 780px; }\n\n.rule-book {\n  display: flex;\n  font-size: 13px;\n  width: 100%; }\n  .rule-book .rule-col {\n    padding: 4px;\n    min-width: 130px;\n    margin-right: 10px; }\n    .rule-book .rule-col .rule-item {\n      margin-bottom: 5px;\n      cursor: pointer;\n      text-align: right;\n      z-index: 1;\n      transition: 0.2s; }\n      .rule-book .rule-col .rule-item.active {\n        color: gold;\n        border-right: none;\n        transform: translate(5px, 0px); }\n  .rule-book .rule-content {\n    padding: 4px; }\n    .rule-book .rule-content p {\n      margin-top: initial; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25115,13 +25215,9 @@ exports.push([module.i, ".modal-backdrop.fade {\n  opacity: 0; }\n\n.modal-backd
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-my-player-card.scss ***!
   \******************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".ui-my-player-card {\n  box-shadow: 0px 0px 30px black;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px; }\n  .ui-my-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center; }\n  .ui-my-player-card .identity {\n    position: absolute;\n    top: 0px;\n    right: 0px;\n    width: 30px;\n    height: 32px;\n    border-radius: 15px;\n    border: 1px solid black;\n    background-color: #cacaca;\n    background-position: top;\n    background-size: cover; }\n  .ui-my-player-card .player-hp {\n    position: absolute;\n    right: 0px;\n    bottom: 0px;\n    width: 23px;\n    height: 100%;\n    font-size: 18px; }\n    .ui-my-player-card .player-hp .hp {\n      height: 26px;\n      margin-right: 2px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-my-player-card .equipments {\n    position: absolute;\n    bottom: -4px;\n    left: -4px;\n    width: 80%;\n    font-size: 12px;\n    height: 80px; }\n  .ui-my-player-card .top-right-corner {\n    position: absolute;\n    top: -12px;\n    right: -5px; }\n  .ui-my-player-card .skill-buttons {\n    display: flex;\n    position: absolute;\n    bottom: 8px;\n    left: 6px;\n    right: 20px;\n    pointer-events: all;\n    z-index: 9;\n    flex-wrap: wrap; }\n    .ui-my-player-card .skill-buttons .skill-button {\n      margin: 3px 3px 3px 0px;\n      color: white;\n      transition: 0.2s;\n      flex-grow: 1;\n      min-width: 38px;\n      border-radius: 3px;\n      border: 1px solid black;\n      filter: grayscale(50%);\n      overflow: hidden; }\n      .ui-my-player-card .skill-buttons .skill-button.disabled {\n        filter: opacity(0.6);\n        cursor: initial;\n        pointer-events: none; }\n      .ui-my-player-card .skill-buttons .skill-button.selectable {\n        cursor: pointer;\n        filter: grayscale(0%);\n        box-shadow: inset -1px -1px 0px 1px #00000091; }\n      .ui-my-player-card .skill-buttons .skill-button.selectable:hover {\n        transform: translate(0px, -2px); }\n      .ui-my-player-card .skill-buttons .skill-button.selected {\n        animation: flash-border 1s infinite;\n        border: 1px solid gold; }\n\n.player-stage {\n  height: 15px;\n  width: 120px;\n  animation: appear 0.3s forwards;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 16px;\n  text-shadow: 0px 0px 2px white;\n  color: white;\n  letter-spacing: 1px; }\n\n@keyframes appear {\n  0% {\n    transform: translate(-10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes flash-border {\n  0% {\n    border: 1px solid gold; }\n  50% {\n    border: 1px solid black; }\n  100% {\n    border: 1px solid gold; } }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25130,13 +25226,9 @@ exports.push([module.i, ".ui-my-player-card {\n  box-shadow: 0px 0px 30px black;
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/client/ui/ui-player-card.scss ***!
   \***************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cursor: pointer; }\n\n.ui-player-card.selected {\n  box-shadow: 0px 0px 15px gold !important; }\n\n.ui-player-card.in-turn {\n  border: 3px solid rgba(36, 184, 43, 0.719);\n  box-shadow: 0px 0px 15px rgba(24, 211, 33, 0.87); }\n\n.ui-player-card.damaged {\n  animation: tremble 0.1s 2 linear forwards; }\n\n.ui-player-card {\n  position: relative;\n  border: 3px solid rgba(0, 0, 0, 0.719);\n  border-radius: 4px;\n  transition: 0.3s;\n  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.719)); }\n  .ui-player-card .drunk {\n    background: rgba(212, 47, 47, 0.637); }\n  .ui-player-card .turned-over {\n    background: rgba(255, 255, 255, 0.651); }\n  .ui-player-card .card-avatar {\n    overflow: hidden;\n    position: absolute;\n    width: 100%;\n    height: 100%; }\n    .ui-player-card .card-avatar .img {\n      position: absolute;\n      background-size: cover;\n      pointer-events: none;\n      width: 120%;\n      height: 120%; }\n  .ui-player-card .player-name {\n    position: absolute;\n    width: 100%;\n    height: 18px;\n    top: 0px;\n    left: 0px;\n    background: rgba(0, 0, 0, 0.432);\n    color: white;\n    font-family: sans-serif;\n    font-size: 12px;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    pointer-events: none; }\n  .ui-player-card .player-hp {\n    position: absolute;\n    right: 1px;\n    bottom: 0px;\n    width: 18px;\n    height: 100%;\n    font-size: 16px;\n    pointer-events: none; }\n    .ui-player-card .player-hp .hp {\n      margin: 1px;\n      height: 16px;\n      align-items: center;\n      display: flex;\n      justify-content: center;\n      font-weight: 600; }\n  .ui-player-card .signs {\n    position: absolute;\n    right: -14px;\n    top: 10px; }\n    .ui-player-card .signs .sign {\n      width: 14px;\n      height: 14px;\n      margin: 2px;\n      border-radius: 14px;\n      background: #777777;\n      font-size: 18px;\n      color: #ffffff;\n      border: 1px solid white; }\n    .ui-player-card .signs .false {\n      opacity: 0.5; }\n  .ui-player-card .judge {\n    position: absolute;\n    bottom: -8px;\n    right: 4px;\n    height: 12px; }\n  .ui-player-card .hand {\n    position: absolute;\n    bottom: 80px;\n    height: 18px;\n    width: 26px;\n    background: linear-gradient(to right, #19c736da, #128a26);\n    font-family: initial;\n    font-size: 15px;\n    display: flex;\n    justify-content: center;\n    align-items: center;\n    margin-left: -7px;\n    pointer-events: none; }\n  .ui-player-card .equipments {\n    position: absolute;\n    bottom: 0px;\n    left: -4px;\n    width: 84%;\n    font-size: 12px;\n    height: 68px; }\n  .ui-player-card .distance {\n    background: rgba(12, 12, 12, 0.459);\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    font-size: 40px;\n    pointer-events: none; }\n  .ui-player-card .left-btm-corner {\n    position: absolute;\n    bottom: -12px;\n    left: -5px; }\n  .ui-player-card .death {\n    position: absolute;\n    right: 10%;\n    top: 30%;\n    width: 60%; }\n  .ui-player-card .chat {\n    position: absolute;\n    top: 20px;\n    align-self: center;\n    justify-self: center;\n    background: white;\n    color: black;\n    font-family: initial;\n    font-size: 16px;\n    width: 100%; }\n  .ui-player-card .seat-number {\n    position: absolute;\n    top: 103%;\n    left: 50%;\n    width: 0px;\n    height: 0px;\n    display: flex;\n    justify-content: center;\n    color: #ffffff8a;\n    text-shadow: 0px 0px 10px #cacaca; }\n  .ui-player-card .tie-suo {\n    height: 8px;\n    width: 100%;\n    position: absolute;\n    background: url(ui/tie_suo.png);\n    background-repeat: repeat-x;\n    background-size: contain;\n    top: 60%;\n    display: flex;\n    flex-direction: row-reverse;\n    animation: slide-in 0.35s linear forwards; }\n  .ui-player-card .tie-suo::after {\n    content: '锁';\n    position: absolute;\n    right: 20%;\n    align-self: center;\n    filter: drop-shadow(0px 0px 6px black);\n    color: white;\n    border-radius: 20px;\n    background: #212121; }\n\n.hp-col {\n  display: flex;\n  flex-direction: column-reverse;\n  background: rgba(0, 0, 0, 0.801);\n  position: absolute;\n  bottom: 0px;\n  width: 100%;\n  padding-top: 3px;\n  border-radius: 3px 0px 0px 0px;\n  padding-left: 1px; }\n\n.mark-button {\n  cursor: pointer;\n  border: 1px solid white;\n  border-radius: 3px;\n  padding: 0px 3px; }\n\n.cards {\n  padding: 3px;\n  border: 1px solid black;\n  background: #bebebe;\n  white-space: nowrap;\n  text-shadow: none;\n  z-index: 9;\n  border-radius: 4px; }\n  .cards .red {\n    color: red; }\n  .cards .black {\n    color: black; }\n\n.img-flashing::after {\n  content: '';\n  background: rgba(255, 255, 255, 0.678);\n  width: 50%;\n  height: 200%;\n  transform-origin: center;\n  position: absolute;\n  transform-origin: bottom;\n  animation: img-flash 0.6s forwards; }\n\n@keyframes img-flash {\n  0% {\n    transform: translate(-500%, -100%) rotate(45deg); }\n  100% {\n    transform: translate(0%, 0%) rotate(45deg); } }\n\n@keyframes tremble {\n  0% {\n    transform: translate(0px, 0px); }\n  25% {\n    transform: translate(-10px, 0px); }\n  50% {\n    transform: translate(0px, 0px); }\n  75% {\n    transform: translate(10px, 0px); }\n  100% {\n    transform: translate(0px, 0px); } }\n\n@keyframes slide-in {\n  0% {\n    width: 0%; }\n  100% {\n    width: 100%; } }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25145,13 +25237,9 @@ exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.selectable {\n  cu
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/game-mode-faction/faction-war.scss ***!
   \********************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.ui-my-player-card .faction-war {\n  width: 320px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .general {\n    pointer-events: all; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name {\n      font-size: 20px;\n      writing-mode: unset;\n      width: 100px;\n      height: 22px;\n      color: white;\n      white-space: nowrap; }\n    .ui-player-card.ui-my-player-card .faction-war .general .general-name-after {\n      width: 0;\n      height: 0;\n      border-top: 11px solid transparent;\n      border-left: 9px;\n      border-bottom: 11px solid transparent;\n      position: absolute;\n      left: 100%; }\n    .ui-player-card.ui-my-player-card .faction-war .general .title {\n      position: absolute;\n      left: -3px;\n      top: -5px;\n      font-size: 30px;\n      color: #ffffc9;\n      text-shadow: 0px 0px 10px gold;\n      cursor: pointer; }\n  .ui-player-card.ui-my-player-card .faction-war .hidden .card-avatar {\n    filter: brightness(50%) grayscale(0.7); }\n  .ui-player-card.ui-my-player-card .faction-war .hidden::after {\n    content: '潜伏';\n    position: absolute;\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    color: white;\n    filter: drop-shadow(0px 0px 6px black);\n    font-size: 24px;\n    pointer-events: none; }\n  .ui-player-card.ui-my-player-card .faction-war .my-faction-mark {\n    width: 24px;\n    height: 24px;\n    position: absolute;\n    top: -4px;\n    right: 0px;\n    border-radius: 15px;\n    font-size: 34px;\n    border: double black;\n    color: white;\n    justify-content: center;\n    display: flex;\n    align-items: center;\n    z-index: 9; }\n\n.ui-player-card .dead {\n  filter: grayscale(100%); }\n\n.ui-player-card .faction-war {\n  width: 180px;\n  height: 190px;\n  position: relative;\n  display: flex;\n  pointer-events: none; }\n  .ui-player-card .faction-war .general {\n    height: 100%;\n    position: relative;\n    pointer-events: all;\n    flex-grow: 1;\n    overflow: hidden; }\n    .ui-player-card .faction-war .general .marks {\n      background: rgba(31, 31, 31, 0.767);\n      color: white;\n      font-size: 12px;\n      font-family: Arial, Helvetica, sans-serif;\n      position: absolute;\n      left: 20px;\n      top: 13%;\n      letter-spacing: initial; }\n    .ui-player-card .faction-war .general .general-name {\n      position: absolute;\n      top: 0px;\n      left: 0px;\n      width: 20px;\n      font-size: 22px;\n      text-indent: 26px;\n      display: flex;\n      align-items: center;\n      height: 100px;\n      writing-mode: vertical-rl;\n      text-orientation: upright;\n      color: #e7e3a5;\n      pointer-events: none;\n      text-shadow: 0px 0px 4px black;\n      white-space: nowrap; }\n\n.ui-player-card .faction-mark {\n  width: 24px;\n  height: 24px;\n  position: absolute;\n  top: -8px;\n  left: -8px;\n  border-radius: 15px;\n  font-size: 34px;\n  border: double black;\n  color: white;\n  justify-content: center;\n  display: flex;\n  align-items: center;\n  z-index: 1; }\n\n.ui-player-card .wei {\n  background: #1717c5 !important; }\n\n.ui-player-card .shu {\n  background: #bb1b1b !important; }\n\n.ui-player-card .wu {\n  background: #1ba51b !important; }\n\n.ui-player-card .qun {\n  background: #c5a81a !important; }\n\n.ui-player-card .ye {\n  background: #902090 !important; }\n\n.ui-player-card .faction-dynamic-mark {\n  pointer-events: all;\n  width: 24px;\n  height: 24px;\n  padding: 1px;\n  position: absolute;\n  top: -5px;\n  left: -5px;\n  background: lightgray;\n  border-radius: 3px;\n  border: 1px solid black;\n  display: flex;\n  flex-wrap: wrap;\n  transition: 0.1s;\n  z-index: 1; }\n  .ui-player-card .faction-dynamic-mark .mark {\n    background: gray;\n    width: 50%;\n    height: 50%;\n    cursor: pointer;\n    box-shadow: inset 0px 0px 2px #000000d4; }\n\n.ui-player-card .faction-dynamic-mark:hover {\n  width: 34px;\n  height: 34px; }\n\n.glow-on-hover:before {\n  content: '';\n  background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000);\n  position: absolute;\n  top: -2px;\n  left: -2px;\n  background-size: 400%;\n  z-index: -1;\n  filter: blur(5px);\n  width: calc(100% + 4px);\n  height: calc(100% + 4px);\n  animation: glowing 10s linear infinite;\n  opacity: 0;\n  transition: opacity .3s ease-in-out;\n  border-radius: 10px;\n  opacity: 1; }\n\n.glow-on-hover:after {\n  z-index: -1;\n  content: '';\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  background: #111;\n  left: 0;\n  top: 0;\n  border-radius: 10px; }\n\n@keyframes glowing {\n  0% {\n    background-position: 0 0; }\n  100% {\n    background-position: 400% 0; } }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25160,13 +25248,9 @@ exports.push([module.i, "@charset \"UTF-8\";\n.ui-player-card.ui-my-player-card 
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/game-mode-identity/identity-war.scss ***!
   \**********************************************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, ".ui-player-card .identity-war {\n  width: 170px;\n  height: 190px;\n  overflow: hidden;\n  position: relative; }\n  .ui-player-card .identity-war .faction {\n    position: absolute;\n    top: 0px;\n    left: -3px;\n    width: 30px;\n    height: 30px;\n    background-size: cover;\n    pointer-events: none; }\n  .ui-player-card .identity-war .general-name {\n    position: absolute;\n    top: 0px;\n    left: 0px;\n    width: 20px;\n    text-indent: 30px;\n    letter-spacing: 2px;\n    display: flex;\n    align-items: center;\n    height: 120px;\n    writing-mode: vertical-rl;\n    text-orientation: upright;\n    background-image: linear-gradient(#656565, #3a3a3a, #9c9c9c00);\n    color: #e7e3a5;\n    pointer-events: none; }\n  .ui-player-card .identity-war .identity {\n    position: absolute;\n    top: 0px;\n    right: 0px;\n    width: 20px;\n    height: 24px;\n    border-radius: 15px;\n    border: 1px solid black;\n    background-color: #cacaca;\n    background-position: top;\n    background-size: cover; }\n", ""]);
-
-
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 
@@ -25175,109 +25259,9 @@ exports.push([module.i, ".ui-player-card .identity-war {\n  width: 170px;\n  hei
   !*** ./node_modules/css-loader/dist/cjs.js?url=false!./node_modules/sass-loader/dist/cjs.js?url=false!./javascript/index.scss ***!
   \********************************************************************************************************************************/
 /*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
+/***/ (function(module, exports) {
 
-exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
-// Module
-exports.push([module.i, "body {\n  margin: 0px;\n  font-family: LiShuFanTi;\n  overflow-y: hidden; }\n\n.icon {\n  margin: 3px;\n  cursor: pointer; }\n\n.icon:hover {\n  color: gold; }\n\n.occupy {\n  position: absolute;\n  top: 0px;\n  left: 0px;\n  bottom: 0px;\n  right: 0px;\n  width: 100%;\n  height: 100%; }\n\n.font-big {\n  font-size: 30px; }\n\n.center {\n  display: flex;\n  align-items: center;\n  justify-content: center; }\n\n.bg {\n  z-index: -1; }\n\n.overflow-hidden {\n  overflow: hidden; }\n\n.noselect * {\n  -webkit-touch-callout: none;\n  /* iOS Safari */\n  -webkit-user-select: none;\n  /* Safari */\n  -khtml-user-select: none;\n  /* Konqueror HTML */\n  -moz-user-select: none;\n  /* Old versions of Firefox */\n  -ms-user-select: none;\n  /* Internet Explorer/Edge */\n  user-select: none;\n  /* Non-prefixed version, currently\r\n                                    supported by Chrome, Edge, Opera and Firefox */ }\n\n.mask {\n  background-color: rgba(0, 0, 0, 0.548); }\n", ""]);
-
-
-
-/***/ }),
-
-/***/ "./node_modules/css-loader/dist/runtime/api.js":
-/*!*****************************************************!*\
-  !*** ./node_modules/css-loader/dist/runtime/api.js ***!
-  \*****************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-/*
-  MIT License http://www.opensource.org/licenses/mit-license.php
-  Author Tobias Koppers @sokra
-*/
-// css base code, injected by the css-loader
-module.exports = function (useSourceMap) {
-  var list = []; // return the list of modules as css string
-
-  list.toString = function toString() {
-    return this.map(function (item) {
-      var content = cssWithMappingToString(item, useSourceMap);
-
-      if (item[2]) {
-        return '@media ' + item[2] + '{' + content + '}';
-      } else {
-        return content;
-      }
-    }).join('');
-  }; // import a list of modules into the list
-
-
-  list.i = function (modules, mediaQuery) {
-    if (typeof modules === 'string') {
-      modules = [[null, modules, '']];
-    }
-
-    var alreadyImportedModules = {};
-
-    for (var i = 0; i < this.length; i++) {
-      var id = this[i][0];
-
-      if (id != null) {
-        alreadyImportedModules[id] = true;
-      }
-    }
-
-    for (i = 0; i < modules.length; i++) {
-      var item = modules[i]; // skip already imported module
-      // this implementation is not 100% perfect for weird media query combinations
-      // when a module is imported multiple times with different media queries.
-      // I hope this will never occur (Hey this way we have smaller bundles)
-
-      if (item[0] == null || !alreadyImportedModules[item[0]]) {
-        if (mediaQuery && !item[2]) {
-          item[2] = mediaQuery;
-        } else if (mediaQuery) {
-          item[2] = '(' + item[2] + ') and (' + mediaQuery + ')';
-        }
-
-        list.push(item);
-      }
-    }
-  };
-
-  return list;
-};
-
-function cssWithMappingToString(item, useSourceMap) {
-  var content = item[1] || '';
-  var cssMapping = item[3];
-
-  if (!cssMapping) {
-    return content;
-  }
-
-  if (useSourceMap && typeof btoa === 'function') {
-    var sourceMapping = toComment(cssMapping);
-    var sourceURLs = cssMapping.sources.map(function (source) {
-      return '/*# sourceURL=' + cssMapping.sourceRoot + source + ' */';
-    });
-    return [content].concat(sourceURLs).concat([sourceMapping]).join('\n');
-  }
-
-  return [content].join('\n');
-} // Adapted from convert-source-map (MIT)
-
-
-function toComment(sourceMap) {
-  // eslint-disable-next-line no-undef
-  var base64 = btoa(unescape(encodeURIComponent(JSON.stringify(sourceMap))));
-  var data = 'sourceMappingURL=data:application/json;charset=utf-8;base64,' + base64;
-  return '/*# ' + data + ' */';
-}
+throw new Error("Module build failed (from ./node_modules/sass-loader/dist/cjs.js):\nError: Node Sass does not yet support your current environment: Windows 64-bit with Unsupported runtime (93)\nFor more information on which environments are supported please see:\nhttps://github.com/sass/node-sass/releases/tag/v4.14.1\n    at module.exports (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\binding.js:13:13)\n    at Object.<anonymous> (D:\\GameDev\\sanguosha\\node_modules\\node-sass\\lib\\index.js:14:35)\n    at Module._compile (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:194:30)\n    at Object.Module._extensions..js (node:internal/modules/cjs/loader:1153:10)\n    at Module.load (node:internal/modules/cjs/loader:981:32)\n    at Function.Module._load (node:internal/modules/cjs/loader:822:12)\n    at Module.require (node:internal/modules/cjs/loader:1005:19)\n    at require (D:\\GameDev\\sanguosha\\node_modules\\v8-compile-cache\\v8-compile-cache.js:161:20)\n    at getDefaultSassImpl (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:198:10)\n    at Object.loader (D:\\GameDev\\sanguosha\\node_modules\\sass-loader\\dist\\index.js:80:29)");
 
 /***/ }),
 

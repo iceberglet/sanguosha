@@ -145,7 +145,7 @@ export function toChinese(idx: number) {
 
 export const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 export function wait(fn: Function, ms: number = 1000) {
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     setTimeout(() => {
       fn();
       resolve();

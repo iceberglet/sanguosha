@@ -39,7 +39,7 @@ import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp";
 import { EquipOp } from "../../server/engine/EquipOp";
 import { GrabCard } from '../../server/engine/SingleRuseOp'
 import FactionWarGeneral, { DUMMY_GENERAL_NAME, hasSub } from "../FactionWarGenerals";
-import { getSiegeContext, removeGeneral } from "./FactionSkillsGeneric";
+import { getSiegeContext, hasGeneral, removeGeneral } from "./FactionSkillsGeneric";
 import { CardTransit } from "../../common/transit/EffectTransit";
 
 /**
@@ -59,6 +59,7 @@ export class ChuLi extends Skill {
     displayName = '除疠'
     description = '出牌阶段限一次，你可以选择至多三名势力各不相同或未确定势力的其他角色，然后你弃置你和这些角色的各一张牌。被弃置黑桃牌的角色各摸一张牌。'
     hiddenType = HiddenType.NONE
+    hint = '因为能同时拆三个不同势力, 是相当容易招仇恨的技能. 另外因为小乔没有黑桃, 可以白嫖'
 
     bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
@@ -108,6 +109,7 @@ export class JiJiu extends Skill {
     id = '急救'
     displayName = '急救'
     description = '你的回合外，你可以将一张红色牌当【桃】使用。'
+    hint = '拥有者常常忘了这是你的回合外. 另外, 红色装备牌也是桃'
     
     bootstrapClient() {
         registerPeach((definer, hint)=>{
@@ -174,6 +176,7 @@ export class WuShuang extends Skill {
     displayName = '无双'
     description = '锁定技，你使用的【杀】需两张【闪】才能抵消；与你进行【决斗】的角色每次需打出两张【杀】。'
     isLocked = true
+    hint = '很适合配合貂蝉离间, 纪灵的双刃, 张任的穿心, 颜良文丑的双雄, 潘凤的狂斧'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<SlashOP>(SlashOP, new WuShuangSlash(this, manager))
@@ -186,6 +189,7 @@ export class LiJian extends Skill {
     displayName = '离间'
     description = '出牌阶段限一次，你可以弃置一张牌并选择两名其他男性角色，然后令其中一名男性角色视为对另一名男性角色使用一张【决斗】。'
     hiddenType = HiddenType.NONE
+    hint = '请参考国战双将下性别的判定. 注意你可以弃装备牌, 比如狮子'
     
     bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
@@ -215,6 +219,7 @@ export class BiYue extends SimpleConditionalSkill<StageStartFlow> {
     id = '闭月'
     displayName = '闭月'
     description = '结束阶段，你可以摸一张牌。'
+    hint = '防御神技, 增加过牌, 单挑十分好用'
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<StageStartFlow>(StageStartFlow, this)
@@ -232,11 +237,12 @@ export class ShuangXiong extends SimpleConditionalSkill<TakeCardStageOp> {
     id = '双雄'
     displayName = '双雄'
     description = '摸牌阶段，你可以改为进行判定，你获得生效后的判定牌，然后本回合你可以将与判定结果颜色不同的一张手牌当【决斗】使用。'
+    hint = '一波流, 需要手牌够多来支撑, 所以要么配合刷牌技能(马腾), 要么配合爆发收人头赏金, 要么配合袁绍(拿先驱, 珠联璧合)'
 
     bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
             let color = hint.roundStat.customData[this.id] as Color
-            return new PlayerActionDriverDefiner('离间')
+            return new PlayerActionDriverDefiner('双雄')
                         .expectChoose([UIPosition.MY_SKILL], 1, 1, (id, context)=>{
                             return id === this.id && !!color
                         })
@@ -285,6 +291,7 @@ export class WanSha extends SimpleConditionalSkill<AskSavingAround> {
     displayName = '完杀'
     description = '锁定技，你的回合内，只有你和处于濒死状态的角色才能使用【桃】。'
     isLocked = true
+    hint = '非常克制地方抱团, 但也小心踩了自己的脚...'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<AskSavingAround>(AskSavingAround, this)
@@ -305,6 +312,7 @@ export class LuanWu extends Skill {
     displayName = '乱武'
     description = '限定技，出牌阶段，你可以令所有其他角色除非对各自距离最小的另一名角色使用一张【杀】，否则失去1点体力。'
     hiddenType = HiddenType.NONE
+    hint = '注意发动时机, 小心踩了自己的脚... 注意失去体力死掉的不算任何人杀死的'
 
     bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
@@ -393,6 +401,7 @@ export class WeiMu extends SimpleConditionalSkill<RuseOp<any>> {
     displayName = '帷幕'
     description = '锁定技，当你成为黑色锦囊牌的目标时，则取消之。'
     isLocked = true
+    hint = '红色的负面锦囊只有万箭, 一张过拆一张顺手的样子'
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<ShunShou>(ShunShou, this)
@@ -435,6 +444,7 @@ export class ZhenDu extends SimpleConditionalSkill<StageStartFlow> {
     id = '鸩毒'
     displayName = '鸩毒'
     description = '一名角色的出牌阶段开始时，你可以弃置一张手牌，然后该角色视为使用一张【酒】，若该角色不是你，你对其造成1点伤害。'
+    hint = '一旦进入残局, 何太后就要出来搞事情'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<StageStartFlow>(StageStartFlow, this)
@@ -473,6 +483,7 @@ export class QiLuan extends SimpleConditionalSkill<StageEndFlow> {
     displayName = '戚乱'
     description = '一名角色的回合结束时，你每杀死过一名其他角色，便摸三张牌；每有一名其他角色死亡(不是你杀死)，你摸一张牌。'
     bounty = 0
+    hint = '爆发神技. 因为威力太大, 甚至可以让敌人不再内斗, 甚至面对毒酒会互相出桃救援'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<StageEndFlow>(StageEndFlow, this)
@@ -503,6 +514,7 @@ export class FuDi extends SkillForDamageTaken {
     id = '附敌'
     displayName = '附敌'
     description = '当你受到来自其他角色的伤害后，你可以交给伤害来源一张手牌。若如此做，你对与其势力相同的角色中体力值最多且不小于你的一名角色造成1点伤害。'
+    hint = '配合从谏让夏侯惇直呼内行. 注意若敌人势力血量都比你小就会白给手牌'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
@@ -574,6 +586,7 @@ export class CongJian extends SimpleConditionalSkill<DamageOp> {
     displayName = '从谏'
     description = '锁定技，当你于回合外造成伤害时或于回合内受到伤害时，伤害值+1。'
     isLocked = true
+    hint = '所以不要给张绣配李傕郭汜, 而且怕何太后的毒, 或者决斗踩自己的脚. 配个吕布, 配合貂蝉离间则爽歪歪'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
@@ -604,6 +617,7 @@ export class GuiDao extends SimpleConditionalSkill<JudgeOp> {
     id = '鬼道'
     displayName = '鬼道'
     description = '当一名角色的判定牌生效前，你可以打出一张黑色牌替换之。'
+    hint = '包括你的装备牌'
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<JudgeOp>(JudgeOp, this)
@@ -642,6 +656,7 @@ export class LeiJi extends SimpleConditionalSkill<DodgePlayed> {
     id = '雷击'
     displayName = '雷击'
     description = '当你使用或打出【闪】时，你可以令一名其他角色进行判定，若结果为黑桃，你对该角色造成2点雷电伤害。'
+    hint = '大家都很熟悉的技能了'
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DodgePlayed>(DodgePlayed, this)
@@ -687,6 +702,7 @@ export class JianChu extends SimpleConditionalSkill<SlashOP> {
     id = '鞬出'
     displayName = '鞬出'
     description = '当你使用【杀】指定一个目标后，你可以弃置其一张牌，若弃置的牌：是装备牌，该角色不能使用【闪】；不是装备牌，该角色获得此【杀】。'
+    hint = '搭配纪灵, 张任, 潘凤都有不错的效果. 即使对方没有装备牌, 也可以弃掉对方可能的闪和桃'
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<SlashOP>(SlashOP, this)
@@ -719,6 +735,7 @@ export class XiongYi extends Skill {
     displayName = '雄异'
     description = '限定技，出牌阶段，你可以令与你势力相同的所有角色各摸三张牌，然后若你的势力是全场角色最少的势力，则你回复1点体力。'
     hiddenType = HiddenType.NONE
+    hint = '马老板发工资了!'
 
     bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
@@ -774,6 +791,7 @@ export class LuanJi extends Skill {
     displayName = '乱击'
     description = '你可以将两张手牌当【万箭齐发】使用（不能使用本回合此前发动此技能时已用过的花色）。若如此做，其他与你同势力角色使用【闪】响应此【万箭齐发】时，其可摸一张牌。'
     hiddenType = HiddenType.NONE
+    hint = '一般袁绍如果要先亮, 尽量只亮单袁绍, 那样队友孔融就不怕你的万箭'
 
     bootstrapClient() {
         playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
@@ -818,6 +836,7 @@ export class SiJian extends SimpleConditionalSkill<CardAwayEvent> {
     displayName = '死谏'
     description = '当你失去最后的手牌时，你可以弃置一名其他角色的一张牌。'
     needRepeatedCheck = false
+    hint = '用得好可以和随势联动, 用牌伤害濒死的人->死谏弃他的防御牌->濒死->摸牌->继续'
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<CardBeingDroppedEvent>(CardBeingDroppedEvent, this)
@@ -858,6 +877,7 @@ export class SuiShi extends Skill {
     description = '锁定技，当其他角色进入濒死状态时，若伤害来源与你势力相同，你摸一张牌；当其他角色死亡时，若其与你势力相同，你失去1点体力。'
     needRepeatedCheck = false
     isLocked = true
+    hint = '用得好可以达到联营的效果. 配合连弩堪比李典忘隙, 田丰的南蛮万箭可以尽量留着, 用来收人头刷牌'
     
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<EnterDyingEvent>(EnterDyingEvent, new SuiShiDying(this, manager))
@@ -910,6 +930,7 @@ export class XiongSuan extends Skill {
     displayName = '凶算'
     description = '限定技，出牌阶段，你可以弃置一张手牌并选择与你势力相同的一名角色，对其造成1点伤害，' + 
                 '然后你摸三张牌。若该角色有已发动的限定技，则你选择其一个限定技，此回合结束时视为该限定技未发动过。'
+    hint = '可以修复队友/自己的限定技, 如果修复凶算本身, 效果类似于苦肉'
 
     toRestore: [PlayerInfo, string] = null
     
@@ -1177,6 +1198,7 @@ export class KuangFu extends SimpleConditionalSkill<DamageOp> {
     id = '狂斧'
     displayName = '狂斧'
     description = '当你使用【杀】对目标角色造成伤害后，你可以将其装备区里的一张牌置入你的装备区或弃置之。'
+    hint = '可以修复队友/自己的限定技, 如果修复凶算本身, 效果类似于苦肉'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
@@ -1221,6 +1243,7 @@ export class DuanChange extends SimpleConditionalSkill<DeathOp> {
     description = '锁定技，当你死亡时，你令杀死你的角色失去一张武将牌的所有技能。'
     isLocked = true
     skillRepo: SkillRepo
+    hint = '毒菜的标志技能'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
         skillRegistry.on<DeathOp>(DeathOp, this)
@@ -1228,7 +1251,7 @@ export class DuanChange extends SimpleConditionalSkill<DeathOp> {
     }
 
     public conditionFulfilled(event: DeathOp, manager: GameManager): boolean {
-        if(event.deceased.player.id === this.playerId && event.timeline === DeathTimeline.IN_DEATH && event.killer) {
+        if(event.deceased.player.id === this.playerId && event.timeline === DeathTimeline.IN_DEATH && event.killer && !event.killer.isDead) {
             return true
         }
         return false
@@ -1236,14 +1259,22 @@ export class DuanChange extends SimpleConditionalSkill<DeathOp> {
 
     public async doInvoke(event: DeathOp, manager: GameManager): Promise<void> {
         this.invokeEffects(manager, [event.killer.player.id])
+        let buttons = [new Button('main', '主将的技能'), new Button('sub', '副将的技能')]
+        let killer = event.killer as FactionPlayerInfo
+        if(!hasGeneral(killer, true)){
+            buttons[0].disable()
+        }
+        if(!hasGeneral(killer, false)) {
+            buttons[1].disable()
+        }
         let resp = await manager.sendHint(this.playerId, {
             hintType: HintType.MULTI_CHOICE,
-            hintMsg: `请选择令${event.killer}失去哪一张武将牌的技能`,
-            extraButtons: [new Button('main', '主将的技能'), new Button('sub', '副将的技能')]
+            hintMsg: `请选择令${killer}失去哪一张武将牌的技能`,
+            extraButtons: buttons
         })
         let position = resp.button
         //set isGone = true so client side does not have them any more
-        for(let s of this.skillRepo.getSkills(event.killer.player.id)) {
+        for(let s of this.skillRepo.getSkills(killer.player.id)) {
             if(s.position === position) {
                 s.isGone = true
                 s.onRemoval(manager.context)
@@ -1251,7 +1282,7 @@ export class DuanChange extends SimpleConditionalSkill<DeathOp> {
         }
 
         //disable the abilities
-        await manager.events.publish(new GeneralSkillStatusUpdate(this.displayName, event.killer as FactionPlayerInfo, position as SkillPosition, false, true))
+        await manager.events.publish(new GeneralSkillStatusUpdate(this.displayName, killer, position as SkillPosition, false, true))
     }
 }
 
@@ -1261,6 +1292,7 @@ export class BeiGe extends SimpleConditionalSkill<DamageOp> {
     id = '悲歌'
     displayName = '悲歌'
     description = '当一名角色受到【杀】造成的伤害后，你可以弃置一张牌，然后令其进行判定，若结果为：红桃，其回复1点体力；方块，其摸两张牌；梅花，伤害来源弃置两张牌；黑桃，伤害来源翻面。'
+    hint = '骚扰别人出杀, 难得的令其他人翻面的技能'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
@@ -1302,6 +1334,7 @@ export class HengZheng extends SimpleConditionalSkill<StageStartFlow> {
     id = '横征'
     displayName = '横征'
     description = '摸牌阶段，若你的体力值为1或你没有手牌，则你可以改为获得每名其他角色区域里的一张牌。'
+    hint = '技能过于强大, 拥有者一般都要藏着等待发动时机'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<StageStartFlow>(StageStartFlow, this)
@@ -1333,6 +1366,7 @@ export class BaoLing extends SimpleConditionalSkill<StageEndFlow> {
     isLocked = true
     disabledForSub = true
     skillRepo: SkillRepo
+    hint = '可以配合后期废柴的将, 比如孔融张任, 扔了不心疼 :)'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, skillRepo: SkillRepo): void {
         skillRegistry.on<StageEndFlow>(StageEndFlow, this)
@@ -1374,6 +1408,7 @@ export class BengHuai extends SimpleConditionalSkill<StageStartFlow> {
     isLocked = true
     disabledForMain = true
     disabledForSub = true
+    hint = '没啥好说的负面技'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<StageStartFlow>(StageStartFlow, this)
@@ -1418,6 +1453,7 @@ export class MingShi extends SimpleConditionalSkill<DamageOp> {
     displayName = '名士'
     description = '锁定技，当你受到伤害时，若伤害来源有暗置的武将牌，此伤害-1。'
     isLocked = true
+    hint = '所以要大杀四方的时候要在回合开始时双亮, 避免砍到孔融的尴尬局面'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
@@ -1442,6 +1478,7 @@ export class LiRang extends SimpleConditionalSkill<CardBeingDroppedEvent> {
     id = '礼让'
     displayName = '礼让'
     description = '当你的牌因弃置而置入弃牌堆时，你可以将其中的任意张牌交给其他角色。'
+    hint = '以逸待劳可以不浪费牌甚至形成配合, 如果刘备是一边的就特别环保'
 
     public bootstrapClient() {
         playerActionDriverProvider.registerSpecial(this.id, (hint)=>{
@@ -1509,6 +1546,7 @@ export class ShuangRen extends SimpleConditionalSkill<InStageStart> {
     id = '双刃'
     displayName = '双刃'
     description = '出牌阶段开始时，你可以与一名角色拼点。若你赢，你视为对其或与其势力相同的另一名角色使用一张【杀】；若你没赢，你结束出牌阶段。'
+    hint = '双刃就是双刃剑. 配合庞德吕布相当不错'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills): void {
         skillRegistry.on<InStageStart>(InStageStart, this)
@@ -1581,6 +1619,7 @@ export class ChuanXin extends SimpleConditionalSkill<DamageOp> {
     displayName = '穿心'
     description = `当你于出牌阶段内使用【杀】或【决斗】对目标角色造成伤害时，若其与你势力不同且有副将，你可以防止此伤害。若如此做，该角色选择一项：1.弃置装备区里的所有牌，若如此做，其失去1点体力；2.移除副将。`
     skillRepo: SkillRepo
+    hint = '杀人诛心之技能'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
         skillRegistry.on<DamageOp>(DamageOp, this)
@@ -1629,6 +1668,7 @@ export class FengShi extends SimpleConditionalSkill<SlashOP> {
     displayName = '锋矢'
     description = `阵法技，在同一个围攻关系中，若你是围攻角色，则你或另一名围攻角色使用【杀】指定被围攻角色为目标后，可令该角色弃置装备区里的一张牌。`
     skillRepo: SkillRepo
+    hint = '没啥特别的'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
         skillRegistry.on<SlashOP>(SlashOP, this)
@@ -1714,6 +1754,7 @@ export class QianHuan extends SimpleConditionalSkill<DamageOp> {
     displayName = '千幻'
     description = '当与你势力相同的一名角色受到伤害后，你可以将一张与你武将牌上花色均不同的牌置于你的武将牌上。当一名与你势力相同的角色成为基本牌或锦囊牌的唯一目标时，你可以移去一张“千幻”牌，取消之。'
     allowedSuits = new Set<Suit>(['club', 'heart', 'diamond', 'spade'])
+    hint = '可以抵消掉杀, 甚至五谷, 万箭. 注意必须是唯一目标, 所以太史慈的双杀不满足千幻条件'
 
     public bootstrapServer(skillRegistry: EventRegistryForSkills, manager: GameManager, repo: SkillRepo): void {
         skillRegistry.on<DamageOp>(DamageOp, this)

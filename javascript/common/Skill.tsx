@@ -135,6 +135,8 @@ export abstract class Skill extends SkillStatus {
     disabledForSub: boolean = false
 
     description: string = '暂无 (Please override this field)'
+    hint: string = '暂无提示 (Please override this field)'
+    counter: string = '暂无弱点 (Please override this field)'
 
     public toStatus(): SkillStatus {
         let s = new SkillStatus(this.playerId)
