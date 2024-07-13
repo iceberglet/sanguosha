@@ -8,12 +8,11 @@
     https://blogs.oracle.com/developers/how-to-setup-and-run-a-free-minecraft-server-in-the-cloud
 
 2. 额外需要的一些command:
-- ```sudo yum install git                        #install git 然后 clone 这个 repo. 你要scp进去也成``
-- ```sudo yum install rh-nodejs12                #安装nodeJS ```
-- ```scl enable rh-nodejs12 bash                 #开通node command```
-- ```node <your path>/resources/server.js                  #开启服务器! ```
-- 游戏设置位于:  ```./resources/config-server.json``` (需要在此设置玩家数量,和你的IP,Port等等)
-- ```node ./resources/server.js``` 启动服务器端
+- ```sudo yum install git```                        #install git 然后 clone 这个 repo. 你要scp进去也成
+- ```sudo yum install rh-nodejs12```                #安装nodeJS
+- ```scl enable rh-nodejs12 bash```                 #开通node command
+- ```vi <your path>/resources/config-server.json``` (需要在此设置玩家数量,和你的IP,Port等等)
+- ```node <your path>/resources/server.js```        #开启服务器!
 
 3. 浏览器作为游玩客户端(推荐Chrome)
 
