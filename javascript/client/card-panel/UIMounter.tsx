@@ -90,7 +90,7 @@ type SelectorProp = {
 function OnGeneralCardSelector(p: SelectorProp) {
     
     return  <div className='card-selection-container'>
-                <div className='card-selection-hint center'>{p.context.getCurrentDriver().getHintMsg(context)}</div>
+                <div className='card-selection-hint center'>{p.context.getCurrentDriver().getHintMsg(p.context)}</div>
                 <div className='card-selection-row'>
                     {/* <div className='row-name center'>{p.cardName}</div> */}
                     <div className='row-of-cards'>

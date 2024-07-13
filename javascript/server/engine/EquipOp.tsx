@@ -1,5 +1,5 @@
 import GameManager from "../GameManager";
-import Card from "../../common/cards/Card";
+import {Card}from "../../common/cards/Card";
 import { CardPos } from "../../common/transit/CardPos";
 import {PlayerInfo} from '../../common/PlayerInfo'
 import { CardBeingDroppedEvent } from "./Generic";

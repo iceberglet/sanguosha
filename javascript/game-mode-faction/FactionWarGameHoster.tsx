@@ -1,7 +1,7 @@
 import { GameHoster } from "../server/GameHoster";
 import GameManager from "../server/GameManager";
 import FactionWarInitializer from "./FactionWarInitializer";
-import FactionWarGeneral, { allGenerals } from "./FactionWarGenerals";
+import {FactionWarGeneral, allGenerals } from "./FactionWarGenerals";
 import { PlayerRegistry } from "../server/PlayerRegistry";
 import { BlockedEquipment } from "../server/engine/Equipments";
 import { Player } from "../common/Player";
@@ -9,7 +9,7 @@ import GameServerContext from "../server/context/GameServerContext";
 import FactionWarActionResolver from "./FactionWarActionResolver";
 import { GameModeEnum } from "../common/GameModeEnum";
 import { shuffle, flattenMap, delay, reorder } from "../common/util/Util";
-import FactionPlayerInfo from "./FactionPlayerInfo";
+import {FactionPlayerInfo}from "./FactionPlayerInfo";
 import { HintType, GeneralSelectionResult } from "../common/ServerHint";
 import GameStatsCollector from "../server/GameStatsCollector";
 import { SequenceAwareSkillPubSub } from "./skill/SkillPubsub";

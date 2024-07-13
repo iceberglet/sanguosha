@@ -3,7 +3,7 @@ import { PlayerActionDriver, Clickability, ClickActionResult } from "./PlayerAct
 import GameClientContext from "../GameClientContext";
 import { TogglableMap } from "../../common/util/Togglable";
 import { ServerHint, isDirectButton } from "../../common/ServerHint";
-import Multimap from "../../common/util/Multimap";
+import {Multimap} from "../../common/util/Multimap";
 
 
 export default class PlayerActionDriverDefiner {

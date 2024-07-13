@@ -4,10 +4,10 @@ import UILogin from './ui/UILogin';
 import GameClientContext from './GameClientContext';
 import { Player } from '../common/Player';
 import { Serde } from '../common/util/Serializer';
-import LoginMessage from '../server/Login';
+import {LoginMessage} from '../server/Login';
 import Pubsub from '../common/util/PubSub';
 import { checkNotNull } from '../common/util/Util';
-import GameContext from '../common/GameContext';
+import {GameContext} from '../common/GameContext';
 import { Circus } from '../game-mode-faction/FactionWarGameHoster';
 import PregameUI from './pregame/PregameUI';
 import { PlaySound } from '../common/transit/EffectTransit';
@@ -111,7 +111,9 @@ export default class App extends React.Component<object, AppState> {
 
     doLogin=(p: Player)=>{
         console.log('Logging in...', p)
-        this.state.socket.send(Serde.serialize(new LoginMessage(p.id)))
+        let msg = new LoginMessage(p.id)
+        let ser = Serde.serialize(msg)
+        this.state.socket.send(ser)
     }
 
     renderPrep() {

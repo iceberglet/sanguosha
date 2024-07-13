@@ -4,7 +4,7 @@ import { CardSelectionResult, HintType } from "../../common/ServerHint";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { factionDiffers, factionsSame } from "../../common/General";
-import FactionPlayerInfo from "../FactionPlayerInfo";
+import {FactionPlayerInfo} from "../FactionPlayerInfo";
 import { all, Suits, any, delay } from "../../common/util/Util";
 import PlayerAct from "../../server/context/PlayerAct";
 import GameManager from "../../server/GameManager";
@@ -15,7 +15,7 @@ import TakeCardOp, { TakeCardStageOp } from "../../server/engine/TakeCardOp";
 import AskSavingOp, { AskSavingAround } from "../../server/engine/AskSavingOp";
 import HealOp from "../../server/engine/HealOp";
 import { isSuitRed, isSuitBlack, deriveColor } from "../../common/cards/ICard"
-import Card, { CardType, Color, Suit } from "../../common/cards/Card";
+import {Card,  CardType, Color, Suit } from "../../common/cards/Card";
 import { CardBeingUsedEvent, CardAwayEvent, CardBeingDroppedEvent, CardBeingTakenEvent, turnOver } from "../../server/engine/Generic";
 import { SlashOP } from "../../server/engine/SlashOp";
 import { Timeline, RuseOp, UseEventOperation } from "../../server/Operation";
@@ -38,7 +38,7 @@ import { registerPeach } from "../../client/player-actions/PlayerActionDrivers";
 import CardFightOp, { canCardFight } from "../../server/engine/CardFightOp";
 import { EquipOp } from "../../server/engine/EquipOp";
 import { GrabCard } from '../../server/engine/SingleRuseOp'
-import FactionWarGeneral, { DUMMY_GENERAL_NAME, hasSub } from "../FactionWarGenerals";
+import { hasSub } from "../FactionWarGenerals";
 import { getSiegeContext, hasGeneral, removeGeneral } from "./FactionSkillsGeneric";
 import { CardTransit } from "../../common/transit/EffectTransit";
 

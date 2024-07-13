@@ -1,5 +1,5 @@
 import * as React from 'react'
-import Card from '../../common/cards/Card'
+import {Card}from '../../common/cards/Card'
 import './ui-card.scss'
 import { Suits } from '../../common/util/Util'
 import { ElementStatus } from './UIBoard'

@@ -4,7 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
 import { CardTransit, LogTransit } from "../../common/transit/EffectTransit";
 import { CardObtainedEvent } from "./Generic";
-import Card from "../../common/cards/Card";
+import {Card}from "../../common/cards/Card";
 
 export class TakeCardStageOp extends Operation<void> {
 

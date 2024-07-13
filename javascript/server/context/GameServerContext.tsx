@@ -1,9 +1,9 @@
 import Deck from "../Deck"
 import ArrayList from "../../common/util/ArrayList"
 import { PlayerInfo } from "../../common/PlayerInfo"
-import GameContext from "../../common/GameContext"
+import {GameContext} from "../../common/GameContext"
 import { CardPos } from "../../common/transit/CardPos"
-import Card, { CardManager } from "../../common/cards/Card"
+import {Card, CardManager } from "../../common/cards/Card"
 import { GameMode } from "../../common/GameMode"
 import { GameModeEnum } from "../../common/GameModeEnum"
 

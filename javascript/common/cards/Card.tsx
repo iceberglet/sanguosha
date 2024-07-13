@@ -183,7 +183,7 @@ export function cleanDescription(...cards: Card[]) {
     cards.forEach(c => delete c.description)
 }
 
-export default class Card implements ICard {
+export class Card implements ICard {
     static DUMMY = new Card('none', null, CardType.BACK)
     static counter = 0
     public id: string

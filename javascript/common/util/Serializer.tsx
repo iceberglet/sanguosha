@@ -1,23 +1,23 @@
-import LoginMessage from "../../server/Login"
+import {LoginMessage} from "../../server/Login"
 import { ServerHintTransit, Rescind } from "../ServerHint"
 import { PlayerActionTransit, Button } from "../PlayerAction"
-import GameContext from "../GameContext"
+import {GameContext} from "../GameContext"
 import { PlayerInfo, Identity } from "../PlayerInfo"
-import Card, { CardType, CardSize } from "../cards/Card"
+import {Card, CardType, CardSize } from "../cards/Card"
 import { General, Faction } from "../General"
-import IdentityWarGeneral, { Package } from "../../game-mode-identity/IdentityWarGenerals"
-import IdentityWarPlayerInfo from "../../game-mode-identity/IdentityWarPlayerInfo"
-import FactionWarGeneral from "../../game-mode-faction/FactionWarGenerals"
-import FactionPlayerInfo from "../../game-mode-faction/FactionPlayerInfo"
+import {IdentityWarGeneral, Package } from "../../game-mode-identity/IdentityWarGenerals"
+import {IdentityWarPlayerInfo} from "../../game-mode-identity/IdentityWarPlayerInfo"
+import {FactionWarGeneral} from "../../game-mode-faction/FactionWarGenerals"
+import {FactionPlayerInfo} from "../../game-mode-faction/FactionPlayerInfo"
 import { Stage } from "../Stage"
 import { TextFlashEffect, DamageEffect, CardTransit, CurrentPlayerEffect, PlaySound, LogTransit, SkinRequest, VoiceRequest, SurrenderRequest } from '../transit/EffectTransit';
 import { FWCard } from "../../game-mode-faction/FactionWarCardSet"
-import RoundStat from "../RoundStat"
+import {RoundStat} from "../RoundStat"
 import { CustomUIData } from "../../client/card-panel/CustomUIRegistry"
 import { GameStats } from "../../server/GameStatsCollector"
 import { PlayerPrepChoice, Circus } from '../../game-mode-faction/FactionWarGameHoster'
 import { SkillStatus } from "../Skill"
-import Multimap from "./Multimap"
+import {Multimap} from "./Multimap"
 import { CardMovementEvent, CardPosChangeEvent, CardRearrangeRequest } from "../transit/CardPos"
 
 
@@ -68,7 +68,7 @@ class Serializer {
             }
             let _type = input._type
             if(!_type || !input.payload) {
-                throw `[Serializer] Unable to find type from payload! ${input}`
+                throw `[Serializer] Unable to find type from payload! ${JSON.stringify(input)}`
             }
 
             if(this._customByName.has(_type)) {
@@ -133,6 +133,7 @@ class Serializer {
                 res[k] = v
             }
         })
+
         return {
             payload: res,
             _type: input.constructor.name

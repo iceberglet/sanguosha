@@ -22,11 +22,11 @@ export abstract class ActionResolver {
      * @param act action
      * @returns true if resolved
      */
-    abstract async on(act: PlayerAct, manager: GameManager): Promise<boolean>
+    abstract on(act: PlayerAct, manager: GameManager): Promise<boolean>
 
-    abstract async onSkillAction(act: PlayerAct, event: DodgeOp | AskForSlashOp | AskSavingOp, manager: GameManager): Promise<void>
+    abstract onSkillAction(act: PlayerAct, event: DodgeOp | AskForSlashOp | AskSavingOp, manager: GameManager): Promise<void>
 
-    abstract async onSignAction(act: PlayerAct, event: AskSavingOp, manager: GameManager): Promise<void>
+    abstract onSignAction(act: PlayerAct, event: AskSavingOp, manager: GameManager): Promise<void>
 
 }
 

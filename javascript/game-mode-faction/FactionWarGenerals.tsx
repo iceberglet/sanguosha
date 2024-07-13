@@ -1,6 +1,6 @@
 import { General, Faction } from "../common/General"
 import {Pairs} from "../common/util/Multimap"
-import FactionPlayerInfo from "./FactionPlayerInfo"
+import {FactionPlayerInfo} from "./FactionPlayerInfo"
 
 
 export const allGenerals = new Map<string, FactionWarGeneral>()
@@ -10,7 +10,7 @@ export function hasSub(p: FactionPlayerInfo) {
     return p.isRevealed() && (!p.isSubGeneralRevealed || (p.subGeneral.name !== DUMMY_GENERAL_NAME))
 }
 
-export default class FactionWarGeneral extends General {
+export class FactionWarGeneral extends General {
 
     hpAsMainDelta = 0
     hpAsSubDelta = 0

@@ -1,4 +1,4 @@
-import Card from "../cards/Card"
+import {Card}from "../cards/Card"
 import { Stage } from "../Stage"
 import { CardPos, isCardPosHidden } from "./CardPos"
 

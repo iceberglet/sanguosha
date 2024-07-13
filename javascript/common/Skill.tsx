@@ -3,10 +3,10 @@ import { AckingConsumer } from "./util/PubSub";
 import { PlaySound, TextFlashEffect } from "./transit/EffectTransit";
 import PlayerAct from "../server/context/PlayerAct";
 import { Mark, PlayerInfo } from "./PlayerInfo";
-import FactionPlayerInfo from "../game-mode-faction/FactionPlayerInfo";
+import {FactionPlayerInfo}from "../game-mode-faction/FactionPlayerInfo";
 import { RevealGeneralEvent } from "../game-mode-faction/FactionWarInitializer";
 import GameClientContext from "../client/GameClientContext";
-import GameContext from "./GameContext";
+import {GameContext} from "./GameContext";
 
 
 export interface EventRegistryForSkills {

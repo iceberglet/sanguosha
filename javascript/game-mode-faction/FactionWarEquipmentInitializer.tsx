@@ -7,7 +7,7 @@ import DamageOp, { DamageSource, DamageTimeline } from "../server/engine/DamageO
 import { CardPos } from "../common/transit/CardPos";
 import { HintType } from "../common/ServerHint";
 import { Button } from "../common/PlayerAction";
-import FactionPlayerInfo from "./FactionPlayerInfo";
+import {FactionPlayerInfo}from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
 import { RevealPlayerEvent } from "./FactionWarInitializer";
 import { factionsSame } from "../common/General";

@@ -1,9 +1,9 @@
 import { PlayerInfo } from "./PlayerInfo";
 import { CardPos, isCardPosHidden } from "./transit/CardPos";
-import Card from "./cards/Card";
+import {Card} from "./cards/Card";
 import { GameModeEnum } from "./GameModeEnum";
 import { ICard } from "./cards/ICard";
-import Multimap from "./util/Multimap";
+import {Multimap} from "./util/Multimap";
 
 export type Interpreter = (c: ICard) => ICard
 
@@ -49,7 +49,7 @@ class Cursor {
  * Remaining Deck, dropped cards
  * 
  */
-export default class GameContext {
+export class GameContext {
 
     private interpreters = new Multimap<string, Interpreter>()
 

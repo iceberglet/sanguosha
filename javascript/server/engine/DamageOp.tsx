@@ -4,7 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { DamageEffect, PlaySound } from "../../common/transit/EffectTransit";
 import DeathOp from "./DeathOp";
 import { AskSavingAround } from "./AskSavingOp";
-import Card from "../../common/cards/Card";
+import {Card}from "../../common/cards/Card";
 
 export class EnterDyingEvent {
     constructor(public readonly damage: DamageOp){}

@@ -17,7 +17,7 @@ import DodgeOp from "./DodgeOp";
 import JudgeOp from "./JudgeOp";
 import HealOp from "./HealOp";
 import { TextFlashEffect, PlaySound } from "../../common/transit/EffectTransit";
-import Multimap from "../../common/util/Multimap";
+import {Multimap}from "../../common/util/Multimap";
 
 class EquipBlockedPlayers {
     _data = new Multimap<string, string>()

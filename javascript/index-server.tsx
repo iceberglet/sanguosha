@@ -5,7 +5,7 @@ var compression = require('compression');
 var path = require('path');
 import { Serde } from './common/util/Serializer';
 import Pubsub from './common/util/PubSub';
-import LoginMessage from './server/Login';
+import {LoginMessage} from './server/Login';
 import { PlayerRegistry } from './server/PlayerRegistry';
 import { GameMode } from './common/GameMode';
 import { GameModeEnum } from './common/GameModeEnum';
@@ -75,7 +75,7 @@ wss.on('connection', (ws: WebSocket) => {
 
 if(serverConfig.url) {
     server.listen(serverConfig.port, serverConfig.url, ()=>{
-        console.log('Server running on 7758')
+        console.log('Server running on ' + serverConfig.port)
     })
 } else {
     server.listen(7758, ()=>{

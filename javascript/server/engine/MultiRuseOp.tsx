@@ -2,7 +2,7 @@ import { UseEventOperation, Operation } from "../Operation";
 import GameManager from "../GameManager";
 import { WuXieContext } from "./WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import Card, { CardType } from "../../common/cards/Card";
+import {Card,  CardType } from "../../common/cards/Card";
 import { TextFlashEffect, CardTransit, PlaySound } from "../../common/transit/EffectTransit";
 import TakeCardOp from "./TakeCardOp";
 import DamageOp, { DamageType, DamageSource } from "./DamageOp";
@@ -76,7 +76,7 @@ export abstract class MultiRuse extends UseEventOperation<void> {
         return true
     }
 
-    public abstract async doForOne(target: PlayerInfo, manager: GameManager): Promise<void>;
+    public abstract doForOne(target: PlayerInfo, manager: GameManager): Promise<void>;
 
 }
 

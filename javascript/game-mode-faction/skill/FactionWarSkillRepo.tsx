@@ -1,8 +1,8 @@
-import Multimap from "../../common/util/Multimap";
-import { SimpleConditionalSkill, EventRegistryForSkills, SkillStatus, Skill, GeneralSkillStatusUpdate, HiddenType, SkillRepo } from "../../common/Skill";
+import {Multimap}from "../../common/util/Multimap";
+import {EventRegistryForSkills, SkillStatus, Skill, GeneralSkillStatusUpdate, HiddenType, SkillRepo } from "../../common/Skill";
 import { RevealGeneralEvent } from "../FactionWarInitializer";
 import GameManager from "../../server/GameManager";
-import FactionPlayerInfo from "../FactionPlayerInfo";
+import {FactionPlayerInfo} from "../FactionPlayerInfo";
 import { describer } from "../../common/util/Describer";
 import { GameMode } from "../../common/GameMode";
 import { JianXiong, LuoYi, GangLie, TuXi, GuiCai, FanKui, QinGuo, LuoShen, TianDu, ShenSu, DuanLiang, QiangXi, FangZhu, XingShang, JuShou, 

@@ -1,4 +1,4 @@
-import Card, { CardType } from "../../common/cards/Card";
+import { Card, CardType } from "../../common/cards/Card";
 import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardSelectionResult } from "../../common/ServerHint";

@@ -1,6 +1,6 @@
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
-import Card from "../../common/cards/Card";
+import {Card}from "../../common/cards/Card";
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
 import DamageOp from "./DamageOp";

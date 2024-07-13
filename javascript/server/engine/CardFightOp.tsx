@@ -4,7 +4,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { HintType } from "../../common/ServerHint";
 import { UIPosition } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
-import Card from "../../common/cards/Card";
+import {Card}from "../../common/cards/Card";
 import { delay } from "../../common/util/Util";
 import { CustomUIData, CardFightData } from "../../client/card-panel/CustomUIRegistry";
 import { CardBeingDroppedEvent } from "./Generic";

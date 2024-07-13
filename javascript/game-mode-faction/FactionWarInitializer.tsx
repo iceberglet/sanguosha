@@ -2,7 +2,7 @@ import { Initializer } from "../common/GameMode";
 import GameManager from "../server/GameManager";
 import { CardBeingDroppedEvent } from "../server/engine/Generic";
 import { CardPos } from "../common/transit/CardPos";
-import FactionPlayerInfo from "./FactionPlayerInfo";
+import {FactionPlayerInfo}from "./FactionPlayerInfo";
 import { PlayerInfo } from "../common/PlayerInfo";
 import { HintType } from "../common/ServerHint";
 import { Button } from "../common/PlayerAction";

@@ -5,7 +5,7 @@ import * as React from 'react'
 import { CardPos, CardPosChangeEvent } from "../../common/transit/CardPos";
 import { Checker, ElementStatus } from "./UIBoard";
 import CardTransitManager, { CardAndCoor, CardEndpoint, InCardAndCoor, getCardCoor } from "./CardTransitManager";
-import Card from "../../common/cards/Card";
+import {Card}from "../../common/cards/Card";
 import {v4 as uuidv4} from 'uuid'
 import { CardTransit } from "../../common/transit/EffectTransit";
 import { ClassFormatter } from "../../common/util/Togglable";

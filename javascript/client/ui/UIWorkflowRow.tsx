@@ -2,16 +2,13 @@
 import UICard from "./UICard"
 import { ElementStatus } from "./UIBoard"
 import * as React from 'react'
-import Card, { CardManager } from "../../common/cards/Card"
-import {CSSTransition, TransitionGroup} from 'react-transition-group'
+import { Card, CardManager } from "../../common/cards/Card"
 import { ScreenPosObtainer } from "./ScreenPosObtainer"
 import CardTransitManager, { CardEndpoint,InCardAndCoor, CardAndCoor } from "./CardTransitManager"
 import { CardPos } from "../../common/transit/CardPos"
 import { CardTransit } from "../../common/transit/EffectTransit"
 import ArrayList from "../../common/util/ArrayList"
 import { ClassFormatter } from "../../common/util/Togglable"
-import e = require("express")
-
 //left offset: 220
 //btm offset: 
 //width = total - 220 * 2 - 120

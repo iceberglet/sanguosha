@@ -1,4 +1,4 @@
-import Card, { CardManager } from "../../common/cards/Card";
+import { Card, CardManager } from "../../common/cards/Card";
 import { Coor } from "./ScreenPosObtainer";
 import { CardTransit } from "../../common/transit/EffectTransit";
 import { CardPos, isCardPosHidden } from "../../common/transit/CardPos";

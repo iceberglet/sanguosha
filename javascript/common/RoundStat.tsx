@@ -2,7 +2,7 @@ import { Stage } from "./Stage"
 
 export const WINE_TAKEN = 'WINE_TAKEN'
 
-export default class RoundStat {
+export class RoundStat {
 
     skipStages = new Map<Stage, boolean>()
 

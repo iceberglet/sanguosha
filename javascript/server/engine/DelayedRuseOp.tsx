@@ -2,7 +2,7 @@ import { Operation, UseEventOperation, RuseOp } from "../Operation";
 import GameManager from "../GameManager";
 import { WuXieContext } from "./WuXieOp";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import Card, { CardType } from "../../common/cards/Card";
+import { Card, CardType } from "../../common/cards/Card";
 import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import { checkThat, delay } from "../../common/util/Util";
 import { CardPos } from "../../common/transit/CardPos";

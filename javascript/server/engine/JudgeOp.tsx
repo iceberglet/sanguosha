@@ -1,6 +1,6 @@
 import { Operation } from "../Operation";
 import GameManager from "../GameManager";
-import Card from "../../common/cards/Card";
+import {Card} from "../../common/cards/Card";
 import { CardTransit } from "../../common/transit/EffectTransit";
 import { delay } from "../../common/util/Util";
 

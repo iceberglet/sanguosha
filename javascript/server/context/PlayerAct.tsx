@@ -2,7 +2,7 @@ import { PlayerAction, UIPosition, Button } from "../../common/PlayerAction";
 import GameManager from "../GameManager";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import { CardPos } from "../../common/transit/CardPos";
-import Card from "../../common/cards/Card";
+import {Card}from "../../common/cards/Card";
 import { ServerHint, CardSelectionResult, GeneralSelectionResult } from "../../common/ServerHint";
 import { CardBeingDroppedEvent } from "../engine/Generic";
 

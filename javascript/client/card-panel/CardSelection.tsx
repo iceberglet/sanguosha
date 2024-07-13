@@ -3,7 +3,7 @@ import UICard from '../ui/UICard'
 import { ElementStatus } from '../ui/UIBoard'
 import { CardSelectionHint, CardSelectionResult, DuoCardSelectionHint, DuoCardSelectionResult } from '../../common/ServerHint'
 import './card-panel.scss'
-import Card from '../../common/cards/Card'
+import {Card} from '../../common/cards/Card'
 import UIButton from '../ui/UIButton'
 
 

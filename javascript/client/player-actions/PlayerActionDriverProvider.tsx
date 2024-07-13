@@ -1,6 +1,6 @@
 import { PlayerActionDriver, CompositePlayerActionDriver } from "./PlayerActionDriver"
 import { ServerHint, HintType } from "../../common/ServerHint"
-import Multimap from "../../common/util/Multimap"
+import {Multimap} from "../../common/util/Multimap"
 import GameClientContext from "../GameClientContext"
 
 type Provider = (hint: ServerHint, context: GameClientContext)=>PlayerActionDriver

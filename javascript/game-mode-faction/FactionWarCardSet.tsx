@@ -1,4 +1,4 @@
-import Card, { CardSize, CardType, CardManager, Suit } from "../common/cards/Card"
+import {Card,  CardSize, CardType, CardManager, Suit } from "../common/cards/Card"
 import './FactionWarActionDrivers'
 
 export enum Pack {

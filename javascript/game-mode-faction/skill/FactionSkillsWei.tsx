@@ -2,8 +2,8 @@ import DamageOp, { DamageTimeline, DamageSource, DamageType } from "../../server
 import { SimpleConditionalSkill, EventRegistryForSkills, HiddenType, Skill } from "../../common/Skill";
 import GameManager from "../../server/GameManager";
 import { CardMovementEvent, CardPos } from "../../common/transit/CardPos";
-import { HintType, CardSelectionResult, DuoCardSelectionHint, DuoCardSelectionResult } from "../../common/ServerHint";
-import { gatherCards, findCard, CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingTakenEvent, CardObtainedEvent, CardAwayEvent, turnOver } from "../../server/engine/Generic";
+import { HintType, CardSelectionResult } from "../../common/ServerHint";
+import { gatherCards, findCard, CardBeingDroppedEvent, CardBeingUsedEvent, CardBeingTakenEvent, CardAwayEvent, turnOver } from "../../server/engine/Generic";
 import JudgeOp, {JudgeTimeline} from "../../server/engine/JudgeOp";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { getRandom, checkThat, any, delay } from "../../common/util/Util";
@@ -15,7 +15,7 @@ import DodgeOp from "../../server/engine/DodgeOp";
 import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
 import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
 import { isSuitBlack } from "../../common/cards/ICard";
-import Card, { CardType } from "../../common/cards/Card";
+import { Card, CardType } from "../../common/cards/Card";
 import { SlashOP } from "../../server/engine/SlashOp";
 import { EquipOp } from "../../server/engine/EquipOp";
 import { UseDelayedRuseOp } from "../../server/engine/DelayedRuseOp";
@@ -27,7 +27,7 @@ import DropCardOp, { DropCardRequest, DropTimeline } from "../../server/engine/D
 import { getNumberOfFactions, askAbandonBasicCard, askAbandonEquip } from "../FactionWarUtil";
 import { MoveCardOnField } from "../../server/engine/MoveCardOp";
 import { GrabCard, ShunShou } from "../../server/engine/SingleRuseOp";
-import FactionPlayerInfo from "../FactionPlayerInfo";
+import {FactionPlayerInfo} from "../FactionPlayerInfo";
 import { CustomUIData, XunXunData } from "../../client/card-panel/CustomUIRegistry";
 import GameClientContext from "../../client/GameClientContext";
 

@@ -6,7 +6,7 @@ import './identity-war.scss'
 import { GameMode } from "../common/GameMode";
 import { Skill } from "../common/Skill";
 
-export default class IdentityWarPlayerInfo extends PlayerInfo {
+export class IdentityWarPlayerInfo extends PlayerInfo {
 
     public constructor(player: Player,
         public identity: Identity,

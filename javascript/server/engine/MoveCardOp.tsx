@@ -5,7 +5,7 @@ import { PlayerInfo } from "../../common/PlayerInfo";
 import { HintType, DuoCardSelectionResult, DuoCardSelectionHint } from "../../common/ServerHint";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import { CardPos } from "../../common/transit/CardPos";
-import Card, { cleanDescription } from "../../common/cards/Card";
+import { Card, cleanDescription } from "../../common/cards/Card";
 import { EquipOp } from "./EquipOp";
 import { UseDelayedRuseOp } from "./DelayedRuseOp";
 

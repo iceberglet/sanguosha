@@ -4,7 +4,7 @@ import { Button } from "../../common/PlayerAction";
 import { PlayerInfo } from "../../common/PlayerInfo";
 import DamageOp, { DamageType, DamageSource } from "./DamageOp";
 import DodgeOp from "./DodgeOp";
-import Card, { CardType, Color } from "../../common/cards/Card";
+import { Card, CardType, Color } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import { deriveColor, ICard } from "../../common/cards/ICard";
 import { HintType } from "../../common/ServerHint";

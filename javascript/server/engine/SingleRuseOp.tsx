@@ -1,10 +1,10 @@
-import { UseEventOperation, RuseOp } from "../Operation";
+import { RuseOp } from "../Operation";
 import GameManager from "../GameManager";
 import { UIPosition, Button } from "../../common/PlayerAction";
 import { WuXieContext } from "./WuXieOp";
 import { HintType, CardSelectionResult } from "../../common/ServerHint";
 import { CardPos } from "../../common/transit/CardPos";
-import Card, { CardType } from "../../common/cards/Card";
+import  {Card,  CardType } from "../../common/cards/Card";
 import { TextFlashEffect } from "../../common/transit/EffectTransit";
 import TakeCardOp from "./TakeCardOp";
 import { AskForSlashOp } from "./SlashOp";
@@ -41,7 +41,7 @@ export abstract class SingleRuse<T> extends RuseOp<T> {
         manager.broadcast(new TextFlashEffect(this.source.player.id, [this.target.player.id], this.ruseType.name))
     }
 
-    public abstract async doEffect(manager: GameManager): Promise<T>
+    public abstract doEffect(manager: GameManager): Promise<T>
 
 }
 

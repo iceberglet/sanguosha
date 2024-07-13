@@ -2,11 +2,11 @@ import { playerActionDriverProvider } from "../client/player-actions/PlayerActio
 import { HintType } from "../common/ServerHint"
 import PlayerActionDriverDefiner from "../client/player-actions/PlayerActionDriverDefiner"
 import { UIPosition, Button } from "../common/PlayerAction"
-import FactionPlayerInfo from "./FactionPlayerInfo"
+import {FactionPlayerInfo}from "./FactionPlayerInfo"
 import { CardPos } from "../common/transit/CardPos"
 import { CardType } from "../common/cards/Card"
 import { describer } from "../common/util/Describer"
-import { registerPeachPlayHand, registerPeach } from "../client/player-actions/PlayerActionDrivers"
+import { registerPeach } from "../client/player-actions/PlayerActionDrivers"
 
 playerActionDriverProvider.registerProvider(HintType.PLAY_HAND, (hint)=>{
     return new PlayerActionDriverDefiner('出牌阶段出知己知彼')

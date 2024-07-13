@@ -1,4 +1,4 @@
-import FactionWarGeneral from "./FactionWarGenerals"
+import {FactionWarGeneral} from "./FactionWarGenerals"
 import { Faction, Gender, factionsSame } from '../common/General'
 import { Player } from "../common/Player"
 import { PlayerInfo, Mark, CardMark, OnSkinChangeRequest } from "../common/PlayerInfo"
@@ -14,7 +14,7 @@ import { CardPos } from "../common/transit/CardPos"
 import SwitchableImage from "../client/SwitchableImage"
 
 
-export default class FactionPlayerInfo extends PlayerInfo {
+export class FactionPlayerInfo extends PlayerInfo {
 
     public isGeneralRevealed = false
     public isSubGeneralRevealed = false

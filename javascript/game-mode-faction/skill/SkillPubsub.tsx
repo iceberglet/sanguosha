@@ -1,4 +1,4 @@
-import Multimap from "../../common/util/Multimap"
+import {Multimap}from "../../common/util/Multimap"
 import { EventRegistryForSkills, SkillTrigger, invocable } from "../../common/Skill"
 import GameManager from "../../server/GameManager"
 import { Button } from "../../common/PlayerAction"

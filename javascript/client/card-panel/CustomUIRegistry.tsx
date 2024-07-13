@@ -1,5 +1,5 @@
 import * as React from 'react'
-import Card from '../../common/cards/Card'
+import {Card} from '../../common/cards/Card'
 import UICard, { CardWidth, UICardHolder } from '../ui/UICard'
 import { ElementStatus } from '../ui/UIBoard'
 import { DragDropContext, Draggable, Droppable, DropResult, Sensor, SensorAPI } from 'react-beautiful-dnd'

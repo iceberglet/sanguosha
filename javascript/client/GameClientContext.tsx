@@ -1,6 +1,6 @@
-import GameContext from "../common/GameContext";
+import {GameContext} from "../common/GameContext";
 import { PlayerInfo } from "../common/PlayerInfo";
-import { ServerHint, ServerHintTransit, HintType } from "../common/ServerHint";
+import { ServerHintTransit, HintType } from "../common/ServerHint";
 import { PlayerActionDriver, Clickability, ClickActionResult, NoActionDriver } from "./player-actions/PlayerActionDriver";
 import { UIPosition, PlayerAction, PlayerActionTransit } from "../common/PlayerAction";
 import { playerActionDriverProvider } from "./player-actions/PlayerActionDriverProvider";
@@ -11,7 +11,6 @@ import { ICard } from "../common/cards/ICard";
 import { CardManager } from "../common/cards/Card";
 import { GameMode } from "../common/GameMode";
 import { GameModeEnum } from "../common/GameModeEnum";
-import { SkillStatus } from "../common/Skill";
 
 export default class GameClientContext extends GameContext {
 

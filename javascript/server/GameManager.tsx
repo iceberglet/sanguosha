@@ -1,8 +1,8 @@
-import GameContext from "../common/GameContext";
-import Card from "../common/cards/Card"
+import {GameContext} from "../common/GameContext";
+import {Card} from "../common/cards/Card"
 import { PlayerInfo } from "../common/PlayerInfo"
 import { PlayerDeadInHisRound } from "./Operation";
-import RoundStat from "../common/RoundStat";
+import {RoundStat} from "../common/RoundStat";
 import { PlayerRegistry, Sanitizer } from "./PlayerRegistry";
 import { ServerHint, HintType } from "../common/ServerHint";
 import Pubsub, { SequenceAwarePubSub, EventRegistry, GameEventListener, CompositeListener } from "../common/util/PubSub";

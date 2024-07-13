@@ -1,4 +1,7 @@
-export default class LoginMessage {
+
+
+
+export class LoginMessage {
 
     public error: string
 

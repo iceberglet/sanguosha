@@ -1,6 +1,6 @@
-import RoundStat from "./RoundStat"
+import {RoundStat} from "./RoundStat"
 import { Button, UIPosition } from "./PlayerAction"
-import Card, { Suit } from "./cards/Card"
+import {Card,  Suit } from "./cards/Card"
 import { General } from "./General"
 import { GameStats } from "../server/GameStatsCollector"
 

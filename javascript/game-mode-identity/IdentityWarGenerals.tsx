@@ -14,7 +14,7 @@ export class Package {
     private constructor(public readonly id: string, public readonly name: string){}
 }
 
-export default class IdentityWarGeneral extends General {
+export class IdentityWarGeneral extends General {
 
     private constructor(id: string, name: string, public pack: Package, faction: Faction, hp: number, 
         ...abilities: string[]) {

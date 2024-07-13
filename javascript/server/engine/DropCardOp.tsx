@@ -5,7 +5,7 @@ import { UIPosition, Button } from "../../common/PlayerAction";
 import { CardPos } from "../../common/transit/CardPos";
 import { HintType, CardSelectionResult, ServerHint } from "../../common/ServerHint";
 import { CardBeingDroppedEvent, gatherCards, findCard, cardAmountAt, cardsAt } from "./Generic";
-import Card from "../../common/cards/Card";
+import {Card}from "../../common/cards/Card";
 
 export enum DropTimeline {
     BEFORE, AFTER

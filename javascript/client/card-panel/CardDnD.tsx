@@ -1,4 +1,4 @@
-// import Card from "../../common/cards/Card"
+// import {Card}from "../../common/cards/Card"
 // import * as React from 'react'
 // import { DragDropContext, Droppable } from "react-beautiful-dnd"
 

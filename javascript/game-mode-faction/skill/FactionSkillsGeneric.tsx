@@ -1,15 +1,11 @@
-import PlayerActionDriverDefiner from "../../client/player-actions/PlayerActionDriverDefiner";
-import { playerActionDriverProvider } from "../../client/player-actions/PlayerActionDriverProvider";
-import GameContext from "../../common/GameContext";
+import {GameContext} from "../../common/GameContext";
 import { factionDiffers, factionsSame } from "../../common/General";
 import { PlayerInfo } from "../../common/PlayerInfo";
-import { HintType } from "../../common/ServerHint";
-import { EventRegistryForSkills, GeneralSkillStatusUpdate, Skill, SkillPosition, SkillRepo } from "../../common/Skill";
-import DeathOp, { DeathTimeline } from "../../server/engine/DeathOp";
+import { GeneralSkillStatusUpdate, SkillPosition, SkillRepo } from "../../common/Skill";
 import GameManager from "../../server/GameManager";
-import FactionPlayerInfo from "../FactionPlayerInfo";
-import FactionWarGeneral from "../FactionWarGenerals";
-import { RemoveGeneralEvent, RevealPlayerEvent } from "../FactionWarInitializer";
+import {FactionPlayerInfo}from "../FactionPlayerInfo";
+import {FactionWarGeneral} from "../FactionWarGenerals";
+import { RemoveGeneralEvent } from "../FactionWarInitializer";
 
 
 enum FormationType {

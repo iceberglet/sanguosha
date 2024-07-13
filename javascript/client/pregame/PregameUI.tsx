@@ -1,5 +1,5 @@
-import { Circus, PlayerPrepChoice } from "../../game-mode-faction/FactionWarGameHoster";
-import FactionWarGeneral, { generalPairs } from "../../game-mode-faction/FactionWarGenerals";
+import { Circus } from "../../game-mode-faction/FactionWarGameHoster";
+import { generalPairs } from "../../game-mode-faction/FactionWarGenerals";
 import Pubsub from "../../common/util/PubSub";
 import * as React from 'react'
 import { ServerHintTransit, GeneralSelectionHint, HintType } from "../../common/ServerHint";
@@ -10,7 +10,6 @@ import UIButton from "../ui/UIButton";
 import { Serde } from "../../common/util/Serializer";
 import { ClassFormatter } from "../../common/util/Togglable";
 import './pregame-ui.scss'
-import { audioManager } from "../audio-manager/AudioManager";
 import FactionWarRuleBook from "../../game-mode-faction/FactionWarRuleBook";
 import UIRuleModal from '../ui/UIRuleModal'
 import { toChinese } from "../../common/util/Util";
@@ -39,18 +38,7 @@ export default function PregameUI(p: Prop) {
         })
         console.log('Subscribed to server hint')
 
-        // return ()=>{
-        //     p.pubsub.off(PlayerPrepChoice, func)
-        // }
     }, [])
-
-    // React.useEffect(()=>{
-    //     audioManager.play('/audio/music-pre-game.mp3', true)
-
-    //     return ()=>{
-    //         audioManager.stop('/audio/music-pre-game.mp3')
-    //     }
-    // }, [])
 
     let me = p.circus.statuses.find(s => s.player.id === p.myId)
 

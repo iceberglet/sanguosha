@@ -1,5 +1,5 @@
 import { shuffle, takeFromArray } from "../common/util/Util"
-import Card, {CardManager} from "../common/cards/Card"
+import {Card, CardManager} from "../common/cards/Card"
 import GameEnding from "./GameEnding"
 
 export default class Deck {

@@ -1,4 +1,4 @@
-import Card, { CardSize, CardType, CardManager } from "../common/cards/Card"
+import {Card,  CardSize, CardType, CardManager } from "../common/cards/Card"
 
 //标准+EX+军争 - https://sanguosha.fandom.com/zh/wiki/%E4%B8%89%E5%9B%BD%E6%9D%80%E6%B8%B8%E6%88%8F%E5%8D%A1%E7%89%8C
 let normalCards: Card[] = []

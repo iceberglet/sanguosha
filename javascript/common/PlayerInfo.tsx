@@ -1,4 +1,4 @@
-import Card, { CardGenre, CardType } from "./cards/Card"
+import { Card, CardGenre, CardType } from "./cards/Card"
 import { takeFromArray } from "./util/Util"
 import {Player} from "./Player"
 import { Gender, Faction } from "./General"

@@ -3,11 +3,11 @@ import UICard from '../ui/UICard'
 import { ElementStatus } from '../ui/UIBoard'
 import { DisplayHint } from '../../common/ServerHint'
 import './card-panel.scss'
-import Card from '../../common/cards/Card'
+import {Card} from '../../common/cards/Card'
 import UIButton from '../ui/UIButton'
 import { General } from '../../common/General'
 import GeneralUI from './GeneralUI'
-import FactionWarGeneral from '../../game-mode-faction/FactionWarGenerals'
+import {FactionWarGeneral} from '../../game-mode-faction/FactionWarGenerals'
 
 type Prop = DisplayHint & {
     onSelectionDone: (res: any)=>void

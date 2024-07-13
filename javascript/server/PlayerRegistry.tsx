@@ -5,7 +5,6 @@ import * as WebSocket from 'ws';
 import { Serde } from "../common/util/Serializer";
 import { PlayerAction, PlayerActionTransit } from "../common/PlayerAction";
 import Pubsub from "../common/util/PubSub";
-import { SkillStatus } from "../common/Skill";
 import { flattenMap } from "../common/util/Util";
 
 export class ServerPlayer {
